@@ -21,6 +21,8 @@ npm run build    # kiểm tra; ra dist/
 | Messages (hub, nối 4 portal) | `/messages/index.html` |
 | Messages từng portal | `/resident/messages.html`, `/staff/messages.html`, `/client/messages.html`, `/admin/messages.html` |
 | Ticket box từng portal (mở từ đáy sidebar dashboard) | `/resident/tickets.html`, `/staff/tickets.html`, `/client/tickets.html`, `/admin/tickets.html` |
+| Account settings (Settings và Promotions của Staff; bản riêng của Client, không có Social và Promotions) | `/staff/account-settings.html`, `/client/account-settings.html` |
+| Resident: Promotions (Staff đã publish), Social (xem và tương tác, không đăng bài, có hộp hướng dẫn cộng đồng), Settings (Profile, Personalize, My property) | `/resident/promotions.html`, `/resident/social.html`, `/resident/settings.html` |
 
 Thêm `?dark` vào URL để xem chế độ tối. Trang Messages hoạt động thật trong trình duyệt (xem [docs/messaging-design.md](docs/messaging-design.md)); chạy `npm test` để kiểm lõi nghiệp vụ.
 
@@ -40,8 +42,9 @@ src/
 ├─ partials/head.html  <head> dùng chung, chèn bằng <!--include:partials/head.html-->
 ├─ partials/messages-app.html  khung + mọi <template> của Messages (nơi duy nhất chứa class của trang này)
 └─ <portal>/*.html     các trang
-tests/                 npm test: 54 test cho lõi Messages (gồm một test ngẫu nhiên)
-docs/                  messaging-design.md (thiết kế, phạm vi demo, hạn chế), checklist-conformance.md (đối chiếu với checklist PDF), account-settings-quality-pass.md
+├─ promotions/ social/ settings/   lõi (chỉ đọc dữ liệu Staff) và trang của Resident
+tests/                 npm test: 82 test (Messages, ẩn/khôi phục, Promotions, Social, Settings của Resident, một test ngẫu nhiên)
+docs/                  messaging-design.md (thiết kế, phạm vi demo, hạn chế), checklist-conformance.md (đối chiếu với checklist PDF), account-settings-quality-pass.md, issue-log.md (nhật ký lỗi và góp ý, kèm quy tắc rút ra: đọc trước khi làm việc mới), ux-checklist-conformance.md (đối chiếu với ux-checklist.com cho 4 portal)
 DESIGN.md              luật thiết kế (khi xung đột, DESIGN.md thắng)
 screenshots/           ảnh tham chiếu sáng/tối của bản hiện tại
 ```
