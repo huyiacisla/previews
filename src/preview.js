@@ -7,6 +7,20 @@ const setDark = (on) => {
   root.classList.toggle("light", !on);
 };
 if (new URLSearchParams(location.search).has("dark")) setDark(true);
+
+// Header và sidebar của mọi trang Client (dashboard, Settings) lấy đúng thiết kế của Staff (xem portal-frame.js), nên một vai trò chỉ có một kiểu.
+// Phải chạy trước mọi đoạn bên dưới vì chúng tìm phần tử trong header và sidebar. Ẩn trang một lúc để không thấy khung cũ nháy lên.
+if (/^\/client\/(dashboard|account-settings)\.html$/.test(location.pathname)) {
+  root.style.visibility = "hidden";
+  const reveal = setTimeout(() => { root.style.visibility = ""; }, 3000); // an toàn: không bao giờ để trang trống
+  try {
+    const [{ adoptStaffFrame }, { pickPersona, initials }] = await Promise.all([import("./portal-frame.js"), import("./messaging/personas.js")]);
+    await adoptStaffFrame({ me: pickPersona("client", new URLSearchParams(location.search).get("as")), initials });
+  } catch { /* trang giữ nguyên khung cũ */ }
+  clearTimeout(reveal);
+  root.style.visibility = "";
+}
+
 document.addEventListener("click", (e) => {
   if (e.target.closest("[data-theme-toggle]")) setDark(!root.classList.contains("dark"));
 });
@@ -28,10 +42,9 @@ const applyUiPrefs = () => {
       const hex = (v) => typeof v === "string" && /^#[0-9a-f]{6}$/i.test(v);
       if (ui) {
         const s = root.style;
-        // Chọn lại "Default" thì bỏ màu đã đặt trước đó (không cần tải lại trang).
-        if (!ui.sb) for (const v of ["--sidebar", "--sidebar-foreground", "--sidebar-accent", "--sidebar-accent-foreground", "--sidebar-primary", "--sidebar-border"]) s.removeProperty(v);
-        root.toggleAttribute("data-contrast", ui.contrast === true); // Account settings > Accessibility (Client)
-        root.toggleAttribute("data-reduce-motion", ui.motion === true);
+        // Chọn lại "Default" (không có màu) thì bỏ màu đã đặt trước đó, không cần tải lại trang.
+        const box = document.querySelector('[data-slot="sidebar-container"]');
+        const names = ["--surface-inverted", "--surface-inverted-foreground", "--surface-inverted-subtle", "--surface-inverted-accent"];
         if (Array.isArray(ui.sb) && ui.sb.slice(0, 4).every(hex)) {
           const [bg, fg, acc, accent] = ui.sb;
           s.setProperty("--sidebar", bg);
@@ -40,6 +53,16 @@ const applyUiPrefs = () => {
           s.setProperty("--sidebar-accent-foreground", fg);
           s.setProperty("--sidebar-primary", accent);
           s.setProperty("--sidebar-border", acc);
+          // Sidebar vẽ bằng token "surface-inverted" (không phải "--sidebar"), mà token đó còn dùng ở chỗ khác: chỉ đặt trên chính sidebar.
+          if (box) {
+            box.style.setProperty(names[0], bg);
+            box.style.setProperty(names[1], fg);
+            box.style.setProperty(names[2], `color-mix(in oklab, ${fg} 72%, transparent)`);
+            box.style.setProperty(names[3], accent);
+          }
+        } else {
+          for (const v of ["--sidebar", "--sidebar-foreground", "--sidebar-accent", "--sidebar-accent-foreground", "--sidebar-primary", "--sidebar-border"]) s.removeProperty(v);
+          if (box) for (const n of names) box.style.removeProperty(n);
         }
         if (!new URLSearchParams(location.search).has("dark")) {
           if (ui.theme === "dark") setDark(true);
@@ -49,9 +72,12 @@ const applyUiPrefs = () => {
         // Tùy chọn sidebar còn áp dụng được cho sidebar thật: biểu tượng, số đếm nhóm, thẻ tổng quan (CSS theo thuộc tính nằm trong styles.css).
         root.setAttribute("data-sb-icons", ui.icons === false ? "off" : "on");
         root.setAttribute("data-sb-counts", ui.counts === false ? "off" : "on");
-        const overview = [...document.querySelectorAll('[data-slot="sidebar-container"] p')].find((e) => e.textContent.trim() === "Portfolio Overview");
-        const card = overview && overview.closest('section[data-slot="card"]');
-        if (card) card.hidden = ui.cap === false;
+        // Thẻ "Portfolio Capacity" ở đầu sidebar (thiết kế của Staff): con trực tiếp của khối đầu sidebar.
+        const cap = [...document.querySelectorAll('[data-slot="sidebar-container"] p')].find((e) => e.textContent.trim() === "Portfolio Capacity");
+        const top = document.querySelector('[data-slot="sidebar-inner"]')?.firstElementChild;
+        let card = cap;
+        while (card && top && card.parentElement !== top) card = card.parentElement;
+        if (card && top) card.hidden = ui.cap === false;
         if (hex(ui.accent) && ui.accent.toLowerCase() !== "#2b55f2") { root.style.setProperty("--primary", ui.accent); root.style.setProperty("--sidebar-primary", ui.accent); }
       }
     } catch { /* trang vẫn dùng diện mạo gốc */ }
@@ -209,7 +235,7 @@ if (["staff", "admin", "client", "resident"].includes(portal) && !location.pathn
   // the Resident Promotions item opens the page that lists what Staff published.
   const pages = {
     staff: { Settings: "/staff/account-settings.html#/workspace", Promotions: "/staff/account-settings.html#/promotions" },
-    client: { "Workspace Settings": "/client/account-settings.html#/profile" },
+    client: { "Workspace Settings": "/client/account-settings.html#/workspace" },
     resident: { Promotions: "/resident/promotions.html", Social: "/resident/social.html" },
   }[portal] || {};
   for (const a of document.querySelectorAll('a[data-slot="sidebar-menu-button"]')) {
@@ -244,10 +270,10 @@ if (portal === "client") {
         const q = location.search;
         const base = `/client/account-settings.html${q}`;
         const items = [
-          ["Profile settings", `${base}#/profile`],
-          ["Messenger & availability", `${base}#/messages`],
-          ["My permissions", `${base}#/permissions`],
-          ["Notification preferences", `${base}#/notifications`],
+          ["Profile settings", `${base}#/settings`],
+          ["Messenger & availability", `${base}#/settings/availability`],
+          ["My permissions", `${base}#/workspace/access`],
+          ["Notification preferences", `${base}#/settings/notifications`],
         ];
         const itemClass = "flex min-h-8 w-full touch-manipulation items-center gap-step-sm rounded-md px-step-sm py-1 text-left text-sm text-foreground outline-none transition-colors hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50 pointer-coarse:min-h-11";
         const menu = document.createElement("div");
@@ -337,13 +363,19 @@ if (portal === "client" && location.pathname.endsWith("/client/account-settings.
     }
     const dash = byLabel("Dashboard");
     if (dash) dash.setAttribute("href", `/client/dashboard.html${location.search}`);
-    // Nội dung Account settings dựng thẳng trong khung này bằng token của portal (không còn trang prototype của Staff nhúng vào).
-    (async () => {
-      try {
-        const [{ pickPersona }, { mountClientSettings }] = await Promise.all([import("./messaging/personas.js"), import("./settings/client.js")]);
-        mountClientSettings(main, pickPersona("client", new URLSearchParams(location.search).get("as")));
-      } catch { main.textContent = "Account settings could not load. Reload the page."; }
-    })();
+    const frame = document.createElement("iframe");
+    frame.title = "Workspace settings";
+    const q = new URLSearchParams(location.search);
+    q.set("embed", "1");
+    frame.src = `/client/account-settings-content.html?${q}${location.hash}`;
+    frame.style.cssText = "display:block;width:100%;border:0;background:transparent";
+    main.replaceChildren(frame);
+    main.style.cssText = "padding:0;max-width:none;overflow:hidden";
+    const fit = () => { frame.style.height = `${Math.max(320, innerHeight - (header ? header.offsetHeight : 0))}px`; };
+    fit();
+    addEventListener("resize", fit);
+    // Hash của trang khung ↔ hash của nội dung (mục sidebar, nút Back và đường dẫn đều đi đúng chỗ).
+    addEventListener("hashchange", () => { try { if (frame.contentWindow.location.hash !== location.hash) frame.contentWindow.location.hash = location.hash; } catch { /* khung chưa tải */ } });
   }
 }
 

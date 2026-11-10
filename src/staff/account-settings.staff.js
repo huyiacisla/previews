@@ -145,7 +145,19 @@ html.a11y-focus :focus-visible{outline:3px solid var(--primary)!important;outlin
       'Ask an owner of the account to change the billing contact.');
   }
   // Staff wording in sections that already exist becomes Client wording.
-  const WORDS = [['Staff Portal', 'Client Portal'], ['staff portal', 'client portal'], ['QA Staff PM', 'Dana Whitfield'], ['staff@mail.easyspotops.com', 'dana.whitfield@mallardpointe.example'], ['Manager Operations', 'Client Admin'], ['Property Manager', 'Regional Director']];
+  const WORDS = [['Staff Portal', 'Client Portal'], ['staff portal', 'client portal'], ['QA Staff PM', 'Dana Whitfield'], ['staff@mail.easyspotops.com', 'dana.whitfield@mallardpointe.example'], ['Manager Operations', 'Client Admin'], ['Property Manager', 'Client']];
+  WORDS.push(
+    ['Staff identity, role, company, and active property.', 'Your identity, role, company and the properties you manage.'],
+    ['Your staff identity for assigned property operations.', 'Your identity for the properties you manage.'],
+    ['Staff name', 'Your name'],
+    ['Shown across staff workspace tools and operations.', 'Shown across the Client portal.'],
+    ['Used for staff sign-in and workspace communication.', 'Used for sign-in and messages from EasySpotOps.'],
+    ['Controls which staff tools are visible.', 'Controls which Client tools are visible.'],
+    ['Quick messages for property staff', 'Quick messages for the property team'],
+    ['Residents, staff or spaces near the limit', 'Properties, staff or spaces near the limit'],
+    ['Search guides for staff tools', 'Search guides for Client tools'],
+    ['Staff support guidance', 'Support guidance'],
+  );
   WORDS.push(['EasySpotOps Help Center', 'Support'], ['this staff profile', 'your profile'], ['staff profile', 'your profile'], ['Staff (read-only)', 'Viewer (read-only)'], ['(QS)', '(DW)'], ['Messages, Community & Announcements, Promotions.', 'Messages, Calendar and Activity.']);
   // Pieces of existing sections that are about Social or Promotions: the Client has neither, so they are cut out.
   const CUTS = [
@@ -262,8 +274,7 @@ html.a11y-focus :focus-visible{outline:3px solid var(--primary)!important;outlin
         if (localStorage.getItem('eso-proto') !== null) localStorage.setItem('eso-proto', JSON.stringify(S));
       }
     } catch { /* storage blocked */ }
-    try { DEF.sbTheme = 'forest'; if (localStorage.getItem('eso-proto') === null) S.sbTheme = 'forest'; } catch { /* first visit only */ }
-    publishUI(); // the Client's own default look (green sidebar) also applies on its real pages
+    // The Client keeps the same default look as Staff (the prototype's Navy). Nothing is handed to the real pages until the person changes something.
     // No Social and no Promotions anywhere: a link or a saved address to one goes to Settings.
     const guard = () => { if (/^#\/(social|promotions)|^#\/workspace\/(social|promodesign|residentpromos)|^#\/settings\/socialmaster/.test(location.hash)) location.replace('#/settings'); };
     addEventListener('hashchange', guard, true);
