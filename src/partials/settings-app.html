@@ -1,0 +1,107 @@
+<!-- Resident Settings page: Profile, Personalize and My property (in place of a staff-style workspace). Shell and templates only:
+     every Tailwind class lives here, settings/resident.js clones templates, fills text and toggles hidden / data-* / aria-*. -->
+
+<svg aria-hidden="true" focusable="false" style="position:absolute;width:0;height:0;overflow:hidden">
+  <defs>
+    <symbol id="i-arrow-left" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></symbol>
+    <symbol id="i-sun-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8a2.83 2.83 0 0 0 4 4 4 4 0 1 1-4-4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.9 4.9 1.4 1.4"/><path d="m17.7 17.7 1.4 1.4"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.3 17.7-1.4 1.4"/><path d="m19.1 4.9-1.4 1.4"/></symbol>
+    <symbol id="i-heart" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></symbol>
+    <symbol id="i-message" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 17a2 2 0 0 1-2 2H6.828a2 2 0 0 0-1.414.586l-2.202 2.202A.71.71 0 0 1 2 21.286V5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2z"/></symbol>
+  </defs>
+</svg>
+
+<a href="#main-content" class="group/button fixed -top-20 left-3 z-toast inline-flex shrink-0 touch-manipulation items-center justify-center gap-1.5 rounded-md border border-transparent bg-primary bg-clip-padding px-2.5 py-1.75 control-text font-medium whitespace-nowrap text-primary-foreground transition outline-none select-none hover:bg-primary/90 focus-visible:top-3 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50">Skip to main content</a>
+
+<noscript><p class="bg-warning-bg px-step-lg py-step-md text-sm text-warning-text">Settings needs JavaScript. Turn it on in your browser settings and reload this page.</p></noscript>
+<div id="app" class="flex h-dvh min-h-0 flex-col bg-background text-foreground">
+  <header class="shrink-0 border-b border-border bg-background">
+    <div class="flex w-full items-center gap-step-md px-step-lg py-step-sm lg:px-step-xl">
+      <button type="button" id="btn-back" class="group/button inline-flex h-8 shrink-0 touch-manipulation items-center justify-center gap-step-xs rounded-md border border-transparent bg-clip-padding pr-step-md pl-step-sm control-text font-medium whitespace-nowrap text-foreground-secondary transition outline-none select-none hover:bg-muted hover:text-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 active:translate-y-px pointer-coarse:h-11 [&_svg]:size-4 [&_svg]:shrink-0">
+        <svg aria-hidden="true"><use href="#i-arrow-left"/></svg>
+        <span>Home</span>
+      </button>
+      <h1 class="min-w-0 flex-1 truncate text-2xl leading-8 font-semibold tracking-tight text-foreground">Settings<span id="portal-label" class="ml-step-sm hidden text-sm font-normal tracking-normal text-muted-foreground sm:inline"></span></h1>
+      <button type="button" data-theme-toggle aria-label="Switch between light and dark" class="group/button inline-flex size-8 shrink-0 touch-manipulation items-center justify-center rounded-md border border-transparent bg-foreground/8 bg-clip-padding text-secondary-foreground transition outline-none select-none hover:bg-foreground/12 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 active:translate-y-px pointer-coarse:size-11 [&_svg]:size-4">
+        <svg aria-hidden="true"><use href="#i-sun-moon"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <main id="main-content" tabindex="-1" class="min-h-0 flex-1 overflow-y-auto outline-none">
+    <div class="mx-auto flex w-full max-w-2xl flex-col gap-step-lg px-step-lg py-step-lg">
+      <div id="tabs" role="tablist" aria-label="Settings sections" class="flex flex-wrap gap-step-xs"></div>
+
+      <!-- Profile -->
+      <section id="panel-profile" role="tabpanel" aria-labelledby="tab-profile" tabindex="0" class="flex flex-col gap-step-lg rounded-xl bg-card p-step-lg shadow-lift-xs outline-none focus-visible:ring-3 focus-visible:ring-ring/50">
+        <div class="flex items-center gap-step-md">
+          <span id="p-avatar" class="inline-flex size-12 shrink-0 items-center justify-center rounded-full bg-muted text-base font-medium text-muted-foreground"></span>
+          <p class="flex min-w-0 flex-col leading-tight"><span id="p-name" class="truncate text-lg font-medium"></span><span id="p-unit" class="truncate text-sm text-muted-foreground"></span></p>
+        </div>
+        <form id="profile-form" class="flex flex-col gap-step-md">
+          <div class="flex flex-col gap-step-xs"><label for="f-email" class="text-sm font-medium">Email</label><input id="f-email" readonly class="h-8 w-full rounded-md border border-input bg-muted px-2.5 text-base text-muted-foreground outline-none md:text-sm pointer-coarse:h-11" /><p class="text-xs text-muted-foreground">Managed by your property team.</p></div>
+          <div class="flex flex-col gap-step-xs"><label for="f-phone" class="text-sm font-medium">Phone</label><input id="f-phone" type="tel" autocomplete="tel" maxlength="24" class="h-8 w-full rounded-md border border-input bg-card px-2.5 text-base outline-none transition-colors focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 md:text-sm pointer-coarse:h-11" /><p id="f-phone-err" role="alert" class="text-sm text-danger-text empty:hidden"></p></div>
+          <div class="flex flex-col gap-step-xs"><label for="f-contact" class="text-sm font-medium">Best way to reach me</label><select id="f-contact" class="h-8 w-full rounded-md border border-input bg-card px-2 text-base outline-none transition-colors focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 md:text-sm pointer-coarse:h-11"><option value="app">In the app</option><option value="email">Email</option><option value="text">Text message</option></select></div>
+          <div class="flex justify-end"><button type="submit" class="group/button inline-flex h-8 shrink-0 touch-manipulation items-center justify-center rounded-md border border-transparent bg-primary bg-clip-padding px-step-md control-text font-medium whitespace-nowrap text-primary-foreground transition outline-none select-none hover:bg-primary/90 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 active:translate-y-px pointer-coarse:h-11">Save changes</button></div>
+        </form>
+      </section>
+
+      <!-- Personalize -->
+      <section id="panel-personalize" role="tabpanel" aria-labelledby="tab-personalize" tabindex="0" hidden class="flex flex-col gap-step-lg rounded-xl bg-card p-step-lg shadow-lift-xs outline-none focus-visible:ring-3 focus-visible:ring-ring/50">
+        <div class="flex flex-col gap-step-sm">
+          <h2 class="text-base leading-snug font-medium">Theme</h2>
+          <p class="text-sm text-muted-foreground">Applies to every page of the Resident app on this device.</p>
+          <div id="theme" role="group" aria-label="Theme" class="flex flex-wrap gap-step-xs"></div>
+        </div>
+        <div class="flex flex-col gap-step-md border-t border-border pt-step-lg">
+          <h2 class="text-base leading-snug font-medium">Comfort</h2>
+          <div class="flex items-center gap-step-md">
+            <div class="flex min-w-0 flex-1 flex-col gap-0.5"><h3 id="sw-contrast-label" class="text-sm font-medium">Higher contrast</h3><p id="sw-contrast-help" class="text-sm text-muted-foreground">Heavier borders and text. Easier to read in bright sun.</p></div>
+            <button type="button" id="sw-contrast" role="switch" aria-checked="false" aria-labelledby="sw-contrast-label" aria-describedby="sw-contrast-help" class="group/button relative inline-flex h-6 w-11 shrink-0 touch-manipulation items-center rounded-full border border-transparent bg-input transition-colors outline-none focus-visible:ring-3 focus-visible:ring-ring/50 aria-checked:bg-primary pointer-coarse:h-8 pointer-coarse:w-14"><span class="pointer-events-none inline-block size-5 translate-x-0.5 rounded-full bg-background shadow-lift-xs transition-transform group-aria-checked/button:translate-x-5.5 pointer-coarse:size-7 pointer-coarse:group-aria-checked/button:translate-x-6.5"></span></button>
+          </div>
+          <div class="flex items-center gap-step-md">
+            <div class="flex min-w-0 flex-1 flex-col gap-0.5"><h3 id="sw-motion-label" class="text-sm font-medium">Reduce motion</h3><p id="sw-motion-help" class="text-sm text-muted-foreground">Removes slides and fades. Also follows your device setting.</p></div>
+            <button type="button" id="sw-motion" role="switch" aria-checked="false" aria-labelledby="sw-motion-label" aria-describedby="sw-motion-help" class="group/button relative inline-flex h-6 w-11 shrink-0 touch-manipulation items-center rounded-full border border-transparent bg-input transition-colors outline-none focus-visible:ring-3 focus-visible:ring-ring/50 aria-checked:bg-primary pointer-coarse:h-8 pointer-coarse:w-14"><span class="pointer-events-none inline-block size-5 translate-x-0.5 rounded-full bg-background shadow-lift-xs transition-transform group-aria-checked/button:translate-x-5.5 pointer-coarse:size-7 pointer-coarse:group-aria-checked/button:translate-x-6.5"></span></button>
+          </div>
+        </div>
+      </section>
+
+      <!-- My property -->
+      <section id="panel-property" role="tabpanel" aria-labelledby="tab-property" tabindex="0" hidden class="flex flex-col gap-step-lg outline-none focus-visible:ring-3 focus-visible:ring-ring/50">
+        <div class="flex flex-col gap-step-md rounded-xl bg-card p-step-lg shadow-lift-xs">
+          <h2 class="text-base leading-snug font-medium" id="prop-name"></h2>
+          <dl id="prop-meta" class="grid grid-cols-2 gap-x-step-lg gap-y-step-md"></dl>
+        </div>
+        <div class="flex flex-col gap-step-md rounded-xl bg-card p-step-lg shadow-lift-xs">
+          <div class="flex items-center gap-step-md">
+            <div class="flex min-w-0 flex-1 flex-col gap-0.5"><h2 id="sw-label" class="text-base leading-snug font-medium">Social timeline</h2><p id="sw-help" class="text-sm text-muted-foreground">Show updates from your property and neighbors here and in Social. Turn it off if you would rather not see them.</p></div>
+            <button type="button" id="sw-social" role="switch" aria-checked="true" aria-labelledby="sw-label" aria-describedby="sw-help" class="group/button relative inline-flex h-6 w-11 shrink-0 touch-manipulation items-center rounded-full border border-transparent bg-input transition-colors outline-none focus-visible:ring-3 focus-visible:ring-ring/50 aria-checked:bg-primary pointer-coarse:h-8 pointer-coarse:w-14"><span class="pointer-events-none inline-block size-5 translate-x-0.5 rounded-full bg-background shadow-lift-xs transition-transform group-aria-checked/button:translate-x-5.5 pointer-coarse:size-7 pointer-coarse:group-aria-checked/button:translate-x-6.5"></span></button>
+          </div>
+          <ul id="timeline" role="list" class="flex flex-col divide-y divide-border"></ul>
+          <div id="timeline-note" hidden class="text-sm text-muted-foreground"></div>
+          <div id="timeline-link" hidden><a id="open-social" class="group/button inline-flex h-8 shrink-0 touch-manipulation items-center justify-center gap-step-sm rounded-md border border-transparent bg-background bg-clip-padding px-step-md control-text font-medium whitespace-nowrap text-foreground ring-1 ring-foreground/10 transition outline-none select-none hover:bg-muted focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 active:translate-y-px pointer-coarse:h-11">Open Social</a></div>
+        </div>
+      </section>
+    </div>
+  </main>
+</div>
+
+<div id="toasts" popover="manual" class="pointer-events-none fixed inset-x-0 top-step-lg z-toast m-0 flex w-full flex-col items-center gap-step-sm overflow-visible border-0 bg-transparent p-0 px-step-lg"></div>
+
+<!-- ============ templates ============ -->
+<template id="t-tab"><button type="button" role="tab" aria-selected="false" tabindex="-1" class="inline-flex h-8 items-center rounded-md bg-secondary px-step-md text-sm text-secondary-foreground outline-none transition-colors hover:bg-secondary/80 focus-visible:ring-3 focus-visible:ring-ring/50 aria-selected:bg-accent aria-selected:font-medium aria-selected:text-foreground pointer-coarse:h-11"></button></template>
+
+<template id="t-choice"><button type="button" aria-pressed="false" class="inline-flex h-8 items-center rounded-md bg-secondary px-step-md text-sm text-secondary-foreground outline-none transition-colors hover:bg-secondary/80 focus-visible:ring-3 focus-visible:ring-ring/50 aria-pressed:bg-accent aria-pressed:font-medium aria-pressed:text-foreground pointer-coarse:h-11"></button></template>
+
+<template id="t-meta"><div class="flex min-w-0 flex-col gap-0.5"><dt data-k class="text-xs text-muted-foreground"></dt><dd data-v class="text-sm font-medium wrap-anywhere"></dd></div></template>
+
+<template id="t-entry">
+  <li class="flex flex-col gap-step-xs py-step-md first:pt-0 last:pb-0">
+    <p class="flex flex-wrap items-baseline gap-x-step-sm text-xs text-muted-foreground"><span data-name class="text-sm font-medium text-foreground"></span><time data-time class="tabular-nums"></time></p>
+    <p data-text class="max-w-prose text-sm leading-6 wrap-anywhere text-foreground-secondary"></p>
+    <p class="flex items-center gap-step-md text-xs text-muted-foreground [&_svg]:size-3.5"><span class="inline-flex items-center gap-step-xs"><svg aria-hidden="true"><use href="#i-heart"/></svg><span data-likes class="tabular-nums"></span></span><span class="inline-flex items-center gap-step-xs"><svg aria-hidden="true"><use href="#i-message"/></svg><span data-replies class="tabular-nums"></span></span></p>
+  </li>
+</template>
+
+<template id="t-toast">
+  <div role="status" class="pointer-events-auto flex max-w-md items-center gap-step-md rounded-lg bg-foreground px-step-lg py-step-md text-sm text-background shadow-lift-md"><span data-text></span></div>
+</template>

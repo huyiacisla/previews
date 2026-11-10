@@ -1,0 +1,128 @@
+<!-- Resident Promotions page. Shell and templates only: every Tailwind class lives here, promotions/resident.js clones
+     templates, fills text and toggles hidden / data-* / aria-*. Same tokens and patterns as the Messages and Ticket box pages. -->
+
+<svg aria-hidden="true" focusable="false" style="position:absolute;width:0;height:0;overflow:hidden">
+  <defs>
+    <symbol id="i-arrow-left" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></symbol>
+    <symbol id="i-search" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21 21-4.34-4.34"/><circle cx="11" cy="11" r="8"/></symbol>
+    <symbol id="i-x" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></symbol>
+    <symbol id="i-copy" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></symbol>
+    <symbol id="i-star" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l2.8 5.7 6.2.9-4.5 4.4 1 6.2L12 17.3 6.5 20.2l1-6.2L3 9.6l6.2-.9z"/></symbol>
+    <symbol id="i-tag" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.586 2.586A2 2 0 0 0 11.172 2H4a2 2 0 0 0-2 2v7.172a2 2 0 0 0 .586 1.414l8.704 8.704a2.426 2.426 0 0 0 3.42 0l6.58-6.58a2.426 2.426 0 0 0 0-3.42z"/><circle cx="7.5" cy="7.5" r=".5" fill="currentColor"/></symbol>
+    <symbol id="i-external" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 7h10v10"/><path d="M7 17 17 7"/></symbol>
+    <symbol id="i-sun-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8a2.83 2.83 0 0 0 4 4 4 4 0 1 1-4-4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.9 4.9 1.4 1.4"/><path d="m17.7 17.7 1.4 1.4"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.3 17.7-1.4 1.4"/><path d="m19.1 4.9-1.4 1.4"/></symbol>
+  </defs>
+</svg>
+
+<a href="#main-content" class="group/button fixed -top-20 left-3 z-toast inline-flex shrink-0 touch-manipulation items-center justify-center gap-1.5 rounded-md border border-transparent bg-primary bg-clip-padding px-2.5 py-1.75 control-text font-medium whitespace-nowrap text-primary-foreground transition outline-none select-none hover:bg-primary/90 focus-visible:top-3 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50">Skip to main content</a>
+
+<noscript><p class="bg-warning-bg px-step-lg py-step-md text-sm text-warning-text">Promotions needs JavaScript. Turn it on in your browser settings and reload this page.</p></noscript>
+<div id="app" class="flex h-dvh min-h-0 flex-col bg-background text-foreground">
+  <header class="shrink-0 border-b border-border bg-background">
+    <div class="flex w-full items-center gap-step-md px-step-lg py-step-sm lg:px-step-xl">
+      <button type="button" id="btn-back" class="group/button inline-flex h-8 shrink-0 touch-manipulation items-center justify-center gap-step-xs rounded-md border border-transparent bg-clip-padding pr-step-md pl-step-sm control-text font-medium whitespace-nowrap text-foreground-secondary transition outline-none select-none hover:bg-muted hover:text-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 active:translate-y-px pointer-coarse:h-11 [&_svg]:size-4 [&_svg]:shrink-0">
+        <svg aria-hidden="true"><use href="#i-arrow-left"/></svg>
+        <span>Home</span>
+      </button>
+      <h1 class="min-w-0 flex-1 truncate text-2xl leading-8 font-semibold tracking-tight text-foreground">Promotions<span id="portal-label" class="ml-step-sm hidden text-sm font-normal tracking-normal text-muted-foreground sm:inline"></span></h1>
+      <button type="button" data-theme-toggle aria-label="Switch between light and dark" class="group/button inline-flex size-8 shrink-0 touch-manipulation items-center justify-center rounded-md border border-transparent bg-foreground/8 bg-clip-padding text-secondary-foreground transition outline-none select-none hover:bg-foreground/12 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 active:translate-y-px pointer-coarse:size-11 [&_svg]:size-4">
+        <svg aria-hidden="true"><use href="#i-sun-moon"/></svg>
+      </button>
+      <div class="hidden min-w-0 items-center gap-step-sm sm:flex">
+        <span id="me-avatar" class="inline-flex size-8 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-medium text-muted-foreground"></span>
+        <span class="flex min-w-0 flex-col leading-tight"><span id="me-name" class="truncate text-sm font-medium"></span><span id="me-role" class="truncate text-xs text-muted-foreground"></span></span>
+      </div>
+    </div>
+  </header>
+
+  <main id="main-content" tabindex="-1" class="min-h-0 flex-1 overflow-y-auto outline-none">
+    <div class="mx-auto flex w-full max-w-6xl flex-col gap-step-lg px-step-lg py-step-lg lg:px-step-xl">
+      <div class="flex flex-col gap-step-md">
+        <div class="relative">
+          <label for="search" class="sr-only">Search promotions</label>
+          <svg aria-hidden="true" class="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground"><use href="#i-search"/></svg>
+          <input id="search" type="search" autocomplete="off" spellcheck="false" placeholder="Search promotions…" class="h-8 w-full min-w-0 rounded-md border border-input bg-card pr-2.5 pl-8 text-base text-ellipsis outline-none transition-colors placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 md:text-sm pointer-coarse:h-11" />
+        </div>
+        <div id="filters" role="group" aria-label="Filter promotions" class="flex flex-wrap items-center gap-step-xs"></div>
+      </div>
+      <p id="count" role="status" class="text-sm text-muted-foreground tabular-nums"></p>
+      <ul id="grid" role="list" class="grid gap-step-lg sm:grid-cols-2 lg:grid-cols-3"></ul>
+      <div id="empty" hidden></div>
+    </div>
+  </main>
+</div>
+
+<!-- details -->
+<dialog id="dlg" aria-labelledby="dlg-title" class="m-auto max-h-dvh w-full max-w-lg overflow-y-auto rounded-xl bg-card p-0 text-foreground shadow-lift-md backdrop:bg-foreground/40">
+  <div class="flex flex-col">
+    <div class="relative aspect-video w-full overflow-hidden bg-muted">
+      <img id="dlg-cover" alt="" hidden class="size-full object-cover" />
+      <span id="dlg-nocover" class="absolute inset-0 flex items-center justify-center text-muted-foreground [&_svg]:size-8"><svg aria-hidden="true"><use href="#i-tag"/></svg></span>
+      <button type="button" id="dlg-close" aria-label="Close" class="group/button absolute top-step-sm right-step-sm inline-flex size-8 touch-manipulation items-center justify-center rounded-md border border-transparent bg-background/90 text-foreground transition outline-none select-none hover:bg-background focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 pointer-coarse:size-11 [&_svg]:size-4"><svg aria-hidden="true"><use href="#i-x"/></svg></button>
+    </div>
+    <div class="flex flex-col gap-step-md p-step-lg">
+      <p id="dlg-partner" class="flex items-center gap-step-sm text-sm text-muted-foreground empty:hidden"></p>
+      <h2 id="dlg-title" tabindex="-1" class="text-xl leading-7 font-semibold tracking-tight wrap-anywhere outline-none"></h2>
+      <div id="dlg-badges" class="flex flex-wrap items-center gap-step-xs"></div>
+      <p id="dlg-desc" class="max-w-prose text-sm leading-6 wrap-anywhere whitespace-pre-wrap text-foreground-secondary"></p>
+      <div id="dlg-claim" hidden class="flex flex-col gap-step-sm rounded-lg bg-background p-step-md ring-1 ring-foreground/10">
+        <p id="dlg-claim-label" class="text-xs text-muted-foreground"></p>
+        <div class="flex items-center gap-step-sm">
+          <output id="dlg-code" class="min-w-0 flex-1 text-lg font-medium tracking-wider wrap-anywhere tabular-nums"></output>
+          <button type="button" id="dlg-copy" class="group/button inline-flex h-8 shrink-0 touch-manipulation items-center justify-center gap-step-sm rounded-md border border-transparent bg-background bg-clip-padding px-step-md control-text font-medium whitespace-nowrap text-foreground ring-1 ring-foreground/10 transition outline-none select-none hover:bg-muted focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 active:translate-y-px pointer-coarse:h-11 [&_svg]:size-4"><svg aria-hidden="true"><use href="#i-copy"/></svg>Copy</button>
+        </div>
+      </div>
+      <p id="dlg-fine" class="text-xs leading-5 text-muted-foreground wrap-anywhere empty:hidden"></p>
+      <p id="dlg-error" role="alert" class="text-sm text-danger-text empty:hidden"></p>
+      <div class="flex flex-wrap items-center gap-step-sm">
+        <button type="button" id="dlg-claim-btn" class="group/button inline-flex h-8 shrink-0 touch-manipulation items-center justify-center gap-step-sm rounded-md border border-transparent bg-primary bg-clip-padding px-step-md control-text font-medium whitespace-nowrap text-primary-foreground transition outline-none select-none hover:bg-primary/90 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 active:translate-y-px disabled:pointer-events-none disabled:opacity-50 pointer-coarse:h-11 [&_svg]:size-4"><span id="dlg-claim-text">Claim</span><svg id="dlg-claim-ext" hidden aria-hidden="true"><use href="#i-external"/></svg></button>
+        <button type="button" id="dlg-save" aria-pressed="false" class="group/button inline-flex h-8 shrink-0 touch-manipulation items-center justify-center gap-step-sm rounded-md border border-transparent bg-background bg-clip-padding px-step-md control-text font-medium whitespace-nowrap text-foreground ring-1 ring-foreground/10 transition outline-none select-none hover:bg-muted focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 active:translate-y-px aria-pressed:bg-accent pointer-coarse:h-11 [&_svg]:size-4"><svg aria-hidden="true" class="group-aria-pressed/button:fill-current"><use href="#i-star"/></svg><span id="dlg-save-text">Save</span></button>
+      </div>
+    </div>
+  </div>
+</dialog>
+
+<div id="toasts" popover="manual" class="pointer-events-none fixed inset-x-0 top-step-lg z-toast m-0 flex w-full flex-col items-center gap-step-sm overflow-visible border-0 bg-transparent p-0 px-step-lg"></div>
+
+<!-- ============ templates ============ -->
+<template id="t-card">
+  <li class="flex">
+    <article class="relative flex min-w-0 flex-1 flex-col overflow-hidden rounded-xl bg-card shadow-lift-xs focus-within:ring-3 focus-within:ring-ring/50">
+      <div class="relative aspect-video w-full overflow-hidden bg-muted">
+        <img data-cover alt="" hidden loading="lazy" class="size-full object-cover" />
+        <span data-nocover class="absolute inset-0 flex items-center justify-center text-muted-foreground [&_svg]:size-8"><svg aria-hidden="true"><use href="#i-tag"/></svg></span>
+      </div>
+      <div class="flex min-w-0 flex-1 flex-col gap-step-sm p-step-md">
+        <p data-partner class="truncate text-xs text-muted-foreground empty:hidden"></p>
+        <h2 class="text-base leading-snug font-medium"><button type="button" data-open class="text-left wrap-anywhere outline-none"></button></h2>
+        <p data-summary class="text-sm text-muted-foreground wrap-anywhere empty:hidden"></p>
+        <div data-badges class="flex flex-wrap items-center gap-step-xs"></div>
+        <p data-end class="mt-auto text-xs text-muted-foreground tabular-nums empty:hidden"></p>
+      </div>
+      <!-- makes the whole card open the details; the title button stays the keyboard and screen reader target -->
+      <span data-stretch aria-hidden="true" class="absolute inset-0 cursor-pointer"></span>
+      <button type="button" data-save aria-pressed="false" class="group/button absolute top-step-sm right-step-sm z-raised inline-flex size-8 touch-manipulation items-center justify-center rounded-md border border-transparent bg-background/90 text-foreground transition outline-none select-none hover:bg-background focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 active:translate-y-px aria-pressed:text-primary pointer-coarse:size-11 [&_svg]:size-4"><svg aria-hidden="true" class="group-aria-pressed/button:fill-current"><use href="#i-star"/></svg></button>
+    </article>
+  </li>
+</template>
+
+<template id="t-badge">
+  <span data-slot="badge" data-tone="neutral" class="inline-flex h-5 shrink-0 items-center gap-step-xs rounded-full bg-secondary px-step-sm text-xs font-normal whitespace-nowrap text-secondary-foreground data-[tone=danger]:bg-danger-bg data-[tone=danger]:text-danger-text data-[tone=info]:bg-info-bg data-[tone=info]:text-info-text data-[tone=success]:bg-success-bg data-[tone=success]:text-success-text data-[tone=warning]:bg-warning-bg data-[tone=warning]:text-warning-text"></span>
+</template>
+
+<template id="t-filter">
+  <button type="button" aria-pressed="false" class="inline-flex h-8 items-center gap-step-xs rounded-md bg-secondary px-step-md text-sm text-secondary-foreground outline-none transition-colors hover:bg-secondary/80 focus-visible:ring-3 focus-visible:ring-ring/50 aria-pressed:bg-accent aria-pressed:font-medium aria-pressed:text-foreground pointer-coarse:h-11"><span data-label></span><span data-count class="text-xs text-muted-foreground tabular-nums"></span></button>
+</template>
+
+<template id="t-empty">
+  <div class="flex flex-col items-center gap-step-md py-step-xl text-center">
+    <span class="inline-flex size-10 items-center justify-center rounded-full bg-muted text-muted-foreground [&_svg]:size-5"><svg aria-hidden="true"><use href="#i-tag"/></svg></span>
+    <h2 data-title class="text-base leading-snug font-medium"></h2>
+    <p data-text class="max-w-xs text-sm text-muted-foreground"></p>
+  </div>
+</template>
+
+<template id="t-toast">
+  <div role="status" class="pointer-events-auto flex max-w-md items-center gap-step-md rounded-lg bg-foreground px-step-lg py-step-md text-sm text-background shadow-lift-md"><span data-text></span></div>
+</template>

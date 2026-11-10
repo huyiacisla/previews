@@ -1,0 +1,128 @@
+<!-- Resident Social page. Shell and templates only: every Tailwind class lives here, social/resident.js clones templates,
+     fills text and toggles hidden / data-* / aria-*. A resident reads and interacts (like, reply); there is no composer. -->
+
+<svg aria-hidden="true" focusable="false" style="position:absolute;width:0;height:0;overflow:hidden">
+  <defs>
+    <symbol id="i-arrow-left" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></symbol>
+    <symbol id="i-sun-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8a2.83 2.83 0 0 0 4 4 4 4 0 1 1-4-4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.9 4.9 1.4 1.4"/><path d="m17.7 17.7 1.4 1.4"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.3 17.7-1.4 1.4"/><path d="m19.1 4.9-1.4 1.4"/></symbol>
+    <symbol id="i-heart" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></symbol>
+    <symbol id="i-message" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 17a2 2 0 0 1-2 2H6.828a2 2 0 0 0-1.414.586l-2.202 2.202A.71.71 0 0 1 2 21.286V5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2z"/></symbol>
+    <symbol id="i-book" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H19a1 1 0 0 1 1 1v18a1 1 0 0 1-1 1H6.5a1 1 0 0 1 0-5H20"/></symbol>
+    <symbol id="i-megaphone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 11 18-5v12L3 14v-3z"/><path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"/></symbol>
+    <symbol id="i-users"viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></symbol>
+  </defs>
+</svg>
+
+<a href="#main-content" class="group/button fixed -top-20 left-3 z-toast inline-flex shrink-0 touch-manipulation items-center justify-center gap-1.5 rounded-md border border-transparent bg-primary bg-clip-padding px-2.5 py-1.75 control-text font-medium whitespace-nowrap text-primary-foreground transition outline-none select-none hover:bg-primary/90 focus-visible:top-3 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50">Skip to main content</a>
+
+<noscript><p class="bg-warning-bg px-step-lg py-step-md text-sm text-warning-text">Social needs JavaScript. Turn it on in your browser settings and reload this page.</p></noscript>
+<div id="app" class="flex h-dvh min-h-0 flex-col bg-background text-foreground">
+  <header class="shrink-0 border-b border-border bg-background">
+    <div class="flex w-full items-center gap-step-md px-step-lg py-step-sm lg:px-step-xl">
+      <button type="button" id="btn-back" class="group/button inline-flex h-8 shrink-0 touch-manipulation items-center justify-center gap-step-xs rounded-md border border-transparent bg-clip-padding pr-step-md pl-step-sm control-text font-medium whitespace-nowrap text-foreground-secondary transition outline-none select-none hover:bg-muted hover:text-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 active:translate-y-px pointer-coarse:h-11 [&_svg]:size-4 [&_svg]:shrink-0">
+        <svg aria-hidden="true"><use href="#i-arrow-left"/></svg>
+        <span>Home</span>
+      </button>
+      <h1 class="min-w-0 flex-1 truncate text-2xl leading-8 font-semibold tracking-tight text-foreground">Social<span id="portal-label" class="ml-step-sm hidden text-sm font-normal tracking-normal text-muted-foreground sm:inline"></span></h1>
+      <button type="button" data-theme-toggle aria-label="Switch between light and dark" class="group/button inline-flex size-8 shrink-0 touch-manipulation items-center justify-center rounded-md border border-transparent bg-foreground/8 bg-clip-padding text-secondary-foreground transition outline-none select-none hover:bg-foreground/12 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 active:translate-y-px pointer-coarse:size-11 [&_svg]:size-4">
+        <svg aria-hidden="true"><use href="#i-sun-moon"/></svg>
+      </button>
+      <a id="me-link" href="/resident/settings.html" class="flex min-w-0 items-center gap-step-sm rounded-md outline-none focus-visible:ring-3 focus-visible:ring-ring/50">
+        <span id="me-avatar" class="inline-flex size-8 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-medium text-muted-foreground"></span>
+        <span class="hidden min-w-0 flex-col leading-tight sm:flex"><span id="me-name" class="truncate text-sm font-medium"></span><span class="truncate text-xs text-muted-foreground">Settings</span></span>
+      </a>
+    </div>
+  </header>
+
+  <main id="main-content" tabindex="-1" class="min-h-0 flex-1 overflow-y-auto outline-none">
+    <div class="mx-auto flex w-full max-w-2xl flex-col gap-step-lg px-step-lg py-step-lg">
+      <div id="bar" class="flex flex-wrap items-center gap-step-sm">
+        <p class="min-w-0 flex-1 text-sm text-muted-foreground">Updates from your property and neighbors. You can like and reply; the property team does the posting.</p>
+        <button type="button" id="btn-guidelines" class="group/button inline-flex h-8 shrink-0 touch-manipulation items-center justify-center gap-step-sm rounded-md border border-transparent bg-background bg-clip-padding px-step-md control-text font-medium whitespace-nowrap text-foreground ring-1 ring-foreground/10 transition outline-none select-none hover:bg-muted focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 active:translate-y-px pointer-coarse:h-11 [&_svg]:size-4"><svg aria-hidden="true"><use href="#i-book"/></svg>Guidelines</button>
+        <button type="button" id="btn-hide" class="group/button inline-flex h-8 shrink-0 touch-manipulation items-center justify-center gap-step-sm rounded-md border border-transparent bg-background bg-clip-padding px-step-md control-text font-medium whitespace-nowrap text-foreground ring-1 ring-foreground/10 transition outline-none select-none hover:bg-muted focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 active:translate-y-px pointer-coarse:h-11">Hide Social</button>
+      </div>
+      <div id="tabs" role="tablist" aria-label="Show posts" class="flex gap-step-xs overflow-x-auto border-b border-border"></div>
+      <ul id="feed" role="list" class="flex flex-col gap-step-lg"></ul>
+      <div id="empty" hidden></div>
+    </div>
+  </main>
+</div>
+
+<!-- community guidelines: a gate when Staff require it, otherwise something to re-read -->
+<dialog id="gl" aria-labelledby="gl-title" class="m-auto max-h-dvh w-full max-w-lg flex-col overflow-hidden open:flex rounded-xl bg-card p-0 text-foreground shadow-lift-md backdrop:bg-foreground/40">
+  <div class="flex flex-col gap-step-xs border-b border-border p-step-lg">
+    <h2 id="gl-title" tabindex="-1" class="text-xl leading-7 font-semibold tracking-tight outline-none">Community guidelines</h2>
+    <p id="gl-meta" class="text-xs text-muted-foreground tabular-nums"></p>
+    <p id="gl-lead" class="text-sm text-muted-foreground">Please read these before you join in. They keep Social friendly for everyone at the property.</p>
+  </div>
+  <div id="gl-body" tabindex="0" aria-label="Guidelines" class="min-h-0 flex-1 overflow-y-auto p-step-lg outline-none focus-visible:ring-3 focus-visible:ring-inset focus-visible:ring-ring/50"></div>
+  <form id="gl-form" class="flex flex-col gap-step-md border-t border-border p-step-lg">
+    <label id="gl-agree-row" class="flex items-start gap-step-sm text-sm"><input id="gl-agree" type="checkbox" class="mt-0.5 size-4 shrink-0 rounded-sm border border-input accent-primary pointer-coarse:size-6" /><span>I have read the guidelines and agree to follow them.</span></label>
+    <div class="flex flex-wrap items-center justify-end gap-step-sm">
+      <button type="button" id="gl-leave" class="group/button inline-flex h-8 shrink-0 touch-manipulation items-center justify-center rounded-md border border-transparent bg-background bg-clip-padding px-step-md control-text font-medium whitespace-nowrap text-foreground ring-1 ring-foreground/10 transition outline-none select-none hover:bg-muted focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 active:translate-y-px pointer-coarse:h-11">Not now</button>
+      <button type="submit" id="gl-ok" disabled class="group/button inline-flex h-8 shrink-0 touch-manipulation items-center justify-center rounded-md border border-transparent bg-primary bg-clip-padding px-step-md control-text font-medium whitespace-nowrap text-primary-foreground transition outline-none select-none hover:bg-primary/90 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 active:translate-y-px disabled:pointer-events-none disabled:opacity-50 pointer-coarse:h-11">Continue</button>
+    </div>
+  </form>
+</dialog>
+
+<div id="toasts" popover="manual" class="pointer-events-none fixed inset-x-0 top-step-lg z-toast m-0 flex w-full flex-col items-center gap-step-sm overflow-visible border-0 bg-transparent p-0 px-step-lg"></div>
+
+<!-- ============ templates ============ -->
+<template id="t-post">
+  <li>
+    <article data-announcement="false" class="flex gap-step-md rounded-xl bg-card p-step-lg shadow-lift-xs data-[announcement=true]:bg-accent">
+      <span data-avatar class="inline-flex size-9 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-medium text-muted-foreground data-[role=staff]:bg-info-bg data-[role=staff]:text-info-text"></span>
+      <div class="flex min-w-0 flex-1 flex-col gap-step-sm">
+      <p data-label hidden class="flex items-center gap-step-xs text-xs font-medium text-foreground-secondary [&_svg]:size-3.5"><svg aria-hidden="true"><use href="#i-megaphone"/></svg><span data-label-text></span></p>
+      <p class="flex flex-wrap items-center gap-x-step-sm gap-y-0.5 text-sm"><span data-name class="font-medium"></span><span data-role-chip class="inline-flex h-5 items-center rounded-full bg-info-bg px-step-sm text-xs text-info-text"></span><time data-time class="text-xs text-muted-foreground tabular-nums"></time><span data-badges class="flex flex-wrap items-center gap-step-xs"></span></p>
+      <p data-org class="-mt-step-xs text-xs text-muted-foreground"></p>
+      <p data-text class="max-w-prose text-sm leading-6 wrap-anywhere whitespace-pre-wrap text-foreground"></p>
+      <div data-images class="grid gap-px overflow-hidden rounded-xl sm:grid-cols-2 empty:hidden"></div>
+      <div class="flex items-center gap-step-sm">
+        <button type="button" data-like aria-pressed="false" class="group/button inline-flex h-8 touch-manipulation items-center justify-center gap-step-xs rounded-md border border-transparent bg-background bg-clip-padding px-step-md control-text font-medium whitespace-nowrap text-foreground ring-1 ring-foreground/10 transition outline-none select-none hover:bg-muted focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 active:translate-y-px aria-pressed:bg-accent aria-pressed:text-primary pointer-coarse:h-11 [&_svg]:size-4"><svg aria-hidden="true" class="group-aria-pressed/button:fill-current"><use href="#i-heart"/></svg><span data-like-text class="tabular-nums"></span></button>
+        <button type="button" data-toggle-replies aria-expanded="false" class="group/button inline-flex h-8 touch-manipulation items-center justify-center gap-step-xs rounded-md border border-transparent bg-background bg-clip-padding px-step-md control-text font-medium whitespace-nowrap text-foreground ring-1 ring-foreground/10 transition outline-none select-none hover:bg-muted focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 active:translate-y-px pointer-coarse:h-11 [&_svg]:size-4"><svg aria-hidden="true"><use href="#i-message"/></svg><span data-reply-text class="tabular-nums"></span></button>
+      </div>
+      <div data-replies hidden class="flex flex-col gap-step-md border-t border-border pt-step-md">
+        <ul data-reply-list role="list" class="flex flex-col gap-step-md"></ul>
+        <form data-reply-form class="flex flex-col gap-step-sm">
+          <label class="sr-only" data-reply-label>Write a reply</label>
+          <textarea data-reply-input rows="2" maxlength="500" placeholder="Write a reply…" class="min-h-16 w-full resize-y rounded-md border border-input bg-card px-2.5 py-1.5 text-base outline-none transition-colors placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 md:text-sm"></textarea>
+          <p data-reply-error role="alert" class="text-sm text-danger-text empty:hidden"></p>
+          <div class="flex justify-end"><button type="submit" class="group/button inline-flex h-8 shrink-0 touch-manipulation items-center justify-center rounded-md border border-transparent bg-background bg-clip-padding px-step-md control-text font-medium whitespace-nowrap text-foreground ring-1 ring-foreground/10 transition outline-none select-none hover:bg-muted focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 active:translate-y-px pointer-coarse:h-11">Reply</button></div>
+        </form>
+        <p data-reply-off hidden class="text-sm text-muted-foreground">Replies are turned off by the property team.</p>
+      </div>
+      </div>
+    </article>
+  </li>
+</template>
+
+<template id="t-reply">
+  <li class="flex gap-step-sm">
+    <span data-avatar class="inline-flex size-6 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-medium text-muted-foreground"></span>
+    <p class="flex min-w-0 flex-1 flex-col gap-0.5 text-sm"><span class="flex flex-wrap items-baseline gap-x-step-sm"><span data-name class="font-medium"></span><time data-time class="text-xs text-muted-foreground tabular-nums"></time></span><span data-text class="leading-6 wrap-anywhere whitespace-pre-wrap text-foreground-secondary"></span></p>
+  </li>
+</template>
+
+<template id="t-image"><div role="img" class="aspect-video w-full bg-muted"></div></template>
+
+<template id="t-tab"><button type="button" role="tab" aria-selected="false" tabindex="-1" class="-mb-px inline-flex h-10 shrink-0 items-center border-b-2 border-transparent px-step-md text-sm text-muted-foreground outline-none transition-colors hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50 aria-selected:border-primary aria-selected:font-medium aria-selected:text-foreground pointer-coarse:h-11"></button></template>
+
+<template id="t-block"><section class="mb-step-lg last:mb-0"><h3 data-title class="text-sm font-medium"></h3><p data-text class="mt-step-xs text-sm leading-6 wrap-anywhere text-foreground-secondary"></p></section></template>
+
+<template id="t-badge">
+  <span data-slot="badge" data-tone="neutral" class="inline-flex h-5 shrink-0 items-center gap-step-xs rounded-full bg-secondary px-step-sm text-xs font-normal whitespace-nowrap text-secondary-foreground data-[tone=info]:bg-info-bg data-[tone=info]:text-info-text data-[tone=success]:bg-success-bg data-[tone=success]:text-success-text data-[tone=warning]:bg-warning-bg data-[tone=warning]:text-warning-text"></span>
+</template>
+
+<template id="t-empty">
+  <div class="flex flex-col items-center gap-step-md py-step-xl text-center">
+    <span class="inline-flex size-10 items-center justify-center rounded-full bg-muted text-muted-foreground [&_svg]:size-5"><svg aria-hidden="true"><use href="#i-users"/></svg></span>
+    <h2 data-title class="text-base leading-snug font-medium"></h2>
+    <p data-text class="max-w-xs text-sm text-muted-foreground"></p>
+    <div data-actions class="flex flex-wrap justify-center gap-step-sm"></div>
+  </div>
+</template>
+
+<template id="t-toast">
+  <div role="status" class="pointer-events-auto flex max-w-md items-center gap-step-md rounded-lg bg-foreground px-step-lg py-step-md text-sm text-background shadow-lift-md"><span data-text></span></div>
+</template>
