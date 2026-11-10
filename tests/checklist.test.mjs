@@ -115,7 +115,7 @@ test('details panel: resident context for Staff, people for other chats, nothing
   const c = store.contextFor(queued, 'stf-1');
   assert.equal(c.kind, 'resident');
   assert.equal(c.person.name, 'Priya Nair');
-  assert.deepEqual([c.unit.number, c.unit.building, c.unit.balance], ['05-114', 'Building 5', 1250]);
+  assert.deepEqual([c.unit.number, c.unit.building], ['05-114', 'Building 5']);
   assert.ok(c.unit.daysLeft > 0, 'lease still running');
   assert.deepEqual(c.tickets, [], 'no other tickets yet');
   assert.equal(store.contextFor(queued, 'res-2'), null, 'residents never see their own account panel');

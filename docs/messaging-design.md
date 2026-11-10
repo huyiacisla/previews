@@ -126,9 +126,15 @@ Nơi lưu mọi cuộc hội thoại đã trở thành ticket, kể cả sau khi
 - **API trong `store.js`**: `ticketBox(userId, query)`, `ticketCounts(userId)`, `ticketRecord(userId, convId)`.
 - Mobile: danh sách và bản ghi là hai màn, Back về danh sách trước (cùng quy tắc với Messages).
 
+## Ẩn và khôi phục (Hide, Restore)
+
+- **Ẩn hội thoại**: menu ⋮ của hàng trong danh sách, menu ⋮ ở đầu thread và panel chi tiết đều có **Hide conversation** (có Undo). Chỉ ẩn ở phía mình; người kia vẫn thấy; không xóa gì. Không ẩn được khi đang có khẩn cấp chưa ghi nhận. Hội thoại ẩn **tự hiện lại** khi có hoạt động mới (tin mới, đổi trạng thái, khẩn cấp). Ticket box không bị ảnh hưởng.
+- **Tab Hidden (n)**: chỉ hiện khi có gì đã ẩn. Gồm “Conversations” và “Messages deleted for you” (các tin đã dùng Delete for me). Mỗi dòng có nút **Restore**; khôi phục xong dòng cuối cùng thì tự về tab mặc định. Hội thoại ẩn không tính vào số chưa đọc và không nằm trong kết quả tìm.
+- **API trong `store.js`**: `hideConversation`, `unhideConversation`, `isHiddenConv`, `hiddenItems(userId)`; dữ liệu ở `prefs[userId].hiddenConvs` (`{convId: thời điểm ẩn}`). Test: `tests/hidden.test.mjs`.
+
 ## Kiểm thử
 
-- `npm test` chạy 54 test: 42 test nghiệp vụ (`tests/messaging.test.mjs`), 11 test theo checklist (`tests/checklist.test.mjs`) và **1 test ngẫu nhiên** (`tests/fuzz.test.mjs`): hàng nghìn thao tác ngẫu nhiên của 9 người (gửi, nhận cuộc, nhóm, sửa, thu hồi, forward, ghim…) rồi kiểm các luật không được vỡ (ai thấy gì, nhóm 2–12 người chỉ Staff/Client/Admin, resident chỉ với Staff/Admin, tin đã thu hồi không còn chữ/tệp/phản ứng, số chưa đọc không âm, trạng thái cuộc resident hợp lệ, danh sách và `get` khớp nhau). Chạy lại một ca lỗi: đặt `SEED=<số>`. Đã chạy một lần 40 hạt giống × 1200 bước, không lỗi.
+- `npm test` chạy 78 test: 42 test nghiệp vụ (`tests/messaging.test.mjs`), 11 test theo checklist (`tests/checklist.test.mjs`), 6 test ẩn/khôi phục, 16 test Promotions và Social, và **1 test ngẫu nhiên** (`tests/fuzz.test.mjs`): hàng nghìn thao tác ngẫu nhiên của 9 người (gửi, nhận cuộc, nhóm, sửa, thu hồi, forward, ghim…) rồi kiểm các luật không được vỡ (ai thấy gì, nhóm 2–12 người chỉ Staff/Client/Admin, resident chỉ với Staff/Admin, tin đã thu hồi không còn chữ/tệp/phản ứng, số chưa đọc không âm, trạng thái cuộc resident hợp lệ, danh sách và `get` khớp nhau). Chạy lại một ca lỗi: đặt `SEED=<số>`. Đã chạy một lần 40 hạt giống × 1200 bước, không lỗi.
 - **Nội dung dài**: một từ dài 180 ký tự không dấu cách làm bong bóng rộng gần 3000px và tràn ra ngoài màn hình (mất phần đầu tin). Đã sửa bằng `wrap-anywhere` (`overflow-wrap: anywhere`) cho bong bóng và kết quả tìm kiếm; `break-words` không đủ vì không giảm độ rộng tối thiểu của phần tử. Đã thử lại ở 375px và 1440px, kể cả tin trả lời có trích dẫn.
 - Quét trình duyệt (làm tay, không nằm trong `npm test`): 4 portal × 375/768/1280px × sáng/tối, mở từng cuộc trò chuyện, menu ba chấm của tin và của cuộc, bảng emoji; tìm tràn ngang, nút ra ngoài màn hình, nút không tên, lỗi JS. Lần quét này tìm ra menu của tin tràn ra ngoài màn hình (đã sửa: menu căn theo nút rồi kẹp trong vùng tin) và thanh tab bị cắt trên mobile (đã sửa: tab xuống hàng).
 

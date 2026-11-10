@@ -50,10 +50,11 @@ REASONS.invalid_flag = 'That option is not available.';
 const reasonText = (r) => REASONS[r] || 'Something went wrong. Please try again.';
 
 const TABS = {
-  resident: [['all', 'All'], ['announcements', 'Announcements']],
-  staff: [['queue', 'Queue'], ['mine', 'Mine'], ['clients', 'Clients'], ['groups', 'Groups'], ['support', 'Support'], ['all', 'All']],
-  client: [['all', 'All'], ['staff', 'Staff'], ['groups', 'Groups'], ['support', 'Support'], ['announcements', 'Announcements']],
-  admin: [['queue', 'Queue'], ['mine', 'Mine'], ['direct', 'Direct'], ['resolved', 'Resolved'], ['announcements', 'Sent']],
+  // "Hidden" ends every list: what a person has put away, with a way to restore it. It only shows when something is hidden.
+  resident: [['all', 'All'], ['announcements', 'Announcements'], ['hidden', 'Hidden']],
+  staff: [['queue', 'Queue'], ['mine', 'Mine'], ['clients', 'Clients'], ['groups', 'Groups'], ['support', 'Support'], ['all', 'All'], ['hidden', 'Hidden']],
+  client: [['all', 'All'], ['staff', 'Staff'], ['groups', 'Groups'], ['support', 'Support'], ['announcements', 'Announcements'], ['hidden', 'Hidden']],
+  admin: [['queue', 'Queue'], ['mine', 'Mine'], ['direct', 'Direct'], ['resolved', 'Resolved'], ['announcements', 'Sent'], ['hidden', 'Hidden']],
 };
 const DEFAULT_TAB = { resident: 'all', staff: 'queue', client: 'all', admin: 'queue' };
 
@@ -173,7 +174,11 @@ export function mount({ portal }) {
       b.textContent = action;
       b.addEventListener('click', () => { onAction && onAction(); el.remove(); });
     }
-    $('#toasts').appendChild(el);
+    const box = $('#toasts');
+    // The same message twice in a row (hiding two chats one after another) replaces itself instead of piling up over the header.
+    for (const old of $$('[data-text]', box)) if (old.textContent === text) old.closest('[role=status]')?.remove();
+    while (box.children.length >= 2) box.firstElementChild.remove();
+    box.appendChild(el);
     setTimeout(() => el.remove(), ms);
   }
 
@@ -344,7 +349,7 @@ export function mount({ portal }) {
         $('[data-label]', t).textContent = label;
         t.addEventListener('click', () => { ui.tab = id; renderList(true); });
         t.addEventListener('keydown', (e) => {
-          const tabs = $$('[role=tab]', box);
+          const tabs = $$('[role=tab]', box).filter((x) => !x.hidden); // the Hidden tab is absent when nothing is hidden
           const i = tabs.indexOf(t);
           if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') {
             e.preventDefault();
@@ -361,7 +366,16 @@ export function mount({ portal }) {
       const selected = id === ui.tab;
       t.setAttribute('aria-selected', String(selected));
       t.tabIndex = selected ? 0 : -1;
-      const inTab = rows.filter((r) => id === 'all' || r.tags.includes(id));
+      if (id === 'hidden') {
+        const hi = store.hiddenItems(me.id);
+        const nh = hi.conversations.length + hi.messages.length;
+        t.hidden = nh === 0 && !selected; // nothing put away: no tab to look at
+        $('[data-label]', t).textContent = nh ? `Hidden (${nh})` : 'Hidden';
+        $('[data-count]', t).hidden = true;
+        t.setAttribute('aria-label', nh ? `Hidden, ${nh} ${nh === 1 ? 'item' : 'items'}` : 'Hidden');
+        continue;
+      }
+      const inTab = rows.filter((r) => (id === 'all' ? !r.hidden : r.tags.includes(id)));
       const n = id === 'queue' ? inTab.length : inTab.reduce((a, r) => a + r.unread, 0);
       const c = $('[data-count]', t);
       c.hidden = n === 0 || id === 'all';
@@ -380,7 +394,7 @@ export function mount({ portal }) {
       else if (r.status === 'queued') chips.push(badge(me.role === 'resident' ? 'Waiting' : `Waiting ${duration(Date.now() - r.waitingSince)}`, 'warning', 'clock'));
       else if (r.status === 'active') chips.push(badge('Active', 'success'));
       else if (r.status === 'bot') chips.push(badge('Assistant', 'info', 'bot'));
-      else chips.push(badge('Closed'));
+      else chips.push(r.stage === 'resolved' ? badge('Resolved', 'success') : badge('Closed'));
     } else if (r.kind === 'support') {
       if (r.priority === 'high') chips.push(badge('High', 'danger'));
       chips.push(badge({ open: 'Open', pending: 'Pending', resolved: 'Resolved' }[r.status], { open: 'info', pending: 'warning', resolved: 'success' }[r.status]));
@@ -391,16 +405,21 @@ export function mount({ portal }) {
   }
 
   function renderList(force) {
+    if (ui.tab === 'hidden') {
+      // The last hidden thing was restored: go back to the usual list instead of an empty Hidden tab.
+      const hi = store.hiddenItems(me.id);
+      if (!hi.conversations.length && !hi.messages.length) { ui.tab = DEFAULT_TAB[portal]; force = true; }
+    }
     const all = store.listFor(me.id);
     renderTabs(all);
     const query = ui.query.trim().toLowerCase();
     // Structured search: unit:304 status:open priority:high assignee:jordan tag:permit after:2026-11-01 "water leak"
     const parsed = parseQuery(ui.query);
-    let rows = all.filter((r) => (ui.tab === 'all' || r.tags.includes(ui.tab)) && matchFilters(r, parsed) && matchText([r.title, r.subtitle, r.last && r.last.text, r.unit, r.topic].join(' '), parsed));
+    let rows = all.filter((r) => (ui.tab === 'all' ? !r.hidden : r.tags.includes(ui.tab)) && matchFilters(r, parsed) && matchText([r.title, r.subtitle, r.last && r.last.text, r.unit, r.topic].join(' '), parsed));
     if (ui.tab === 'queue') rows = rows.sort((a, b) => Number(b.emergency) - Number(a.emergency) || (a.waitingSince || a.updatedAt) - (b.waitingSince || b.updatedAt));
     const minute = Math.floor(Date.now() / 60000);
     const hits = query.length >= 2 ? store.search(me.id, query) : [];
-    const sig = JSON.stringify([ui.tab, query, ui.convId, minute, offline(), store.pref(me.id).dnd, store.badgeCount(me.id), rows.map((r) => [r.id, r.updatedAt, r.status, r.unread, r.priority, r.pinned, r.muted, r.important]), hits.map((h) => h.msgId)]);
+    const sig = JSON.stringify([ui.tab, query, ui.convId, minute, offline(), store.pref(me.id).dnd, store.badgeCount(me.id), rows.map((r) => [r.id, r.updatedAt, r.status, r.unread, r.priority, r.pinned, r.muted, r.important]), hits.map((h) => h.msgId), (() => { const hi = store.hiddenItems(me.id); return [hi.conversations.map((r) => r.id), hi.messages.map((m) => m.id)]; })()]);
     if (!force && sig === ui.sigList) return;
     ui.sigList = sig;
 
@@ -426,11 +445,13 @@ export function mount({ portal }) {
           announcements: ['No announcements', me.role === 'admin' ? 'Use Announce to send a one-way notice.' : 'Notices from Support will appear here.'],
           direct: ['No direct messages', 'Start one with New.'],
           staff: ['No messages with staff', 'Start one with New.'],
+          hidden: ['Nothing hidden', 'Hide a conversation from its menu, or delete a message for yourself. They wait here until you restore them.'],
         }[ui.tab] || ['No conversations yet', canCompose ? 'Start one with New.' : 'Open the assistant to ask a question.'];
         emptyBox.appendChild(empty({ title: copy[0], text: copy[1], actions: me.role === 'resident' ? [button('Start a conversation', { variant: 'primary', onClick: startResidentSession })] : [] }));
       }
     }
-    for (const r of rows) {
+    if (ui.tab === 'hidden') renderHiddenTab(list, emptyBox, rows);
+    for (const r of ui.tab === 'hidden' ? [] : rows) {
       const li = tpl('t-row');
       const b = $('[data-row]', li);
       b.dataset.id = r.id;
@@ -483,6 +504,60 @@ export function mount({ portal }) {
     if (offline()) lb.appendChild(banner('warning', 'You are offline. Messages will not send until the connection is back.'));
     const unread = store.badgeCount(me.id);
     document.title = `${unread ? `(${unread}) ` : ''}${baseTitle}`;
+  }
+
+  /**
+   * The Hidden tab: conversations put away with Hide, then single messages put away with Delete for me.
+   * Restore puts one back where it was. Nothing here is gone for good.
+   */
+  function renderHiddenTab(list, emptyBox, rows) {
+    const hi = store.hiddenItems(me.id);
+    const q = ui.query.trim().toLowerCase();
+    const msgs = hi.messages.filter((m) => !q || `${m.convTitle} ${m.text}`.toLowerCase().includes(q));
+    list.hidden = rows.length + msgs.length === 0;
+    emptyBox.hidden = !list.hidden;
+    const section = (text) => { const s = tpl('t-section'); $('[data-text]', s).textContent = text; list.appendChild(s); };
+    const restoreRow = ({ title, when, text, label, run }) => {
+      const li = tpl('t-restore-row');
+      $('[data-title]', li).textContent = title;
+      const t = $('[data-time]', li);
+      t.textContent = listTime(when, Date.now());
+      t.dateTime = new Date(when).toISOString();
+      t.title = formatFull(when);
+      $('[data-text]', li).textContent = text;
+      const b = $('[data-restore]', li);
+      b.setAttribute('aria-label', label);
+      b.addEventListener('click', run);
+      list.appendChild(li);
+    };
+    if (rows.length) {
+      section('Conversations');
+      for (const r of rows) {
+        restoreRow({
+          title: r.title, when: r.last ? r.last.at : r.updatedAt, text: r.last ? `${r.last.from === me.id ? 'You: ' : ''}${r.last.text}` : 'No messages yet',
+          label: `Restore conversation with ${r.title}`,
+          run: () => { act(store.unhideConversation(r.id, me.id), 'Restored to your list.'); },
+        });
+      }
+    }
+    if (msgs.length) {
+      section('Messages deleted for you');
+      for (const m of msgs) {
+        restoreRow({
+          title: m.convTitle, when: m.at, text: `${m.from}: ${m.text}`,
+          label: `Restore message in ${m.convTitle}`,
+          run: () => { act(store.unhideMessage(m.convId, me.id, m.id), 'Message restored in the conversation.'); },
+        });
+      }
+    }
+  }
+
+  /** Hide a whole conversation from your own lists (nothing is deleted); Undo or the Hidden tab brings it back. */
+  function hideConv(convId) {
+    const r = store.hideConversation(convId, me.id);
+    if (!r.ok) { toast(r.reason === 'emergency_open' ? 'An open emergency cannot be hidden. Acknowledge it first.' : reasonText(r.reason)); return; }
+    if (ui.convId === convId) { ui.convId = null; ui.lastConv = null; go({ pane: 'list' }); }
+    toast('Hidden. It is under Hidden whenever you want it back.', { action: 'Undo', onAction: () => act(store.unhideConversation(convId, me.id)) });
   }
 
   /** Chips for the filters in the search box (click to remove) and buttons that add one. */
@@ -570,10 +645,8 @@ export function mount({ portal }) {
   function threadStatusBadges(row, conv) {
     const out = [];
     if (conv.kind === 'resident_support') {
-      if (conv.status === 'queued') out.push(badge('Waiting for staff', 'warning', 'clock'));
-      if (conv.status === 'active') out.push(badge('Active', 'success'));
+      // Queued, active and closed are already shown by the progress bar under the header; only the assistant has no bar step of its own.
       if (conv.status === 'bot') out.push(badge('Automated assistant', 'info', 'bot'));
-      if (conv.status === 'closed') out.push(badge('Closed'));
     } else if (conv.kind === 'support') {
       out.push(badge({ open: 'Open', pending: 'Pending', resolved: 'Resolved' }[conv.status], { open: 'info', pending: 'warning', resolved: 'success' }[conv.status]));
       if (conv.priority === 'high') out.push(badge('High priority', 'danger'));
@@ -630,11 +703,12 @@ export function mount({ portal }) {
       { flag: 'pinned', icon: 'pin', label: pinned ? 'Unpin conversation' : 'Pin conversation' },
       { flag: 'important', icon: 'flag', label: important ? 'Remove important flag' : 'Flag as important', tone: important ? 'danger' : '' },
       { flag: 'muted', icon: 'bell-off', label: muted ? 'Unmute conversation' : 'Mute conversation' },
+      { flag: 'hide', icon: 'eye-off', label: 'Hide conversation' },
     ]) {
       const b = tpl('t-menu-item');
       setIcon($('svg', b), it.icon);
       $('[data-label]', b).textContent = it.label;
-      b.addEventListener('click', (e) => { e.stopPropagation(); done(); toggleFlag(convId, it.flag); });
+      b.addEventListener('click', (e) => { e.stopPropagation(); done(); if (it.flag === 'hide') hideConv(convId); else toggleFlag(convId, it.flag); });
       menu.appendChild(b);
     }
   }
@@ -758,7 +832,6 @@ export function mount({ portal }) {
     renderThread(true);
   }
   const fmtDate = (iso) => new Intl.DateTimeFormat('en-US', { dateStyle: 'medium', timeZone: 'UTC' }).format(new Date(`${iso}T00:00:00Z`));
-  const fmtMoney = (n) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(n);
 
   function ctxSection(heading) {
     const s = tpl('t-ctx-section');
@@ -810,7 +883,6 @@ export function mount({ portal }) {
       ctxRow(dl, 'Lease', `${fmtDate(u.leaseStart)} to ${fmtDate(u.leaseEnd)}`);
       const left = u.daysLeft;
       ctxRow(dl, 'Lease status', left < 0 ? `Ended ${-left} days ago` : left <= 60 ? `Ends in ${left} days` : `${left} days left`, left < 0 ? 'danger' : left <= 60 ? 'warning' : 'success');
-      ctxRow(dl, 'Balance due', u.balance > 0 ? fmtMoney(u.balance) : 'Paid up', u.balance > 0 ? 'danger' : 'success');
       const entry = ctxSection('Unit entry notes');
       const p = document.createElement('p');
       p.className = 'text-sm text-foreground-secondary';
@@ -851,6 +923,7 @@ export function mount({ portal }) {
     add(t.row.important ? 'Remove important flag' : 'Flag as important', 'flag', () => toggleFlag(t.conv.id, 'important'));
     add(t.row.pinned ? 'Unpin conversation' : 'Pin conversation', 'pin', () => toggleFlag(t.conv.id, 'pinned'));
     add(t.row.muted ? 'Unmute conversation' : 'Mute conversation', 'bell-off', () => toggleFlag(t.conv.id, 'muted'));
+    add('Hide conversation', 'eye-off', () => hideConv(t.conv.id));
   }
 
   $('#ctx-close').addEventListener('click', () => { setContext(false); $('#btn-context')?.focus(); });
@@ -911,7 +984,7 @@ export function mount({ portal }) {
       if (conv.status === 'queued') box.appendChild(banner('info', `Sent to the property team ${duration(Date.now() - (conv.queuedAt || Date.now()))} ago. A team member will reply here, and you will only be notified when someone does. You can add details below.`));
     }
     if (conv.kind === 'resident_support' && me.role === 'staff' && conv.status === 'queued') box.appendChild(banner('info', 'The resident is waiting. Reply below, or press Take conversation. Either way they will see that you joined.'));
-    if (conv.kind === 'support' && t.conv.status === 'resolved') box.appendChild(banner('success', me.role === 'admin' ? 'Resolved. A reply from the requester reopens it.' : 'Resolved. Reply here if you still need help and it will reopen.'));
+    if (conv.kind === 'support' && t.conv.status === 'resolved') box.appendChild(banner('success', me.role === 'admin' ? 'A reply from the requester reopens it.' : 'Still need help? Reply here and it will reopen.'));
   }
 
   function composerNote(t) {
@@ -926,7 +999,7 @@ export function mount({ portal }) {
     let text = reasonText(reason);
     const actions = [];
     if (reason === 'closed') {
-      text = me.role === 'resident' ? 'This conversation is closed.' : 'This conversation is closed. Closed conversations cannot be changed.';
+      text = me.role === 'resident' ? 'This conversation has ended.' : 'Read only. A finished ticket cannot be changed.';
       if (me.role === 'resident') actions.push(button('Start a new conversation', { variant: 'primary', icon: 'message', onClick: startResidentSession }));
     }
     if (reason === 'not_claimed') text = 'Take this conversation to reply. Until then the resident only sees that someone will answer.';

@@ -146,6 +146,17 @@ function run(seed, steps) {
           assert.ok(got.messages.every((m) => !hidden.has(m.id)), `${u} sees a message they deleted for themselves`);
         }
       }
+      // Ticket box: every row opens, the right people see the right rows, numbers never repeat.
+      const box = store.ticketBox(u);
+      assert.equal(new Set(box.map((t) => t.no)).size, box.length, `${u}: duplicate ticket numbers`);
+      for (const t of box) {
+        assert.ok(store.ticketRecord(u, t.id).ok, `${u} cannot open ${t.no} that is listed for them`);
+        if (role(u) === 'resident') assert.equal(t.requester.id, u, `resident ${u} lists someone else's ticket ${t.no}`);
+        if (role(u) === 'client') assert.ok(t.kind === 'support' && t.requester.id === u, `client ${u} lists ${t.no}`);
+        if (role(u) === 'admin') assert.equal(t.kind, 'support', `admin ${u} lists a resident ticket ${t.no}`);
+        if (role(u) === 'staff' && t.kind === 'support') assert.equal(t.requester.id, u, `staff ${u} lists another person's support thread`);
+        assert.ok(t.isOpen === (t.stage !== 'resolved' && t.stage !== 'closed'), `${t.no}: isOpen disagrees with stage ${t.stage}`);
+      }
       const b = store.badgeCount(u);
       assert.ok(Number.isInteger(b) && b >= 0 && b <= sum, `${u} badge ${b} vs unread ${sum}`);
       for (const kind of ['pinned', 'muted', 'important']) for (const id of store.pref(u)[kind]) assert.ok(s.convs[id], `${u} ${kind} points at missing conversation ${id}`);

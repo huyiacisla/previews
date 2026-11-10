@@ -885,6 +885,65 @@ export function createStore({ transport, now = Date.now, config = {} } = {}) {
       });
     },
 
+    /**
+     * Hide a whole conversation from your own lists. Nothing is deleted and other people still see it.
+     * It lives under the Hidden tab until you restore it, and it comes back by itself when something new happens in it.
+     * An open emergency cannot be hidden. Saved tickets stay in the Ticket box either way.
+     */
+    hideConversation(convId, userId) {
+      return act((d) => {
+        const conv = d.convs[convId];
+        const u = user(userId);
+        if (!conv || !u || !canSee(conv, u)) return { ok: false, reason: 'not_found' };
+        if (emergencyOpen(conv)) return { ok: false, reason: 'emergency_open' };
+        const p = (d.prefs[userId] = d.prefs[userId] || {});
+        p.hiddenConvs = { ...(p.hiddenConvs || {}), [convId]: Math.max(now(), conv.updatedAt || 0) };
+        return { ok: true };
+      });
+    },
+
+    /** Put a hidden conversation back in your lists. */
+    unhideConversation(convId, userId) {
+      return act((d) => {
+        const conv = d.convs[convId];
+        const u = user(userId);
+        if (!conv || !u || !canSee(conv, u)) return { ok: false, reason: 'not_found' };
+        const p = d.prefs[userId];
+        if (!p || !p.hiddenConvs || !(convId in p.hiddenConvs)) return { ok: true, noop: true };
+        const next = { ...p.hiddenConvs };
+        delete next[convId];
+        p.hiddenConvs = next;
+        return { ok: true };
+      });
+    },
+
+    /** Is this conversation hidden for this person right now? New activity (or an open emergency) brings it back. */
+    isHiddenConv(conv, userId) {
+      const at = (api.pref(userId).hiddenConvs || {})[conv.id];
+      return !!at && (conv.updatedAt || 0) <= at && !emergencyOpen(conv);
+    },
+
+    /** Everything this person has put away, for the Hidden tab: whole conversations and single messages ("Delete for me"). */
+    hiddenItems(userId) {
+      const u = user(userId);
+      if (!u) return { conversations: [], messages: [] };
+      const hiddenIds = new Set(api.pref(userId).hidden);
+      const conversations = [];
+      const messages = [];
+      for (const c of Object.values(state.convs)) {
+        if (!canSee(c, u)) continue;
+        const row = api.rowFor(c, u);
+        if (row.hidden) conversations.push(row);
+        for (const m of state.msgs[c.id] || []) {
+          if (!hiddenIds.has(m.id) || m.kind === 'system') continue;
+          messages.push({ id: m.id, convId: c.id, convTitle: row.title, text: m.text || (m.attachments && m.attachments.length ? 'Attachment' : ''), at: m.at, mine: m.from === userId, from: m.from === userId ? 'You' : (user(m.from) ? user(m.from).name : 'Someone') });
+        }
+      }
+      conversations.sort((a, b) => b.updatedAt - a.updatedAt);
+      messages.sort((a, b) => b.at - a.at);
+      return { conversations, messages };
+    },
+
     /** Pin or mute a conversation for yourself only. Muted chats stay in the list but do not add to the badge. */
     toggleFlag(convId, userId, flag) {
       if (!['pinned', 'muted', 'important'].includes(flag)) return { ok: false, reason: 'invalid_flag' };
@@ -913,7 +972,7 @@ export function createStore({ transport, now = Date.now, config = {} } = {}) {
       for (const conv of Object.values(state.convs)) {
         if (!canSee(conv, u)) continue;
         const row = api.rowFor(conv, u);
-        if (!matchFilters(row, parsed)) continue;
+        if (row.hidden || !matchFilters(row, parsed)) continue; // hidden chats are searched under the Hidden tab only
         for (const m of state.msgs[conv.id] || []) {
           if (m.deleted || m.kind === 'system' || !m.text || hiddenIds.has(m.id)) continue;
           if (conv.kind === 'resident_support' && u.role === 'staff' && m.kind === 'bot') continue;
@@ -964,7 +1023,7 @@ export function createStore({ transport, now = Date.now, config = {} } = {}) {
         return { ok: true };
       });
     },
-    pref: (userId) => ({ dnd: false, pinned: [], muted: [], important: [], hidden: [], ...((state && state.prefs[userId]) || {}) }),
+    pref: (userId) => ({ dnd: false, pinned: [], muted: [], important: [], hidden: [], hiddenConvs: {}, ...((state && state.prefs[userId]) || {}) }),
 
     /** Close idle chats. Called on a timer by the UI; safe to call any time. */
     tick() {
@@ -1017,6 +1076,7 @@ export function createStore({ transport, now = Date.now, config = {} } = {}) {
       let n = 0;
       for (const c of Object.values(state.convs)) {
         if (!canSee(c, u)) continue;
+        if (api.isHiddenConv(c, userId)) continue; // hidden chats stay quiet
         // An open emergency gets through Do Not Disturb and mute.
         if (!emergencyOpen(c)) {
           if (muted.includes(c.id)) continue;
@@ -1044,7 +1104,10 @@ export function createStore({ transport, now = Date.now, config = {} } = {}) {
 
     /** One list row: what the list shows plus the fields search and filters use (unit, stage, priority, assignee, topic). */
     rowFor(conv, viewer) {
-      const r = api._rowBase(conv, viewer);
+      const r0 = api._rowBase(conv, viewer);
+      // A hidden conversation shows only under the Hidden tab, so it carries just that tag.
+      const hidden = api.isHiddenConv(conv, viewer.id);
+      const r = hidden ? { ...r0, tags: ['hidden'], hidden: true } : { ...r0, hidden: false };
       const resId = conv.kind === 'resident_support' ? conv.residentId : conv.kind === 'direct' ? conv.participants.find((p) => user(p) && user(p).role === 'resident') : null;
       const res = resId && user(resId);
       const asg = conv.assigneeId && user(conv.assigneeId);
@@ -1101,7 +1164,7 @@ export function createStore({ transport, now = Date.now, config = {} } = {}) {
 
     /**
      * What the right-hand details panel shows next to a conversation (Staff and Admin only).
-     * A conversation with a resident gives the resident's unit, lease, balance and entry notes plus their recent tickets;
+     * A conversation with a resident gives the resident's unit, lease and entry notes plus their recent tickets;
      * any other conversation gives the people in it. Demo data lives in personas.js; a real app reads its property system.
      */
     contextFor(convId, userId) {
