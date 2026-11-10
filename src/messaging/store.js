@@ -37,6 +37,9 @@ export const CONFIG = {
 };
 
 export const STAGE_LABEL = { open: 'Open', in_progress: 'In progress', waiting_on_resident: 'Waiting on resident', resolved: 'Resolved', closed: 'Closed' };
+/** Human ticket number from the conversation id, stable and unique: c8 -> T-1008. */
+export const ticketNo = (conv) => `T-${conv.ticketNo || 1000 + (parseInt(String(conv.id).replace(/\D/g, ''), 10) || 0)}`;
+const nextTicket = (d) => { d.ticketSeq = (d.ticketSeq || 1080) + 1; return d.ticketSeq; };
 export const STAGES = ['open', 'in_progress', 'waiting_on_resident', 'resolved', 'closed'];
 
 /** Where a resident ticket is in its life: Open -> In progress -> Waiting on resident -> Resolved -> Closed. */
@@ -71,13 +74,15 @@ function samplePhoto(label) {
 /* ------------------------------------------------------------------ seed */
 
 export function createSeed(now, { empty = false } = {}) {
-  const d = { v: 1, rev: 0, seq: 0, convs: {}, msgs: {}, prefs: {} };
+  const d = { v: 1, rev: 0, seq: 0, ticketSeq: 1080, convs: {}, msgs: {}, prefs: {} };
   if (empty) return d;
   const min = (n) => now - n * 60000;
   const nid = (p) => `${p}${++d.seq}`;
   const conv = (c) => {
     const id = nid('c');
-    d.convs[id] = { id, createdAt: c.at, updatedAt: c.at, last: null, ...c };
+    // Support threads and resident chats that reached the team are tickets and get a number (T-1081, T-1082, ...).
+    const isTicket = c.kind === 'support' || (c.kind === 'resident_support' && c.queuedAt);
+    d.convs[id] = { id, createdAt: c.at, updatedAt: c.at, last: null, ...c, ...(isTicket ? { ticketNo: ++d.ticketSeq } : {}) };
     d.msgs[id] = [];
     return d.convs[id];
   };
@@ -333,6 +338,7 @@ export function createStore({ transport, now = Date.now, config = {} } = {}) {
   }
 
   function queue(d, conv) {
+    if (!conv.ticketNo) conv.ticketNo = nextTicket(d); // from here on it is a ticket and lives in the Ticket box
     conv.status = 'queued';
     conv.queuedAt = now();
     conv.summary = assistant.summarize(conv.bot, msgsOf(d, conv.id));
@@ -632,7 +638,7 @@ export function createStore({ transport, now = Date.now, config = {} } = {}) {
     _startSupportIn(d, requester, { subject, text, priority }) {
       if (!['staff', 'client'].includes(requester.role)) return { ok: false, reason: 'not_allowed' };
       const id = nid(d, 'c');
-      const conv = { id, kind: 'support', status: 'open', createdAt: now(), updatedAt: now(), last: null, requesterId: requester.id, assigneeId: null, subject: preview(subject) || 'Support request', priority: priority || 'normal', resolvedAt: null };
+      const conv = { id, kind: 'support', status: 'open', ticketNo: nextTicket(d), createdAt: now(), updatedAt: now(), last: null, requesterId: requester.id, assigneeId: null, subject: preview(subject) || 'Support request', priority: priority || 'normal', resolvedAt: null };
       d.convs[id] = conv;
       d.msgs[id] = [];
       push(d, conv, requester.id, 'text', text);
@@ -1116,6 +1122,65 @@ export function createStore({ transport, now = Date.now, config = {} } = {}) {
       const ids = conv.participants || (conv.kind === 'support' ? [conv.requesterId, conv.assigneeId].filter(Boolean) : []);
       const people = ids.map(user).filter(Boolean).map((p) => ({ id: p.id, name: p.name, role: p.role, title: p.title, org: p.org }));
       return people.length ? { kind: 'people', people } : null;
+    },
+
+    /* --- Ticket box: every conversation that became a ticket, kept after it closes --- */
+
+    /** Who can open the saved record of a ticket (read-only): residents their own, Staff every resident ticket, Admin every support thread, Client and Staff their own support threads. */
+    _ticketAccess(conv, u) {
+      if (conv.kind === 'resident_support') {
+        if (!conv.queuedAt) return false; // answered by the assistant: never became a ticket
+        return u.role === 'staff' || (u.role === 'resident' && conv.residentId === u.id);
+      }
+      if (conv.kind === 'support') return u.role === 'admin' || conv.requesterId === u.id;
+      return false;
+    },
+
+    _ticketRow(conv, viewer) {
+      const asg = conv.assigneeId ? user(conv.assigneeId) : null;
+      const msgs = state.msgs[conv.id] || [];
+      const base = { id: conv.id, no: ticketNo(conv), updatedAt: conv.updatedAt, messages: msgs.filter((m) => m.kind === 'text' || m.kind === 'bot').length, assignee: asg ? asg.name : '', assigneeName: asg ? asg.name : '', emergency: !!conv.emergency, canOpenLive: canSee(conv, viewer) };
+      if (conv.kind === 'resident_support') {
+        const res = user(conv.residentId);
+        const stage = ticketStage(conv);
+        return { ...base, kind: 'resident', subject: conv.topic || 'General question', topic: conv.topic || '', requester: { id: res.id, name: res.name, role: 'resident', title: res.title }, unit: res.unit ? res.unit.number : '', building: res.unit ? res.unit.building : '', stage, status: conv.status, stageLabel: STAGE_LABEL[stage], isOpen: conv.status !== 'closed', openedAt: conv.queuedAt || conv.createdAt, closedAt: conv.closedAt || null, csat: conv.csat || null, priority: conv.emergency ? 'emergency' : 'normal' };
+      }
+      const req = user(conv.requesterId);
+      const label = { open: 'Open', pending: 'Pending', resolved: 'Resolved' }[conv.status];
+      return { ...base, kind: 'support', subject: conv.subject, topic: conv.subject, requester: { id: req.id, name: req.name, role: req.role, title: req.title }, unit: '', building: '', stage: conv.status, status: conv.status, stageLabel: label, isOpen: conv.status !== 'resolved', openedAt: conv.createdAt, closedAt: conv.resolvedAt || null, csat: null, priority: conv.priority || 'normal' };
+    },
+
+    /** Everything this person can find in the box, newest activity first. */
+    ticketBox(userId, query = '') {
+      const u = user(userId);
+      if (!u) return [];
+      const parsed = parseQuery(query);
+      return Object.values(state.convs)
+        .filter((c) => api._ticketAccess(c, u))
+        .map((c) => api._ticketRow(c, u))
+        .filter((r) => matchFilters(r, parsed))
+        .filter((r) => !parsed.text.length || matchText([r.no, r.subject, r.requester.name, r.unit, r.assignee, ...(state.msgs[r.id] || []).filter((m) => !m.deleted).map((m) => m.text)].join(' '), parsed))
+        .sort((a, b) => b.updatedAt - a.updatedAt);
+    },
+
+    ticketCounts(userId) {
+      const rows = api.ticketBox(userId);
+      const open = rows.filter((r) => r.isOpen).length;
+      return { open, closed: rows.length - open, total: rows.length };
+    },
+
+    /** The saved record: ticket details and the whole conversation, audit cards included. Read-only. */
+    ticketRecord(userId, convId) {
+      const conv = state.convs[convId];
+      const u = user(userId);
+      if (!conv || !u || !api._ticketAccess(conv, u)) return { ok: false, reason: 'not_found' };
+      const hiddenIds = new Set(api.pref(userId).hidden);
+      const entries = (state.msgs[convId] || []).filter((m) => !hiddenIds.has(m.id)).map((m) => ({
+        id: m.id, at: m.at, kind: m.kind, text: m.deleted ? '' : m.text || '', deleted: !!m.deleted, audit: m.audit || null, emergency: !!m.emergency, forwarded: !!m.forwarded, editedAt: m.editedAt || null,
+        attachments: m.deleted ? [] : (m.attachments || []).map((a) => ({ id: a.id, kind: a.kind, name: a.name, mime: a.mime, size: a.size, data: a.data })),
+        author: m.from === 'bot' ? { id: 'bot', name: 'EasySpotOps Assistant', role: 'bot' } : m.from === 'system' ? null : user(m.from) ? { id: m.from, name: user(m.from).name, role: user(m.from).role, title: user(m.from).title } : null,
+      }));
+      return { ok: true, ticket: api._ticketRow(conv, u), entries };
     },
 
     /** People you could put in a group: Staff, Client and Admin people other than you. */

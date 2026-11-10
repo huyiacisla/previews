@@ -20,6 +20,7 @@ npm run build    # kiểm tra; ra dist/
 | Resident | `/resident/home.html` |
 | Messages (hub, nối 4 portal) | `/messages/index.html` |
 | Messages từng portal | `/resident/messages.html`, `/staff/messages.html`, `/client/messages.html`, `/admin/messages.html` |
+| Ticket box từng portal (mở từ đáy sidebar dashboard) | `/resident/tickets.html`, `/staff/tickets.html`, `/client/tickets.html`, `/admin/tickets.html` |
 
 Thêm `?dark` vào URL để xem chế độ tối. Trang Messages hoạt động thật trong trình duyệt (xem [docs/messaging-design.md](docs/messaging-design.md)); chạy `npm test` để kiểm lõi nghiệp vụ.
 

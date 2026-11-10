@@ -114,9 +114,22 @@ Bảng đối chiếu từng mục nằm ở `docs/checklist-conformance.md`. T�
 - **Panel chi tiết cột 3** (`store.contextFor`, `renderContext` trong `app.js`): Staff/Admin thấy hồ sơ resident, căn hộ, hợp đồng, công nợ, ghi chú vào nhà, 5 ticket gần nhất và hành động nhanh; cuộc khác thì hiện người tham gia. Từ 1280px là cột thứ ba (`#view-app[data-context=open]`), hẹp hơn là ngăn kéo bên phải; mặc định mở trên màn rộng, nhớ lựa chọn, Esc đóng. Dữ liệu hợp đồng/công nợ là dữ liệu mẫu trong `personas.js`.
 - **Màu vai trò** bằng token (Resident xám, Staff hổ phách, Admin xanh chàm, Client lục), **bottom sheet** cho hộp thoại dưới 640px, **chế độ tương phản cao** (Preview tools hoặc `?contrast`), ảnh nén 1920px WebP ~300KB.
 
+## Ticket box (nhóm Services của sidebar)
+
+Nơi lưu mọi cuộc hội thoại đã trở thành ticket, kể cả sau khi đóng, để đọc lại, tìm và xuất.
+
+- **Lối vào**: mục **Ticket box** (kèm số ticket đang mở) là mục cuối của nhóm **Services** trong sidebar 4 dashboard (`src/preview.js`). Staff đã có nhóm Services (sau Audit Log); Client, Admin và Resident chưa có nên preview **tạo nhóm Services mới** (nhân bản một nhóm sẵn có, đặt trước nhóm cuối) chỉ chứa Ticket box. Mở `/<portal>/tickets.html`. Trong Messages, cuộc đã đóng hiện dòng "Saved as T-… in the Ticket box" kèm nút mở.
+- **Cái gì là ticket**: chat resident đã tới đội (có `queuedAt`) và mọi thread Support. Chat chỉ do trợ lý trả lời không thành ticket. Số hiệu liên tiếp `T-1081`, `T-1082`… (`conv.ticketNo`, bộ đếm `ticketSeq`), được cấp lúc vào hàng chờ hoặc lúc tạo yêu cầu Support.
+- **Ai thấy gì** (`store._ticketAccess`, chỉ đọc): Resident thấy ticket của mình; Staff thấy mọi ticket resident và Support do mình gửi; Admin thấy mọi Support; Client thấy Support của mình. Staff đọc được ticket đã đóng của đồng nghiệp (kho lưu của đội), Admin không thấy ticket resident.
+- **Trang**: danh sách bên trái (tab Open / Closed / All có số, ô tìm hỗ trợ cú pháp `unit:`, `status:`, `priority:`, `assignee:`, `tag:`, `after:`, `before:` và tìm cả trong nội dung hội thoại), bản ghi bên phải: số ticket, trạng thái, người yêu cầu, căn hộ, người phụ trách, thời điểm mở/đóng, thời gian xử lý, đánh giá, ưu tiên, rồi toàn bộ hội thoại **chỉ đọc** theo dạng bản ghi (không phải bong bóng chat): tên, vai trò, giờ, nội dung, tệp đính kèm tải về được, ghi chú hệ thống và thẻ audit.
+- **Hành động**: **Export** (tải `T-xxxx.txt` gồm thông tin ticket, người xuất, từng tin và từng thẻ audit giờ ISO), **Copy link**, **Open in Messages** (với ticket còn mở và bạn có quyền xem cuộc).
+- **API trong `store.js`**: `ticketBox(userId, query)`, `ticketCounts(userId)`, `ticketRecord(userId, convId)`.
+- Mobile: danh sách và bản ghi là hai màn, Back về danh sách trước (cùng quy tắc với Messages).
+
 ## Kiểm thử
 
 - `npm test` chạy 54 test: 42 test nghiệp vụ (`tests/messaging.test.mjs`), 11 test theo checklist (`tests/checklist.test.mjs`) và **1 test ngẫu nhiên** (`tests/fuzz.test.mjs`): hàng nghìn thao tác ngẫu nhiên của 9 người (gửi, nhận cuộc, nhóm, sửa, thu hồi, forward, ghim…) rồi kiểm các luật không được vỡ (ai thấy gì, nhóm 2–12 người chỉ Staff/Client/Admin, resident chỉ với Staff/Admin, tin đã thu hồi không còn chữ/tệp/phản ứng, số chưa đọc không âm, trạng thái cuộc resident hợp lệ, danh sách và `get` khớp nhau). Chạy lại một ca lỗi: đặt `SEED=<số>`. Đã chạy một lần 40 hạt giống × 1200 bước, không lỗi.
+- **Nội dung dài**: một từ dài 180 ký tự không dấu cách làm bong bóng rộng gần 3000px và tràn ra ngoài màn hình (mất phần đầu tin). Đã sửa bằng `wrap-anywhere` (`overflow-wrap: anywhere`) cho bong bóng và kết quả tìm kiếm; `break-words` không đủ vì không giảm độ rộng tối thiểu của phần tử. Đã thử lại ở 375px và 1440px, kể cả tin trả lời có trích dẫn.
 - Quét trình duyệt (làm tay, không nằm trong `npm test`): 4 portal × 375/768/1280px × sáng/tối, mở từng cuộc trò chuyện, menu ba chấm của tin và của cuộc, bảng emoji; tìm tràn ngang, nút ra ngoài màn hình, nút không tên, lỗi JS. Lần quét này tìm ra menu của tin tràn ra ngoài màn hình (đã sửa: menu căn theo nút rồi kẹp trong vùng tin) và thanh tab bị cắt trên mobile (đã sửa: tab xuống hàng).
 
 ## Phạm vi demo: logic tính năng nằm ở frontend (đã chốt)

@@ -137,6 +137,49 @@ test('details panel: resident context for Staff, people for other chats, nothing
   assert.equal(store.contextFor(ann, 'stf-1'), null, 'nothing to show for a broadcast');
 });
 
+test('ticket box: closed conversations are kept, readable and searchable by the right people only', () => {
+  const { store } = setup();
+  const staffBox = store.ticketBox('stf-1');
+  // Seed order: waiting resident chat T-1081, active chat T-1082, support T-1083 (client), T-1084 (staff), T-1085 (staff 2).
+  assert.deepEqual(staffBox.map((t) => t.no).sort(), ['T-1081', 'T-1082', 'T-1084'], 'two resident tickets and their own support thread');
+  assert.equal(new Set(store.ticketBox('adm-1').map((t) => t.no)).size, 3, 'numbers are unique');
+  assert.ok(!staffBox.some((t) => t.id && t.kind === 'resident' && t.requester.id === 'res-1'), 'a chat the assistant answered never becomes a ticket');
+  const counts = store.ticketCounts('stf-1');
+  assert.equal(counts.open + counts.closed, counts.total);
+  // close one and see it stay in the box with its whole record
+  const id = store.listFor('stf-1').find((r) => r.tags.includes('queue')).id;
+  store.claim(id, 'stf-1');
+  store.send(id, 'stf-1', 'Replacement hangtag is at the office.');
+  assert.ok(store.resolve(id, 'stf-1').ok);
+  const row = store.ticketBox('stf-1').find((t) => t.id === id);
+  assert.deepEqual([row.isOpen, row.stage, row.stageLabel, row.assignee, row.kind], [false, 'resolved', 'Resolved', 'Jordan Lee', 'resident']);
+  assert.ok(row.closedAt >= row.openedAt);
+  const rec = store.ticketRecord('stf-2', id);
+  assert.ok(rec.ok, 'any Staff member can read a closed resident ticket');
+  assert.ok(rec.entries.some((e) => e.text === 'Replacement hangtag is at the office.'));
+  assert.ok(rec.entries.some((e) => e.audit && e.audit.to === 'Resolved'), 'the audit trail is part of the record');
+  assert.ok(rec.entries.some((e) => e.author && e.author.role === 'bot'), 'so is what the assistant said');
+  assert.ok(store.ticketRecord('res-2', id).ok, 'the resident can read their own ticket');
+  assert.equal(store.ticketRecord('res-1', id).ok, false, 'another resident cannot');
+  assert.equal(store.ticketRecord('cli-1', id).ok, false);
+  assert.equal(store.ticketRecord('adm-1', id).ok, false, 'Admin does not see resident tickets');
+  assert.deepEqual(store.ticketBox('res-1'), [], 'res-1 has no tickets');
+  // support threads: requester and Admin
+  const sup = store.ticketBox('adm-1');
+  assert.ok(sup.length >= 3 && sup.every((t) => t.kind === 'support'));
+  assert.deepEqual(store.ticketBox('cli-2').map((t) => t.no), ['T-1083'], 'a client sees only their own support thread');
+  assert.equal(store.ticketBox('cli-1').length, 0);
+  // search: filters and words across the whole conversation
+  assert.deepEqual(store.ticketBox('stf-1', 'hangtag status:resolved').map((t) => t.id), [id]);
+  assert.equal(store.ticketBox('stf-1', 'T-1081').length, 1, 'search by ticket number');
+  assert.equal(store.ticketBox('stf-1', 'zzzz').length, 0);
+  assert.equal(store.ticketBox('stf-1', 'unit:05-114').length, 1);
+  // hidden-for-me messages stay out of your copy of the record
+  const mid = rec.entries.find((e) => e.text === 'Replacement hangtag is at the office.').id;
+  store.hideMessage(id, 'stf-1', mid);
+  assert.ok(!store.ticketRecord('stf-1', id).entries.some((e) => e.id === mid));
+});
+
 test('ticketStage covers every state and the labels exist', () => {
   assert.equal(ticketStage({ kind: 'direct' }), null);
   assert.equal(ticketStage({ kind: 'resident_support', status: 'bot' }), 'open');

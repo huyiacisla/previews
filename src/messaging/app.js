@@ -1,7 +1,7 @@
 // DOM controller for the Messages pages. All markup and Tailwind classes come from
 // partials/messages-app.html templates; this file only clones them, fills text and toggles data-* / hidden.
 
-import { createStore, notifies, STAGES, STAGE_LABEL } from './store.js';
+import { createStore, notifies, STAGES, STAGE_LABEL, ticketNo } from './store.js';
 import { parseQuery, matchFilters, matchText, withoutFilter, describeFilters, FILTER_KEYS, isEmptyQuery } from './query.js';
 import { createTransport } from './transport.js';
 import { PERSONAS, PORTALS, pickPersona, initials } from './personas.js';
@@ -898,6 +898,9 @@ export function mount({ portal }) {
     clear(box);
     const { conv } = t;
     if (t.emergency && me.role === 'resident') box.appendChild(banner('warning', 'Your emergency report was sent. The property team has been alerted and will respond as soon as they see it.'));
+    // A closed ticket is kept in the Ticket box with its whole conversation.
+    const closedTicket = (conv.kind === 'resident_support' && conv.status === 'closed' && conv.queuedAt) || (conv.kind === 'support' && conv.status === 'resolved');
+    if (closedTicket) box.appendChild(banner('neutral', `Saved as ${ticketNo(conv)} in the Ticket box.`, [button('Open Ticket box', { variant: 'outline', icon: 'ticket', onClick: () => location.assign(`/${portal}/tickets.html?as=${me.id}#/t/${conv.id}`) })]));
     if (conv.kind === 'announcement' && t.ack) {
       const names = t.ack.unread.length ? ` Not yet read: ${t.ack.unread.join(', ')}.` : ' Everyone has read it.';
       box.appendChild(banner('info', `${t.ack.pct}% read (${t.ack.read} of ${t.ack.total}).${names}`));
