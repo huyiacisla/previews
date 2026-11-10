@@ -9,9 +9,10 @@ export const PORTALS = {
 };
 
 export const PERSONAS = [
-  { id: 'res-1', role: 'resident', name: 'Alex Rivera', title: 'Unit 02-291', org: 'Mallard Pointe at Riverbend' },
-  { id: 'res-2', role: 'resident', name: 'Priya Nair', title: 'Unit 05-114', org: 'Mallard Pointe at Riverbend' },
-  { id: 'res-3', role: 'resident', name: 'Morgan Ellis', title: 'Unit 08-033', org: 'Mallard Pointe at Riverbend' },
+  // `unit` holds made-up lease and account details shown in the context panel and used by unit:<number> search.
+  { id: 'res-1', role: 'resident', name: 'Alex Rivera', title: 'Unit 02-291', org: 'Mallard Pointe at Riverbend', unit: { number: '02-291', building: 'Building 2', leaseStart: '2026-03-01', leaseEnd: '2027-02-28', balance: 0, entry: 'Dog in unit. Call first.' } },
+  { id: 'res-2', role: 'resident', name: 'Priya Nair', title: 'Unit 05-114', org: 'Mallard Pointe at Riverbend', unit: { number: '05-114', building: 'Building 5', leaseStart: '2026-08-15', leaseEnd: '2027-08-14', balance: 1250, entry: 'Knock twice. Resident works nights.' } },
+  { id: 'res-3', role: 'resident', name: 'Morgan Ellis', title: 'Unit 08-033', org: 'Mallard Pointe at Riverbend', unit: { number: '08-033', building: 'Building 8', leaseStart: '2025-12-16', leaseEnd: '2026-12-15', balance: 0, entry: 'Key in lockbox at the office.' } },
   { id: 'stf-1', role: 'staff', name: 'Jordan Lee', title: 'Property Manager', org: 'Mallard Pointe at Riverbend' },
   { id: 'stf-2', role: 'staff', name: 'Sam Okafor', title: 'Parking Coordinator', org: 'Mallard Pointe at Riverbend' },
   { id: 'cli-1', role: 'client', name: 'Dana Whitfield', title: 'Regional Director', org: 'Mallard Pointe Management' },

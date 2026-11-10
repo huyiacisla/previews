@@ -32,7 +32,7 @@ Trang Messages riêng cho Resident, Staff, Client, Admin, dùng chung **một l�
 
 1. **bot**: chỉ resident và trợ lý. **Staff không thấy, không bị báo.** Trợ lý đưa chủ đề bằng nút trả lời nhanh, trả lời FAQ mẫu, hỏi "Did that answer your question?". Giải quyết được thì đóng luôn, Staff không biết.
 2. **queued**: resident chọn "Talk to a person" (hoặc 2 câu không hiểu). Trợ lý tạo **thẻ tóm tắt** (chủ đề, câu đã hỏi, chi tiết đã gõ) để Staff không hỏi lại; cuộc vào hàng chờ của Staff.
-3. **active**: một Staff bấm **Take conversation** (chỉ một người thắng). Resident được báo một lần khi họ vào.
+3. **active**: một Staff bấm **Take conversation** **hoặc gõ trả lời ngay trong cuộc đang chờ** (câu trả lời đầu tiên tự nhận cuộc: `postCheck` trả `takes: true`, `send` gọi `takeChat` rồi đăng tin trong cùng một lần ghi, nên vẫn chỉ một người thắng). Resident được báo một lần khi họ vào ("… joined the chat"). Chuyển tiếp (Forward) vào một cuộc đang chờ bị chặn để không vô tình nhận hộ cuộc của người khác.
 4. **closed**: Staff **Resolve** (bấm 2 lần để xác nhận) hoặc resident **End chat**. Có thể đánh giá Helpful / Not helpful. Lần sau mở Messages bắt đầu lại với trợ lý.
 - Tự đóng khi im lặng: chat bot sau 15 phút, chat Staff sau 12 giờ (`CONFIG` trong `store.js`).
 - Chỉ báo chưa đọc cho Staff **không** tính tin của trợ lý và các lần bấm trả lời nhanh (`notifies()` trong `store.js`); resident được báo về tin của trợ lý, khi Staff vào và khi đóng.
@@ -51,15 +51,24 @@ Trang Messages riêng cho Resident, Staff, Client, Admin, dùng chung **một l�
 
 ## Tính năng chat
 
-- **Bấm vào tin để hiện giờ, trạng thái và các nút hành động** (React, Reply, Copy, Remove); mặc định ẩn để bong bóng gọn. Hiện bằng `data-reveal` trên từng tin, không dựng lại danh sách. Tin cuối của mình luôn hiện trạng thái gửi.
-- **Emoji**: bộ riêng trong `src/messaging/emoji.js` (ký tự Unicode chuẩn, không chép tài nguyên của trang nào), có tìm kiếm, nhóm theo chủ đề, mục gần đây (lưu cục bộ), 6 phản ứng nhanh. Phản ứng hiện thành chip dưới tin, bấm để thêm/bỏ.
+- **Bấm vào tin (hoặc rê chuột trên máy tính) để hiện giờ, trạng thái và các nút hành động**; mặc định ẩn để bong bóng gọn. Thanh chỉ có **React, Reply, Forward** và nút ba chấm **More actions**; menu ba chấm có **Copy text, Edit message, Unsend for everyone, Delete for me** (Esc đóng, mũi tên chọn). Edit và Unsend chỉ trong 15 phút nhưng **luôn hiện**: quá hạn thì mờ đi (lý do "Only within 15 minutes of sending" hiện khi rê chuột, không in thành dòng chữ trong menu) để không ai tưởng là thiếu chức năng. Con số 15 phút là hằng số tuỳ chọn `editMs`/`unsendMs`, chưa được duyệt: đổi hoặc bỏ giới hạn thì sửa một dòng. **Delete for me** (`store.hideMessage`, lưu trong `prefs.hidden`) ẩn tin khỏi góc nhìn của riêng bạn, không giới hạn thời gian; người khác vẫn thấy.
+- **Forward**: gửi bản sao tin (kèm tệp) vào một cuộc trò chuyện khác mà bạn được nhắn (`store.forward`, `forwardTargets`); tin đến có nhãn "Forwarded". Resident không chuyển tiếp; thông báo chung, cuộc đã đóng, tin đã thu hồi và tin của trợ lý không chuyển tiếp được. Hiện bằng `data-reveal` trên từng tin, không dựng lại danh sách. Tin cuối của mình luôn hiện trạng thái gửi.
+- **Emoji** (bảng gọn rộng cố định 320px, 8 cột đều nhau, hàng tab danh mục có gạch chân; không giãn hết chiều ngang): bộ riêng trong `src/messaging/emoji.js` (ký tự Unicode chuẩn, không chép tài nguyên của trang nào), có tìm kiếm, nhóm theo chủ đề, mục gần đây (lưu cục bộ), 6 phản ứng nhanh. Phản ứng hiện thành chip dưới tin, bấm để thêm/bỏ.
 - **Đính kèm**: tối đa 4 tệp/tin; ảnh được thu nhỏ trong trình duyệt (cạnh dài ≤1280px, JPEG) và tệp ≤450 KB sau xử lý; PDF/TXT/CSV nhận nguyên bản. Kéo-thả, dán ảnh và nút kẹp giấy đều dùng được; bấm ảnh mở xem lớn (lightbox). Chỉ nhận `data:` URL, ảnh phải là `data:image/`.
 - **Sửa tin** (nút bút chì, chỉ tin chữ của mình, trong 15 phút, `CONFIG.editMs`): ô soạn chuyển sang chế độ "Editing message" (nút Save, Esc hoặc dấu x để hủy và trả lại bản nháp cũ). Cả hai bên thấy nhãn **Edited**; bản cũ không được giữ. Tin của trợ lý, tin chọn nhanh, tin chỉ có tệp và tin đã thu hồi không sửa được.
-- **Ghim và tắt tiếng** (hai nút ở đầu cuộc trò chuyện, mỗi người một riêng, lưu trong `prefs`): cuộc ghim nổi lên đầu danh sách; cuộc tắt tiếng không cộng vào số chưa đọc trên tab/badge nhưng vẫn hiện số trên hàng của nó.
+- **Ghim, đánh dấu quan trọng, tắt tiếng** (menu ba chấm ở góc phải đầu cuộc trò chuyện, và nút ba chấm hiện khi rê chuột/focus trên từng hàng danh sách; mỗi người một riêng, lưu trong `prefs`). Trạng thái hiện bằng **biểu tượng nhỏ, không chữ**, dưới tiêu đề và trên hàng danh sách: **cờ đỏ** = Important (`important`), **ghim** = Pinned, **chuông gạch chéo** = Muted. Chưa bật thì không hiện gì (không có cờ trống). Cuộc ghim nổi lên đầu danh sách; cuộc tắt tiếng không cộng vào số chưa đọc trên tab/badge nhưng vẫn hiện số trên hàng của nó.
+- **Đầu cuộc trò chuyện** là lưới 3 cột (mobile) hoặc 4 cột (≥640px): ảnh đại diện | tiêu đề + dấu trạng thái + người tham gia | (nút hành động như Take, Resolve) | số người + ba chấm. Nút hành động xuống hàng riêng trên mobile; nhóm nút phải luôn nằm góc phải trên cùng, menu không bị cắt mép.
+- **Thao tác không đảo ngược** theo web-design-guidelines: **Unsend** hỏi lại một lần ("Tap again to unsend", tự hủy sau 4 giây); **Delete for me** có thông báo **Undo** (`store.unhideMessage`).
+- **Phản ứng emoji** nằm dưới bong bóng nhưng ảnh đại diện vẫn căn đáy bong bóng (không tụt xuống theo hàng phản ứng). Trên mobile thanh nút của tin nằm **dưới** bong bóng (không ép bong bóng hẹp).
 - **Tìm trong nội dung tin**: gõ từ 2 ký tự trở lên vào ô tìm, khối "Messages (n)" hiện các tin khớp (mới nhất trước, tối đa 30, từ khóa được tô). Bấm một kết quả mở cuộc trò chuyện, cuộn tới tin đó và nháy nền. Chỉ tìm trong cuộc người dùng được thấy; bỏ qua tin đã thu hồi, tin hệ thống và, với Staff, tin của trợ lý.
 - **Bố cục ô soạn trên mobile**: ô nhập chiếm cả một hàng, các nút đính kèm/emoji/Send nằm hàng dưới (trước đây ô nhập bị ép còn vài chục px).
 - **Trả lời trích dẫn** (Reply), **thu hồi tin** trong 15 phút (người nhận thấy "This message was removed"), liên kết tự nhận dạng (mở tab mới, `rel="noopener noreferrer"`).
 - **Đang nhập / Online**: chỉ người trong cuộc trò chuyện thấy "<tên> is typing…" (hết hạn sau 5 giây) và huy hiệu Online (45 giây không tín hiệu thì tắt).
+
+## Nút Back
+
+- Desktop (≥1024px): danh sách luôn hiện cạnh cuộc trò chuyện, Back về dashboard (hoặc trang trước cùng portal).
+- Mobile: danh sách và cuộc trò chuyện là hai màn. Mở cuộc từ danh sách thêm một mục lịch sử; chuyển giữa các cuộc (kết quả tìm, nút View sau Forward) thì thay mục, không thêm. **Back từ một cuộc luôn về danh sách trước**, kể cả khi trang mở thẳng vào cuộc (liên kết, tải lại, không có mục lịch sử của mình); nhãn nút là "Messages", rồi mới "Dashboard". Chạm Back hai lần nhanh chỉ tính một lần, không văng ra dashboard. Resident vào thẳng trợ lý nên Back thoát luôn.
 
 ## Ngăn kéo menu trên dashboard (mobile/tablet)
 
@@ -76,7 +85,7 @@ src/messaging/   store.js, transport.js, bot.js, personas.js, format.js, emoji.j
                  app.js, boot.js, hub.js (giao diện)
 src/partials/messages-app.html   khung + mọi <template> (nơi duy nhất chứa class Tailwind)
 src/{resident,staff,client,admin}/messages.html, src/messages/index.html
-tests/messaging.test.mjs         39 test cho lõi: npm test
+tests/messaging.test.mjs         42 test cho lõi: npm test
 ```
 
 ## Quyết định thiết kế
@@ -92,9 +101,44 @@ tests/messaging.test.mjs         39 test cho lõi: npm test
 
 BRIEF cấm thêm JS ngoài `preview.js`. Messages "hoạt động thật" cần JS, nên có hai ngoại lệ có chủ đích: thư mục `src/messaging/` (không thư viện ngoài) và đoạn nối link Messages + khôi phục cuộn trong `preview.js`. Cùng lý do với `account-settings.quality.js`.
 
+## Theo checklist PDF (khẩn cấp, vòng đời ticket, audit, tìm kiếm, ngoại tuyến)
+
+Bảng đối chiếu từng mục nằm ở `docs/checklist-conformance.md`. Tóm tắt các tính năng thêm từ checklist:
+
+- **Khẩn cấp**: nút cảnh báo trong ô soạn (Resident, Staff, Admin). Tin khẩn cấp có viền đỏ, nền đỏ nhạt, nhấp nháy tới khi có người xác nhận. Resident báo khẩn thì bỏ qua trợ lý và vào hàng chờ ngay, xếp đầu danh sách. Staff/Admin thấy banner đỏ trên cùng (`role="alert"`) với nút **Acknowledge**. Vượt qua Do Not Disturb, tắt tiếng và giới hạn "một ghi chú tới khi trả lời". Sau 180 giây chưa xác nhận: thẻ audit "SMS and critical alert sent (simulated)" (`CONFIG.emergencySmsMs`, xử lý trong `tick()`).
+- **Vòng đời ticket**: Open → In progress → Waiting on resident → Resolved → Closed (`ticketStage`, `setTicketState`). Resident trả lời thì tự về In progress.
+- **Thẻ audit** (`audit()` trong `store.js`): "Status: Open → In progress", người thực hiện kèm ID, giờ ISO UTC. Có cho trạng thái ticket, ưu tiên, người phụ trách, trạng thái support, xác nhận khẩn cấp, leo thang. Không hiện làm xem trước trong danh sách, không tính chưa đọc, không ẩn hay sửa được.
+- **Thông báo**: người gửi/Admin thấy "% read (x of y)" và tên người chưa đọc (`get().ack`).
+- **Tìm kiếm có cấu trúc** (`src/messaging/query.js`): `unit:`, `status:`, `priority:`, `assignee:`, `tag:`, `after:`, `before:`, cụm trong ngoặc kép; nút "+ unit"… và chip bỏ từng bộ lọc. Ctrl/Cmd+K tới ô tìm, Alt+N mở thread chưa đọc kế tiếp (khẩn cấp, quan trọng, mới nhất), Esc đóng menu.
+- **Ngoại tuyến**: tin gửi khi mất mạng nằm trong thread mờ 50% kèm đồng hồ, lưu trong `localStorage` (thay IndexedDB), tự gửi lại theo 1, 2, 4, 8, 16, 30 giây và gửi ngay khi mạng về.
+- **Panel chi tiết cột 3** (`store.contextFor`, `renderContext` trong `app.js`): Staff/Admin thấy hồ sơ resident, căn hộ, hợp đồng, công nợ, ghi chú vào nhà, 5 ticket gần nhất và hành động nhanh; cuộc khác thì hiện người tham gia. Từ 1280px là cột thứ ba (`#view-app[data-context=open]`), hẹp hơn là ngăn kéo bên phải; mặc định mở trên màn rộng, nhớ lựa chọn, Esc đóng. Dữ liệu hợp đồng/công nợ là dữ liệu mẫu trong `personas.js`.
+- **Màu vai trò** bằng token (Resident xám, Staff hổ phách, Admin xanh chàm, Client lục), **bottom sheet** cho hộp thoại dưới 640px, **chế độ tương phản cao** (Preview tools hoặc `?contrast`), ảnh nén 1920px WebP ~300KB.
+
+## Kiểm thử
+
+- `npm test` chạy 54 test: 42 test nghiệp vụ (`tests/messaging.test.mjs`), 11 test theo checklist (`tests/checklist.test.mjs`) và **1 test ngẫu nhiên** (`tests/fuzz.test.mjs`): hàng nghìn thao tác ngẫu nhiên của 9 người (gửi, nhận cuộc, nhóm, sửa, thu hồi, forward, ghim…) rồi kiểm các luật không được vỡ (ai thấy gì, nhóm 2–12 người chỉ Staff/Client/Admin, resident chỉ với Staff/Admin, tin đã thu hồi không còn chữ/tệp/phản ứng, số chưa đọc không âm, trạng thái cuộc resident hợp lệ, danh sách và `get` khớp nhau). Chạy lại một ca lỗi: đặt `SEED=<số>`. Đã chạy một lần 40 hạt giống × 1200 bước, không lỗi.
+- Quét trình duyệt (làm tay, không nằm trong `npm test`): 4 portal × 375/768/1280px × sáng/tối, mở từng cuộc trò chuyện, menu ba chấm của tin và của cuộc, bảng emoji; tìm tràn ngang, nút ra ngoài màn hình, nút không tên, lỗi JS. Lần quét này tìm ra menu của tin tràn ra ngoài màn hình (đã sửa: menu căn theo nút rồi kẹp trong vùng tin) và thanh tab bị cắt trên mobile (đã sửa: tab xuống hàng).
+
+## Phạm vi demo: logic tính năng nằm ở frontend (đã chốt)
+
+Đã thống nhất: để **đủ demo**, mọi logic tính năng chạy ở FE (`src/messaging/store.js`, thuần JS, có test). Không có server. Khi port sang app thật, đây là phần phải chuyển sang backend:
+
+| Việc | Hiện ở FE | App thật cần |
+|---|---|---|
+| Lưu và đồng bộ | `transport.js`: `localStorage` + `BroadcastChannel` (chỉ cùng máy, cùng trình duyệt) | API + WebSocket/SSE; giữ cùng 4 hàm `read/update/onChange/info` |
+| Quyền nhắn, máy trạng thái resident, quy tắc nhóm, giới hạn chủ động | `store.js` (`CAN_MESSAGE`, `postCheck`, `act`) | Kiểm lại phía server; FE chỉ ẩn lựa chọn |
+| Trợ lý (bot) | `bot.js` kịch bản có sẵn | Dịch vụ trợ lý thật (FAQ, chuyển người) |
+| Tệp đính kèm | Ảnh thu nhỏ trong trình duyệt, lưu dạng `data:` URL trong `localStorage` | Upload lên storage, quét virus, giới hạn dung lượng thật |
+| Online, đang nhập | Tín hiệu tạm trong `transport.live` | Presence qua WebSocket |
+| Ghim, tắt tiếng, đã đọc, sửa, thu hồi, forward, tìm kiếm | `store.js` (`toggleFlag`, `markRead`, `edit`, `unsend`, `forward`, `hideMessage`, `unhideMessage`, `search`) | Endpoint tương ứng; tìm kiếm cần chỉ mục phía server |
+| Danh tính | `personas.js` (`?as=<id>`) | Đăng nhập và phiên thật |
+| Thông báo | Tiêu đề tab `(n)`, toast | Thông báo đẩy, email |
+
+Quy ước khi thêm tính năng: viết logic và luật trong `store.js` kèm test trong `tests/messaging.test.mjs`; `app.js` chỉ vẽ và gọi `store`; không ghép class Tailwind trong JS (class nằm trong `<template>` ở `partials/messages-app.html`). Phần lệch so với BRIEF.md (có JS) đã nêu ở mục "Ngoại lệ".
+
 ## Hạn chế
 
 - **Không có backend.** Dữ liệu nằm trong trình duyệt, đồng bộ giữa các tab cùng máy và cùng origin; không phải thời gian thực giữa các thiết bị.
 - Trợ lý là kịch bản có sẵn, không phải AI; nội dung FAQ là mẫu, cần đội vận hành thay bằng nội dung thật.
-- Tệp đính kèm lưu nguyên trong `localStorage` (giới hạn ~5 MB mỗi trình duyệt): demo, không phải kho tệp; app thật cần upload lên storage. Không có gọi thoại/video, thông báo đẩy, @nhắc tên, chuyển tiếp tin.
+- Tệp đính kèm lưu nguyên trong `localStorage` (giới hạn ~5 MB mỗi trình duyệt): demo, không phải kho tệp; app thật cần upload lên storage. Không có gọi thoại/video, thông báo đẩy, @nhắc tên.
 - Mục Messages trên dashboard chỉ được nối khi trang chạy qua `preview.js`; app thật cần nối route riêng.

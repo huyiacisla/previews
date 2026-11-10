@@ -1,7 +1,8 @@
 // DOM controller for the Messages pages. All markup and Tailwind classes come from
 // partials/messages-app.html templates; this file only clones them, fills text and toggles data-* / hidden.
 
-import { createStore, notifies } from './store.js';
+import { createStore, notifies, STAGES, STAGE_LABEL } from './store.js';
+import { parseQuery, matchFilters, matchText, withoutFilter, describeFilters, FILTER_KEYS, isEmptyQuery } from './query.js';
 import { createTransport } from './transport.js';
 import { PERSONAS, PORTALS, pickPersona, initials } from './personas.js';
 import { formatTime, formatFull, groupByDay, listTime, duration, formatBytes } from './format.js';
@@ -40,10 +41,12 @@ const REASONS = {
   bad_attachment: 'That file could not be attached.',
   attachment_too_large: 'That file is too large to attach.',
   invalid_reply: 'That message can no longer be replied to.',
+  same_conversation: 'Choose a different conversation.',
   name_required: 'Give the group a name.',
   group_too_small: 'A group needs at least three people, including you.',
   group_too_large: 'A group can have up to 12 people.',
 };
+REASONS.invalid_flag = 'That option is not available.';
 const reasonText = (r) => REASONS[r] || 'Something went wrong. Please try again.';
 
 const TABS = {
@@ -100,6 +103,8 @@ export function mount({ portal }) {
     flash: null,
     reply: null, // { id, who, text } being replied to
     edit: null, // { id, text, prev } while fixing one of your own messages
+    menuFor: null, // message whose "more actions" menu is open
+    emergency: false, // the next message is sent as an emergency
     attach: [], // files waiting to be sent
     emojiOpen: false,
     lastKind: null,
@@ -232,14 +237,26 @@ export function mount({ portal }) {
   $('#btn-announce').hidden = me.role !== 'admin';
   $('#btn-dnd').hidden = me.role !== 'resident';
 
+  // On a phone the list and the thread are two screens: from a thread, Back goes to the list first, even when the page
+  // was opened straight onto a thread (link, reload) and there is no history entry of ours to go back to.
+  // Residents land on the assistant by design, so for them Back leaves.
+  const threadOverList = () => isMobile() && ui.pane === 'thread' && me.role !== 'resident';
   const backLabel = () => {
     const depth = (history.state && history.state.depth) || 0;
     if (depth > 0) return ui.pane === 'thread' ? 'Messages' : 'Chat';
+    if (threadOverList()) return 'Messages';
     return me.role === 'resident' ? 'Home' : 'Dashboard';
   };
+  let leaving = false; // a second tap before the first Back lands would walk out of Messages
   function leave() {
+    if (leaving) return;
     const depth = (history.state && history.state.depth) || 0;
-    if (depth > 0) return history.back();
+    if (depth > 0) {
+      leaving = true;
+      setTimeout(() => { leaving = false; }, 500);
+      return history.back();
+    }
+    if (threadOverList()) return go({ pane: 'list' });
     let sameSite = false;
     try {
       const ref = new URL(document.referrer);
@@ -266,6 +283,7 @@ export function mount({ portal }) {
   }
 
   window.addEventListener('popstate', (e) => {
+    leaving = false;
     const s = e.state;
     if (s && s.pane) {
       ui.pane = s.pane;
@@ -289,7 +307,8 @@ export function mount({ portal }) {
     const unread = t.messages.find((m) => m.from !== me.id && !m.readBy[me.id] && notifies(m, me.role));
     ui.anchor = unread ? { convId: id, msgId: unread.id } : null;
     ui.sigLog = '';
-    go({ pane: 'thread', conv: id }, { push: fromList && isMobile() });
+    // Only a step from the list to a thread is a new history entry; moving between threads replaces it.
+    go({ pane: 'thread', conv: id }, { push: fromList && isMobile() && ui.pane !== 'thread' });
     openSideEffects();
     if (!isMobile()) setTimeout(() => { const i = $('#msg-input'); if (i && !i.disabled && !$('#thread').hidden) i.focus(); }, 0);
     else setTimeout(() => $('#thread-title').focus(), 0);
@@ -305,6 +324,7 @@ export function mount({ portal }) {
       autosize();
       ui.reply = null;
       ui.edit = null;
+      ui.emergency = false;
       ui.attach = [];
       ui.emojiOpen = false;
       ui.quickFor = null;
@@ -354,8 +374,10 @@ export function mount({ portal }) {
 
   function rowChips(r) {
     const chips = [];
+    if (r.emergency) chips.push(badge('Emergency', 'danger', 'alert'));
     if (r.kind === 'resident_support') {
-      if (r.status === 'queued') chips.push(badge(me.role === 'resident' ? 'Waiting' : `Waiting ${duration(Date.now() - r.waitingSince)}`, 'warning', 'clock'));
+      if (r.stage === 'waiting_on_resident') chips.push(badge('Waiting on resident', 'warning', 'clock'));
+      else if (r.status === 'queued') chips.push(badge(me.role === 'resident' ? 'Waiting' : `Waiting ${duration(Date.now() - r.waitingSince)}`, 'warning', 'clock'));
       else if (r.status === 'active') chips.push(badge('Active', 'success'));
       else if (r.status === 'bot') chips.push(badge('Assistant', 'info', 'bot'));
       else chips.push(badge('Closed'));
@@ -372,15 +394,18 @@ export function mount({ portal }) {
     const all = store.listFor(me.id);
     renderTabs(all);
     const query = ui.query.trim().toLowerCase();
-    let rows = all.filter((r) => (ui.tab === 'all' || r.tags.includes(ui.tab)) && (!query || [r.title, r.subtitle, r.last && r.last.text].join(' ').toLowerCase().includes(query)));
-    if (ui.tab === 'queue') rows = rows.sort((a, b) => (a.waitingSince || a.updatedAt) - (b.waitingSince || b.updatedAt));
+    // Structured search: unit:304 status:open priority:high assignee:jordan tag:permit after:2026-11-01 "water leak"
+    const parsed = parseQuery(ui.query);
+    let rows = all.filter((r) => (ui.tab === 'all' || r.tags.includes(ui.tab)) && matchFilters(r, parsed) && matchText([r.title, r.subtitle, r.last && r.last.text, r.unit, r.topic].join(' '), parsed));
+    if (ui.tab === 'queue') rows = rows.sort((a, b) => Number(b.emergency) - Number(a.emergency) || (a.waitingSince || a.updatedAt) - (b.waitingSince || b.updatedAt));
     const minute = Math.floor(Date.now() / 60000);
     const hits = query.length >= 2 ? store.search(me.id, query) : [];
-    const sig = JSON.stringify([ui.tab, query, ui.convId, minute, offline(), store.pref(me.id).dnd, store.badgeCount(me.id), rows.map((r) => [r.id, r.updatedAt, r.status, r.unread, r.priority, r.pinned, r.muted]), hits.map((h) => h.msgId)]);
+    const sig = JSON.stringify([ui.tab, query, ui.convId, minute, offline(), store.pref(me.id).dnd, store.badgeCount(me.id), rows.map((r) => [r.id, r.updatedAt, r.status, r.unread, r.priority, r.pinned, r.muted, r.important]), hits.map((h) => h.msgId)]);
     if (!force && sig === ui.sigList) return;
     ui.sigList = sig;
 
     renderHits(hits, query);
+    renderSearchUi();
     const list = $('#list');
     const hadFocus = list.contains(document.activeElement) ? document.activeElement.closest('[data-row]')?.dataset.id : null;
     clear(list);
@@ -410,6 +435,7 @@ export function mount({ portal }) {
       const b = $('[data-row]', li);
       b.dataset.id = r.id;
       b.dataset.unread = String(r.unread > 0);
+      b.dataset.emergency = String(!!r.emergency);
       if (r.id === ui.convId) b.setAttribute('aria-current', 'true');
       $('[data-avatar]', b).replaceWith(avatar({ name: r.avatar.name, role: r.avatar.role }));
       $('[data-title]', b).textContent = r.title;
@@ -420,6 +446,7 @@ export function mount({ portal }) {
       t.title = formatFull(r.last ? r.last.at : r.updatedAt);
       const who = r.last && r.last.from === me.id ? 'You: ' : '';
       $('[data-preview]', b).textContent = r.last ? `${who}${r.last.text}` : 'No messages yet';
+      if (r.important) $('[data-important]', b).hidden = false;
       if (r.pinned) $('[data-pin]', b).hidden = false;
       if (r.muted) $('[data-mute]', b).hidden = false;
       rowChips(r).forEach((c) => $('[data-chips]', b).appendChild(c));
@@ -431,6 +458,20 @@ export function mount({ portal }) {
         u.setAttribute('aria-label', `${r.unread} unread`);
       }
       b.addEventListener('click', () => openConv(r.id));
+      const mb = $('[data-rowmenu]', li);
+      const ml = $('[data-rowmenu-list]', li);
+      mb.setAttribute('aria-label', `More actions for ${r.title}`);
+      mb.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const open = ml.hidden;
+        closeRowMenus();
+        if (!open) return;
+        fillFlagMenu(ml, r.id, r, () => { closeRowMenus(); mb.focus(); });
+        ml.hidden = false;
+        mb.setAttribute('aria-expanded', 'true');
+        $('[role=menuitem]', ml).focus();
+      });
+      wireMenuKeys(ml, () => { closeRowMenus(); mb.focus(); });
       list.appendChild(li);
     }
     if (hadFocus) $(`[data-row][data-id="${hadFocus}"]`, list)?.focus();
@@ -442,6 +483,30 @@ export function mount({ portal }) {
     if (offline()) lb.appendChild(banner('warning', 'You are offline. Messages will not send until the connection is back.'));
     const unread = store.badgeCount(me.id);
     document.title = `${unread ? `(${unread}) ` : ''}${baseTitle}`;
+  }
+
+  /** Chips for the filters in the search box (click to remove) and buttons that add one. */
+  function renderSearchUi() {
+    const chips = $('#search-chips');
+    clear(chips);
+    for (const f of describeFilters(parseQuery(ui.query))) {
+      const c = tpl('t-fchip');
+      $('[data-label]', c).textContent = `${f.label} ×`;
+      c.setAttribute('aria-label', `Remove filter ${f.label}`);
+      c.addEventListener('click', () => { ui.query = withoutFilter(ui.query, f.key); $('#list-search').value = ui.query; renderList(true); });
+      chips.appendChild(c);
+    }
+    const sf = $('#search-filters');
+    if (ui.query.trim()) sf.hidden = false;
+    if (!sf.children.length) {
+      FILTER_KEYS.forEach((k) => {
+        const b = tpl('t-fchip');
+        $('[data-label]', b).textContent = `+ ${k}`;
+        b.setAttribute('aria-label', `Filter by ${k}`);
+        b.addEventListener('click', () => { const inp = $('#list-search'); inp.value = `${inp.value.trim()} ${k}:`.trim(); ui.query = inp.value; inp.focus(); renderList(true); });
+        sf.appendChild(b);
+      });
+    }
   }
 
   /** Messages that contain the search words, across every conversation. Opening one scrolls to it. */
@@ -492,6 +557,13 @@ export function mount({ portal }) {
     rows[Math.max(0, Math.min(rows.length - 1, i + (e.key === 'ArrowDown' ? 1 : -1)))].focus();
   });
   $('#list-search').addEventListener('input', (e) => { ui.query = e.target.value; renderList(true); });
+  // The filter buttons show while the box is in use and disappear when it is empty and you leave it.
+  const searchBox = $('#list-search');
+  searchBox.addEventListener('focus', () => { $('#search-filters').hidden = false; });
+  $('#list-pane').addEventListener('focusout', (e) => {
+    if (!searchBox.value && !$('#list-pane').contains(e.relatedTarget) ) $('#search-filters').hidden = true;
+    else if (!searchBox.value && e.relatedTarget && e.relatedTarget.closest && !e.relatedTarget.closest('#search-filters, #list-search')) $('#search-filters').hidden = true;
+  });
 
   /* --------------------------------------------------------------- thread */
 
@@ -507,8 +579,6 @@ export function mount({ portal }) {
       if (conv.priority === 'high') out.push(badge('High priority', 'danger'));
     } else if (conv.kind === 'announcement') {
       out.push(badge('Announcement', 'neutral', 'megaphone'));
-    } else if (conv.kind === 'group') {
-      out.push(badge(`${conv.participants.length} people`, 'neutral', 'users'));
     }
     const online = onlineOthers(conv);
     if (online.length && conv.status !== 'closed') out.push(badge(conv.kind === 'group' ? `${online.length} online` : 'Online', 'success'));
@@ -524,35 +594,109 @@ export function mount({ portal }) {
     return ids.filter((id) => id && store.presenceOf(id).online);
   }
 
-  function flagButton(t, flag) {
-    const on = flag === 'pinned' ? t.row.pinned : t.row.muted;
-    const label = { pinned: on ? 'Unpin conversation' : 'Pin conversation', muted: on ? 'Unmute conversation' : 'Mute conversation' }[flag];
-    const b = button('', { variant: on ? 'soft' : 'ghost', icon: flag === 'pinned' ? 'pin' : 'bell-off', ariaLabel: label, onClick: () => {
-      const r = store.toggleFlag(t.conv.id, me.id, flag);
-      if (r.ok) toast({ pinned: r.on ? 'Pinned to the top of your list.' : 'Unpinned.', muted: r.on ? 'Muted. It will not add to your unread count.' : 'Unmuted.' }[flag]);
-      else act(r);
-    } });
-    b.setAttribute('aria-pressed', String(on));
-    b.title = label;
-    return b;
+  /* Pin and mute live behind the three dots in the conversation header; their state shows as badges next to the title. */
+  const threadMore = $('#btn-thread-more');
+  const threadMenu = $('#thread-menu');
+  function closeThreadMenu() {
+    threadMenu.hidden = true;
+    threadMore.setAttribute('aria-expanded', 'false');
   }
+  function toggleFlag(convId, flag) {
+    const r = store.toggleFlag(convId, me.id, flag);
+    if (r.ok) toast({ pinned: r.on ? 'Pinned to the top of your list.' : 'Unpinned.', important: r.on ? 'Flagged as important.' : 'Flag removed.', muted: r.on ? 'Muted. It will not add to your unread count.' : 'Unmuted.' }[flag]);
+    else act(r);
+  }
+  /** Small icons beside the title: a pin when pinned, a red flag when important, a bell when muted. Nothing shows when off. */
+  function renderMarks(row) {
+    const box = $('#thread-marks');
+    clear(box);
+    for (const m of [
+      row.important && { icon: 'flag', label: 'Important', tone: 'danger' },
+      row.pinned && { icon: 'pin', label: 'Pinned' },
+      row.muted && { icon: 'bell-off', label: 'Muted' },
+    ].filter(Boolean)) {
+      const el = tpl('t-mark');
+      setIcon($('svg', el), m.icon);
+      el.setAttribute('aria-label', m.label);
+      el.title = m.label;
+      if (m.tone) el.dataset.tone = m.tone;
+      box.appendChild(el);
+    }
+  }
+  /** Pin and mute items, shared by the header menu and the menu on each list row. */
+  function fillFlagMenu(menu, convId, { pinned, muted, important }, done) {
+    clear(menu);
+    for (const it of [
+      { flag: 'pinned', icon: 'pin', label: pinned ? 'Unpin conversation' : 'Pin conversation' },
+      { flag: 'important', icon: 'flag', label: important ? 'Remove important flag' : 'Flag as important', tone: important ? 'danger' : '' },
+      { flag: 'muted', icon: 'bell-off', label: muted ? 'Unmute conversation' : 'Mute conversation' },
+    ]) {
+      const b = tpl('t-menu-item');
+      setIcon($('svg', b), it.icon);
+      $('[data-label]', b).textContent = it.label;
+      b.addEventListener('click', (e) => { e.stopPropagation(); done(); toggleFlag(convId, it.flag); });
+      menu.appendChild(b);
+    }
+  }
+  function wireMenuKeys(menu, onEscape) {
+    menu.addEventListener('keydown', (e) => {
+      const list = $$('[role=menuitem]', menu);
+      const i = list.indexOf(document.activeElement);
+      if (e.key === 'ArrowDown' || e.key === 'ArrowUp') { e.preventDefault(); list[(i + (e.key === 'ArrowDown' ? 1 : -1) + list.length) % list.length].focus(); }
+      if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); onEscape(); }
+    });
+  }
+  function openThreadMenu() {
+    const t = ui.convId && store.get(ui.convId, me.id);
+    if (!t || !t.ok) return;
+    fillFlagMenu(threadMenu, t.conv.id, t.row, () => { closeThreadMenu(); threadMore.focus(); });
+    threadMenu.hidden = false;
+    threadMore.setAttribute('aria-expanded', 'true');
+    $('[role=menuitem]', threadMenu).focus();
+  }
+  threadMore.addEventListener('click', (e) => { e.stopPropagation(); if (threadMenu.hidden) openThreadMenu(); else closeThreadMenu(); });
+  wireMenuKeys(threadMenu, () => { closeThreadMenu(); threadMore.focus(); });
+  document.addEventListener('click', (e) => { if (!threadMenu.hidden && !e.target.closest('#thread-menu')) closeThreadMenu(); });
+
+  function closeRowMenus() {
+    $$('[data-rowmenu-list]', $('#list')).forEach((m) => { m.hidden = true; });
+    $$('[data-rowmenu]', $('#list')).forEach((b) => b.setAttribute('aria-expanded', 'false'));
+  }
+  document.addEventListener('click', (e) => { if (!e.target.closest('[data-rowmenu], [data-rowmenu-list]')) closeRowMenus(); });
 
   function headerActions(t) {
     const box = $('#thread-actions');
     clear(box);
     const { conv, actions } = t;
-    const flags = $('#thread-flags');
-    clear(flags);
-    flags.appendChild(flagButton(t, 'pinned'));
-    flags.appendChild(flagButton(t, 'muted'));
+    closeThreadMenu();
     if (me.role === 'resident') {
       const hist = button('', { variant: 'ghost', icon: 'list', ariaLabel: 'Conversations', onClick: () => go({ pane: 'list' }, { push: true }) });
       hist.classList.add('lg:hidden');
       box.appendChild(hist);
     }
-    if (conv.kind === 'group') box.appendChild(button(`${conv.participants.length} people`, { variant: 'ghost', icon: 'users', onClick: () => openMembers(conv.id) }));
+    $('#btn-context')?.remove();
+    if (['staff', 'admin'].includes(me.role) && store.contextFor(conv.id, me.id)) {
+      const on = contextOpen();
+      const cb = button('', { variant: on ? 'soft' : 'ghost', icon: 'info', ariaLabel: on ? 'Hide details' : 'Show details', onClick: () => setContext(!contextOpen()) });
+      cb.id = 'btn-context';
+      cb.title = on ? 'Hide details' : 'Show details';
+      cb.setAttribute('aria-pressed', String(on));
+      cb.setAttribute('aria-controls', 'context-pane');
+      $('#thread-flags').insertBefore(cb, $('#thread-flags').firstChild);
+    }
+    $('#btn-members')?.remove();
+    if (conv.kind === 'group') {
+      const n = conv.participants.length;
+      const mb = button(String(n), { variant: 'ghost', icon: 'users', ariaLabel: `${n} people. View members`, onClick: () => openMembers(conv.id) });
+      mb.id = 'btn-members';
+      mb.title = 'Members';
+      $('#thread-flags').insertBefore(mb, threadMore);
+    }
     if (actions.includes('claim')) box.appendChild(button('Take conversation', { variant: 'primary', icon: 'check', onClick: () => act(store.claim(conv.id, me.id), 'You took this conversation.') }));
     if (actions.includes('request_staff')) box.appendChild(button('Talk to a person', { variant: 'soft', icon: 'users', onClick: () => requestStaff(conv.id) }));
+    if (actions.includes('ack_emergency')) box.appendChild(button('Acknowledge emergency', { variant: 'primary', icon: 'alert', onClick: () => act(store.acknowledgeEmergency(conv.id, me.id), 'Emergency acknowledged.') }));
+    if (actions.includes('wait')) box.appendChild(button('Waiting on resident', { variant: 'outline', icon: 'clock', onClick: () => act(store.setTicketState(conv.id, me.id, 'waiting_on_resident'), 'Marked as waiting on the resident.') }));
+    if (actions.includes('resume')) box.appendChild(button('Back to in progress', { variant: 'outline', icon: 'check', onClick: () => act(store.setTicketState(conv.id, me.id, 'in_progress'), 'Back to in progress.') }));
     if (actions.includes('resolve')) box.appendChild(confirmButton(`resolve:${conv.id}`, 'Resolve', 'Confirm resolve', () => act(store.resolve(conv.id, me.id), 'Conversation resolved.'), { icon: 'check' }));
     if (actions.includes('end')) box.appendChild(confirmButton(`end:${conv.id}`, 'End chat', 'Confirm end chat', () => act(store.endChat(conv.id, me.id), 'Chat ended.'), { variant: 'ghost', icon: 'x' }));
   }
@@ -603,16 +747,167 @@ export function mount({ portal }) {
     asg.onchange = () => act(store.assignSupport(t.conv.id, me.id, asg.value || null), 'Assignment updated.');
   }
 
+  /* Details panel (third column). Your choice is remembered; with no choice yet it is open on wide screens. */
+  const CTX_KEY = 'eso-msg-context';
+  const readCtxPref = () => { try { const v = localStorage.getItem(CTX_KEY); return v === null ? null : v === '1'; } catch { return null; } };
+  ui.contextPref = readCtxPref();
+  const contextOpen = () => (ui.contextPref === null ? matchMedia('(min-width: 1280px)').matches : ui.contextPref);
+  function setContext(on) {
+    ui.contextPref = on;
+    try { localStorage.setItem(CTX_KEY, on ? '1' : '0'); } catch { /* not remembered */ }
+    renderThread(true);
+  }
+  const fmtDate = (iso) => new Intl.DateTimeFormat('en-US', { dateStyle: 'medium', timeZone: 'UTC' }).format(new Date(`${iso}T00:00:00Z`));
+  const fmtMoney = (n) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(n);
+
+  function ctxSection(heading) {
+    const s = tpl('t-ctx-section');
+    $('[data-heading]', s).textContent = heading;
+    $('#context-body').appendChild(s);
+    return $('[data-body]', s);
+  }
+  function ctxWho(body, p) {
+    const w = tpl('t-ctx-who');
+    $('[data-avatar]', w).replaceWith(avatar({ name: p.name, role: p.role || 'resident' }));
+    $('[data-name]', w).textContent = p.name;
+    $('[data-title]', w).textContent = [p.title, p.org].filter(Boolean).join(' · ');
+    body.appendChild(w);
+  }
+  function ctxRow(dl, k, v, tone) {
+    const r = tpl('t-ctx-row');
+    $('[data-k]', r).textContent = k;
+    const dd = $('[data-v]', r);
+    dd.textContent = v;
+    if (tone) dd.dataset.tone = tone;
+    dl.appendChild(r);
+  }
+
+  function hideContext() {
+    $('#context-pane').hidden = true;
+    $('#view-app').dataset.context = 'closed';
+    ui.sigCtx = '';
+  }
+
+  function renderContext(t) {
+    const data = ['staff', 'admin'].includes(me.role) ? store.contextFor(t.conv.id, me.id) : null;
+    if (!data || !contextOpen()) return hideContext();
+    $('#context-pane').hidden = false;
+    $('#view-app').dataset.context = 'open';
+    const sig = JSON.stringify([t.conv.id, data, t.actions, t.row.pinned, t.row.important, t.row.muted, Math.floor(Date.now() / 3600000)]);
+    if (sig === ui.sigCtx) return;
+    ui.sigCtx = sig;
+    clear($('#context-body'));
+    $('#context-title').textContent = data.kind === 'resident' ? 'Resident and unit' : 'People';
+    if (data.kind === 'resident') {
+      const u = data.unit;
+      const who = ctxSection('Resident');
+      ctxWho(who, { ...data.person, role: 'resident' });
+      const dl = document.createElement('dl');
+      dl.className = 'flex flex-col gap-step-sm';
+      who.appendChild(dl);
+      ctxRow(dl, 'Unit', u.number);
+      ctxRow(dl, 'Location', u.building);
+      ctxRow(dl, 'Lease', `${fmtDate(u.leaseStart)} to ${fmtDate(u.leaseEnd)}`);
+      const left = u.daysLeft;
+      ctxRow(dl, 'Lease status', left < 0 ? `Ended ${-left} days ago` : left <= 60 ? `Ends in ${left} days` : `${left} days left`, left < 0 ? 'danger' : left <= 60 ? 'warning' : 'success');
+      ctxRow(dl, 'Balance due', u.balance > 0 ? fmtMoney(u.balance) : 'Paid up', u.balance > 0 ? 'danger' : 'success');
+      const entry = ctxSection('Unit entry notes');
+      const p = document.createElement('p');
+      p.className = 'text-sm text-foreground-secondary';
+      p.textContent = u.entry || 'No notes.';
+      entry.appendChild(p);
+      const hist = ctxSection('Recent tickets');
+      if (!data.tickets.length) {
+        const none = document.createElement('p');
+        none.className = 'text-sm text-muted-foreground';
+        none.textContent = 'No other tickets from this resident.';
+        hist.appendChild(none);
+      } else {
+        const ul = document.createElement('ul');
+        ul.setAttribute('role', 'list');
+        ul.className = 'flex flex-col';
+        hist.appendChild(ul);
+        for (const k of data.tickets) {
+          const li = tpl('t-ctx-ticket');
+          $('[data-topic]', li).textContent = k.topic;
+          $('[data-stage]', li).appendChild(badge(STAGE_LABEL[k.stage], { open: 'info', in_progress: 'success', waiting_on_resident: 'warning', resolved: 'neutral', closed: 'neutral' }[k.stage]));
+          $('[data-meta]', li).textContent = [listTime(k.at, Date.now()), k.assignee].filter(Boolean).join(' · ');
+          const b = $('[data-open]', li);
+          if (k.open) b.addEventListener('click', () => openConv(k.id)); else b.disabled = true;
+          ul.appendChild(li);
+        }
+      }
+    } else {
+      const ppl = ctxSection('In this conversation');
+      data.people.forEach((p) => ctxWho(ppl, p));
+    }
+    const qa = ctxSection('Quick actions');
+    qa.className += ' items-start';
+    const add = (label, icon, run) => qa.appendChild(button(label, { variant: 'outline', icon, onClick: run }));
+    if (t.actions.includes('claim')) add('Take conversation', 'check', () => act(store.claim(t.conv.id, me.id), 'You took this conversation.'));
+    if (t.actions.includes('ack_emergency')) add('Acknowledge emergency', 'alert', () => act(store.acknowledgeEmergency(t.conv.id, me.id), 'Emergency acknowledged.'));
+    if (t.actions.includes('wait')) add('Waiting on resident', 'clock', () => act(store.setTicketState(t.conv.id, me.id, 'waiting_on_resident'), 'Marked as waiting on the resident.'));
+    if (t.actions.includes('resume')) add('Back to in progress', 'check', () => act(store.setTicketState(t.conv.id, me.id, 'in_progress'), 'Back to in progress.'));
+    add(t.row.important ? 'Remove important flag' : 'Flag as important', 'flag', () => toggleFlag(t.conv.id, 'important'));
+    add(t.row.pinned ? 'Unpin conversation' : 'Pin conversation', 'pin', () => toggleFlag(t.conv.id, 'pinned'));
+    add(t.row.muted ? 'Unmute conversation' : 'Mute conversation', 'bell-off', () => toggleFlag(t.conv.id, 'muted'));
+  }
+
+  $('#ctx-close').addEventListener('click', () => { setContext(false); $('#btn-context')?.focus(); });
+
+  /** Unacknowledged emergencies, pinned above everything for Staff and Admin until someone acknowledges them. */
+  function renderEmergencyBanner() {
+    const list = store.emergencies(me.id);
+    const sig = JSON.stringify([list.map((e) => [e.convId, e.smsAt]), Math.floor(Date.now() / 60000)]);
+    if (sig === ui.sigBanner) return;
+    ui.sigBanner = sig;
+    const ul = $('#emergency-list');
+    clear(ul);
+    $('#emergency-banner').hidden = !list.length;
+    for (const e of list) {
+      const li = tpl('t-emergency-row');
+      $('[data-text]', li).textContent = `Emergency: ${e.title}, ${duration(Date.now() - e.at)} ago${e.smsAt ? '. SMS and critical alert sent (simulated)' : ''}`;
+      const box = $('[data-actions]', li);
+      box.appendChild(button('Open chat', { variant: 'outline', onClick: () => openConv(e.convId) }));
+      box.appendChild(button('Acknowledge', { variant: 'primary', icon: 'check', onClick: () => act(store.acknowledgeEmergency(e.convId, me.id), 'Emergency acknowledged.') }));
+      ul.appendChild(li);
+    }
+  }
+
+  /** Open -> In progress -> Waiting on resident -> Resolved -> Closed, with the current step marked. */
+  function renderStage(t) {
+    const box = $('#thread-stage');
+    const ol = $('#stage-list');
+    clear(ol);
+    box.hidden = !t.stage;
+    if (!t.stage) return;
+    const at = STAGES.indexOf(t.stage);
+    STAGES.forEach((s, i) => {
+      const li = tpl('t-stage');
+      $('[data-label]', li).textContent = STAGE_LABEL[s];
+      li.dataset.state = i < at ? 'done' : i === at ? 'current' : 'todo';
+      if (i === at) li.setAttribute('aria-current', 'step');
+      if (i < at) $('[data-check]', li).removeAttribute('hidden'); // SVG elements have no .hidden property
+      if (i === STAGES.length - 1) $('[data-arrow]', li).hidden = true;
+      ol.appendChild(li);
+    });
+  }
+
   function threadBanner(t) {
     const box = $('#thread-banner');
     clear(box);
     const { conv } = t;
+    if (t.emergency && me.role === 'resident') box.appendChild(banner('warning', 'Your emergency report was sent. The property team has been alerted and will respond as soon as they see it.'));
+    if (conv.kind === 'announcement' && t.ack) {
+      const names = t.ack.unread.length ? ` Not yet read: ${t.ack.unread.join(', ')}.` : ' Everyone has read it.';
+      box.appendChild(banner('info', `${t.ack.pct}% read (${t.ack.read} of ${t.ack.total}).${names}`));
+    }
     if (offline()) box.appendChild(banner('warning', 'You are offline. Messages will not send until the connection is back.'));
     if (conv.kind === 'resident_support' && me.role === 'resident') {
       if (conv.status === 'bot') box.appendChild(banner('neutral', 'You are chatting with an automated assistant. The property team is only contacted if you ask for a person.'));
       if (conv.status === 'queued') box.appendChild(banner('info', `Sent to the property team ${duration(Date.now() - (conv.queuedAt || Date.now()))} ago. A team member will reply here, and you will only be notified when someone does. You can add details below.`));
     }
-    if (conv.kind === 'resident_support' && me.role === 'staff' && conv.status === 'queued') box.appendChild(banner('info', 'The resident is waiting. Take the conversation to reply; they will see that you joined.'));
+    if (conv.kind === 'resident_support' && me.role === 'staff' && conv.status === 'queued') box.appendChild(banner('info', 'The resident is waiting. Reply below, or press Take conversation. Either way they will see that you joined.'));
     if (conv.kind === 'support' && t.conv.status === 'resolved') box.appendChild(banner('success', me.role === 'admin' ? 'Resolved. A reply from the requester reopens it.' : 'Resolved. Reply here if you still need help and it will reopen.'));
   }
 
@@ -646,10 +941,14 @@ export function mount({ portal }) {
     const ph = (() => {
       const c = t.conv;
       if (c.kind === 'resident_support' && me.role === 'resident') return c.status === 'bot' ? 'Ask a question' : c.status === 'queued' ? 'Add details for the team' : 'Write a message';
+      if (c.kind === 'resident_support' && t.canPost.takes) return 'Reply to the resident…';
       if (c.kind === 'support') return me.role === 'admin' ? 'Reply to the requester' : 'Reply to Support';
       return 'Write a message';
     })();
     input.placeholder = ph;
+    const canEmergency = t.canPost.ok && ['resident', 'staff', 'admin'].includes(me.role) && ['resident_support', 'direct'].includes(t.conv.kind) && !ui.edit;
+    $('#btn-emergency').hidden = !canEmergency;
+    if (!canEmergency && ui.emergency) { ui.emergency = false; renderComposerExtras(); }
     const showCanned = t.canPost.ok && (me.role === 'staff' || me.role === 'admin');
     $('#btn-canned').hidden = !showCanned;
     $('#canned-menu').hidden = !(showCanned && ui.cannedOpen);
@@ -672,6 +971,7 @@ export function mount({ portal }) {
     if (!ui.convId) {
       none.hidden = false;
       thread.hidden = true;
+      hideContext();
       return;
     }
     const t = store.get(ui.convId, me.id);
@@ -680,6 +980,7 @@ export function mount({ portal }) {
       ui.lastConv = null;
       none.hidden = false;
       thread.hidden = true;
+      hideContext();
       if (isMobile() && ui.pane === 'thread') {
         ui.pane = 'list';
         root.dataset.pane = 'list';
@@ -692,7 +993,7 @@ export function mount({ portal }) {
     thread.hidden = false;
     ui.lastKind = t.conv.kind;
     ui.lastStatus = t.conv.status;
-    const sig = JSON.stringify([t.conv.id, t.conv.status, t.conv.assigneeId, t.conv.priority, t.actions, t.canPost, ui.confirm && ui.confirm.key, offline(), ui.cannedOpen, Math.floor(Date.now() / 60000), onlineOthers(t.conv), t.conv.participants || 0, t.row.pinned, t.row.muted]);
+    const sig = JSON.stringify([t.conv.id, t.conv.status, t.conv.assigneeId, t.conv.priority, t.actions, t.canPost, ui.confirm && ui.confirm.key, offline(), ui.cannedOpen, Math.floor(Date.now() / 60000), onlineOthers(t.conv), t.conv.participants || 0, t.row.pinned, t.row.muted, t.row.important, t.stage, !!t.emergency, t.ack ? t.ack.read : -1, contextOpen()]);
     if (force || sig !== ui.sigThread) {
       ui.sigThread = sig;
       const row = t.row;
@@ -707,7 +1008,9 @@ export function mount({ portal }) {
         av.textContent = initials(row.avatar.name);
       }
       $('#thread-title').textContent = row.title;
-      $('#thread-sub').textContent = row.subtitle || '';
+      renderMarks(row);
+      renderStage(t);
+      $('#thread-sub').textContent = row.kind === 'group' ? (row.subtitle || '').replace(/^\d+ people · /, '') : row.subtitle || '';
       const bx = $('#thread-badges');
       clear(bx);
       threadStatusBadges(row, t.conv).forEach((b) => bx.appendChild(b));
@@ -716,6 +1019,7 @@ export function mount({ portal }) {
       threadBanner(t);
       composerState(t);
     }
+    renderContext(t);
     renderLog(t);
     renderTyping();
   }
@@ -732,7 +1036,7 @@ export function mount({ portal }) {
     const msgs = visibleMessages(t);
     const pending = ui.pending.filter((p) => p.convId === t.conv.id && !p.done);
     const latestChoices = [...msgs].reverse().find((m) => m.choices && !m.chosen);
-    const sig = JSON.stringify([msgs.map((m) => [m.id, m.delivery, m.chosen || '', m.deleted ? 1 : 0, m.reactions || 0, (m.seenBy || []).length, (m.attachments || []).length, m.editedAt || 0]), ui.quickFor, ui.flash, pending.map((p) => [p.cid, p.state]), !!g, ui.anchor && ui.anchor.msgId, t.actions.includes('rate'), t.conv.status, latestChoices && latestChoices.id]);
+    const sig = JSON.stringify([msgs.map((m) => [m.id, m.delivery, m.chosen || '', m.deleted ? 1 : 0, m.reactions || 0, (m.seenBy || []).length, (m.attachments || []).length, m.editedAt || 0]), ui.quickFor, ui.flash, pending.map((p) => [p.cid, p.state]), !!g, ui.anchor && ui.anchor.msgId, t.actions.includes('rate'), t.conv.status, latestChoices && latestChoices.id, t.emergency ? t.emergency.msgId : 0]);
     if (sig === ui.sigLog) return;
     ui.sigLog = sig;
 
@@ -776,6 +1080,17 @@ export function mount({ portal }) {
           log.appendChild(tt);
         }
         if (ui.anchor && ui.anchor.convId === t.conv.id && ui.anchor.msgId === m.id) log.appendChild(tpl('t-new-divider'));
+        if (m.audit) {
+          // Immutable audit card: what changed, who did it (id and name), when (ISO, UTC).
+          const a = tpl('t-audit');
+          $('[data-change]', a).textContent = `${m.audit.field}: ${m.audit.from} → ${m.audit.to}`;
+          $('[data-actor]', a).textContent = m.audit.actorId === 'system' ? 'System' : `${m.audit.actorName} (${m.audit.actorId})`;
+          const tm = $('[data-time]', a);
+          tm.textContent = m.audit.at;
+          tm.dateTime = m.audit.at;
+          log.appendChild(a);
+          return;
+        }
         if (m.kind === 'system') {
           const s = tpl('t-sys');
           $('[data-text]', s).textContent = m.text;
@@ -884,6 +1199,7 @@ export function mount({ portal }) {
     const entries = Object.entries(m.reactions || {});
     if (!entries.length) return;
     box.hidden = false;
+    box.closest('[data-msg]').dataset.react = 'true'; // leaves room under the bubble for the chips hanging off its corner
     for (const [emoji, ids] of entries) {
       const c = tpl('t-chip');
       $('[data-emoji]', c).textContent = emoji;
@@ -970,11 +1286,137 @@ export function mount({ portal }) {
     });
     box.appendChild(react);
     if (t.canPost.ok) box.appendChild(actionBtn('Reply', 'reply', () => setReply(m)));
-    if (m.text) box.appendChild(actionBtn('Copy text', 'copy', () => copyText(m.text)));
-    if (m.mine && m.text && !m.viaChoice && t.canPost.ok && Date.now() - m.at < store.config.editMs) box.appendChild(actionBtn('Edit message', 'pencil', () => startEdit(m)));
-    if (m.mine && Date.now() - m.at < store.config.unsendMs) box.appendChild(actionBtn('Remove message', 'trash', () => { act(store.unsend(t.conv.id, me.id, m.id), 'Message removed.'); }));
+    const hasContent = !!m.text || !!(m.attachments && m.attachments.length);
+    if (me.role !== 'resident' && hasContent) box.appendChild(actionBtn('Forward', 'forward', () => openForward(t.conv.id, m)));
+
+    // Everything else lives behind the three dots so the bar stays short.
+    const items = [];
+    // Edit and Unsend stay in the menu after the time limit, greyed out with the reason, so nobody wonders where they went.
+    const age = Date.now() - m.at;
+    const mins = (ms) => `${Math.round(ms / 60000)} minutes`;
+    if (m.text) items.push({ label: 'Copy text', icon: 'copy', run: () => copyText(m.text) });
+    if (m.mine && m.text && !m.viaChoice && t.canPost.ok) {
+      const ok = age < store.config.editMs;
+      items.push({ label: 'Edit message', icon: 'pencil', disabled: !ok, hint: ok ? '' : `Only within ${mins(store.config.editMs)} of sending`, run: () => startEdit(m) });
+    }
+    if (m.mine) {
+      const ok = age < store.config.unsendMs;
+      items.push({ label: 'Unsend for everyone', icon: 'undo', disabled: !ok, hint: ok ? '' : `Only within ${mins(store.config.unsendMs)} of sending`, confirm: ok, tone: 'danger', run: () => { act(store.unsend(t.conv.id, me.id, m.id), 'Message unsent.'); } });
+    }
+    items.push({ label: 'Delete for me', icon: 'trash', tone: 'danger', run: () => {
+      const r = store.hideMessage(t.conv.id, me.id, m.id);
+      if (r.ok) toast('Deleted for you. Others can still see it.', { action: 'Undo', onAction: () => act(store.unhideMessage(t.conv.id, me.id, m.id)) });
+      else act(r);
+    } });
+    let more = null;
+    if (items.length) {
+      const menu = $('[data-menu]', el);
+      more = actionBtn('More actions', 'more', (btn) => {
+        const open = menu.hidden;
+        if (open) { quick.hidden = true; ui.quickFor = null; $('button[aria-label="React"]', box)?.setAttribute('aria-expanded', 'false'); }
+        menu.hidden = !open;
+        btn.setAttribute('aria-expanded', String(open));
+        ui.menuFor = open ? m.id : null;
+        if (!open) return;
+        // The menu hangs off the dots button; flip it above the button when there is no room below it.
+        delete menu.dataset.flip;
+        const log = $('#log').getBoundingClientRect();
+        const wr = btn.parentElement.getBoundingClientRect();
+        const mw = menu.offsetWidth;
+        // Sideways: grow towards the inside of the thread (your own messages to the right of the dots, others to the left),
+        // then clamp so the menu never leaves the message area, whatever the screen width.
+        const left = Math.min(Math.max(m.mine ? wr.left : wr.right - mw, log.left + 8), log.right - mw - 8);
+        menu.style.left = `${left - wr.left}px`;
+        const mr = menu.getBoundingClientRect();
+        const br = btn.getBoundingClientRect();
+        if (mr.bottom > log.bottom && br.top - mr.height - 4 > log.top) menu.dataset.flip = 'true';
+        if (!menu.children.length) {
+          for (const it of items) {
+            const b = tpl('t-menu-item');
+            setIcon($('svg', b), it.icon);
+            $('[data-label]', b).textContent = it.label;
+            if (it.tone) b.dataset.tone = it.tone;
+            if (it.disabled) { b.setAttribute('aria-disabled', 'true'); b.title = it.hint; }
+            let armed = null;
+            b.addEventListener('click', (ev) => {
+              ev.stopPropagation();
+              if (it.disabled) return;
+              // Unsend cannot be undone, so it asks once more.
+              if (it.confirm && !armed) {
+                $('[data-label]', b).textContent = 'Tap again to unsend';
+                armed = setTimeout(() => { armed = null; $('[data-label]', b).textContent = it.label; }, 4000);
+                return;
+              }
+              clearTimeout(armed);
+              closeMenu();
+              it.run();
+            });
+            menu.appendChild(b);
+          }
+          menu.addEventListener('keydown', (ev) => {
+            const list = $$('[role=menuitem]', menu);
+            const i = list.indexOf(document.activeElement);
+            if (ev.key === 'ArrowDown' || ev.key === 'ArrowUp') { ev.preventDefault(); list[(i + (ev.key === 'ArrowDown' ? 1 : -1) + list.length) % list.length].focus(); }
+            if (ev.key === 'Escape') { ev.preventDefault(); ev.stopPropagation(); closeMenu(); btn.focus(); }
+          });
+        }
+        $('[role=menuitem]', menu).focus();
+      });
+      more.setAttribute('aria-haspopup', 'menu');
+      more.setAttribute('aria-expanded', 'false');
+      const wrap = tpl('t-more-wrap');
+      wrap.appendChild(more);
+      wrap.appendChild(menu); // the menu belongs to the dots button, so it opens right under it
+      box.appendChild(wrap);
+    }
     if (ui.quickFor === m.id) { react.click(); }
+    if (more && ui.menuFor === m.id) { more.click(); }
   }
+
+  function closeMenu() {
+    const id = ui.menuFor;
+    ui.menuFor = null;
+    if (!id) return;
+    const el = $(`[data-msgid="${id}"]`, $('#log'));
+    if (!el) return;
+    $('[data-menu]', el).hidden = true;
+    $('button[aria-label="More actions"]', el)?.setAttribute('aria-expanded', 'false');
+  }
+  document.addEventListener('click', (e) => { if (ui.menuFor && !e.target.closest('[data-menu], button[aria-label="More actions"]')) closeMenu(); });
+
+  /* forward: pick another conversation you can post in */
+  function openForward(convId, m) {
+    const d = dlg('dlg-forward');
+    d._src = { convId, msgId: m.id };
+    $('#forward-preview').textContent = m.text || (m.attachments[0].kind === 'image' ? 'Photo' : m.attachments[0].name);
+    $('#forward-search').value = '';
+    renderForwardList();
+    d.showModal();
+    $('#forward-search').focus();
+  }
+  function renderForwardList() {
+    const d = dlg('dlg-forward');
+    const q = $('#forward-search').value.trim().toLowerCase();
+    const rows = store.forwardTargets(me.id, d._src.convId).filter((r) => !q || `${r.title} ${r.subtitle || ''}`.toLowerCase().includes(q));
+    const ul = $('#forward-list');
+    clear(ul);
+    $('#forward-empty').hidden = rows.length > 0;
+    $('#forward-empty').textContent = q ? 'No conversation matches.' : 'No other conversation to forward to.';
+    for (const r of rows) {
+      const li = tpl('t-fwd-row');
+      $('[data-avatar]', li).replaceWith(avatar({ name: r.avatar.name, role: r.avatar.role, size: 'md' }));
+      $('[data-title]', li).textContent = r.title;
+      $('[data-subtitle]', li).textContent = r.subtitle || '';
+      $('[data-pick]', li).addEventListener('click', () => {
+        const res = store.forward(d._src.convId, me.id, d._src.msgId, r.id);
+        d.close();
+        if (res.ok) toast(`Forwarded to ${r.title}.`, { action: 'View', onAction: () => openConv(r.id) });
+        else toast(reasonText(res.reason));
+      });
+      ul.appendChild(li);
+    }
+  }
+  $('#forward-search').addEventListener('input', renderForwardList);
 
   function bubble(m, ctx) {
     const { first, last, isLastOut, offerChoices, t } = ctx;
@@ -992,6 +1434,8 @@ export function mount({ portal }) {
       tm.title = formatFull(m.at);
       if (!m.deleted) { quoteEl(el, m); attachmentsEl($('[data-attachments]', el), m.attachments); reactionsEl($('[data-reactions]', el), m, t.conv.id); }
       if (m.editedAt && !m.deleted) $('[data-edited]', el).hidden = false;
+      if (m.forwarded && !m.deleted) $('[data-forwarded]', el).hidden = false;
+      markEmergency(el, body, m, t);
       wireReveal(el, m);
       if (!m.deleted) messageActions(el, m, t);
       if (isLastOut) {
@@ -1019,6 +1463,8 @@ export function mount({ portal }) {
     tm.title = formatFull(m.at);
     if (!m.deleted) { quoteEl(el, m); attachmentsEl($('[data-attachments]', el), m.attachments); reactionsEl($('[data-reactions]', el), m, t.conv.id); }
     if (m.editedAt && !m.deleted) $('[data-edited]', el).hidden = false;
+    if (m.forwarded && !m.deleted) $('[data-forwarded]', el).hidden = false;
+    markEmergency(el, body, m, t);
     if (interactive) { wireReveal(el, m); if (!m.deleted) messageActions(el, m, t); }
     else { body.removeAttribute('role'); body.removeAttribute('tabindex'); body.removeAttribute('aria-expanded'); body.classList.remove('cursor-pointer'); el.dataset.msgid = m.id; }
     // Quick replies are only shown while they can be used. Once one is tapped (or the chat moves on), the
@@ -1037,11 +1483,20 @@ export function mount({ portal }) {
     return el;
   }
 
+  /** Red border and tint for an emergency message; it pulses (not under reduced motion) until someone acknowledges it. */
+  function markEmergency(el, body, m, t) {
+    if (!m.emergency || m.deleted) return;
+    body.dataset.emergency = 'true';
+    $('[data-emergency-label]', el).hidden = false;
+    if (t.emergency && t.emergency.msgId === m.id) body.dataset.pulse = 'true';
+  }
+
   function pendingBubble(p) {
     const el = tpl('t-out');
     const body = $('[data-body]', el);
     if (p.text) body.textContent = p.text; else body.hidden = true;
     body.dataset.state = p.state;
+    if (p.emergency) body.dataset.emergency = 'true';
     body.removeAttribute('role');
     body.removeAttribute('tabindex');
     body.removeAttribute('aria-expanded');
@@ -1080,27 +1535,63 @@ export function mount({ portal }) {
     renderThread(true);
   }
 
+  /* Offline queue. A message sent without a connection stays in the thread dimmed with a clock, is kept in this browser
+     (localStorage stands in for IndexedDB in the preview) and is retried with exponential backoff: 1, 2, 4, 8, 16, then every 30 s.
+     When the connection returns everything queued goes out at once. */
+  const BACKOFF_MS = [1000, 2000, 4000, 8000, 16000, 30000];
+  const outboxKey = () => `eso-msg-outbox:${me.id}`;
+  function saveOutbox() {
+    try {
+      const items = ui.pending.filter((p) => p.state === 'queued').map(({ cid, convId, text, at, attachments, replyTo, emergency }) => ({ cid, convId, text, at, attachments, replyTo, emergency }));
+      if (items.length) localStorage.setItem(outboxKey(), JSON.stringify(items)); else localStorage.removeItem(outboxKey());
+    } catch { /* storage full: the message stays queued in memory for this visit */ }
+  }
+  function holdForConnection(p) {
+    clearTimeout(p.timer);
+    p.state = 'queued';
+    p.tries = p.tries || 0;
+    const wait = BACKOFF_MS[Math.min(p.tries, BACKOFF_MS.length - 1)];
+    p.tries += 1;
+    p.timer = setTimeout(() => { if (ui.pending.includes(p)) (offline() ? holdForConnection(p) : deliver(p)); }, wait);
+    saveOutbox();
+    ui.sigLog = '';
+    renderThread(true);
+  }
+  function flushOutbox() {
+    for (const p of ui.pending.filter((x) => x.state === 'queued')) { clearTimeout(p.timer); p.tries = 0; deliver(p); }
+  }
+  function restoreOutbox() {
+    try {
+      for (const p of JSON.parse(localStorage.getItem(outboxKey()) || '[]')) if (!ui.pending.some((x) => x.cid === p.cid)) ui.pending.push({ ...p, state: 'queued', tries: 0 });
+    } catch { /* unreadable: drop it */ }
+    if (ui.pending.length) offline() ? ui.pending.forEach(holdForConnection) : flushOutbox();
+  }
+
   function deliver(p) {
+    clearTimeout(p.timer);
+    if (offline()) return holdForConnection(p);
     p.state = 'sending';
     p.error = null;
     ui.sigLog = '';
     renderThread(true);
     setTimeout(() => {
       if (!ui.pending.includes(p)) return;
-      if (offline()) return fail(p, 'You are offline. Check your connection and try again.');
+      if (offline()) return holdForConnection(p);
       const conv = store.get(p.convId, me.id);
       if (conv.ok && conv.conv.kind === 'resident_support' && conv.conv.status === 'bot') {
         ui.gate = { convId: p.convId, since: Date.now() - 1, until: Date.now() + 750 + Math.random() * 400 };
         setTimeout(() => renderThread(true), ui.gate.until - Date.now() + 20);
       }
       p.done = true;
-      const r = store.send(p.convId, me.id, p.text, { clientId: p.cid, attachments: p.attachments, replyTo: p.replyTo });
+      const r = store.send(p.convId, me.id, p.text, { clientId: p.cid, attachments: p.attachments, replyTo: p.replyTo, emergency: p.emergency });
       if (!r.ok) {
         p.done = false;
         ui.gate = null;
+        saveOutbox();
         return fail(p, reasonText(r.reason));
       }
       ui.pending = ui.pending.filter((x) => x !== p);
+      saveOutbox();
       localStorage.removeItem(draftKey(p.convId));
       renderThread(true);
     }, 160 + Math.random() * 260);
@@ -1158,9 +1649,10 @@ export function mount({ portal }) {
     input.value = '';
     localStorage.removeItem(draftKey(ui.convId));
     autosize();
-    const p = { cid: `k${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`, convId: ui.convId, text, at: Date.now(), state: 'sending', attachments: ready.map(({ kind, name, mime, size, data }) => ({ kind, name, mime, size, data })), replyTo: ui.reply ? ui.reply.id : undefined };
+    const p = { cid: `k${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`, convId: ui.convId, text, at: Date.now(), state: 'sending', attachments: ready.map(({ kind, name, mime, size, data }) => ({ kind, name, mime, size, data })), replyTo: ui.reply ? ui.reply.id : undefined, emergency: ui.emergency || undefined };
     ui.attach = [];
     ui.reply = null;
+    ui.emergency = false;
     ui.emojiOpen = false;
     renderComposerExtras();
     updateCount();
@@ -1205,6 +1697,7 @@ export function mount({ portal }) {
     updateCount();
     input.dispatchEvent(new Event('input'));
   }
+  $('#btn-emergency').addEventListener('click', () => { ui.emergency = !ui.emergency; renderComposerExtras(); $('#msg-input').focus(); });
   $('#btn-canned').addEventListener('click', () => { ui.cannedOpen = !ui.cannedOpen; renderThread(true); });
 
   /* ------------------------------------------- reply, attachments, emoji */
@@ -1244,13 +1737,16 @@ export function mount({ portal }) {
       $('[data-remove]', el).addEventListener('click', () => { ui.attach = ui.attach.filter((x) => x !== a); renderComposerExtras(); updateCount(); });
       tray.appendChild(el);
     }
+    $('#btn-emergency').setAttribute('aria-pressed', String(ui.emergency));
+    $('#emergency-hint').hidden = !ui.emergency;
     $('#btn-emoji').setAttribute('aria-expanded', String(ui.emojiOpen));
     $('#emoji-pop').hidden = !ui.emojiOpen;
     $('#btn-attach').disabled = ui.attach.length >= store.config.maxAttachments;
     updateCount();
   }
 
-  const MAX_SIDE = 1280;
+  const MAX_SIDE = 1920; // longest side after compression
+  const TARGET_BYTES = 300 * 1024; // aim for about 300 KB; anything under the hard limit is still accepted
   const fileToDataUrl = (file) => new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(r.result); r.onerror = rej; r.readAsDataURL(file); });
   const loadImage = (url) => new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = url; });
 
@@ -1259,24 +1755,31 @@ export function mount({ portal }) {
     const max = store.config.maxAttachmentBytes;
     if (file.type.startsWith('image/') && file.type !== 'image/svg+xml' && file.type !== 'image/gif') {
       const img = await loadImage(await fileToDataUrl(file));
+      // Re-drawing on a canvas drops all EXIF, including GPS; the picture is already upright, so orientation is kept.
       let scale = Math.min(1, MAX_SIDE / Math.max(img.width, img.height));
-      for (let attempt = 0; attempt < 5; attempt++) {
+      let best = null;
+      for (let attempt = 0; attempt < 7; attempt++) {
         const c = document.createElement('canvas');
         c.width = Math.max(1, Math.round(img.width * scale));
         c.height = Math.max(1, Math.round(img.height * scale));
         c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
-        const data = c.toDataURL('image/jpeg', attempt < 2 ? 0.82 : 0.65);
+        const quality = [0.82, 0.7, 0.6][Math.min(attempt, 2)];
+        let data = c.toDataURL('image/webp', quality);
+        let mime = 'image/webp';
+        if (!data.startsWith('data:image/webp')) { data = c.toDataURL('image/jpeg', quality); mime = 'image/jpeg'; } // browsers without WebP encoding
         const size = Math.round((data.length * 3) / 4);
-        if (size <= max) return { kind: 'image', name: file.name.replace(/\.[^.]+$/, '') + '.jpg', mime: 'image/jpeg', size, data };
-        scale *= 0.75;
+        best = { kind: 'image', name: file.name.replace(/\.[^.]+$/, '') + (mime === 'image/webp' ? '.webp' : '.jpg'), mime, size, data };
+        if (size <= TARGET_BYTES) return best;
+        if (attempt >= 2) scale *= 0.8;
       }
+      if (best && best.size <= max) return best;
       throw new Error('That photo is too large even after shrinking it.');
     }
     if (file.type.startsWith('image/')) {
       if (file.size > max) throw new Error(`${file.name} is larger than ${formatBytes(max)}.`);
       return { kind: 'image', name: file.name, mime: file.type, size: file.size, data: await fileToDataUrl(file) };
     }
-    if (!/\.(pdf|txt|csv)$/i.test(file.name)) throw new Error(`${file.name}: only photos, PDF, TXT and CSV files can be attached.`);
+    if (!/\.(pdf|docx|txt|csv)$/i.test(file.name)) throw new Error(`${file.name}: only photos, PDF, DOCX, TXT and CSV files can be attached.`);
     if (file.size > max) throw new Error(`${file.name} is larger than ${formatBytes(max)}.`);
     return { kind: 'file', name: file.name, mime: file.type || 'application/octet-stream', size: file.size, data: await fileToDataUrl(file) };
   }
@@ -1397,7 +1900,7 @@ export function mount({ portal }) {
     d.addEventListener('click', (e) => { if (e.target === d) d.close(); });
     $$('[data-close]', d).forEach((b) => b.addEventListener('click', () => d.close()));
   };
-  ['dlg-new', 'dlg-announce', 'dlg-preview', 'dlg-image', 'dlg-members'].forEach((id) => wireDialog(dlg(id)));
+  ['dlg-new', 'dlg-announce', 'dlg-preview', 'dlg-image', 'dlg-members', 'dlg-forward'].forEach((id) => wireDialog(dlg(id)));
 
   /* new conversation: one to one, or a group of three or more (Staff and Admin start groups) */
   function setNewMode(mode) {
@@ -1590,6 +2093,7 @@ export function mount({ portal }) {
       box.appendChild(a);
     });
     $('#pv-offline').checked = sessionStorage.getItem('eso-msg-offline') === '1';
+    $('#pv-contrast').checked = document.documentElement.hasAttribute('data-contrast');
     const mode = transport.info().mode;
     $('#pv-conn').textContent = { broadcast: 'Live sync between tabs', storage: 'Saved in this browser', memory: 'Not saved (storage is blocked)' }[mode];
     d.showModal();
@@ -1599,7 +2103,16 @@ export function mount({ portal }) {
   $('#pv-offline').addEventListener('change', (e) => {
     sessionStorage.setItem('eso-msg-offline', e.target.checked ? '1' : '0');
     renderAll(true);
+    if (!e.target.checked) flushOutbox(); // the connection "came back"
   });
+  // High-contrast outdoor mode: a device setting, remembered, also reachable with ?contrast.
+  const CONTRAST_KEY = 'eso-msg-contrast';
+  const setContrast = (on) => {
+    document.documentElement.toggleAttribute('data-contrast', on);
+    try { localStorage.setItem(CONTRAST_KEY, on ? '1' : '0'); } catch { /* not remembered */ }
+  };
+  try { if (q.has('contrast') || localStorage.getItem(CONTRAST_KEY) === '1') setContrast(true); } catch { /* ignore */ }
+  $('#pv-contrast').addEventListener('change', (e) => setContrast(e.target.checked));
   const twoStep = (btn, label, run) => {
     let armed = false;
     let timer;
@@ -1632,6 +2145,7 @@ export function mount({ portal }) {
     root.dataset.pane = ui.pane;
     const label = backLabel();
     $('#back-label').textContent = label;
+    renderEmergencyBanner();
     renderList(force);
     renderThread(force);
   }
@@ -1685,14 +2199,44 @@ export function mount({ portal }) {
       ui.sigLog = '';
       openSideEffects();
       renderAll(true);
+      restoreOutbox(); // messages written without a connection on an earlier visit
     } catch (error) {
       showError(error);
     }
   }
 
+  /* Keyboard shortcuts for power users: Ctrl/Cmd+K quick search, Alt+N next unread priority thread, Esc closes menus. */
+  function nextUnread() {
+    const rows = store.listFor(me.id).filter((r) => r.unread > 0 && r.id !== ui.convId && !r.muted);
+    rows.sort((a, b) => Number(b.emergency) - Number(a.emergency) || Number(b.important) - Number(a.important) || b.updatedAt - a.updatedAt);
+    if (!rows.length) return toast('No other unread conversations.');
+    openConv(rows[0].id);
+  }
+  document.addEventListener('keydown', (e) => {
+    if ((e.ctrlKey || e.metaKey) && !e.altKey && e.key.toLowerCase() === 'k') {
+      e.preventDefault();
+      if (isMobile() && ui.pane === 'thread') go({ pane: 'list' }, { push: true });
+      searchBox.focus();
+      searchBox.select();
+    } else if (e.altKey && !e.ctrlKey && !e.metaKey && e.key.toLowerCase() === 'n') {
+      e.preventDefault();
+      nextUnread();
+    } else if (e.key === 'Escape') {
+      closeThreadMenu();
+      closeRowMenus();
+      closeMenu();
+      // Esc closes the details panel when you are inside it, or when it covers the screen (narrower than 1280px).
+      const pane = $('#context-pane');
+      if (!pane.hidden && !document.querySelector('dialog[open]') && (pane.contains(document.activeElement) || !matchMedia('(min-width: 1280px)').matches)) {
+        setContext(false);
+        $('#btn-context')?.focus();
+      }
+    }
+  });
+
   store.subscribe(onStore);
   document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') { openSideEffects(); renderAll(true); } });
-  window.addEventListener('online', () => renderAll(true));
+  window.addEventListener('online', () => { renderAll(true); flushOutbox(); });
   window.addEventListener('offline', () => renderAll(true));
   matchMedia('(max-width: 1023px)').addEventListener('change', () => renderAll(true));
   setInterval(() => { store.tick(); renderAll(false); }, 30000);

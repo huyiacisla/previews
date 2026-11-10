@@ -38,7 +38,11 @@
     <symbol id="i-user-plus" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M19 8v6"/><path d="M22 11h-6"/></symbol>
     <symbol id="i-pencil" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="m15 5 4 4"/></symbol>
     <symbol id="i-trash" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></symbol>
-    <symbol id="i-pin"viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 17v5"/><path d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H8a2 2 0 0 0 0 4 1 1 0 0 1 1 1z"/></symbol>
+    <symbol id="i-forward" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 17 5-5-5-5"/><path d="M4 18v-2a4 4 0 0 1 4-4h12"/></symbol>
+    <symbol id="i-more" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="5" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="12" cy="19" r="1"/></symbol>
+    <symbol id="i-flag" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 22V4a1 1 0 0 1 .4-.8A6 6 0 0 1 8 2c3 0 5 2 7.333 2q2 0 3.067-.8A1 1 0 0 1 20 4v10a1 1 0 0 1-.4.8A6 6 0 0 1 16 16c-3 0-5-2-8-2a6 6 0 0 0-4 1.528"/></symbol>
+    <symbol id="i-shield" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12 2 2 4-4"/></symbol>
+    <symbol id="i-pin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 17v5"/><path d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H8a2 2 0 0 0 0 4 1 1 0 0 1 1 1z"/></symbol>
   </defs>
 </svg>
 
@@ -62,11 +66,16 @@
         <svg aria-hidden="true"><use href="#i-sun-moon"/></svg>
       </button>
       <div id="me" class="hidden min-w-0 items-center gap-step-sm sm:flex">
-        <span id="me-avatar" data-slot="avatar" data-role="staff" class="inline-flex size-8 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-medium text-muted-foreground data-[role=admin]:bg-info-bg data-[role=admin]:text-info-text data-[role=staff]:bg-secondary data-[role=staff]:text-secondary-foreground"></span>
+        <span id="me-avatar" data-slot="avatar" data-role="staff" class="inline-flex size-8 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-medium text-muted-foreground data-[role=admin]:bg-info-bg data-[role=admin]:text-info-text data-[role=staff]:bg-warning-bg data-[role=staff]:text-warning-text data-[role=client]:bg-success-bg data-[role=client]:text-success-text"></span>
         <span class="flex min-w-0 flex-col leading-tight"><span id="me-name" class="truncate text-sm font-medium"></span><span id="me-role" class="truncate text-xs text-muted-foreground"></span></span>
       </div>
     </div>
   </header>
+
+  <!-- Emergencies nobody has acknowledged yet. Staff and Admin only; assertive so a screen reader announces it at once. -->
+  <div id="emergency-banner" hidden role="alert" aria-live="assertive" class="shrink-0 border-b border-danger-text bg-danger-bg px-step-lg py-step-sm text-sm text-danger-text lg:px-step-xl">
+    <ul id="emergency-list" role="list" class="flex flex-col gap-step-sm"></ul>
+  </div>
 
   <main id="main-content" tabindex="-1" class="min-h-0 flex-1 outline-none">
     <!-- loading -->
@@ -84,7 +93,7 @@
     </div>
 
     <!-- app -->
-    <div id="view-app" hidden class="grid h-full min-h-0 gap-step-lg px-step-lg py-step-md lg:grid-cols-[22rem_minmax(0,1fr)] lg:px-step-xl">
+    <div id="view-app" hidden data-context="closed" class="grid h-full min-h-0 gap-step-lg px-step-lg py-step-md lg:grid-cols-[22rem_minmax(0,1fr)] lg:px-step-xl xl:data-[context=open]:grid-cols-[22rem_minmax(0,1fr)_20rem]">
       <!-- list pane -->
       <section id="list-pane" aria-labelledby="list-title" class="flex min-h-0 flex-col overflow-hidden rounded-xl bg-card shadow-lift-xs group-data-[pane=thread]/app:max-lg:hidden">
         <div class="flex flex-col gap-step-md border-b border-border p-step-md">
@@ -103,9 +112,11 @@
           <div class="relative">
             <label for="list-search" class="sr-only">Search conversations and messages</label>
             <svg aria-hidden="true" class="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground"><use href="#i-search"/></svg>
-            <input id="list-search" type="search" autocomplete="off" spellcheck="false" placeholder="Search messages" class="h-8 w-full min-w-0 rounded-md border border-input bg-card pr-2.5 pl-8 text-base text-ellipsis outline-none transition-colors placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 md:text-sm pointer-coarse:h-11" />
+            <input id="list-search" type="search" autocomplete="off" spellcheck="false" placeholder="Search messages…" class="h-8 w-full min-w-0 rounded-md border border-input bg-card pr-2.5 pl-8 text-base text-ellipsis outline-none transition-colors placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 md:text-sm pointer-coarse:h-11" />
           </div>
-          <div id="tabs" role="tablist" aria-label="Filter conversations" class="flex gap-step-xs overflow-x-auto [scrollbar-width:none]"></div>
+          <div id="search-chips" class="flex flex-wrap gap-step-xs empty:hidden"></div>
+          <div id="search-filters" hidden role="group" aria-label="Add a search filter" class="flex flex-wrap items-center gap-step-xs"></div>
+          <div id="tabs" role="tablist" aria-label="Filter conversations" class="flex flex-wrap gap-step-xs"></div>
         </div>
         <div id="list-banner" class="empty:hidden"></div>
         <section id="hits" hidden aria-labelledby="hits-title" class="max-h-1/2 shrink-0 overflow-y-auto border-b border-border">
@@ -125,17 +136,25 @@
         </div>
 
         <div id="thread" hidden class="flex min-h-0 flex-1 flex-col">
-          <div class="flex flex-wrap items-start gap-step-md border-b border-border p-step-md">
-            <span id="thread-avatar" data-slot="avatar" data-role="staff" data-size="lg" class="inline-flex size-10 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-medium text-muted-foreground data-[role=admin]:bg-info-bg data-[role=admin]:text-info-text data-[role=bot]:bg-accent data-[role=bot]:text-primary data-[role=staff]:bg-secondary data-[role=staff]:text-secondary-foreground"></span>
-            <div class="flex min-w-0 flex-1 basis-40 flex-col gap-step-xs">
-              <div class="flex flex-wrap items-center gap-step-sm">
-                <h2 id="thread-title" tabindex="-1" class="min-w-0 truncate text-base leading-snug font-medium outline-none"></h2>
-                <span id="thread-badges" class="flex flex-wrap items-center gap-step-xs"></span>
+          <div class="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-x-step-md gap-y-step-sm border-b border-border p-step-md sm:grid-cols-[auto_minmax(0,1fr)_auto_auto]">
+            <span id="thread-avatar" data-slot="avatar" data-role="staff" data-size="lg" class="inline-flex size-10 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-medium text-muted-foreground data-[role=admin]:bg-info-bg data-[role=admin]:text-info-text data-[role=bot]:bg-accent data-[role=bot]:text-primary data-[role=staff]:bg-warning-bg data-[role=staff]:text-warning-text data-[role=client]:bg-success-bg data-[role=client]:text-success-text"></span>
+            <div class="flex min-w-0 flex-col gap-step-xs">
+              <h2 id="thread-title" tabindex="-1" class="min-w-0 truncate text-base leading-snug font-medium outline-none"></h2>
+              <span id="thread-badges" class="flex flex-wrap items-center gap-step-xs empty:hidden"></span>
+              <div class="flex min-w-0 items-center gap-step-xs">
+                <span id="thread-marks" class="flex shrink-0 items-center gap-step-xs empty:hidden"></span>
+                <p id="thread-sub" class="min-w-0 truncate text-xs text-muted-foreground"></p>
               </div>
-              <p id="thread-sub" class="truncate text-xs text-muted-foreground"></p>
             </div>
-            <div id="thread-flags" class="flex shrink-0 items-center gap-step-xs"></div>
-            <div id="thread-actions" class="flex w-full flex-wrap items-center gap-step-sm empty:hidden sm:w-auto sm:shrink-0 sm:justify-end"></div>
+            <div id="thread-actions" class="order-last col-span-3 flex flex-wrap items-center gap-step-sm empty:hidden sm:order-none sm:col-span-1 sm:justify-end"></div>
+            <div id="thread-flags" class="relative flex shrink-0 items-center">
+              <button type="button" id="btn-thread-more" aria-label="More actions" aria-haspopup="menu" aria-expanded="false" aria-controls="thread-menu" class="inline-flex size-8 shrink-0 touch-manipulation items-center justify-center rounded-md text-muted-foreground outline-none transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50 aria-expanded:bg-accent aria-expanded:text-primary pointer-coarse:size-11 [&_svg]:size-4"><svg aria-hidden="true"><use href="#i-more"/></svg></button>
+              <div id="thread-menu" hidden role="menu" aria-label="Conversation actions" class="absolute top-full right-0 z-popup mt-1 flex w-52 flex-col rounded-lg bg-card p-1 shadow-lift-md ring-1 ring-foreground/10"></div>
+            </div>
+          </div>
+
+          <div id="thread-stage" hidden class="border-b border-border px-step-md py-step-sm">
+            <ol id="stage-list" aria-label="Ticket progress" class="flex flex-wrap items-center gap-x-step-xs gap-y-step-xs"></ol>
           </div>
 
           <div id="thread-tools" hidden class="flex flex-wrap items-end gap-step-md border-b border-border bg-muted/40 p-step-md">
@@ -168,33 +187,37 @@
             <div id="composer-note" hidden class="flex flex-col gap-step-sm"></div>
             <form id="composer" novalidate class="flex flex-col gap-step-sm">
               <div id="canned-menu" hidden class="flex flex-col gap-step-xs rounded-lg bg-muted/40 p-step-sm" role="group" aria-label="Quick replies"></div>
-              <div id="emoji-pop" hidden class="flex flex-col gap-step-sm rounded-xl bg-card p-step-sm shadow-lift-md ring-1 ring-foreground/10">
+              <div id="emoji-pop" hidden class="flex w-80 max-w-full flex-col gap-step-sm rounded-xl bg-card p-step-sm shadow-lift-md ring-1 ring-foreground/10">
                 <label for="emoji-search" class="sr-only">Search emoji</label>
-                <input id="emoji-search" type="search" autocomplete="off" placeholder="Search emoji" class="h-8 w-full min-w-0 rounded-md border border-input bg-card px-2.5 text-base outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 md:text-sm pointer-coarse:h-11" />
-                <div id="emoji-tabs" role="group" aria-label="Emoji categories" class="flex gap-0.5 overflow-x-auto"></div>
-                <div id="emoji-grid" role="group" aria-label="Emoji" class="grid max-h-48 grid-cols-8 gap-0.5 overflow-y-auto"></div>
+                <input id="emoji-search" type="search" autocomplete="off" placeholder="Search emoji…" class="h-8 w-full min-w-0 rounded-md border border-input bg-card px-2.5 text-base outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 md:text-sm pointer-coarse:h-11" />
+                <div id="emoji-tabs" role="group" aria-label="Emoji categories" class="flex justify-between border-b border-border pb-step-xs"></div>
+                <div id="emoji-grid" role="group" aria-label="Emoji" class="grid max-h-44 grid-cols-8 gap-0.5 overflow-y-auto [&>button]:w-full"></div>
                 <p id="emoji-empty" hidden class="p-step-sm text-center text-xs text-muted-foreground">No emoji found.</p>
               </div>
               <div id="reply-bar" hidden class="flex items-center gap-step-sm rounded-lg border-l-2 border-primary bg-muted/60 py-step-xs pr-step-xs pl-step-md text-xs">
                 <span class="flex min-w-0 flex-1 flex-col"><span id="reply-who" class="font-medium text-foreground-secondary"></span><span id="reply-text" class="truncate text-muted-foreground"></span></span>
                 <button type="button" id="reply-cancel" aria-label="Cancel reply" class="inline-flex size-6 shrink-0 items-center justify-center rounded-md text-muted-foreground outline-none hover:bg-background focus-visible:ring-3 focus-visible:ring-ring/50 pointer-coarse:size-8 [&_svg]:size-4"><svg aria-hidden="true"><use href="#i-x"/></svg></button>
               </div>
+              <p id="emergency-hint" hidden role="status" class="flex items-center gap-step-xs rounded-lg bg-danger-bg px-step-md py-step-xs text-xs text-danger-text [&_svg]:size-3"><svg aria-hidden="true"><use href="#i-alert"/></svg>Emergency: managers are alerted now, and it gets through Do Not Disturb. Use it for water, fire or gas.</p>
               <div id="tray" hidden class="flex flex-wrap gap-step-sm"></div>
               <p id="attach-error" role="alert" hidden class="text-xs text-danger-text"></p>
               <div class="flex flex-wrap items-end gap-step-sm">
-                <button type="button" id="btn-canned" hidden aria-expanded="false" aria-controls="canned-menu" aria-label="Quick replies" class="group/button inline-flex size-8 shrink-0 touch-manipulation items-center justify-center rounded-md border border-transparent bg-background bg-clip-padding text-foreground ring-1 ring-foreground/10 transition outline-none select-none hover:bg-muted focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 active:translate-y-px aria-expanded:bg-accent aria-expanded:text-primary pointer-coarse:size-11 [&_svg]:size-4">
+                <button type="button" id="btn-canned" hidden aria-expanded="false" aria-controls="canned-menu" aria-label="Quick replies" class="group/button inline-flex size-8 shrink-0 touch-manipulation items-center justify-center rounded-md border border-transparent bg-transparent bg-clip-padding text-foreground-secondary transition outline-none select-none hover:bg-muted hover:text-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 active:translate-y-px aria-expanded:bg-accent aria-expanded:text-primary pointer-coarse:size-11 [&_svg]:size-4">
                   <svg aria-hidden="true"><use href="#i-list"/></svg>
                 </button>
-                <button type="button" id="btn-attach" aria-label="Attach a photo or file" class="group/button inline-flex size-8 shrink-0 touch-manipulation items-center justify-center rounded-md border border-transparent bg-background bg-clip-padding text-foreground ring-1 ring-foreground/10 transition outline-none select-none hover:bg-muted focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 active:translate-y-px pointer-coarse:size-11 [&_svg]:size-4">
+                <button type="button" id="btn-attach" aria-label="Attach a photo or file" class="group/button inline-flex size-8 shrink-0 touch-manipulation items-center justify-center rounded-md border border-transparent bg-transparent bg-clip-padding text-foreground-secondary transition outline-none select-none hover:bg-muted hover:text-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 active:translate-y-px pointer-coarse:size-11 [&_svg]:size-4">
                   <svg aria-hidden="true"><use href="#i-paperclip"/></svg>
                 </button>
-                <button type="button" id="btn-emoji" aria-label="Add an emoji" aria-expanded="false" aria-controls="emoji-pop" class="group/button inline-flex size-8 shrink-0 touch-manipulation items-center justify-center rounded-md border border-transparent bg-background bg-clip-padding text-foreground ring-1 ring-foreground/10 transition outline-none select-none hover:bg-muted focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 active:translate-y-px aria-expanded:bg-accent aria-expanded:text-primary pointer-coarse:size-11 [&_svg]:size-4">
+                <button type="button" id="btn-emoji" aria-label="Add an emoji" aria-expanded="false" aria-controls="emoji-pop" class="group/button inline-flex size-8 shrink-0 touch-manipulation items-center justify-center rounded-md border border-transparent bg-transparent bg-clip-padding text-foreground-secondary transition outline-none select-none hover:bg-muted hover:text-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 active:translate-y-px aria-expanded:bg-accent aria-expanded:text-primary pointer-coarse:size-11 [&_svg]:size-4">
                   <svg aria-hidden="true"><use href="#i-smile"/></svg>
                 </button>
-                <input id="file-input" type="file" multiple accept="image/*,.pdf,.txt,.csv" tabindex="-1" aria-hidden="true" class="sr-only" />
+                <button type="button" id="btn-emergency" hidden aria-pressed="false" aria-label="Mark as emergency" class="group/button inline-flex size-8 shrink-0 touch-manipulation items-center justify-center rounded-md border border-transparent bg-transparent bg-clip-padding text-foreground-secondary transition outline-none select-none hover:bg-muted hover:text-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 active:translate-y-px aria-pressed:bg-danger-bg aria-pressed:text-danger-text pointer-coarse:size-11 [&_svg]:size-4">
+                  <svg aria-hidden="true"><use href="#i-alert"/></svg>
+                </button>
+                <input id="file-input" type="file" multiple accept="image/*,.pdf,.docx,.txt,.csv" tabindex="-1" aria-hidden="true" class="sr-only" />
                 <div class="order-first min-w-0 basis-full sm:order-none sm:basis-0 sm:flex-1">
                   <label for="msg-input" class="sr-only">Message</label>
-                  <textarea id="msg-input" rows="1" maxlength="2000" autocomplete="off" placeholder="Write a message" class="block max-h-40 min-h-8 w-full resize-none rounded-md border border-input bg-card px-step-md py-1.5 text-base leading-5 outline-none transition-colors placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:opacity-50 md:text-sm pointer-coarse:min-h-11"></textarea>
+                  <textarea id="msg-input" rows="1" maxlength="2000" autocomplete="off" placeholder="Write a message…" class="block max-h-40 min-h-8 w-full resize-none rounded-md border border-input bg-card px-step-md py-1.5 text-base leading-5 outline-none transition-colors placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:opacity-50 md:text-sm pointer-coarse:min-h-11"></textarea>
                 </div>
                 <button type="submit" id="btn-send" class="group/button ml-auto inline-flex h-8 shrink-0 sm:ml-0 touch-manipulation items-center justify-center gap-step-sm rounded-md border border-transparent bg-primary bg-clip-padding px-step-md control-text font-medium whitespace-nowrap text-primary-foreground transition outline-none select-none hover:bg-primary/90 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 active:translate-y-px disabled:pointer-events-none disabled:opacity-50 pointer-coarse:h-11 [&_svg]:size-4">
                   <svg aria-hidden="true"><use href="#i-send"/></svg>Send
@@ -208,6 +231,15 @@
           </div>
         </div>
       </section>
+
+      <!-- details panel (third column on wide screens, a side sheet on smaller ones) -->
+      <aside id="context-pane" hidden aria-labelledby="context-title" class="flex min-h-0 flex-col overflow-hidden rounded-xl bg-card shadow-lift-xs max-xl:fixed max-xl:inset-y-0 max-xl:right-0 max-xl:z-raised max-xl:w-88 max-xl:max-w-full max-xl:rounded-none max-xl:shadow-lift-xl">
+        <div class="flex items-center gap-step-sm border-b border-border p-step-md">
+          <h2 id="context-title" class="min-w-0 flex-1 truncate text-base leading-snug font-medium">Details</h2>
+          <button type="button" id="ctx-close" aria-label="Close details" class="inline-flex size-8 shrink-0 touch-manipulation items-center justify-center rounded-md text-muted-foreground outline-none transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50 pointer-coarse:size-11 [&_svg]:size-4"><svg aria-hidden="true"><use href="#i-x"/></svg></button>
+        </div>
+        <div id="context-body" class="flex min-h-0 flex-1 flex-col gap-step-xl overflow-y-auto p-step-md"></div>
+      </aside>
     </div>
   </main>
 </div>
@@ -216,7 +248,7 @@
 <div id="toasts" class="pointer-events-none fixed inset-x-0 top-step-lg z-toast flex flex-col items-center gap-step-sm px-step-lg"></div>
 
 <!-- ============ dialogs ============ -->
-<dialog id="dlg-new" aria-labelledby="dlg-new-title" class="m-auto w-full max-w-lg rounded-xl bg-card p-0 text-foreground shadow-lift-lg backdrop:bg-foreground/40">
+<dialog id="dlg-new" aria-labelledby="dlg-new-title" class="m-auto w-full max-w-lg rounded-xl bg-card p-0 text-foreground shadow-lift-lg backdrop:bg-foreground/40 max-sm:mb-0 max-sm:max-w-none max-sm:rounded-b-none">
   <form id="form-new" method="dialog" novalidate class="flex flex-col gap-step-lg p-step-xl">
     <div class="flex flex-col gap-step-xs">
       <h2 id="dlg-new-title" class="text-lg font-semibold tracking-tight">New conversation</h2>
@@ -263,7 +295,18 @@
   </div>
 </dialog>
 
-<dialog id="dlg-members" aria-labelledby="dlg-members-title" class="m-auto w-full max-w-md rounded-xl bg-card p-0 text-foreground shadow-lift-lg backdrop:bg-foreground/40">
+<dialog id="dlg-forward" aria-labelledby="dlg-forward-title" class="m-auto w-full max-w-md rounded-xl bg-card p-0 text-foreground shadow-lift-lg backdrop:bg-foreground/40 max-sm:mb-0 max-sm:max-w-none max-sm:rounded-b-none">
+  <div class="flex flex-col gap-step-lg p-step-xl">
+    <div class="flex flex-col gap-step-xs"><h2 id="dlg-forward-title" class="text-lg font-semibold tracking-tight">Forward message</h2><p id="forward-preview" class="truncate rounded-lg border-l-2 border-primary bg-muted/60 px-step-md py-step-xs text-sm text-foreground-secondary"></p></div>
+    <label for="forward-search" class="sr-only">Search conversations</label>
+    <input id="forward-search" type="search" autocomplete="off" placeholder="Search conversations…" class="h-8 w-full min-w-0 rounded-md border border-input bg-card px-2.5 text-base outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 md:text-sm pointer-coarse:h-11" />
+    <ul id="forward-list" role="list" class="flex max-h-72 flex-col divide-y divide-border overflow-y-auto"></ul>
+    <p id="forward-empty" hidden class="text-sm text-muted-foreground">No other conversation to forward to.</p>
+    <div class="flex justify-end"><button type="button" data-close class="group/button inline-flex h-8 items-center justify-center rounded-md bg-secondary px-step-md control-text font-medium text-secondary-foreground outline-none hover:bg-secondary/80 focus-visible:ring-3 focus-visible:ring-ring/50 pointer-coarse:h-11">Cancel</button></div>
+  </div>
+</dialog>
+
+<dialog id="dlg-members"aria-labelledby="dlg-members-title" class="m-auto w-full max-w-md rounded-xl bg-card p-0 text-foreground shadow-lift-lg backdrop:bg-foreground/40 max-sm:mb-0 max-sm:max-w-none max-sm:rounded-b-none">
   <div class="flex flex-col gap-step-lg p-step-xl">
     <div class="flex flex-col gap-step-xs"><h2 id="dlg-members-title" class="text-lg font-semibold tracking-tight"></h2><p id="members-sub" class="text-sm text-muted-foreground"></p></div>
     <ul id="members-list" role="list" class="flex max-h-72 flex-col divide-y divide-border overflow-y-auto"></ul>
@@ -279,7 +322,7 @@
   </div>
 </dialog>
 
-<dialog id="dlg-announce" aria-labelledby="dlg-announce-title" class="m-auto w-full max-w-lg rounded-xl bg-card p-0 text-foreground shadow-lift-lg backdrop:bg-foreground/40">
+<dialog id="dlg-announce" aria-labelledby="dlg-announce-title" class="m-auto w-full max-w-lg rounded-xl bg-card p-0 text-foreground shadow-lift-lg backdrop:bg-foreground/40 max-sm:mb-0 max-sm:max-w-none max-sm:rounded-b-none">
   <form id="form-announce" method="dialog" novalidate class="flex flex-col gap-step-lg p-step-xl">
     <div class="flex flex-col gap-step-xs">
       <h2 id="dlg-announce-title" class="text-lg font-semibold tracking-tight">New announcement</h2>
@@ -306,7 +349,7 @@
   </form>
 </dialog>
 
-<dialog id="dlg-preview" aria-labelledby="dlg-preview-title" class="m-auto w-full max-w-lg rounded-xl bg-card p-0 text-foreground shadow-lift-lg backdrop:bg-foreground/40">
+<dialog id="dlg-preview" aria-labelledby="dlg-preview-title" class="m-auto w-full max-w-lg rounded-xl bg-card p-0 text-foreground shadow-lift-lg backdrop:bg-foreground/40 max-sm:mb-0 max-sm:max-w-none max-sm:rounded-b-none">
   <div class="flex flex-col gap-step-lg p-step-xl">
     <div class="flex flex-col gap-step-xs">
       <h2 id="dlg-preview-title" class="text-lg font-semibold tracking-tight">Preview tools</h2>
@@ -322,7 +365,11 @@
     </div>
     <label class="flex cursor-pointer items-start gap-step-md rounded-lg p-step-md ring-1 ring-foreground/10 hover:bg-muted">
       <input id="pv-offline" type="checkbox" class="mt-1 accent-primary" />
-      <span class="flex flex-col"><span class="text-sm font-medium">Simulate connection loss</span><span class="text-xs text-muted-foreground">Sending fails with a retry option, so you can see the error state.</span></span>
+      <span class="flex flex-col"><span class="text-sm font-medium">Simulate connection loss</span><span class="text-xs text-muted-foreground">Messages you send wait in a queue (dimmed, with a clock) and send themselves when the connection is back.</span></span>
+    </label>
+    <label class="flex cursor-pointer items-start gap-step-md rounded-lg p-step-md ring-1 ring-foreground/10 hover:bg-muted">
+      <input id="pv-contrast" type="checkbox" class="mt-1 accent-primary" />
+      <span class="flex flex-col"><span class="text-sm font-medium">High-contrast outdoor mode</span><span class="text-xs text-muted-foreground">Strong borders and heavier text for use in direct sunlight. Your choice is remembered on this device.</span></span>
     </label>
     <div class="flex flex-col gap-step-xs rounded-lg bg-muted/40 p-step-md text-xs text-muted-foreground">
       <p>Connection: <span id="pv-conn" class="font-medium text-foreground"></span></p>
@@ -344,7 +391,7 @@
 </template>
 
 <template id="t-avatar">
-  <span data-slot="avatar" data-role="resident" data-size="md" class="inline-flex size-9 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-medium text-muted-foreground data-[role=admin]:bg-info-bg data-[role=admin]:text-info-text data-[role=bot]:bg-accent data-[role=bot]:text-primary data-[role=staff]:bg-secondary data-[role=staff]:text-secondary-foreground data-[size=sm]:size-6 data-[size=sm]:text-2xs [&_svg]:size-4"><span data-initials></span><svg data-bot hidden aria-hidden="true"><use href="#i-bot"/></svg></span>
+  <span data-slot="avatar" data-role="resident" data-size="md" class="inline-flex size-9 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-medium text-muted-foreground data-[role=admin]:bg-info-bg data-[role=admin]:text-info-text data-[role=bot]:bg-accent data-[role=bot]:text-primary data-[role=staff]:bg-warning-bg data-[role=staff]:text-warning-text data-[role=client]:bg-success-bg data-[role=client]:text-success-text data-[size=sm]:size-6 data-[size=sm]:text-2xs [&_svg]:size-4"><span data-initials></span><svg data-bot hidden aria-hidden="true"><use href="#i-bot"/></svg></span>
 </template>
 
 <template id="t-tab">
@@ -354,11 +401,13 @@
 </template>
 
 <template id="t-row">
-  <li>
-    <button type="button" data-row data-unread="false" class="group/row flex w-full items-start gap-step-md px-step-md py-step-md text-left outline-none transition-colors hover:bg-muted focus-visible:ring-3 focus-visible:ring-inset focus-visible:ring-ring/50 aria-[current=true]:bg-accent aria-[current=true]:conversation-selected pointer-coarse:min-h-11">
+  <li class="group/li relative">
+    <button type="button" data-rowmenu aria-label="More actions" aria-haspopup="menu" aria-expanded="false" class="absolute top-1/2 right-step-sm z-raised hidden size-8 -translate-y-1/2 touch-manipulation items-center justify-center rounded-md bg-card text-muted-foreground shadow-lift-xs ring-1 ring-foreground/10 outline-none hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50 group-focus-within/li:inline-flex group-hover/li:inline-flex aria-expanded:inline-flex [&_svg]:size-4"><svg aria-hidden="true"><use href="#i-more"/></svg></button>
+    <div data-rowmenu-list hidden role="menu" aria-label="Conversation actions" class="absolute top-full right-step-sm z-popup mt-1 flex w-52 flex-col rounded-lg bg-card p-1 shadow-lift-md ring-1 ring-foreground/10"></div>
+    <button type="button" data-row data-unread="false" data-emergency="false" class="group/row flex w-full items-start gap-step-md px-step-md py-step-md text-left outline-none transition-colors hover:bg-muted data-[emergency=true]:border-l-4 data-[emergency=true]:border-danger-text data-[emergency=true]:bg-danger-bg focus-visible:ring-3 focus-visible:ring-inset focus-visible:ring-ring/50 aria-[current=true]:bg-accent aria-[current=true]:conversation-selected pointer-coarse:min-h-11">
       <span data-avatar></span>
       <span class="flex min-w-0 flex-1 flex-col gap-step-xs">
-        <span class="flex items-baseline gap-step-sm"><span data-title class="min-w-0 flex-1 truncate text-sm font-medium"></span><span data-flags class="flex shrink-0 items-center gap-step-xs self-center text-muted-foreground [&_svg]:size-3"><span data-pin hidden role="img" aria-label="Pinned"><svg aria-hidden="true"><use href="#i-pin"/></svg></span><span data-mute hidden role="img" aria-label="Muted"><svg aria-hidden="true"><use href="#i-bell-off"/></svg></span></span><time data-time class="shrink-0 text-xs text-muted-foreground tabular-nums"></time></span>
+        <span class="flex items-baseline gap-step-sm"><span data-title class="min-w-0 flex-1 truncate text-sm font-medium"></span><span data-flags class="flex shrink-0 items-center gap-step-xs self-center text-muted-foreground [&_svg]:size-3"><span data-important hidden role="img" aria-label="Important" class="text-danger-text"><svg aria-hidden="true"><use href="#i-flag"/></svg></span><span data-pin hidden role="img" aria-label="Pinned"><svg aria-hidden="true"><use href="#i-pin"/></svg></span><span data-mute hidden role="img" aria-label="Muted"><svg aria-hidden="true"><use href="#i-bell-off"/></svg></span></span><time data-time class="shrink-0 text-xs text-muted-foreground tabular-nums"></time></span>
         <span data-subtitle class="truncate text-xs text-muted-foreground"></span>
         <span class="flex items-center gap-step-sm"><span data-preview class="min-w-0 flex-1 truncate text-xs text-foreground-secondary group-data-[unread=true]/row:font-medium group-data-[unread=true]/row:text-foreground"></span><span data-chips class="flex shrink-0 items-center gap-step-xs"></span><span data-unread hidden class="inline-flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full bg-primary px-1.5 text-2xs font-medium text-primary-foreground tabular-nums"></span></span>
       </span>
@@ -391,18 +440,21 @@
   <!-- Tap or click the bubble to reveal the time, the action bar and the avatar details (data-reveal). -->
   <div data-msg data-reveal="false" class="group/msg flex flex-col rounded-lg py-0.5 transition-colors data-[flash=true]:bg-accent/50">
     <p data-author class="pb-0.5 pl-9 text-xs text-muted-foreground"></p>
-    <div class="flex items-end gap-step-sm">
-      <span data-avatar class="w-6 shrink-0"></span>
-      <div class="flex max-w-3/4 min-w-0 flex-col items-start gap-0.5">
+    <div class="flex flex-wrap items-end gap-x-step-sm sm:flex-nowrap">
+      <div class="w-6 shrink-0 group-data-[react=true]/msg:mb-5"><span data-avatar></span></div>
+      <div class="flex max-w-5/6 min-w-0 flex-col items-start gap-0.5 sm:max-w-3/4">
+        <p data-forwarded hidden class="flex items-center gap-step-xs text-2xs text-muted-foreground [&_svg]:size-3"><svg aria-hidden="true"><use href="#i-forward"/></svg>Forwarded</p>
+        <p data-emergency-label hidden class="flex items-center gap-step-xs text-2xs font-medium text-danger-text [&_svg]:size-3"><svg aria-hidden="true"><use href="#i-alert"/></svg>Emergency</p>
         <div data-quote hidden role="button" tabindex="0" class="max-w-full cursor-pointer rounded-lg border-l-2 border-primary bg-muted/60 px-step-sm py-step-xs text-xs outline-none focus-visible:ring-3 focus-visible:ring-ring/50"><p data-who class="font-medium text-foreground-secondary"></p><p data-qtext class="truncate text-muted-foreground"></p></div>
-        <div data-body role="button" tabindex="0" aria-expanded="false" class="cursor-pointer rounded-xl rounded-bl-sm bg-muted px-step-md py-step-sm text-sm leading-5 break-words whitespace-pre-wrap text-foreground outline-none focus-visible:ring-3 focus-visible:ring-ring/50 data-[kind=bot]:bg-card data-[kind=bot]:ring-1 data-[kind=bot]:ring-foreground/10 data-[state=deleted]:bg-transparent data-[state=deleted]:text-muted-foreground data-[state=deleted]:italic data-[state=deleted]:ring-1 data-[state=deleted]:ring-foreground/10"></div>
+        <div data-body role="button" tabindex="0" aria-expanded="false" class="cursor-pointer rounded-xl rounded-bl-sm bg-muted px-step-md py-step-sm text-sm leading-5 break-words whitespace-pre-wrap text-foreground outline-none focus-visible:ring-3 focus-visible:ring-ring/50 data-[kind=bot]:bg-card data-[kind=bot]:ring-1 data-[kind=bot]:ring-foreground/10 data-[emergency=true]:border-2 data-[emergency=true]:border-danger-text data-[emergency=true]:bg-danger-bg data-[emergency=true]:text-danger-text data-[pulse=true]:motion-safe:animate-pulse data-[state=deleted]:bg-transparent data-[state=deleted]:text-muted-foreground data-[state=deleted]:italic data-[state=deleted]:ring-1 data-[state=deleted]:ring-foreground/10"></div>
         <div data-attachments hidden class="flex flex-wrap gap-step-xs"></div>
         <div data-reactions hidden class="-mt-1.5 flex flex-wrap gap-0.5 pl-step-sm"></div>
         <div data-choices hidden class="flex flex-wrap gap-step-sm pt-step-xs"></div>
       </div>
-      <div data-actions class="hidden items-center gap-0.5 group-data-[reveal=true]/msg:flex"></div>
+      <div data-actions class="hidden items-center gap-0.5 group-hover/msg:flex group-data-[reveal=true]/msg:flex max-sm:basis-full max-sm:pl-9"></div>
     </div>
     <div data-quick hidden class="mt-1 ml-9 flex w-fit gap-0.5 rounded-lg bg-card p-0.5 shadow-lift-md ring-1 ring-foreground/10"></div>
+    <div data-menu hidden role="menu" aria-label="More actions" class="absolute top-full left-0 z-popup mt-1 flex w-60 flex-col rounded-lg bg-card p-1 text-left shadow-lift-md ring-1 ring-foreground/10 data-[flip=true]:top-auto data-[flip=true]:bottom-full data-[flip=true]:mt-0 data-[flip=true]:mb-1"></div>
     <p data-meta class="hidden pt-0.5 pl-9 text-2xs text-muted-foreground tabular-nums group-data-[reveal=true]/msg:block"><time data-time></time></p>
     <p data-edited hidden class="pt-0.5 pl-9 text-2xs text-muted-foreground group-data-[reveal=true]/msg:hidden">Edited</p>
   </div>
@@ -410,20 +462,24 @@
 
 <template id="t-out">
   <div data-msg data-reveal="false" class="group/msg flex flex-col items-end rounded-lg py-0.5 transition-colors data-[flash=true]:bg-accent/50">
-    <div class="flex items-end gap-step-sm">
-      <div data-actions class="hidden items-center gap-0.5 group-data-[reveal=true]/msg:flex"></div>
-      <div class="flex max-w-3/4 min-w-0 flex-col items-end gap-0.5">
+    <div class="flex w-full flex-wrap items-end justify-end gap-x-step-sm sm:flex-nowrap">
+      <div data-actions class="hidden items-center gap-0.5 group-hover/msg:flex group-data-[reveal=true]/msg:flex max-sm:order-last max-sm:basis-full max-sm:justify-end"></div>
+      <div class="flex max-w-5/6 min-w-0 flex-col items-end gap-0.5 sm:max-w-3/4">
+        <p data-forwarded hidden class="flex items-center gap-step-xs text-2xs text-muted-foreground [&_svg]:size-3"><svg aria-hidden="true"><use href="#i-forward"/></svg>Forwarded</p>
+        <p data-emergency-label hidden class="flex items-center gap-step-xs text-2xs font-medium text-danger-text [&_svg]:size-3"><svg aria-hidden="true"><use href="#i-alert"/></svg>Emergency</p>
         <div data-quote hidden role="button" tabindex="0" class="max-w-full cursor-pointer rounded-lg border-l-2 border-primary bg-muted/60 px-step-sm py-step-xs text-xs outline-none focus-visible:ring-3 focus-visible:ring-ring/50"><p data-who class="font-medium text-foreground-secondary"></p><p data-qtext class="truncate text-muted-foreground"></p></div>
-        <div data-body role="button" tabindex="0" aria-expanded="false" class="cursor-pointer rounded-xl rounded-br-sm bg-accent px-step-md py-step-sm text-sm leading-5 break-words whitespace-pre-wrap text-foreground outline-none focus-visible:ring-3 focus-visible:ring-ring/50 data-[state=deleted]:bg-transparent data-[state=deleted]:text-muted-foreground data-[state=deleted]:italic data-[state=deleted]:ring-1 data-[state=deleted]:ring-foreground/10 data-[state=failed]:bg-danger-bg data-[state=failed]:text-danger-text data-[state=sending]:opacity-70"></div>
+        <div data-body role="button" tabindex="0" aria-expanded="false" class="cursor-pointer rounded-xl rounded-br-sm bg-primary px-step-md py-step-sm text-sm leading-5 break-words whitespace-pre-wrap text-primary-foreground outline-none [&_a]:text-primary-foreground focus-visible:ring-3 focus-visible:ring-ring/50 data-[emergency=true]:border-2 data-[emergency=true]:border-danger-text data-[emergency=true]:bg-danger-bg data-[emergency=true]:text-danger-text data-[pulse=true]:motion-safe:animate-pulse data-[state=deleted]:bg-transparent data-[state=deleted]:text-muted-foreground data-[state=deleted]:italic data-[state=deleted]:ring-1 data-[state=deleted]:ring-foreground/10 data-[state=failed]:bg-danger-bg data-[state=failed]:text-danger-text data-[state=queued]:opacity-50 data-[state=sending]:opacity-50"></div>
         <div data-attachments hidden class="flex flex-wrap justify-end gap-step-xs"></div>
         <div data-reactions hidden class="-mt-1.5 flex flex-wrap justify-end gap-0.5 pr-step-sm"></div>
       </div>
     </div>
     <div data-quick hidden class="mt-1 flex w-fit gap-0.5 rounded-lg bg-card p-0.5 shadow-lift-md ring-1 ring-foreground/10"></div>
+    <div data-menu hidden role="menu" aria-label="More actions" class="absolute top-full left-0 z-popup mt-1 flex w-60 flex-col rounded-lg bg-card p-1 text-left shadow-lift-md ring-1 ring-foreground/10 data-[flip=true]:top-auto data-[flip=true]:bottom-full data-[flip=true]:mt-0 data-[flip=true]:mb-1"></div>
     <div class="flex items-center gap-step-xs px-step-sm pt-0.5 text-2xs text-muted-foreground [&_svg]:size-3">
       <time data-time class="hidden tabular-nums group-data-[reveal=true]/msg:inline"></time>
       <span data-edited hidden>Edited</span>
       <span data-ind="sending" hidden class="inline-flex items-center gap-step-xs"><svg aria-hidden="true" class="animate-spin"><use href="#i-loader"/></svg>Sending</span>
+      <span data-ind="queued" hidden class="inline-flex items-center gap-step-xs"><svg aria-hidden="true"><use href="#i-clock"/></svg><span data-label>Waiting for connection</span></span>
       <span data-ind="sent" hidden class="inline-flex items-center gap-step-xs"><svg aria-hidden="true"><use href="#i-check"/></svg>Sent</span>
       <span data-ind="partial" hidden class="inline-flex items-center gap-step-xs"><svg aria-hidden="true"><use href="#i-check"/></svg><span data-label>Seen</span></span>
       <span data-ind="read" hidden class="inline-flex items-center gap-step-xs text-primary"><svg aria-hidden="true"><use href="#i-check-check"/></svg><span data-label>Read</span></span>
@@ -485,14 +541,90 @@
   <label class="flex cursor-pointer items-center gap-step-sm rounded-lg p-step-md text-sm ring-1 ring-foreground/10 transition-colors hover:bg-muted has-[:checked]:bg-accent has-[:disabled]:opacity-50 has-[:focus-visible]:ring-3 has-[:focus-visible]:ring-ring/50"><input type="checkbox" class="accent-primary" /><span data-label></span></label>
 </template>
 
-<template id="t-time"><div class="flex justify-center py-step-xs"><time data-t class="text-2xs text-muted-foreground tabular-nums"></time></div></template>
+<template id="t-time"><div class="flex justify-center pt-step-md pb-step-xs"><time data-t class="text-2xs text-muted-foreground tabular-nums"></time></div></template>
 
 <template id="t-act">
   <button type="button" class="inline-flex size-8 shrink-0 touch-manipulation items-center justify-center rounded-md text-muted-foreground outline-none transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50 aria-expanded:bg-accent aria-expanded:text-primary pointer-coarse:size-11 [&_svg]:size-4"><svg aria-hidden="true"><use href="#i-smile"/></svg></button>
 </template>
 
+<template id="t-menu-item">
+  <button type="button" role="menuitem" data-tone="default" class="flex min-h-8 w-full touch-manipulation items-center gap-step-sm rounded-md px-step-sm py-1 text-left text-sm text-foreground outline-none transition-colors hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50 aria-disabled:text-muted-foreground aria-disabled:hover:bg-transparent data-[tone=danger]:text-danger-text data-[tone=danger]:hover:bg-danger-bg data-[tone=danger]:aria-disabled:text-muted-foreground pointer-coarse:min-h-11 [&_svg]:size-4 [&_svg]:shrink-0"><svg aria-hidden="true"><use href="#i-copy"/></svg><span class="flex min-w-0 flex-col"><span data-label></span><span data-hint hidden class="text-2xs text-muted-foreground"></span></span></button>
+</template>
+
+<template id="t-ctx-section">
+  <section class="flex flex-col gap-step-sm">
+    <h3 data-heading class="text-xs font-medium text-muted-foreground"></h3>
+    <div data-body class="flex flex-col gap-step-sm"></div>
+  </section>
+</template>
+
+<template id="t-ctx-who">
+  <div class="flex items-center gap-step-md">
+    <span data-avatar></span>
+    <span class="flex min-w-0 flex-col"><span data-name class="truncate text-sm font-medium"></span><span data-title class="truncate text-xs text-muted-foreground"></span></span>
+  </div>
+</template>
+
+<template id="t-ctx-row">
+  <div class="flex items-baseline justify-between gap-step-md text-sm">
+    <dt data-k class="shrink-0 text-muted-foreground"></dt>
+    <dd data-v data-tone="default" class="min-w-0 text-right font-medium tabular-nums data-[tone=danger]:text-danger-text data-[tone=warning]:text-warning-text data-[tone=success]:text-success-text"></dd>
+  </div>
+</template>
+
+<template id="t-ctx-ticket">
+  <li>
+    <button type="button" data-open class="flex w-full flex-col gap-step-xs rounded-lg px-step-sm py-step-sm text-left outline-none transition-colors hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50 disabled:pointer-events-none pointer-coarse:min-h-11">
+      <span class="flex items-center gap-step-sm"><span data-topic class="min-w-0 flex-1 truncate text-sm font-medium"></span><span data-stage class="shrink-0"></span></span>
+      <span data-meta class="truncate text-xs text-muted-foreground"></span>
+    </button>
+  </li>
+</template>
+
+<template id="t-audit">
+  <div class="flex justify-center py-step-xs">
+    <div data-audit class="flex max-w-5/6 flex-col items-center gap-0.5 rounded-lg border border-border bg-card px-step-md py-step-sm text-center text-xs">
+      <p class="flex items-center gap-step-xs font-medium text-foreground-secondary [&_svg]:size-3"><svg aria-hidden="true"><use href="#i-shield"/></svg><span data-change></span></p>
+      <p class="text-muted-foreground tabular-nums"><span data-actor></span> · <time data-time></time></p>
+    </div>
+  </div>
+</template>
+
+<template id="t-stage">
+  <li data-stage data-state="todo" class="inline-flex h-6 items-center gap-step-xs rounded-md px-step-sm text-xs text-muted-foreground data-[state=current]:bg-accent data-[state=current]:font-medium data-[state=current]:text-primary data-[state=done]:text-foreground-secondary [&_svg]:size-3">
+    <svg data-check hidden aria-hidden="true"><use href="#i-check"/></svg><span data-label></span><span data-arrow aria-hidden="true" class="pl-step-xs text-muted-foreground">→</span>
+  </li>
+</template>
+
+<template id="t-emergency-row">
+  <li class="flex flex-wrap items-center gap-x-step-md gap-y-step-xs">
+    <svg aria-hidden="true" class="size-4 shrink-0"><use href="#i-alert"/></svg>
+    <span data-text class="min-w-0 flex-1 font-medium"></span>
+    <span data-actions class="flex items-center gap-step-sm"></span>
+  </li>
+</template>
+
+<template id="t-fchip">
+  <button type="button" class="inline-flex h-6 items-center gap-step-xs rounded-md bg-secondary px-step-sm text-xs text-secondary-foreground outline-none transition-colors hover:bg-secondary/80 focus-visible:ring-3 focus-visible:ring-ring/50 pointer-coarse:h-8 [&_svg]:size-3"><span data-label></span></button>
+</template>
+
+<template id="t-more-wrap"><div class="relative inline-flex"></div></template>
+
+<template id="t-mark">
+  <span data-mark data-tone="neutral" role="img" class="inline-flex size-5 shrink-0 items-center justify-center text-muted-foreground data-[tone=danger]:text-danger-text [&_svg]:size-4"><svg aria-hidden="true"><use href="#i-pin"/></svg></span>
+</template>
+
+<template id="t-fwd-row">
+  <li>
+    <button type="button" data-pick class="flex w-full items-center gap-step-md px-step-sm py-step-sm text-left outline-none transition-colors hover:bg-muted focus-visible:ring-3 focus-visible:ring-inset focus-visible:ring-ring/50 pointer-coarse:min-h-11">
+      <span data-avatar></span>
+      <span class="flex min-w-0 flex-1 flex-col"><span data-title class="truncate text-sm font-medium"></span><span data-subtitle class="truncate text-xs text-muted-foreground"></span></span>
+    </button>
+  </li>
+</template>
+
 <template id="t-emoji">
-  <button type="button" class="inline-flex size-8 touch-manipulation items-center justify-center rounded-md text-xl leading-none outline-none transition-colors hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50 data-[mine=true]:bg-accent pointer-coarse:size-11"></button>
+  <button type="button" class="inline-flex size-8 touch-manipulation items-center justify-center rounded-md text-xl leading-none outline-none transition-colors hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50 data-[mine=true]:bg-accent aria-pressed:bg-accent pointer-coarse:size-11"></button>
 </template>
 
 <template id="t-chip">

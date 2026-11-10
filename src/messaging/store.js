@@ -10,6 +10,7 @@
 import * as assistant from './bot.js';
 import { byId } from './personas.js';
 import { isEmoji } from './emoji.js';
+import { parseQuery, matchFilters, matchText } from './query.js';
 
 export const CAN_MESSAGE = {
   resident: ['staff'],
@@ -32,7 +33,19 @@ export const CONFIG = {
   editMs: 15 * 60 * 1000, // how long you can fix your own message
   presenceMs: 45 * 1000, // "online" if seen within this window
   typingMs: 5 * 1000,
+  emergencySmsMs: 180 * 1000, // unacknowledged emergency: escalate to an SMS and a critical alert (simulated)
 };
+
+export const STAGE_LABEL = { open: 'Open', in_progress: 'In progress', waiting_on_resident: 'Waiting on resident', resolved: 'Resolved', closed: 'Closed' };
+export const STAGES = ['open', 'in_progress', 'waiting_on_resident', 'resolved', 'closed'];
+
+/** Where a resident ticket is in its life: Open -> In progress -> Waiting on resident -> Resolved -> Closed. */
+export function ticketStage(conv) {
+  if (!conv || conv.kind !== 'resident_support') return null;
+  if (conv.status === 'bot' || conv.status === 'queued') return 'open';
+  if (conv.status === 'active') return conv.waiting ? 'waiting_on_resident' : 'in_progress';
+  return conv.closeReason === 'resolved_by_staff' ? 'resolved' : 'closed';
+}
 
 const OPEN_RESIDENT = ['bot', 'queued', 'active'];
 const preview = (text) => String(text || '').replace(/\s+/g, ' ').slice(0, 140);
@@ -245,14 +258,18 @@ export function createStore({ transport, now = Date.now, config = {} } = {}) {
   }
 
   /** Can this user post in this conversation right now? */
-  function postCheck(d, conv, u) {
+  function postCheck(d, conv, u, { emergency = false } = {}) {
     if (!u) return { ok: false, reason: 'unknown_user' };
     if (!canSee(conv, u)) return { ok: false, reason: 'not_member' };
     switch (conv.kind) {
       case 'resident_support':
         if (conv.status === 'closed') return { ok: false, reason: 'closed' };
         if (u.role === 'resident') return { ok: true };
-        if (u.role === 'staff') return conv.status === 'active' && conv.assigneeId === u.id ? { ok: true } : { ok: false, reason: 'not_claimed' };
+        // Staff can answer a waiting resident straight away: the first reply takes the chat (see takeChat).
+        if (u.role === 'staff') {
+          if (conv.status === 'queued') return { ok: true, takes: true };
+          return conv.status === 'active' && conv.assigneeId === u.id ? { ok: true } : { ok: false, reason: 'not_claimed' };
+        }
         return { ok: false, reason: 'not_member' };
       case 'direct': {
         const other = user(conv.participants.find((p) => p !== u.id));
@@ -260,7 +277,8 @@ export function createStore({ transport, now = Date.now, config = {} } = {}) {
         // Residents only ever write to Staff. A note from Admin is one-way; they ask the property team instead.
         if (u.role === 'resident' && other.role !== 'staff') return { ok: false, reason: 'one_way' };
         if (!canMessage(u.role, other.role)) return { ok: false, reason: 'not_allowed' };
-        if (other.role === 'resident' && conv.outreach && !conv.residentReplied) {
+        // The one-note-until-they-reply rule protects residents from noise; an emergency is not noise.
+        if (other.role === 'resident' && conv.outreach && !conv.residentReplied && !emergency) {
           const sent = msgsOf(d, conv.id).filter((m) => m.from === u.id && m.kind === 'text').length;
           if (sent >= 1) return { ok: false, reason: 'awaiting_reply' };
         }
@@ -289,13 +307,29 @@ export function createStore({ transport, now = Date.now, config = {} } = {}) {
   /** Quick replies that were not used can no longer be tapped once the chat moves on. */
   const retireChoices = (d, conv) => msgsOf(d, conv.id).forEach((m) => { if (m.choices && !m.chosen) m.chosen = 'x'; });
 
+  /**
+   * Immutable audit card: what changed, from what to what, who did it (id and name) and when (ISO).
+   * It sits in the thread but never becomes the list preview and never counts as unread.
+   */
+  function audit(d, conv, actor, field, from, to) {
+    const at = now();
+    const a = actor || { id: 'system', name: 'System' };
+    const m = { id: nid(d, 'm'), convId: conv.id, from: 'system', kind: 'system', text: `${field}: ${from} → ${to}`, at, readBy: {}, audit: { field, from, to, actorId: a.id, actorName: a.name, at: new Date(at).toISOString() } };
+    msgsOf(d, conv.id).push(m);
+    conv.updatedAt = at;
+    return m;
+  }
+
   function closeResident(d, conv, by, reason, systemText) {
+    const before = ticketStage(conv);
     conv.status = 'closed';
+    conv.waiting = false; // a closed ticket is never "waiting"
     conv.closedAt = now();
     conv.closedBy = by;
     conv.closeReason = reason;
     retireChoices(d, conv);
     sys(d, conv, systemText, { notify: reason !== 'resident_ended' });
+    if (user(by) && by !== 'bot') audit(d, conv, user(by), 'Status', STAGE_LABEL[before], STAGE_LABEL[ticketStage(conv)]);
   }
 
   function queue(d, conv) {
@@ -313,6 +347,30 @@ export function createStore({ transport, now = Date.now, config = {} } = {}) {
     if (reply.patch?.topic) conv.topic = assistant.TOPICS.find((t) => t.id === reply.patch.topic)?.label || conv.topic;
     if (reply.outcome === 'resolved') closeResident(d, conv, 'bot', 'resolved_by_assistant', 'Chat closed. Start a new one any time.');
     if (reply.outcome === 'handoff') queue(d, conv);
+  }
+
+  /** Staff takes a waiting resident chat: it becomes theirs and the resident is told someone joined. */
+  function takeChat(d, conv, u) {
+    const before = ticketStage(conv);
+    conv.status = 'active';
+    conv.assigneeId = u.id;
+    conv.claimedAt = now();
+    sys(d, conv, `${u.name} from the property team joined the chat.`, { notify: true });
+    audit(d, conv, u, 'Status', STAGE_LABEL[before], STAGE_LABEL[ticketStage(conv)]);
+  }
+
+  const emergencyOpen = (conv) => !!(conv.emergency && !conv.emergency.ackAt);
+
+  /** A Support thread moves with each post: Admin picks it up, the requester reopens it. */
+  function supportEffects(conv, u) {
+    if (conv.kind !== 'support') return;
+    if (u.role === 'admin') {
+      if (!conv.assigneeId) conv.assigneeId = u.id;
+      if (conv.status === 'open') conv.status = 'pending';
+    } else if (conv.status !== 'open') {
+      conv.status = 'open';
+      conv.resolvedAt = null;
+    }
   }
 
   function newBotSession(d, residentId) {
@@ -363,7 +421,7 @@ export function createStore({ transport, now = Date.now, config = {} } = {}) {
     },
 
     /** Send a message. `clientId` makes retries safe (same id is never stored twice). */
-    send(convId, userId, text, { clientId, attachments, replyTo } = {}) {
+    send(convId, userId, text, { clientId, attachments, replyTo, emergency } = {}) {
       const atts = normalizeAttachments(attachments);
       if (!Array.isArray(atts)) return atts;
       const raw = String(text ?? '').replace(/\r\n/g, '\n').trim();
@@ -374,8 +432,9 @@ export function createStore({ transport, now = Date.now, config = {} } = {}) {
         const conv = d.convs[convId];
         const u = user(userId);
         if (!conv) return { ok: false, reason: 'not_found' };
-        const check = postCheck(d, conv, u);
+        const check = postCheck(d, conv, u, { emergency: !!emergency });
         if (!check.ok) return check;
+        if (check.takes) takeChat(d, conv, u); // the reply and the take land together, so only one staff member can win
         if (clientId) {
           const dup = msgsOf(d, convId).find((m) => m.clientId === clientId && m.from === userId);
           if (dup) return { ok: true, messageId: dup.id, duplicate: true };
@@ -388,22 +447,58 @@ export function createStore({ transport, now = Date.now, config = {} } = {}) {
           if (!target || target.deleted || target.kind === 'system') return { ok: false, reason: 'invalid_reply' };
           extra.replyTo = replyTo;
         }
+        if (emergency) {
+          // Only the people on the ground raise one: a resident in their own chat, or Staff/Admin in a chat they can post in.
+          if (!['resident', 'staff', 'admin'].includes(u.role) || !['resident_support', 'direct'].includes(conv.kind)) return { ok: false, reason: 'not_allowed' };
+          extra.emergency = true;
+        }
         const m = push(d, conv, userId, 'text', c.text, extra);
-        if (conv.kind === 'resident_support' && u.role === 'resident' && conv.status === 'bot') {
+        if (emergency) {
+          if (!emergencyOpen(conv)) {
+            conv.emergency = { at: m.at, by: u.id, msgId: m.id, ackBy: null, ackAt: null, smsAt: null };
+            audit(d, conv, u, 'Priority', 'Normal', 'Emergency');
+          }
+          if (conv.kind === 'resident_support' && conv.status === 'bot') queue(d, conv); // no assistant for an emergency: straight to the team
+        } else if (conv.kind === 'resident_support' && u.role === 'resident' && conv.status === 'bot') {
           runAssistant(d, conv, assistant.onText(conv.bot, c.text));
         }
-        if (conv.kind === 'direct' && u.role === 'resident') conv.residentReplied = true;
-        if (conv.kind === 'support') {
-          if (u.role === 'admin') {
-            if (!conv.assigneeId) conv.assigneeId = u.id;
-            if (conv.status === 'open') conv.status = 'pending';
-          } else if (conv.status !== 'open') {
-            conv.status = 'open';
-            conv.resolvedAt = null;
-          }
+        if (conv.kind === 'resident_support' && u.role === 'resident' && conv.waiting) {
+          conv.waiting = false;
+          audit(d, conv, u, 'Status', STAGE_LABEL.waiting_on_resident, STAGE_LABEL.in_progress);
         }
+        if (conv.kind === 'direct' && u.role === 'resident') conv.residentReplied = true;
+        supportEffects(conv, u);
         return { ok: true, messageId: m.id };
       });
+    },
+
+    /** Send a copy of one of your visible messages into another conversation you can post in. Residents cannot forward. */
+    forward(convId, userId, msgId, targetId) {
+      return act((d) => {
+        const src = d.convs[convId];
+        const dst = d.convs[targetId];
+        const u = user(userId);
+        if (!src || !dst || !u || !canSee(src, u) || !canSee(dst, u)) return { ok: false, reason: 'not_found' };
+        if (u.role === 'resident') return { ok: false, reason: 'not_allowed' };
+        if (convId === targetId) return { ok: false, reason: 'same_conversation' };
+        const m = msgsOf(d, convId).find((x) => x.id === msgId);
+        if (!m || m.deleted || m.kind !== 'text' || (!m.text && !(m.attachments && m.attachments.length))) return { ok: false, reason: 'not_allowed' };
+        const check = postCheck(d, dst, u);
+        if (!check.ok) return check;
+        if (check.takes) return { ok: false, reason: 'not_claimed' }; // forwarding must not silently take someone's waiting chat
+        const extra = { forwarded: true };
+        if (m.attachments && m.attachments.length) extra.attachments = m.attachments.map((a) => ({ ...a, id: `a${Math.random().toString(36).slice(2, 9)}` }));
+        const copy = push(d, dst, userId, 'text', m.text, extra);
+        supportEffects(dst, u);
+        return { ok: true, messageId: copy.id, convId: targetId };
+      });
+    },
+
+    /** Conversations this person could forward into right now. */
+    forwardTargets(userId, exceptId) {
+      const u = user(userId);
+      if (!u || u.role === 'resident') return [];
+      return api.listFor(userId).filter((r) => { const c = postCheck(state, state.convs[r.id], u); return r.id !== exceptId && c.ok && !c.takes; });
     },
 
     /** Resident asks for a person (button). Moves the chat to the staff queue. */
@@ -423,10 +518,7 @@ export function createStore({ transport, now = Date.now, config = {} } = {}) {
         const u = user(staffId);
         if (!conv || conv.kind !== 'resident_support' || !u || u.role !== 'staff') return { ok: false, reason: 'not_allowed' };
         if (conv.status !== 'queued') return { ok: false, reason: conv.status === 'active' ? 'already_taken' : 'not_queued' };
-        conv.status = 'active';
-        conv.assigneeId = u.id;
-        conv.claimedAt = now();
-        sys(d, conv, `${u.name} from the property team joined the chat.`, { notify: true });
+        takeChat(d, conv, u);
         return { ok: true };
       });
     },
@@ -453,6 +545,46 @@ export function createStore({ transport, now = Date.now, config = {} } = {}) {
         const conv = d.convs[convId];
         if (!conv || conv.kind !== 'resident_support' || conv.residentId !== userId || !OPEN_RESIDENT.includes(conv.status)) return { ok: false, reason: 'not_allowed' };
         closeResident(d, conv, userId, 'resident_ended', 'You ended this chat.');
+        return { ok: true };
+      });
+    },
+
+    /** Staff or Admin confirms they have seen an emergency. Stops the 3-minute escalation and clears the banner. */
+    acknowledgeEmergency(convId, userId) {
+      return act((d) => {
+        const conv = d.convs[convId];
+        const u = user(userId);
+        if (!conv || !u || !['staff', 'admin'].includes(u.role) || !canSee(conv, u)) return { ok: false, reason: 'not_found' };
+        if (!emergencyOpen(conv)) return { ok: true, noop: true };
+        conv.emergency.ackBy = u.id;
+        conv.emergency.ackAt = now();
+        audit(d, conv, u, 'Emergency', 'Unacknowledged', 'Acknowledged');
+        if (conv.kind === 'resident_support') sys(d, conv, 'The property team has seen your emergency report.', { notify: true });
+        return { ok: true };
+      });
+    },
+
+    /** Unacknowledged emergencies this person should see in the top banner (Staff and Admin only), oldest first. */
+    emergencies(userId) {
+      const u = user(userId);
+      if (!u || !['staff', 'admin'].includes(u.role)) return [];
+      return Object.values(state.convs)
+        .filter((c) => emergencyOpen(c) && canSee(c, u))
+        .map((c) => ({ convId: c.id, title: api.rowFor(c, u).title, at: c.emergency.at, smsAt: c.emergency.smsAt }))
+        .sort((a, b) => a.at - b.at);
+    },
+
+    /** Staff moves their own resident ticket between "In progress" and "Waiting on resident". */
+    setTicketState(convId, userId, stage) {
+      return act((d) => {
+        const conv = d.convs[convId];
+        const u = user(userId);
+        if (!conv || conv.kind !== 'resident_support' || !u) return { ok: false, reason: 'not_found' };
+        if (u.role !== 'staff' || conv.status !== 'active' || conv.assigneeId !== u.id || !['in_progress', 'waiting_on_resident'].includes(stage)) return { ok: false, reason: 'not_allowed' };
+        const before = ticketStage(conv);
+        if (before === stage) return { ok: true, noop: true };
+        conv.waiting = stage === 'waiting_on_resident';
+        audit(d, conv, u, 'Status', STAGE_LABEL[before], STAGE_LABEL[stage]);
         return { ok: true };
       });
     },
@@ -519,7 +651,9 @@ export function createStore({ transport, now = Date.now, config = {} } = {}) {
     _setSupportStatus(d, conv, u, status) {
       if (u.role !== 'admin' || conv.kind !== 'support' || !['open', 'pending', 'resolved'].includes(status)) return { ok: false, reason: 'not_allowed' };
       if (conv.status === status) return { ok: true, noop: true };
+      const was = conv.status;
       conv.status = status;
+      audit(d, conv, u, 'Status', was[0].toUpperCase() + was.slice(1), status[0].toUpperCase() + status.slice(1));
       if (!conv.assigneeId) conv.assigneeId = u.id;
       conv.resolvedAt = status === 'resolved' ? now() : null;
       if (status === 'resolved') sys(d, conv, `${u.name} marked this resolved. Reply to reopen it.`, { notify: true });
@@ -540,6 +674,8 @@ export function createStore({ transport, now = Date.now, config = {} } = {}) {
         const u = user(adminId);
         const to = toId ? user(toId) : null;
         if (!conv || conv.kind !== 'support' || !u || u.role !== 'admin' || (to && to.role !== 'admin')) return { ok: false, reason: 'not_allowed' };
+        if ((conv.assigneeId || null) === (to ? to.id : null)) return { ok: true, noop: true };
+        audit(d, conv, u, 'Assignee', conv.assigneeId ? user(conv.assigneeId).name : 'Unassigned', to ? to.name : 'Unassigned');
         conv.assigneeId = to ? to.id : null;
         return { ok: true };
       });
@@ -550,6 +686,9 @@ export function createStore({ transport, now = Date.now, config = {} } = {}) {
         const conv = d.convs[convId];
         const u = user(adminId);
         if (!conv || conv.kind !== 'support' || !u || u.role !== 'admin' || !['low', 'normal', 'high'].includes(priority)) return { ok: false, reason: 'not_allowed' };
+        if (conv.priority === priority) return { ok: true, noop: true };
+        const cap = (s) => s[0].toUpperCase() + s.slice(1);
+        audit(d, conv, u, 'Priority', cap(conv.priority || 'normal'), cap(priority));
         conv.priority = priority;
         return { ok: true };
       });
@@ -680,6 +819,8 @@ export function createStore({ transport, now = Date.now, config = {} } = {}) {
         m.text = '';
         m.attachments = [];
         m.reactions = {};
+        delete m.editedAt;
+        delete m.forwarded;
         delete m.replyTo;
         const list = msgsOf(d, convId);
         if (list[list.length - 1] === m && conv.last) conv.last.text = 'Message removed';
@@ -708,9 +849,39 @@ export function createStore({ transport, now = Date.now, config = {} } = {}) {
       });
     },
 
+    /** "Delete for me": hide one message from your own view, any time. Other people still see it. */
+    hideMessage(convId, userId, msgId) {
+      return act((d) => {
+        const conv = d.convs[convId];
+        const u = user(userId);
+        if (!conv || !u || !canSee(conv, u)) return { ok: false, reason: 'not_found' };
+        const m = msgsOf(d, convId).find((x) => x.id === msgId);
+        if (!m || m.kind === 'system') return { ok: false, reason: 'not_allowed' };
+        const p = (d.prefs[userId] = d.prefs[userId] || {});
+        const hidden = new Set(p.hidden || []);
+        if (hidden.has(msgId)) return { ok: true, noop: true };
+        hidden.add(msgId);
+        p.hidden = [...hidden];
+        return { ok: true };
+      });
+    },
+
+    /** Undo "Delete for me". */
+    unhideMessage(convId, userId, msgId) {
+      return act((d) => {
+        const conv = d.convs[convId];
+        const u = user(userId);
+        if (!conv || !u || !canSee(conv, u)) return { ok: false, reason: 'not_found' };
+        const p = d.prefs[userId];
+        if (!p || !(p.hidden || []).includes(msgId)) return { ok: true, noop: true };
+        p.hidden = p.hidden.filter((x) => x !== msgId);
+        return { ok: true };
+      });
+    },
+
     /** Pin or mute a conversation for yourself only. Muted chats stay in the list but do not add to the badge. */
     toggleFlag(convId, userId, flag) {
-      if (!['pinned', 'muted'].includes(flag)) return { ok: false, reason: 'invalid_flag' };
+      if (!['pinned', 'muted', 'important'].includes(flag)) return { ok: false, reason: 'invalid_flag' };
       return act((d) => {
         const conv = d.convs[convId];
         const u = user(userId);
@@ -727,15 +898,20 @@ export function createStore({ transport, now = Date.now, config = {} } = {}) {
     /** Search message text across every conversation this person can see. Newest first. */
     search(userId, query, { limit = 30 } = {}) {
       const u = user(userId);
-      const q = String(query ?? '').trim().toLowerCase();
-      if (!u || q.length < 2) return [];
+      const parsed = parseQuery(query);
+      // Filters (unit:, status:, priority:, assignee:, tag:, after:, before:) pick conversations; words and "phrases" pick messages.
+      if (!u || !parsed.text.length || parsed.text.join(' ').length < 2) return [];
+      const q = parsed.text[0];
       const out = [];
+      const hiddenIds = new Set(api.pref(userId).hidden);
       for (const conv of Object.values(state.convs)) {
         if (!canSee(conv, u)) continue;
         const row = api.rowFor(conv, u);
+        if (!matchFilters(row, parsed)) continue;
         for (const m of state.msgs[conv.id] || []) {
-          if (m.deleted || m.kind === 'system' || !m.text) continue;
+          if (m.deleted || m.kind === 'system' || !m.text || hiddenIds.has(m.id)) continue;
           if (conv.kind === 'resident_support' && u.role === 'staff' && m.kind === 'bot') continue;
+          if (!matchText(m.text, parsed)) continue;
           const i = m.text.toLowerCase().indexOf(q);
           if (i < 0) continue;
           const from = Math.max(0, i - 24);
@@ -782,15 +958,23 @@ export function createStore({ transport, now = Date.now, config = {} } = {}) {
         return { ok: true };
       });
     },
-    pref: (userId) => ({ dnd: false, pinned: [], muted: [], ...((state && state.prefs[userId]) || {}) }),
+    pref: (userId) => ({ dnd: false, pinned: [], muted: [], important: [], hidden: [], ...((state && state.prefs[userId]) || {}) }),
 
     /** Close idle chats. Called on a timer by the UI; safe to call any time. */
     tick() {
       const t = now();
       const stale = Object.values(state.convs).filter((c) => c.kind === 'resident_support' && ((c.status === 'bot' && t - c.updatedAt > cfg.botIdleMs) || (c.status === 'active' && t - c.updatedAt > cfg.activeIdleMs)));
-      if (!stale.length) return { ok: true, closed: 0 };
+      const late = Object.values(state.convs).filter((c) => emergencyOpen(c) && !c.emergency.smsAt && t - c.emergency.at >= cfg.emergencySmsMs);
+      if (!stale.length && !late.length) return { ok: true, closed: 0 };
       return act((d) => {
         let n = 0;
+        // An emergency nobody acknowledged in time escalates: an SMS and a critical alert go to the on-call manager (simulated).
+        for (const l of late) {
+          const conv = d.convs[l.id];
+          if (!conv || !emergencyOpen(conv) || conv.emergency.smsAt) continue;
+          conv.emergency.smsAt = now();
+          audit(d, conv, null, 'Escalation', 'None', 'SMS and critical alert sent (simulated)');
+        }
         for (const s of stale) {
           const conv = d.convs[s.id];
           if (!conv || !OPEN_RESIDENT.includes(conv.status)) continue;
@@ -826,8 +1010,12 @@ export function createStore({ transport, now = Date.now, config = {} } = {}) {
       const { dnd, muted } = api.pref(userId);
       let n = 0;
       for (const c of Object.values(state.convs)) {
-        if (!canSee(c, u) || muted.includes(c.id)) continue;
-        if (dnd && (c.kind === 'announcement' || (c.kind === 'direct' && c.outreach && !c.residentReplied))) continue;
+        if (!canSee(c, u)) continue;
+        // An open emergency gets through Do Not Disturb and mute.
+        if (!emergencyOpen(c)) {
+          if (muted.includes(c.id)) continue;
+          if (dnd && (c.kind === 'announcement' || (c.kind === 'direct' && c.outreach && !c.residentReplied))) continue;
+        }
         n += api.unreadCount(c.id, userId);
       }
       return n;
@@ -848,10 +1036,20 @@ export function createStore({ transport, now = Date.now, config = {} } = {}) {
       return out;
     },
 
+    /** One list row: what the list shows plus the fields search and filters use (unit, stage, priority, assignee, topic). */
     rowFor(conv, viewer) {
+      const r = api._rowBase(conv, viewer);
+      const resId = conv.kind === 'resident_support' ? conv.residentId : conv.kind === 'direct' ? conv.participants.find((p) => user(p) && user(p).role === 'resident') : null;
+      const res = resId && user(resId);
+      const asg = conv.assigneeId && user(conv.assigneeId);
+      const em = emergencyOpen(conv);
+      return { ...r, emergency: em, stage: ticketStage(conv), priority: em ? 'emergency' : r.priority || conv.priority || 'normal', unit: res && res.unit ? res.unit.number : '', building: res && res.unit ? res.unit.building : '', assigneeName: asg ? asg.name : '', subject: conv.subject || conv.title || conv.name || '', topic: r.topic || conv.topic || '' };
+    },
+
+    _rowBase(conv, viewer) {
       const unread = api.unreadCount(conv.id, viewer.id);
-      const { pinned, muted } = api.pref(viewer.id);
-      const base = { id: conv.id, kind: conv.kind, status: conv.status, updatedAt: conv.updatedAt, last: conv.last, unread, tags: [], pinned: pinned.includes(conv.id), muted: muted.includes(conv.id) };
+      const { pinned, muted, important } = api.pref(viewer.id);
+      const base = { id: conv.id, kind: conv.kind, status: conv.status, updatedAt: conv.updatedAt, last: conv.last, unread, tags: [], pinned: pinned.includes(conv.id), muted: muted.includes(conv.id), important: important.includes(conv.id) };
       if (conv.kind === 'resident_support') {
         const res = user(conv.residentId);
         const staff = conv.assigneeId ? user(conv.assigneeId) : null;
@@ -892,7 +1090,32 @@ export function createStore({ transport, now = Date.now, config = {} } = {}) {
       return Object.values(state.convs)
         .filter((c) => canSee(c, u))
         .map((c) => api.rowFor(c, u))
-        .sort((a, b) => Number(b.pinned) - Number(a.pinned) || b.updatedAt - a.updatedAt);
+        .sort((a, b) => Number(b.pinned) - Number(a.pinned) || Number(b.emergency) - Number(a.emergency) || b.updatedAt - a.updatedAt);
+    },
+
+    /**
+     * What the right-hand details panel shows next to a conversation (Staff and Admin only).
+     * A conversation with a resident gives the resident's unit, lease, balance and entry notes plus their recent tickets;
+     * any other conversation gives the people in it. Demo data lives in personas.js; a real app reads its property system.
+     */
+    contextFor(convId, userId) {
+      const conv = state.convs[convId];
+      const u = user(userId);
+      if (!conv || !u || !['staff', 'admin'].includes(u.role) || !canSee(conv, u)) return null;
+      const resId = conv.kind === 'resident_support' ? conv.residentId : conv.kind === 'direct' ? conv.participants.find((p) => user(p) && user(p).role === 'resident') : null;
+      const res = resId && user(resId);
+      if (res && res.unit) {
+        const end = Date.parse(`${res.unit.leaseEnd}T00:00:00Z`);
+        const tickets = Object.values(state.convs)
+          .filter((c) => c.kind === 'resident_support' && c.residentId === resId && c.id !== conv.id && (u.role === 'staff' || canSee(c, u)))
+          .sort((a, b) => b.createdAt - a.createdAt)
+          .slice(0, 5)
+          .map((c) => ({ id: c.id, topic: c.topic || 'General question', stage: ticketStage(c), at: c.updatedAt, assignee: c.assigneeId ? user(c.assigneeId).name : '', open: canSee(c, u) }));
+        return { kind: 'resident', person: { id: res.id, name: res.name, title: res.title, org: res.org }, unit: { ...res.unit, daysLeft: Math.ceil((end - now()) / 86400000) }, tickets };
+      }
+      const ids = conv.participants || (conv.kind === 'support' ? [conv.requesterId, conv.assigneeId].filter(Boolean) : []);
+      const people = ids.map(user).filter(Boolean).map((p) => ({ id: p.id, name: p.name, role: p.role, title: p.title, org: p.org }));
+      return people.length ? { kind: 'people', people } : null;
     },
 
     /** People you could put in a group: Staff, Client and Admin people other than you. */
@@ -915,12 +1138,13 @@ export function createStore({ transport, now = Date.now, config = {} } = {}) {
         const who = q.from === 'bot' ? 'EasySpotOps Assistant' : (user(q.from) || {}).name || 'Someone';
         return { id: q.id, who: q.from === userId ? 'You' : who, text: q.deleted ? 'Message removed' : q.text || (q.attachments && q.attachments.length ? (q.attachments[0].kind === 'image' ? 'Photo' : q.attachments[0].name) : '') };
       };
-      const messages = all.map((m) => ({ ...m, replyPreview: quoted(m), mine: m.from === userId, delivery: m.from === userId ? deliveryOf(m, conv) : null, seenBy: m.from === userId && conv.kind === 'group' ? conv.participants.filter((p) => p !== m.from && m.readBy[p]).map((p) => user(p).name) : null, author: m.from === 'bot' ? { id: 'bot', name: 'EasySpotOps Assistant', role: 'bot' } : m.from === 'system' ? null : user(m.from) }));
+      const hiddenIds = new Set(api.pref(userId).hidden);
+      const messages = all.filter((m) => !hiddenIds.has(m.id)).map((m) => ({ ...m, replyPreview: quoted(m), mine: m.from === userId, delivery: m.from === userId ? deliveryOf(m, conv) : null, seenBy: m.from === userId && conv.kind === 'group' ? conv.participants.filter((p) => p !== m.from && m.readBy[p]).map((p) => user(p).name) : null, author: m.from === 'bot' ? { id: 'bot', name: 'EasySpotOps Assistant', role: 'bot' } : m.from === 'system' ? null : user(m.from) }));
       const post = postCheck(state, conv, u);
       const actions = [];
       if (conv.kind === 'resident_support') {
         if (u.role === 'staff' && conv.status === 'queued') actions.push('claim');
-        if (u.role === 'staff' && conv.status === 'active' && conv.assigneeId === u.id) actions.push('resolve');
+        if (u.role === 'staff' && conv.status === 'active' && conv.assigneeId === u.id) actions.push(conv.waiting ? 'resume' : 'wait', 'resolve');
         if (u.role === 'resident' && OPEN_RESIDENT.includes(conv.status)) actions.push('end');
         if (u.role === 'resident' && conv.status === 'bot') actions.push('request_staff');
         if (u.role === 'resident' && conv.status === 'closed' && conv.assigneeId && !conv.csat) actions.push('rate');
@@ -929,7 +1153,16 @@ export function createStore({ transport, now = Date.now, config = {} } = {}) {
         for (const s of ['open', 'pending', 'resolved']) if (conv.status !== s) actions.push(`status:${s}`);
         if (conv.assigneeId !== u.id) actions.push('assign_me');
       }
-      return { ok: true, conv: { ...conv }, row: api.rowFor(conv, u), messages, canPost: post, actions, viewer: u };
+      if (emergencyOpen(conv) && ['staff', 'admin'].includes(u.role)) actions.push('ack_emergency');
+      // Broadcast reach for the people who sent or manage it: how many of the audience have opened it.
+      let ack = null;
+      if (conv.kind === 'announcement' && (u.id === conv.authorId || u.role === 'admin')) {
+        const audience = Object.values(byId).filter((p) => p.role !== 'bot' && p.id !== conv.authorId && audienceIncludes(conv, p.role));
+        const first = all.find((m) => m.kind === 'text');
+        const read = first ? audience.filter((p) => first.readBy[p.id]).length : 0;
+        ack = { read, total: audience.length, pct: audience.length ? Math.round((read / audience.length) * 100) : 0, unread: audience.filter((p) => !(first && first.readBy[p.id])).map((p) => p.name) };
+      }
+      return { ok: true, conv: { ...conv }, row: api.rowFor(conv, u), messages, canPost: post, actions, viewer: u, stage: ticketStage(conv), ack, emergency: emergencyOpen(conv) ? { ...conv.emergency } : null };
     },
 
     counts(userId) {

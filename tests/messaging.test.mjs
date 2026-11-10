@@ -136,7 +136,7 @@ test('a person is requested: chat moves to the queue with a summary for staff', 
   assert.equal(view.conv.summary.topic, 'Report a vehicle');
   assert.ok(view.conv.summary.details.some((d) => d.includes('4ABC999')));
   assert.deepEqual(view.actions, ['claim']);
-  assert.equal(view.canPost.reason, 'not_claimed', 'staff cannot chat before taking it');
+  assert.deepEqual([view.canPost.ok, view.canPost.takes], [true, true], 'staff may answer straight away: the first reply takes the chat');
   assert.ok(store.listFor('stf-1').find((r) => r.id === convId).tags.includes('queue'));
 });
 
@@ -152,6 +152,26 @@ test('only one staff member can take a queued chat', async () => {
   await tick();
   assert.equal(b.get(convId, 'stf-1').conv.assigneeId, 'stf-1');
   assert.equal(b.get(convId, 'stf-2').reason, 'not_found', 'the loser no longer sees it');
+});
+
+test('replying to a waiting resident takes the chat in one step; only one staff member wins', async () => {
+  const { mk } = setup();
+  const a = mk();
+  const b = mk();
+  const convId = a.listFor('stf-1').find((r) => r.tags.includes('queue')).id;
+  assert.deepEqual(a.forwardTargets('stf-1').filter((r) => r.id === convId), [], 'a waiting chat is never a forward target: forwarding must not take it');
+  const ra = a.send(convId, 'stf-1', 'Hi, I can help with that hangtag.');
+  const rb = b.send(convId, 'stf-2', 'Me too');
+  assert.equal([ra, rb].filter((r) => r.ok).length, 1, 'exactly one reply wins the chat');
+  assert.ok(ra.ok);
+  await tick();
+  const v = b.get(convId, 'stf-1');
+  assert.equal(v.conv.status, 'active');
+  assert.equal(v.conv.assigneeId, 'stf-1');
+  const resident = b.get(convId, 'res-2');
+  assert.ok(resident.messages.some((m) => m.kind === 'system' && /joined the chat/.test(m.text)), 'the resident is told someone joined');
+  assert.equal(resident.messages.at(-1).text, 'Hi, I can help with that hangtag.');
+  assert.deepEqual(b.forwardTargets('stf-2').filter((r) => r.id === convId), [], 'a chat that is not yours is never a forward target');
 });
 
 test('full resident flow: queue -> take -> chat -> resolve -> rate -> new assistant chat', () => {
@@ -448,6 +468,48 @@ test('edit: own text only, within the window, marks Edited and updates the list 
   assert.equal(store.edit(r.convId, 'stf-1', id, 'x').reason, 'not_allowed', 'removed messages cannot be edited');
 });
 
+test('delete for me: hides one message from your view only, any time', () => {
+  const { store, clock } = setup();
+  const r = store.startDirect('stf-1', 'cli-1', 'Old note');
+  const id = store.get(r.convId, 'stf-1').messages.at(-1).id;
+  clock.t += 24 * 60 * 60 * 1000; // far past the unsend window
+  assert.equal(store.hideMessage(r.convId, 'cli-2', id).reason, 'not_found', 'cannot hide what you cannot see');
+  assert.ok(store.hideMessage(r.convId, 'cli-1', id).ok);
+  assert.ok(!store.get(r.convId, 'cli-1').messages.some((m) => m.id === id), 'gone for me');
+  assert.ok(store.get(r.convId, 'stf-1').messages.some((m) => m.id === id), 'still there for the sender');
+  assert.equal(store.search('cli-1', 'old note').length, 0);
+  assert.equal(store.search('stf-1', 'old note').length, 1);
+  assert.equal(store.hideMessage(r.convId, 'cli-1', id).noop, true);
+  assert.ok(store.unhideMessage(r.convId, 'cli-1', id).ok, 'undo brings it back');
+  assert.ok(store.get(r.convId, 'cli-1').messages.some((m) => m.id === id));
+  store.hideMessage(r.convId, 'cli-1', id);
+  const sys = store.get(r.convId, 'cli-1').messages.find((m) => m.kind === 'system');
+  if (sys) assert.equal(store.hideMessage(r.convId, 'cli-1', sys.id).reason, 'not_allowed');
+});
+
+test('forward: copies into another conversation you can post in, flagged as forwarded', () => {
+  const { store } = setup();
+  const a = store.startDirect('stf-1', 'cli-1', 'Rate card attached');
+  const b = store.startDirect('stf-1', 'cli-2', 'Hello');
+  const mid = store.get(a.convId, 'stf-1').messages.at(-1).id;
+  const ok = store.forward(a.convId, 'stf-1', mid, b.convId);
+  assert.ok(ok.ok);
+  const last = store.get(b.convId, 'cli-2').messages.at(-1);
+  assert.equal(last.text, 'Rate card attached');
+  assert.equal(last.forwarded, true);
+  assert.equal(last.from, 'stf-1');
+  assert.equal(store.forward(a.convId, 'stf-1', mid, a.convId).reason, 'same_conversation');
+  assert.equal(store.forward(a.convId, 'cli-2', mid, b.convId).reason, 'not_found', 'cannot forward what you cannot see');
+  assert.equal(store.forward(a.convId, 'cli-1', mid, b.convId).reason, 'not_found', 'cannot post where you are not a member');
+  const targets = store.forwardTargets('stf-1', a.convId).map((r) => r.id);
+  assert.ok(targets.includes(b.convId) && !targets.includes(a.convId));
+  assert.deepEqual(store.forwardTargets('res-1', a.convId), [], 'residents never forward');
+  const ann = store.broadcast('adm-1', { title: 'Notice', text: 'x' });
+  assert.ok(!store.forwardTargets('stf-1').includes(ann.convId), 'announcements are read-only');
+  store.unsend(a.convId, 'stf-1', mid);
+  assert.equal(store.forward(a.convId, 'stf-1', mid, b.convId).reason, 'not_allowed', 'removed messages cannot be forwarded');
+});
+
 test('pin and mute are personal; muted chats leave the badge, pinned float to the top', () => {
   const { store } = setup();
   const a = store.startDirect('stf-1', 'cli-1', 'first');
@@ -455,6 +517,10 @@ test('pin and mute are personal; muted chats leave the badge, pinned float to th
   const before = store.listFor('cli-1').map((r) => r.id);
   assert.equal(store.toggleFlag(a.convId, 'cli-2', 'pinned').reason, 'not_found', 'cannot flag what you cannot see');
   assert.equal(store.toggleFlag(a.convId, 'cli-1', 'bogus').reason, 'invalid_flag');
+  assert.ok(store.toggleFlag(a.convId, 'cli-1', 'important').on);
+  assert.equal(store.listFor('cli-1').find((r) => r.id === a.convId).important, true);
+  assert.equal(store.listFor('stf-1').find((r) => r.id === a.convId).important, false, 'important is personal');
+  assert.equal(store.toggleFlag(a.convId, 'cli-1', 'important').on, false);
   assert.ok(store.toggleFlag(a.convId, 'stf-1', 'pinned').on);
   assert.equal(store.listFor('stf-1')[0].id, a.convId, 'pinned first even though b is newer');
   assert.deepEqual(store.listFor('cli-1').map((r) => r.id), before, 'the other person is unaffected');

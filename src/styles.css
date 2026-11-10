@@ -28,6 +28,26 @@
   html[data-nav-open] [data-slot="sidebar-container"], [data-nav-scrim] { animation: none; }
 }
 
+/* Hộp thoại dạng bottom sheet trên điện thoại (<640px): trượt lên từ đáy, nút nằm trong tầm ngón cái.
+   Kích thước/góc bo do class max-sm: trong mẫu HTML; ở đây chỉ có chuyển động. */
+@media (max-width: 639px) {
+  dialog[open] { animation: sheet-up 220ms ease-out; }
+}
+@keyframes sheet-up { from { transform: translateY(100%); } to { transform: none; } }
+@media (prefers-reduced-motion: reduce) {
+  dialog[open] { animation: none; }
+}
+
+/* Chế độ tương phản cao ngoài trời (html[data-contrast]): viền đậm, chữ dày hơn, chữ phụ đậm hơn.
+   Chỉ đổi giá trị token đã có, không thêm màu mới. */
+html[data-contrast] {
+  --border: var(--foreground);
+  --input: var(--foreground);
+  --muted-foreground: var(--foreground-secondary);
+}
+html[data-contrast] body { font-weight: 500; }
+html[data-contrast] [class*="ring-foreground/10"] { --tw-ring-color: var(--foreground); }
+
 /* Token spacing có tên của @easyspotops/ui nằm trong @theme nên chỉ được phát khi có utility dùng;
    CSS Module trích từ app thật (styles/<portal>.css) dùng var() trực tiếp ⇒ khai lại đúng giá trị. */
 :root {

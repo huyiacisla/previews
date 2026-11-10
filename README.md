@@ -34,9 +34,13 @@ src/
 ├─ styles.css          nạp token + font
 ├─ ui-tokens.css       token/màu/cỡ chữ/theme (Tailwind 4) — NGUỒN token, không khai màu riêng ngoài file này
 ├─ styles/staff.css    CSS Module trích từ app thật (không sửa tay)
-├─ preview.js          bật tối bằng ?dark
+├─ preview.js          bật tối bằng ?dark, nút Theme, ngăn kéo menu mobile, nối mục Messages
+├─ messaging/          lõi và giao diện Messages (logic ở FE, đủ demo): store, transport, bot, app…
 ├─ partials/head.html  <head> dùng chung, chèn bằng <!--include:partials/head.html-->
+├─ partials/messages-app.html  khung + mọi <template> của Messages (nơi duy nhất chứa class của trang này)
 └─ <portal>/*.html     các trang
+tests/                 npm test: 54 test cho lõi Messages (gồm một test ngẫu nhiên)
+docs/                  messaging-design.md (thiết kế, phạm vi demo, hạn chế), checklist-conformance.md (đối chiếu với checklist PDF), account-settings-quality-pass.md
 DESIGN.md              luật thiết kế (khi xung đột, DESIGN.md thắng)
 screenshots/           ảnh tham chiếu sáng/tối của bản hiện tại
 ```
