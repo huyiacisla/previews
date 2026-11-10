@@ -15,6 +15,16 @@ html body .sb :is(a,button,input):focus-visible{outline-color:var(--sbfg)!import
 .crumb a{display:inline-block;padding:4px 2px}
 .qa-tap{min-height:28px!important;padding-top:6px!important;padding-bottom:6px!important} /* added by qa-quality.js to controls under 24px tall */
 
+/* Breadcrumb: #ttl is a flex row, so the spaces between the links and the "›" collapsed and the crumbs touched. Give them a gap, and let a long last crumb wrap. */
+#ttl{flex-wrap:wrap;align-items:center;column-gap:6px;row-gap:2px}
+#ttl b{min-width:0;overflow-wrap:anywhere}
+
+/* Role previews are not part of the product. This prototype once let a person look at the page "as" another role
+   (View as Manager / Staff, Resident view of Promotions and of the guidelines). Each role has its own portal now, so those controls are removed. */
+.wsc-d,.wsc-v,[data-pmres],[data-gprev]{display:none!important}
+/* Client only (html.client-portal is set by account-settings.staff.js): a Client runs many properties, so the one-property card at the top of Workspace settings does not fit. Staff keeps its page as it was. */
+html.client-portal .wshead{display:none!important}
+
 /* Long values wrap instead of being cut off */
 .prow .pill{white-space:normal!important;text-align:right;overflow-wrap:anywhere;max-width:min(60%,24rem)}
 

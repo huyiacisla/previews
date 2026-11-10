@@ -1,4 +1,6 @@
-<!doctype html><html lang="en"><head><script id="qa-fsm-pop">// mở post từ fsm = hash-nav tiến (state null) ⇒ popstate của fsm tưởng là Back và tắt fsm; chặn khi vào #/social/post/* mà không phải entry fsm
+<!doctype html><html lang="en"><head><script id="qa-portal-storage">/* The Client copy of this page (/client/account-settings.html includes this file) keeps its own settings: every "eso-" key it reads or writes is stored as "client:eso-...", so Client and Staff never mix. Messaging keys are left alone. Must run first. */
+if(location.pathname.indexOf("/client/")==0){try{var SP=Storage.prototype,sg=SP.getItem,ss=SP.setItem,sr=SP.removeItem,sk=function(x){return typeof x=="string"&&x.indexOf("eso-")==0&&x.indexOf("eso-msg")!=0?"client:"+x:x};SP.getItem=function(x){return sg.call(this,this===localStorage?sk(x):x)};SP.setItem=function(x,v){return ss.call(this,this===localStorage?sk(x):x,v)};SP.removeItem=function(x){return sr.call(this,this===localStorage?sk(x):x)}}catch(e){}}
+</script><script id="qa-fsm-pop">// mở post từ fsm = hash-nav tiến (state null) ⇒ popstate của fsm tưởng là Back và tắt fsm; chặn khi vào #/social/post/* mà không phải entry fsm
 addEventListener("popstate",e=>{if(document.documentElement.classList.contains("fsm")&&!(history.state&&history.state.fsm)&&/^#\/social(\/|$)/.test(location.hash))e.stopImmediatePropagation()},true);
 </script><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,interactive-widget=resizes-content">
 <script id="dev-head">/* device fixes: lucide helper + keyboard-safe resize guard */
@@ -15,6 +17,7 @@ window.LUC=function(n,z,sw){z=z||16;var d=LUCD[n];if(!d)return"";return '<svg cl
 <link rel="stylesheet" href="/staff/account-settings.quality.css">
 <script type="module" src="/preview.js"></script>
 <script type="module" src="/staff/account-settings.quality.js"></script>
+<script type="module" src="/staff/account-settings.staff.js"></script>
 <style>
 :root{--primary:#3b5bdb;--bg:#f4f6fb;--card:#fff;--fg:#0f172a;--muted:#64748b;--border:#e2e8f0;--sb:#1b2340;--sbacc:#2a3560;--sbfg:#fff;--r:10px;--pad:16px;--row:40px}
 html.dark{--bg:#0b0f1a;--card:#141a2a;--fg:#e5e7eb;--muted:#94a3b8;--border:#263049}

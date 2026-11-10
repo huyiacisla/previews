@@ -48,6 +48,12 @@ html[data-contrast] {
 html[data-contrast] body { font-weight: 500; }
 html[data-contrast] [class*="ring-foreground/10"] { --tw-ring-color: var(--foreground); }
 
+/* Giảm chuyển động theo lựa chọn của người dùng (Settings > Personalize > Comfort), cộng với thiết lập của máy.
+   Chỉ có tác dụng khi <html> có thuộc tính này, nên các trang chưa bật thì không đổi gì. */
+html[data-reduce-motion] *, html[data-reduce-motion] *::before, html[data-reduce-motion] *::after {
+  animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; scroll-behavior: auto !important;
+}
+
 /* Token spacing có tên của @easyspotops/ui nằm trong @theme nên chỉ được phát khi có utility dùng;
    CSS Module trích từ app thật (styles/<portal>.css) dùng var() trực tiếp ⇒ khai lại đúng giá trị. */
 :root {

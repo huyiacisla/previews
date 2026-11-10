@@ -1,5 +1,7 @@
 // Chỉ đổi giao diện: bật/tắt dark qua ?dark (app thật dùng next-themes: class `light`/`dark` trên <html>).
 const root = document.documentElement;
+// Các dashboard chụp từ app thật ghi lang="vi" nhưng nội dung là tiếng Anh: trình đọc màn hình sẽ đọc sai giọng. Đặt lại đúng ngôn ngữ của nội dung.
+if (root.lang === "vi") root.lang = "en";
 const setDark = (on) => {
   root.classList.toggle("dark", on);
   root.classList.toggle("light", !on);
@@ -13,6 +15,36 @@ document.addEventListener("click", (e) => {
 document.addEventListener("click", (e) => {
   if (e.target.closest('button[aria-label^="Theme:"]')) setDark(!root.classList.contains("dark"));
 });
+
+// Cá nhân hóa chọn trong trang Settings (Staff và Client): màu sidebar, theme và màu nhấn đi theo người dùng sang các trang thật.
+// Trang Settings ghi `ui-prefs:<portal>` mỗi khi người dùng đổi; chưa đổi gì thì không có khóa này và các trang giữ nguyên diện mạo gốc.
+{
+  const p = location.pathname.split("/")[1];
+  if ((p === "staff" || p === "client") && !location.pathname.endsWith("/account-settings.html")) {
+    try {
+      const ui = JSON.parse(localStorage.getItem(`ui-prefs:${p}`) || "null");
+      const hex = (v) => typeof v === "string" && /^#[0-9a-f]{6}$/i.test(v);
+      if (ui) {
+        const s = root.style;
+        if (Array.isArray(ui.sb) && ui.sb.slice(0, 4).every(hex)) {
+          const [bg, fg, acc, accent] = ui.sb;
+          s.setProperty("--sidebar", bg);
+          s.setProperty("--sidebar-foreground", fg);
+          s.setProperty("--sidebar-accent", acc);
+          s.setProperty("--sidebar-accent-foreground", fg);
+          s.setProperty("--sidebar-primary", accent);
+          s.setProperty("--sidebar-border", acc);
+        }
+        if (!new URLSearchParams(location.search).has("dark")) {
+          if (ui.theme === "dark") setDark(true);
+          else if (ui.theme === "light") setDark(false);
+          else if (ui.theme === "system") setDark(matchMedia("(prefers-color-scheme: dark)").matches);
+        }
+        if (hex(ui.accent) && ui.accent.toLowerCase() !== "#2b55f2") { root.style.setProperty("--primary", ui.accent); root.style.setProperty("--sidebar-primary", ui.accent); }
+      }
+    } catch { /* trang vẫn dùng diện mạo gốc */ }
+  }
+}
 
 // Ngăn kéo điều hướng (mobile/tablet): nút "Open navigation" mở sidebar có sẵn trong HTML dưới dạng off-canvas.
 // Đóng bằng: bấm nền mờ, Esc, chọn một mục, hoặc khi màn hình rộng ra >= 1024px. Trả focus về nút đã mở.
@@ -103,6 +135,18 @@ document.addEventListener("click", (e) => {
   a.appendChild(count);
   if (created) list.replaceChildren(); // nhóm mới chỉ chứa Ticket box, không giữ mục của nhóm đã nhân bản
   list.appendChild(li);
+  if (portalName === "resident") {
+    // Resident không có mục Settings trong sidebar chụp: thêm "Settings" ngay sau Ticket box (Profile, Personalize, My property).
+    const set = li.cloneNode(true);
+    const sa = set.querySelector('a[data-slot="sidebar-menu-button"]');
+    sa.setAttribute("href", `/resident/settings.html${location.search}`);
+    sa.querySelector("span").innerHTML =
+      '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4" aria-hidden="true"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"></path><circle cx="12" cy="12" r="3"></circle></svg>';
+    [...sa.children].find((c) => c !== sa.querySelector("span")).textContent = "Settings";
+    sa.querySelectorAll('[data-slot="badge"]').forEach((x) => x.remove());
+    sa.removeAttribute("aria-label");
+    list.appendChild(set);
+  }
   // Số mục của nhóm (ví dụ "Services 4") tăng thêm một.
   const tally = triggerOf(services).querySelector(".tabular-nums");
   if (tally && /^\d+$/.test(tally.textContent.trim())) tally.textContent = String(Number(tally.textContent) + 1);
@@ -145,8 +189,48 @@ if (["staff", "admin", "client", "resident"].includes(portal) && !location.pathn
 }
 if (["staff", "admin", "client", "resident"].includes(portal) && !location.pathname.endsWith("/messages.html")) {
   const labels = new Set(["Messages", "Messaging & Support"]);
+  // Other items that have a real page: Staff Settings and Promotions open the account-settings page (Promotions is a section of it);
+  // the Resident Promotions item opens the page that lists what Staff published.
+  const pages = {
+    staff: { Settings: "/staff/account-settings.html#/workspace", Promotions: "/staff/account-settings.html#/promotions" },
+    client: { "Workspace Settings": "/client/account-settings.html#/workspace" },
+    resident: { Promotions: "/resident/promotions.html", Social: "/resident/social.html" },
+  }[portal] || {};
   for (const a of document.querySelectorAll('a[data-slot="sidebar-menu-button"]')) {
     const label = a.querySelector("span.truncate")?.textContent.trim();
     if (label && labels.has(label)) a.setAttribute("href", `/${portal}/messages.html${location.search}`);
+    else if (label && pages[label]) {
+      const [path, hash = ""] = pages[label].split("#");
+      a.setAttribute("href", `${path}${location.search}${hash ? "#" + hash : ""}`);
+    }
   }
+}
+
+// Resident: nhớ lựa chọn của chính cư dân (Settings). Theme đã lưu áp dụng cho mọi trang Resident (trừ khi có ?dark),
+// và mục Social trong sidebar ẩn đi khi cư dân tắt Social (hoặc Staff tắt Social cho cả tòa nhà).
+if (portal === "resident") {
+  (async () => {
+    try {
+      const [{ pickPersona }, prefs, social] = await Promise.all([
+        import("./messaging/personas.js"), import("./settings/prefs.js"), import("./social/store.js"),
+      ]);
+      const me = pickPersona("resident", new URLSearchParams(location.search).get("as"));
+      const saved = prefs.readPrefs(localStorage, me.id);
+      root.toggleAttribute("data-contrast", saved.contrast); // Settings > Personalize > Comfort
+      root.toggleAttribute("data-reduce-motion", saved.reduceMotion);
+      if (!new URLSearchParams(location.search).has("dark")) {
+        const sys = matchMedia("(prefers-color-scheme: dark)");
+        const theme = prefs.readPrefs(localStorage, me.id).theme;
+        if (theme !== "system" || sys.matches) setDark(prefs.isDark(theme, sys.matches));
+      }
+      const sync = () => {
+        const hidden = !social.socialOn(localStorage) || !social.residentState(localStorage, me.id).show;
+        for (const a of document.querySelectorAll('a[data-slot="sidebar-menu-button"]')) {
+          if (a.querySelector("span.truncate")?.textContent.trim() === "Social") (a.closest("li") || a).hidden = hidden;
+        }
+      };
+      sync();
+      addEventListener("storage", sync);
+    } catch { /* the sidebar still works without these */ }
+  })();
 }
