@@ -1,0 +1,88 @@
+<!-- Client account settings: the content of /client/account-settings.html, drawn inside the Client dashboard frame (its own header and sidebar).
+     Templates only: every Tailwind class lives here, settings/client.js clones them, fills text and toggles hidden / aria-*.
+     No Social and no Promotions: a Client manages several properties, not a community. -->
+<template id="cs-root">
+  <div class="flex flex-col gap-step-lg">
+    <header class="flex flex-col gap-step-xs">
+      <h1 id="cs-title" tabindex="-1" class="text-2xl leading-8 font-semibold tracking-tight outline-none">Account settings</h1>
+      <p class="max-w-prose text-sm text-muted-foreground">Your profile, notifications and how the Client portal looks. These settings are yours only; they do not change what other people see.</p>
+    </header>
+    <div class="grid gap-step-lg lg:grid-cols-4">
+      <nav aria-label="Settings sections" class="lg:col-span-1"><ul id="cs-nav" role="list" class="flex flex-wrap gap-step-xs lg:flex-col"></ul></nav>
+      <div id="cs-panels" class="flex min-w-0 flex-col gap-step-lg lg:col-span-3"></div>
+    </div>
+  </div>
+</template>
+
+<template id="cs-nav-item"><li><a class="inline-flex h-8 items-center rounded-md px-step-md text-sm whitespace-nowrap text-foreground-secondary outline-none transition-colors hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50 aria-[current=page]:bg-accent aria-[current=page]:font-medium aria-[current=page]:text-foreground pointer-coarse:h-11 pointer-coarse:items-center lg:w-full"></a></li></template>
+
+<template id="cs-panel">
+  <section tabindex="-1" class="flex flex-col gap-step-md outline-none">
+    <div class="flex flex-col gap-step-xs"><h2 data-title class="text-lg leading-7 font-medium"></h2><p data-desc class="max-w-prose text-sm text-muted-foreground empty:hidden"></p></div>
+    <div data-body class="flex flex-col gap-step-md"></div>
+  </section>
+</template>
+
+<template id="cs-card">
+  <div class="flex flex-col overflow-hidden rounded-xl bg-card shadow-lift-xs">
+    <h3 data-title hidden class="border-b border-border px-step-lg py-step-md text-sm font-medium"></h3>
+    <div data-rows class="divide-y divide-border"></div>
+    <p data-note hidden class="border-t border-border px-step-lg py-step-md text-xs text-muted-foreground"></p>
+  </div>
+</template>
+
+<template id="cs-switch">
+  <div class="flex items-center gap-step-md px-step-lg py-step-md">
+    <div class="flex min-w-0 flex-1 flex-col gap-0.5"><span data-label class="text-sm font-medium"></span><span data-help class="text-sm text-muted-foreground empty:hidden"></span></div>
+    <button type="button" role="switch" aria-checked="false" class="group/button relative inline-flex h-6 w-11 shrink-0 touch-manipulation items-center rounded-full border border-transparent bg-input transition-colors outline-none focus-visible:ring-3 focus-visible:ring-ring/50 aria-checked:bg-primary pointer-coarse:h-8 pointer-coarse:w-14"><span class="pointer-events-none inline-block size-5 translate-x-0.5 rounded-full bg-background shadow-lift-xs transition-transform group-aria-checked/button:translate-x-5.5 pointer-coarse:size-7 pointer-coarse:group-aria-checked/button:translate-x-6.5"></span></button>
+  </div>
+</template>
+
+<template id="cs-select">
+  <div class="flex flex-col gap-step-sm px-step-lg py-step-md sm:flex-row sm:items-center">
+    <label class="flex min-w-0 flex-1 flex-col gap-0.5"><span data-label class="text-sm font-medium"></span><span data-help class="text-sm text-muted-foreground empty:hidden"></span></label>
+    <select class="h-8 w-full rounded-md border border-input bg-card px-2 text-base outline-none transition-colors focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 sm:w-48 md:text-sm pointer-coarse:h-11"></select>
+  </div>
+</template>
+
+<template id="cs-field">
+  <div class="flex flex-col gap-step-xs px-step-lg py-step-md">
+    <label data-label class="text-sm font-medium"></label>
+    <input class="h-8 w-full min-w-0 rounded-md border border-input bg-card px-2.5 text-base outline-none transition-colors focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 read-only:bg-muted read-only:text-muted-foreground aria-invalid:border-danger-text md:text-sm pointer-coarse:h-11" />
+    <p data-error role="alert" class="text-sm text-danger-text empty:hidden"></p>
+    <p data-help class="text-xs text-muted-foreground empty:hidden"></p>
+  </div>
+</template>
+
+<template id="cs-info"><div class="flex flex-col gap-0.5 px-step-lg py-step-md sm:flex-row sm:items-baseline sm:gap-step-md"><dt data-k class="text-sm text-muted-foreground sm:w-48"></dt><dd data-v class="min-w-0 text-sm font-medium wrap-anywhere"></dd></div></template>
+
+<template id="cs-access">
+  <div class="flex flex-col gap-0.5 px-step-lg py-step-md sm:flex-row sm:items-center sm:gap-step-md">
+    <span data-k class="text-sm font-medium sm:w-60"></span><span data-v class="min-w-0 flex-1 text-sm text-foreground-secondary"></span>
+    <span data-badge class="inline-flex h-5 shrink-0 items-center self-start rounded-full bg-success-bg px-step-sm text-xs text-success-text data-[tone=neutral]:bg-secondary data-[tone=neutral]:text-secondary-foreground" data-tone="success"></span>
+  </div>
+</template>
+
+<template id="cs-device">
+  <div class="flex items-center gap-step-md px-step-lg py-step-md">
+    <div class="flex min-w-0 flex-1 flex-col gap-0.5"><span data-name class="text-sm font-medium"></span><span data-where class="text-sm text-muted-foreground"></span></div>
+    <button type="button" data-out class="group/button inline-flex h-8 shrink-0 touch-manipulation items-center justify-center rounded-md border border-transparent bg-background bg-clip-padding px-step-md control-text font-medium whitespace-nowrap text-foreground ring-1 ring-foreground/10 transition outline-none select-none hover:bg-muted focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 active:translate-y-px pointer-coarse:h-11">Sign out</button>
+  </div>
+</template>
+
+<template id="cs-swatches"><div class="flex flex-col gap-step-sm px-step-lg py-step-md"><span data-label class="text-sm font-medium"></span><span data-help class="text-sm text-muted-foreground"></span><div data-list role="group" class="flex flex-wrap gap-step-sm"></div></div></template>
+
+<template id="cs-swatch">
+  <button type="button" aria-pressed="false" class="group/button flex h-14 w-24 touch-manipulation flex-col items-start justify-between rounded-lg border border-border bg-background p-step-sm text-left text-xs outline-none transition-colors hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50 aria-pressed:border-primary aria-pressed:bg-accent aria-pressed:font-medium pointer-coarse:h-16">
+    <span data-chips class="flex gap-0.5"></span><span data-label></span>
+  </button>
+</template>
+
+<template id="cs-choice"><button type="button" aria-pressed="false" class="inline-flex h-8 items-center rounded-md bg-secondary px-step-md text-sm text-secondary-foreground outline-none transition-colors hover:bg-secondary/80 focus-visible:ring-3 focus-visible:ring-ring/50 aria-pressed:bg-accent aria-pressed:font-medium aria-pressed:text-foreground pointer-coarse:h-11"></button></template>
+
+<template id="cs-choices"><div class="flex flex-col gap-step-sm px-step-lg py-step-md sm:flex-row sm:items-center"><div class="flex min-w-0 flex-1 flex-col gap-0.5"><span data-label class="text-sm font-medium"></span><span data-help class="text-sm text-muted-foreground empty:hidden"></span></div><div data-list role="group" class="flex flex-wrap gap-step-xs"></div></div></template>
+
+<template id="cs-actions"><div class="flex items-center justify-end gap-step-sm px-step-lg py-step-md"><button type="button" data-save class="group/button inline-flex h-8 shrink-0 touch-manipulation items-center justify-center rounded-md border border-transparent bg-primary bg-clip-padding px-step-md control-text font-medium whitespace-nowrap text-primary-foreground transition outline-none select-none hover:bg-primary/90 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 active:translate-y-px pointer-coarse:h-11">Save changes</button></div></template>
+
+<template id="cs-toast"><div role="status" class="pointer-events-auto flex max-w-md items-center gap-step-md rounded-lg bg-foreground px-step-lg py-step-md text-sm text-background shadow-lift-md"><span data-text></span></div></template>
+<div id="cs-toasts" popover="manual" class="pointer-events-none fixed inset-x-0 top-step-lg z-toast m-0 flex w-full flex-col items-center gap-step-sm overflow-visible border-0 bg-transparent p-0 px-step-lg"></div>

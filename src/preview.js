@@ -28,6 +28,10 @@ const applyUiPrefs = () => {
       const hex = (v) => typeof v === "string" && /^#[0-9a-f]{6}$/i.test(v);
       if (ui) {
         const s = root.style;
+        // Chọn lại "Default" thì bỏ màu đã đặt trước đó (không cần tải lại trang).
+        if (!ui.sb) for (const v of ["--sidebar", "--sidebar-foreground", "--sidebar-accent", "--sidebar-accent-foreground", "--sidebar-primary", "--sidebar-border"]) s.removeProperty(v);
+        root.toggleAttribute("data-contrast", ui.contrast === true); // Account settings > Accessibility (Client)
+        root.toggleAttribute("data-reduce-motion", ui.motion === true);
         if (Array.isArray(ui.sb) && ui.sb.slice(0, 4).every(hex)) {
           const [bg, fg, acc, accent] = ui.sb;
           s.setProperty("--sidebar", bg);
@@ -205,7 +209,7 @@ if (["staff", "admin", "client", "resident"].includes(portal) && !location.pathn
   // the Resident Promotions item opens the page that lists what Staff published.
   const pages = {
     staff: { Settings: "/staff/account-settings.html#/workspace", Promotions: "/staff/account-settings.html#/promotions" },
-    client: { "Workspace Settings": "/client/account-settings.html#/workspace" },
+    client: { "Workspace Settings": "/client/account-settings.html#/profile" },
     resident: { Promotions: "/resident/promotions.html", Social: "/resident/social.html" },
   }[portal] || {};
   for (const a of document.querySelectorAll('a[data-slot="sidebar-menu-button"]')) {
@@ -240,10 +244,10 @@ if (portal === "client") {
         const q = location.search;
         const base = `/client/account-settings.html${q}`;
         const items = [
-          ["Profile settings", `${base}#/settings`],
-          ["Messenger & availability", `${base}#/settings/availability`],
-          ["My permissions", `${base}#/workspace/access`],
-          ["Notification preferences", `${base}#/settings/notifications`],
+          ["Profile settings", `${base}#/profile`],
+          ["Messenger & availability", `${base}#/messages`],
+          ["My permissions", `${base}#/permissions`],
+          ["Notification preferences", `${base}#/notifications`],
         ];
         const itemClass = "flex min-h-8 w-full touch-manipulation items-center gap-step-sm rounded-md px-step-sm py-1 text-left text-sm text-foreground outline-none transition-colors hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50 pointer-coarse:min-h-11";
         const menu = document.createElement("div");
@@ -333,19 +337,13 @@ if (portal === "client" && location.pathname.endsWith("/client/account-settings.
     }
     const dash = byLabel("Dashboard");
     if (dash) dash.setAttribute("href", `/client/dashboard.html${location.search}`);
-    const frame = document.createElement("iframe");
-    frame.title = "Workspace settings";
-    const q = new URLSearchParams(location.search);
-    q.set("embed", "1");
-    frame.src = `/client/account-settings-content.html?${q}${location.hash}`;
-    frame.style.cssText = "display:block;width:100%;border:0;background:transparent";
-    main.replaceChildren(frame);
-    main.style.cssText = "padding:0;max-width:none;overflow:hidden";
-    const fit = () => { frame.style.height = `${Math.max(320, innerHeight - (header ? header.offsetHeight : 0))}px`; };
-    fit();
-    addEventListener("resize", fit);
-    // Hash của trang khung ↔ hash của nội dung (mục sidebar, nút Back và đường dẫn đều đi đúng chỗ).
-    addEventListener("hashchange", () => { try { if (frame.contentWindow.location.hash !== location.hash) frame.contentWindow.location.hash = location.hash; } catch { /* khung chưa tải */ } });
+    // Nội dung Account settings dựng thẳng trong khung này bằng token của portal (không còn trang prototype của Staff nhúng vào).
+    (async () => {
+      try {
+        const [{ pickPersona }, { mountClientSettings }] = await Promise.all([import("./messaging/personas.js"), import("./settings/client.js")]);
+        mountClientSettings(main, pickPersona("client", new URLSearchParams(location.search).get("as")));
+      } catch { main.textContent = "Account settings could not load. Reload the page."; }
+    })();
   }
 }
 
