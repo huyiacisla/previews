@@ -48,6 +48,10 @@ html[data-contrast] {
 html[data-contrast] body { font-weight: 500; }
 html[data-contrast] [class*="ring-foreground/10"] { --tw-ring-color: var(--foreground); }
 
+/* Tùy chọn sidebar chọn ở Settings (preview.js đặt thuộc tính trên <html>); chưa chọn thì không có thuộc tính và sidebar giữ nguyên. */
+html[data-sb-icons="off"] [data-slot="sidebar-container"] [data-slot="sidebar-menu-button"] > span.grid { display: none; }
+html[data-sb-counts="off"] [data-slot="sidebar-container"] [data-slot="collapsible-trigger"] .tabular-nums { display: none; }
+
 /* Giảm chuyển động theo lựa chọn của người dùng (Settings > Personalize > Comfort), cộng với thiết lập của máy.
    Chỉ có tác dụng khi <html> có thuộc tính này, nên các trang chưa bật thì không đổi gì. */
 html[data-reduce-motion] *, html[data-reduce-motion] *::before, html[data-reduce-motion] *::after {

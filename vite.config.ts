@@ -14,13 +14,15 @@ const listHtml = (dir: string): string[] =>
   });
 
 // <!--include:partials/x.html--> → nội dung file; chỉ phục vụ preview tĩnh.
+// Một tệp được nhúng có thể tự nhúng tệp khác (ví dụ client/account-settings.html nhúng client/dashboard.html, trang này nhúng partials/head.html):
+// mở rộng tối đa 3 tầng cho tới khi hết dấu nhúng.
+const expandIncludes = (html: string, depth = 0): string => {
+  const out = html.replace(/<!--include:([\w./-]+)-->/g, (_, file: string) => readFileSync(join(root, file), "utf8"));
+  return out !== html && depth < 3 ? expandIncludes(out, depth + 1) : out;
+};
 const includes = (): Plugin => ({
   name: "preview-includes",
-  transformIndexHtml: {
-    order: "pre",
-    handler: (html) =>
-      html.replace(/<!--include:([\w./-]+)-->/g, (_, file: string) => readFileSync(join(root, file), "utf8")),
-  },
+  transformIndexHtml: { order: "pre", handler: (html) => expandIncludes(html) },
 });
 
 export default defineConfig({

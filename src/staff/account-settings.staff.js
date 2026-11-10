@@ -97,6 +97,14 @@ html.a11y-focus :focus-visible{outline:3px solid var(--primary)!important;outlin
       /* Client: the same sections as Staff, without Social and Promotions, plus two that suit a management company. */
       const drop = (kids, ids) => { for (const id of ids) { const i = kids.findIndex((x) => x.id === id); if (i >= 0) kids.splice(i, 1); } };
       drop(me, ['socialmaster']);
+      // The Client's sidebar is the real dashboard sidebar, not the prototype's own. Keep only the options that change it
+      // (colors, icons, count badges, the overview card) and take out the rest (layout, menu style, scrollbar, collapse, favorites, search, property switcher).
+      const pz = me.find((x) => x.id === 'personalize');
+      if (pz && pz.kids) {
+        pz.kids = pz.kids.filter((k) => k.id !== 'icons');
+        const side = pz.kids.find((k) => k.id === 'sidebar');
+        if (side && side.leaf) { const l = side.leaf; side.leaf = () => trimSidebar(l()); side.kw = 'sidebar color colors preset background text active item icons count badges overview card'; }
+      }
       drop(ws, ['social', 'promodesign', 'residentpromos']);
       if (!ws.find((x) => x.id === 'reports')) ws.push({ id: 'reports', t: 'Reports and digests', ic: '📊', c: '#2563eb', pic: 'bell', desc: 'Which portfolio reports reach your inbox, and when.', g: 'Portfolio', sum: () => [S.rpWeekly && 'Weekly', S.rpMonthly && 'Monthly', S.rpAlerts && 'Alerts'].filter(Boolean).join(' · ') || 'Off', leaf: reports, kw: 'reports digest weekly monthly summary email kpi alert portfolio' });
       if (!ws.find((x) => x.id === 'billing')) ws.push({ id: 'billing', t: 'Billing contact', ic: '🧾', c: '#7c3aed', pic: 'lock', desc: 'Who receives invoices and plan notices for this account.', sum: () => 'dana.whitfield@mallardpointe.example', leaf: billing, kw: 'billing invoice plan contact email payment' });
@@ -110,6 +118,23 @@ html.a11y-focus :focus-visible{outline:3px solid var(--primary)!important;outlin
   };
 
   /* 6. Client only: sidebar, names and storage. */
+  function trimSidebar(html) {
+    const t = document.createElement('template');
+    t.innerHTML = html;
+    const KILL = /^(Layout|Menu style|Scrollbar|Apply scrollbar|Enable sidebar collapse|Show Favorites|Menu search|Property switcher)/;
+    t.content.querySelectorAll('.srow').forEach((r) => { if (KILL.test((r.querySelector('.stt') || r).textContent.trim())) r.remove(); });
+    // A card with no rows left goes, with the note under it; so does a heading with nothing under it.
+    t.content.querySelectorAll('.sgroup').forEach((g) => {
+      if (g.querySelector('.srow,.pzrow')) return;
+      const n = g.nextElementSibling;
+      if (n && n.classList.contains('helpt')) n.remove();
+      g.remove();
+    });
+    t.content.querySelectorAll('.pzsec').forEach((h) => { const n = h.nextElementSibling; if (!n || !n.classList.contains('sgroup')) h.remove(); });
+    const card = [...t.content.querySelectorAll('.srow .stt')].find((s) => /^Workspace Capacity card/.test(s.textContent.trim()));
+    if (card) card.firstChild.textContent = 'Portfolio overview card';
+    return t.innerHTML;
+  }
   function reports() {
     return `<h3 class="pzsec">Email reports</h3>` +
       pzCard(pzT('rpWeekly', 'Weekly portfolio summary', 'Every Monday at 8 AM.') + pzT('rpMonthly', 'Monthly performance report', 'A PDF with occupancy, violations and requests.') + pzT('rpAlerts', 'Tell me when a number moves sharply', 'For example occupancy or open violations.'), 'Reports go to your email. Build or export one in Reports.');
@@ -121,7 +146,7 @@ html.a11y-focus :focus-visible{outline:3px solid var(--primary)!important;outlin
   }
   // Staff wording in sections that already exist becomes Client wording.
   const WORDS = [['Staff Portal', 'Client Portal'], ['staff portal', 'client portal'], ['QA Staff PM', 'Dana Whitfield'], ['staff@mail.easyspotops.com', 'dana.whitfield@mallardpointe.example'], ['Manager Operations', 'Client Admin'], ['Property Manager', 'Regional Director']];
-  WORDS.push(['this staff profile', 'your profile'], ['staff profile', 'your profile'], ['Staff (read-only)', 'Viewer (read-only)'], ['(QS)', '(DW)'], ['Messages, Community & Announcements, Promotions.', 'Messages, Calendar and Activity.']);
+  WORDS.push(['EasySpotOps Help Center', 'Support'], ['this staff profile', 'your profile'], ['staff profile', 'your profile'], ['Staff (read-only)', 'Viewer (read-only)'], ['(QS)', '(DW)'], ['Messages, Community & Announcements, Promotions.', 'Messages, Calendar and Activity.']);
   // Pieces of existing sections that are about Social or Promotions: the Client has neither, so they are cut out.
   const CUTS = [
     /<span><svg[^>]*>(?:(?!<\/span>)[\s\S])*?<\/svg> Social pulse: <b>[^<]*<\/b><\/span>/g,
@@ -150,6 +175,25 @@ html.a11y-focus :focus-visible{outline:3px solid var(--primary)!important;outlin
       const out = v.trim() === 'QS' ? v.replace('QS', 'DW') : v.trim() === 'Manager' && n.parentElement.closest('.seg') ? v.replace('Manager', 'Admin') : skin(v);
       if (out !== v) n.nodeValue = out;
     }
+    // Sidebar, made to read like the Client dashboard's: its overview card, "Workspace Settings", and "Support" at the bottom.
+    const sb = document.getElementById('sb');
+    if (sb) {
+      const cap = [...sb.querySelectorAll('.cap')].find((c) => !c.classList.contains('sbclkc'));
+      if (cap && !cap.dataset.skin) {
+        cap.dataset.skin = '1';
+        cap.innerHTML = '<div class="caph"><b>Portfolio Overview</b></div><div class="capr"><span>Properties</span><b>1 / 2</b></div><div class="capr"><span>Parking Spots</span><b>261 / 25 · Over limit</b></div><div class="capr"><span>Staff</span><b>18 / 3 · Over limit</b></div>';
+      }
+      // The sidebar's icons come from a table built from the Staff menu; give each Client item the icon the Client dashboard shows
+      // (unless the person picked their own under Sidebar icons).
+      const CI = { Dashboard: 'grid', Properties: 'bld', Reports: 'chart', 'People & Access': 'people', Vehicles: 'car', Parking: 'park', Requests: 'clip', Violations: 'warn', Messages: 'msg', Calendar: 'cal', Activity: 'zap', 'Staff & Access': 'user', 'Billing & Plan': 'gauge', Recovery: 'refresh', 'Ticket box': 'ticket', Settings: 'gear' };
+      for (const a of sb.querySelectorAll('a[data-p]')) {
+        const key = ((S.icoMap || {})[a.dataset.p]) || CI[a.dataset.p];
+        const ic = a.querySelector('.ic');
+        if (key && ic && ic.dataset.k !== key) { ic.innerHTML = svg(key); ic.dataset.k = key; }
+      }
+      const set = sb.querySelector('a[data-p="Settings"] .lbl');
+      if (set && set.textContent !== 'Workspace Settings') set.textContent = 'Workspace Settings';
+    }
     // The breadcrumb names one property; a Client works across all of them.
     document.querySelectorAll('#ttl b').forEach((b) => { b.textContent = b.textContent.replace('Workspace · Mallard Pointe at Riverbend', 'Workspace · All properties'); });
     for (const el of document.querySelectorAll('input[value],textarea')) { const v = skin(el.value); if (v !== el.value && el.readOnly) el.value = v; }
@@ -160,8 +204,11 @@ html.a11y-focus :focus-visible{outline:3px solid var(--primary)!important;outlin
      and preview.js reads it on the dashboard, messages and ticket pages. Nothing is written until the person changes something. */
   const portalName = client ? 'client' : 'staff';
   const publishUI = () => {
-    try { localStorage.setItem(`ui-prefs:${portalName}`, JSON.stringify({ sb: cols().slice(0, 4), theme: S.theme, accent: S.accent })); } catch { /* storage full or blocked */ }
+    try { localStorage.setItem(`ui-prefs:${portalName}`, JSON.stringify({ sb: cols().slice(0, 4), theme: S.theme, accent: S.accent, icons: S.icons !== false, counts: S.showCounts !== false, cap: S.showCap !== false })); } catch { /* storage full or blocked */ }
+    // Inside the Client dashboard frame the real sidebar belongs to the parent page: tell it to look again right away.
+    if (embedded) { try { parent.postMessage({ type: 'eso-ui-prefs' }, location.origin); } catch { /* no parent */ } }
   };
+  const embedded = client && document.documentElement.classList.contains('embed') && parent !== window;
   const save0 = w.save;
   w.save = function () { const r = save0.apply(this, arguments); publishUI(); return r; };
 
@@ -171,6 +218,14 @@ html.a11y-focus :focus-visible{outline:3px solid var(--primary)!important;outlin
     for (let n = walker.nextNode(); n; n = walker.nextNode()) if (n.nodeValue.includes(' Turn on Resident view to see the storefront.')) n.nodeValue = n.nodeValue.replace(' Turn on Resident view to see the storefront.', '');
   };
   if (!client) for (const name of ['render']) { const f = w[name]; w[name] = function () { const r = f.apply(this, arguments); tidy(); return r; }; }
+
+  if (embedded) {
+    // Light or dark, and the address, follow the frame around this page (the real header has the theme button).
+    const pd = () => { try { return parent.document.documentElement.classList.contains('dark'); } catch { return false; } };
+    w.dark = pd;
+    try { new MutationObserver(() => w.apply()).observe(parent.document.documentElement, { attributes: true, attributeFilter: ['class'] }); } catch { /* no parent */ }
+    addEventListener('hashchange', () => { try { if (parent.location.hash !== location.hash) parent.history.replaceState(null, '', parent.location.pathname + parent.location.search + location.hash); } catch { /* no parent */ } });
+  }
 
   if (client) {
     document.documentElement.classList.add('client-portal');
@@ -186,6 +241,27 @@ html.a11y-focus :focus-visible{outline:3px solid var(--primary)!important;outlin
       ['Data & Recovery', [['Recovery', 'refresh']]],
       ['Services', [['Ticket box', 'scroll']]],
       ['Settings', [['Settings', 'gear']]]);
+    // Same icons as the Client dashboard's sidebar for Properties and Ticket box.
+    try {
+      Object.assign(P, {
+        bld: '<path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z"/><path d="M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2"/><path d="M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2"/><path d="M10 6h4M10 10h4M10 14h4M10 18h4"/>',
+        ticket: '<path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z"/><path d="M13 5v2M13 11v2M13 17v2"/>',
+      });
+      for (const g of NAV) for (const it of g[1]) { if (it[0] === 'Properties') it[1] = 'bld'; if (it[0] === 'Ticket box') it[1] = 'ticket'; }
+    } catch { /* P and NAV are the prototype's own */ }
+    // The Client dashboard's sidebar has no property switcher and no clock, and always shows the portfolio overview card.
+    try {
+      Object.assign(DEF, { showProp: false, sbClock: false, capOpen: true });
+      if (localStorage.getItem('eso-proto') === null) Object.assign(S, { showProp: false, sbClock: false, capOpen: true });
+    } catch { /* first visit only */ }
+    // Settings saved before the sidebar was aligned keep the old property switcher and clock once; move them to the new defaults one time.
+    try {
+      if (localStorage.getItem('ui-sidebar-aligned:client') === null) {
+        Object.assign(S, { showProp: false, sbClock: false, capOpen: true });
+        localStorage.setItem('ui-sidebar-aligned:client', '1');
+        if (localStorage.getItem('eso-proto') !== null) localStorage.setItem('eso-proto', JSON.stringify(S));
+      }
+    } catch { /* storage blocked */ }
     try { DEF.sbTheme = 'forest'; if (localStorage.getItem('eso-proto') === null) S.sbTheme = 'forest'; } catch { /* first visit only */ }
     publishUI(); // the Client's own default look (green sidebar) also applies on its real pages
     // No Social and no Promotions anywhere: a link or a saved address to one goes to Settings.

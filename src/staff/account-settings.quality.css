@@ -25,6 +25,10 @@ html body .sb :is(a,button,input):focus-visible{outline-color:var(--sbfg)!import
 /* Client only (html.client-portal is set by account-settings.staff.js): a Client runs many properties, so the one-property card at the top of Workspace settings does not fit. Staff keeps its page as it was. */
 html.client-portal .wshead{display:none!important}
 
+/* Shown inside the Client dashboard frame (?embed): the frame already has the real sidebar and header, so the prototype's own are not drawn. */
+html.embed #sb,html.embed #ov,html.embed header.apphdr,html.embed #tabbar,html.embed .aifab{display:none!important}
+html.embed .main{margin-left:0!important;width:100%!important;max-width:none!important}
+
 /* Long values wrap instead of being cut off */
 .prow .pill{white-space:normal!important;text-align:right;overflow-wrap:anywhere;max-width:min(60%,24rem)}
 
