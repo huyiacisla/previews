@@ -1,0 +1,48 @@
+/* EasySpotOps staff account-settings: quality pass. Overrides only, original rules untouched.
+   Colours come from the prototype's own variables (--primary, --sbfg, --fg, --bg), no raw hex.
+   Every rule that must win carries !important, so link order does not matter. */
+
+/* Keyboard focus: visible on every control, light ring on the dark sidebar */
+html body :is(a,button,input,select,textarea,summary,[tabindex],[role=tab],[role=button]):focus-visible{outline:2px solid var(--primary)!important;outline-offset:2px!important}
+html body .sb :is(a,button,input):focus-visible{outline-color:var(--sbfg)!important;outline-offset:-2px!important}
+/* Pin buttons were opacity:0 until mouse hover; reveal them for keyboard users too */
+.sb a:focus-within .pin,.pin:focus-visible{opacity:1!important}
+
+/* Touch / click targets (WCAG 2.2 target size) */
+.pin{width:32px!important;height:32px!important}
+.gh{min-height:32px}
+.sb .caph button{min-height:28px;padding:6px 8px}
+.crumb a{display:inline-block;padding:4px 2px}
+.qa-tap{min-height:28px!important;padding-top:6px!important;padding-bottom:6px!important} /* added by qa-quality.js to controls under 24px tall */
+
+/* Long values wrap instead of being cut off */
+.prow .pill{white-space:normal!important;text-align:right;overflow-wrap:anywhere;max-width:min(60%,24rem)}
+
+/* Floating AI button no longer covers the last row */
+#content.content{padding-bottom:96px}
+
+/* Minimum readable text size: 11px -> 12px */
+.sb .grp,.new,.bk,.ah,.rtag,.rbtn,.dd h6,.remg,.gact button,.dropact .hint,.thumb,.tsw span,.chip{font-size:12px!important}
+html body #content small,html body #content span.m{font-size:12px!important}
+
+/* Prototype badge "Look: switch": amber text on its 12% amber tint was 3.92:1 in light mode (needs 4.5:1). 5.94:1 now. Dark mode was already fine. */
+html:not(.dark) body .badge .mdt{color:oklch(0.45 0.1 64.5)!important}
+html body .badge .mdt{font-size:12px!important}
+
+/* Sidebar "EasySpotOps Help" button was 21px tall when the drawer opens (min 24px) */
+html body #sb .help,html body .sb .help{min-height:36px}
+
+/* Skip link (created by qa-quality.js) */
+.qa-skip{position:fixed;left:12px;top:-64px;z-index:9999;background:var(--fg);color:var(--bg);padding:10px 14px;border-radius:8px;text-decoration:none;font:500 14px/20px var(--font-sans,system-ui)}
+.qa-skip:focus{top:12px}
+
+/* Settings page: remove repeated headings and the summary strip */
+html body #content .psel small{display:none!important} /* the "Selected section" label above the section title */
+/* removed on request: profile summary cards (.psum: Staff name / Availability / Notifications / Theme, also the Workspace variant) duplicated info shown below. Delete this rule to bring them back. */
+html body #content .psum{display:none!important}
+
+/* 1024-1279px: three columns were cramped, narrow the settings menu */
+@media (min-width:1024px) and (max-width:1279px){.pgrid{grid-template-columns:208px minmax(0,1fr)!important;gap:12px!important}}
+
+/* Respect "reduce motion" */
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important;scroll-behavior:auto!important}}

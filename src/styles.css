@@ -1,0 +1,39 @@
+@import "./ui-tokens.css";
+
+/* App thật nạp Inter qua next/font và gán --font-sans; preview gán tay. */
+:root {
+  --font-sans: Inter, ui-sans-serif, system-ui, sans-serif;
+}
+
+/* Ngăn kéo điều hướng cho mobile/tablet (<1024px). HTML chụp từ app thật chỉ có nút "Open navigation" và sidebar
+   ẩn; preview.js bật data-nav-open trên <html>. Chỉ dùng token, không màu riêng. */
+@media (max-width: 1023px) {
+  html[data-nav-open] [data-slot="sidebar"] { display: block; }
+  html[data-nav-open] [data-slot="sidebar-gap"] { width: 0; }
+  html[data-nav-open] [data-slot="sidebar-container"] {
+    display: flex;
+    width: min(20rem, 92vw);
+    z-index: 60;
+    background: var(--surface-inverted);
+    box-shadow: var(--shadow-lift-xl, 0 24px 70px rgb(0 0 0 / 0.24));
+    animation: nav-slide-in 200ms ease-out;
+  }
+  html[data-nav-open] [data-slot="sidebar-container"] [data-slot="sidebar-inner"] { overflow-y: auto; }
+  [data-nav-scrim] { position: fixed; inset: 0; z-index: 50; background: color-mix(in oklab, var(--foreground) 45%, transparent); animation: nav-fade-in 200ms ease-out; }
+}
+[data-nav-scrim][hidden] { display: none; }
+@keyframes nav-slide-in { from { transform: translateX(-100%); } to { transform: none; } }
+@keyframes nav-fade-in { from { opacity: 0; } to { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) {
+  html[data-nav-open] [data-slot="sidebar-container"], [data-nav-scrim] { animation: none; }
+}
+
+/* Token spacing có tên của @easyspotops/ui nằm trong @theme nên chỉ được phát khi có utility dùng;
+   CSS Module trích từ app thật (styles/<portal>.css) dùng var() trực tiếp ⇒ khai lại đúng giá trị. */
+:root {
+  --spacing-step-xs: 0.25rem;
+  --spacing-step-sm: 0.5rem;
+  --spacing-step-md: 0.75rem;
+  --spacing-step-lg: 1rem;
+  --spacing-step-xl: 1.5rem;
+}

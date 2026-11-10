@@ -1,0 +1,1935 @@
+@import "tailwindcss" source(none);
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+
+/* `DOC-aea24031aa16-R46` — khuôn CHÍNH XÁC của doc shadcn `theming#default-theme-css`,
+   huyi0 chốt `2026-09-20` lấy trang đó làm CĂN CỨ. Bản cũ `&:where(.dark, .dark *)` có
+   từ commit tách app `e29810a03`, không kèm lý do.
+
+   KHÁC BIỆT ĐO ĐƯỢC (biên dịch bằng chính Tailwind `4.3.3` của repo):
+     `:where(…)`   → `.dark\:bg-card:where(.dark, .dark *)`  specificity `0,1,0`
+     `:is(.dark *)` → `.dark\:bg-card:is(.dark *)`            specificity `0,2,0`
+   Thứ tự sinh ra GIỐNG nhau ở cả hai bản (`dark:` luôn đứng sau utility trần), nên đổi
+   này chỉ lật kết quả ở chỗ `dark:P-x` đấu một variant KHÁC cùng property `P`: trước thì
+   variant kia thắng (`0,2,0 > 0,1,0`), sau thì hoà `0,2,0` ⇒ thứ tự quyết ⇒ `dark:` thắng.
+   Đo toàn cây `3286` tệp: `8` điểm lật THẬT + `5` điểm lật mà cùng giá trị (`0` pixel).
+   Cả `8` đã khai `dark:<variant>:` tường minh (`0,3,0`) để giữ NGUYÊN pixel.
+
+   Phần "rộng hơn" của `:where(.dark, …)` — áp cho CHÍNH phần tử mang `.dark` — đo ra `0`
+   chỗ dùng: `0` nơi gắn class `dark` bằng tay, `0`/`6` app có `dark:` trên `<html>`
+   (`next-themes` `attribute="class"` đặt `.dark` ở đó). Bỏ đi không mất gì. */
+@custom-variant dark (&:is(.dark *));
+
+:root {
+  /* `DOC-f2dff1c3a46e-R03` lô A1 — bảng màu prototype resident, ÉP QUA AA. Giá trị gốc
+     của prototype thiết kế cho NỀN TRẮNG, mà repo có `3` bề mặt (card · canvas · accent)
+     cộng lớp tint `10%`, nên `12`/`24` cặp trượt `4,5:1` nếu áp nguyên. Ép L xuống tới khi
+     đạt trên MỌI nền, giữ nguyên hue/chroma ⇒ mắt vẫn thấy đúng sắc thiết kế. */
+  /* huyi0 `2026-09-29` — nền THỐNG NHẤT 7 app (thay `#f3f6fa` ← prototype `--canvas`). */
+  --background: lab(96.7391% -0.491768 -2.28221);
+  /* `--foreground` cũng là NỀN ĐẢO (`bg-foreground` = bề mặt tối trong light mode).
+     Đổi `#0f172a` → `#16243d` làm nền đó SÁNG lên `0,054` L ⇒ chữ đứng trên mất tương
+     phản. Đo trước khi sửa: trên nền TRẦN vẫn đạt, nhưng trên nền + lớp phủ `bg-white/10`
+     thì `--primary-on-dark` `4,82`→`4,07` và `--surface-inverted-subtle` `5,29`→`4,47`,
+     CẢ HAI TRƯỢT. Đúng ca `DOC-22a6fa2d69ce-R14` lô `4` đã vấp: accent hiếm khi nằm trên
+     nền đảo TRẦN, nó thường nằm trên lớp phủ mờ. Hai token đó đã nâng bù ở dưới. */
+  --foreground: oklch(0.2615 0.051 261.32); /* #16243d ← prototype `--ink` */
+  /* `DOC-22a6fa2d69ce-R14` — `--foreground-subtle` (slate-`400`) ĐÃ XOÁ ngày `2026-09-18`,
+     huyi0 chốt. Nó là nguồn lớn nhất của nợ tương phản sau đăng nhập: `2341`/`3405` ca
+     (`69%`) là đúng token này trên bề mặt sáng — `2,56:1` trên trắng, `2,34:1` trên
+     `#f1f5f9`. Không hạ xuống slate-`500` được vì `4,34:1` trên `#f1f5f9` vẫn trượt AA,
+     mà hạ xuống slate-`600` thì trùng y hệt `--muted-foreground` ⇒ token không còn nghĩa
+     riêng. `701` chỗ dùng đã gộp về `muted-foreground` bằng ast-grep (`682` `.tsx` + `19`
+     `.ts`, chuỗi class trong `constants.ts` mà grep theo file `.tsx` sẽ bỏ sót).
+     `59` chỗ nằm trên bề mặt TỐI CỐ ĐỊNH được chuyển sang `--surface-inverted-subtle`
+     TRƯỚC đó (cùng `#94a3b8`, không đổi một pixel) — nếu gộp thẳng chúng vào
+     `muted-foreground` thì slate-`600` trên nền `#0f172a` chỉ còn ~`2,5:1`. */
+  --surface: oklch(1 0 0);
+  --border: oklch(0.9286 0.0155 257.2); /* #e1e8f2 ← prototype `--line` */
+  /* `DOC-22a6fa2d69ce-R08` — blue-600 `#2563eb` trên chính lớp tint của nó (`bg-primary/10`
+     = `#e9effd`) chỉ đạt `4,49:1`, trượt AA đúng một làn tóc ở `11` huy hiệu mềm đo ngày
+     `2026-09-18`. Xuống blue-700 `#1d4ed8` cho `5,82:1` trên tint đó và `7,0:1` trên trắng
+     (cũ `5,17`). Đổi ở TOKEN vì cặp `bg-primary/10` + `text-primary` là khuôn dùng chung. */
+  /* #2b55f2 — prototype `--primary` `#315efb` ÉP AA. Hai bước, và bước hai mới là bài học:
+     (1) ma trận TĨNH `4` nền (card · canvas · accent · tint `10%`) cho `#2c56f3`;
+     (2) `contrast-probe` trên TRANG THẬT vẫn đỏ `4,45` tại `<span>` "Illustrative" của
+         trang chủ — nền ở đó là `#dce5f9`, sinh từ CHỒNG LỚP trong DOM nên không nằm
+         trong bất kỳ nền nào đoán được từ token. Thêm đúng nền đó vào ràng buộc ⇒ `#2b55f2`.
+     Lịch sử L5/DOC-be09465f8941 §3.3 (doc đã xoá). Nguồn hiện hành:
+     DESIGN.md Colors + scripts/quality/contrast/contrast-probe.mjs; gate tĩnh không
+     chứng contrast trên nền chồng lớp, phải đo computed DOM thực. */
+  /* `DOC-f6dceedba45e-R01` — L `0,5286→0,5086`: chip `text-primary` trên tint đè lên canvas ở `/coo` admin
+     (`rgb(213,222,241)`) chỉ `4,22`; `0,5086` cho `4,61` (trắng `6,23`). Giữ hue/chroma. */
+  --primary: oklch(0.5086 0.2385 266.1);
+  /* `DOC-3481465c8c04` — accent NẰM TRÊN bề mặt `bg-foreground` (tối ở light mode).
+     `--primary` `#2563eb` trên `#0f172a` chỉ đạt 3,45:1, dưới AA cho chữ thường; đo
+     2026-09-18 ở link nav đang chọn trên 5 trang công khai. `#6f8cff` (đã là
+     `--primary` của `.dark`, không bịa màu mới) đạt 5,60:1. */
+  /* `DOC-22a6fa2d69ce-R14` lô 4 — `#6f8cff` → `#7b93ff`, đúng bước mà `R07` đã làm cho
+     `--surface-inverted-accent` ngay dưới đây, vì cùng một bài toán: accent hiếm khi nằm
+     trên nền đảo TRẦN, nó thường nằm trên lớp phủ mờ làm nền sáng lên. Đo trên nút
+     "Back to dashboard" của `client/alerts` (nền thật `rgb(39,47,64)` = `bg-foreground` +
+     `bg-white/10`): `#6f8cff` chỉ được `4,40:1`, DƯỚI AA; `#7b93ff` qua mức.
+     An toàn vì `text-primary-on-dark` mới chỉ có `2` nơi dùng, cả hai đều là bề mặt đảo. */
+  --primary-on-dark: oklch(
+    0.7653 0.1192 269.23
+  ); /* #94afff — NÂNG BÙ vì `--foreground` sáng lên `#16243d`: trên nền đó + phủ `10%` bản cũ chỉ còn `4,07:1` */
+  /* `DOC-22a6fa2d69ce-R14` — anh em NGƯỢC chiều của `--primary-on-dark`: dành cho chip nền
+     TRẮNG CỐ ĐỊNH (`bg-white` ở sidebar `staff`), nơi nền KHÔNG đảo còn `--destructive` và
+     `--warning` thì CÓ: ở dark chúng hóa đỏ/vàng SÁNG nên rơi xuống `2,89:1` (đo thật trên
+     `staff/violations`) và ~`1,8:1`. Giữ nguyên giá trị light ở CẢ hai chế độ ⇒ ĐỪNG khai lại
+     hai biến này trong `.dark`. `#b91c1c` trên trắng `7,00:1` · `#92400e` `7,53:1`. */
+  --destructive-on-light: oklch(0.5054 0.1905 27.52);
+  --warning-on-light: oklch(0.4732 0.1247 46.2);
+  /* `DOC-22a6fa2d69ce-R07` — bề mặt ĐẢO CỐ ĐỊNH cho site marketing công khai.
+     `bg-foreground` là bề mặt đảo THEO CHẾ ĐỘ: ở dark mode `--foreground` hoá gần trắng
+     nên CẢ trang public lật sang trắng, kéo theo `234/350` vi phạm tương phản đo ngày
+     `2026-09-18` (`--foreground-subtle` slate-400 trên nền `#fafafa` = `2,46:1`).
+     Bộ token này CỐ Ý không khai lại trong `.dark`: nền tối ở CẢ HAI chế độ — đúng ý đồ
+     thiết kế "site marketing nền tối", và chữ đặt trên nó chỉ cần đúng MỘT lần.
+     Đo trên `#0f172a`: subtle `6,65:1` · accent `5,60:1` · foreground `16,5:1`. */
+  --surface-inverted: oklch(0.2077 0.0398 265.75);
+  --surface-inverted-foreground: oklch(0.9842 0.0034 247.86);
+  --surface-inverted-subtle: oklch(
+    0.7612 0.0351 255.24
+  ); /* #a3b3c8 — NÂNG BÙ cùng lý do: bản cũ `4,47:1` trên nền đảo mới + phủ `10%` */
+  /* Sáng hơn `--primary-on-dark` một bậc CÓ LÝ DO: accent không phải lúc nào cũng nằm trên
+     `#0f172a` trần, mà thường trên lớp phủ mờ (`bg-surface-inverted-foreground/10`) làm nền
+     sáng lên. `#6f8cff` đo được `5,60:1` trên nền trần nhưng tụt còn `4,29`–`4,45` trên hai
+     lớp phủ đó — DƯỚI AA. `#7b93ff` giữ `4,66`/`4,82` ở đúng hai chỗ ấy và `6,07:1` trên nền
+     trần. Cùng họ màu, không đổi ý đồ thiết kế. */
+  --surface-inverted-accent: oklch(0.6938 0.1604 272.17);
+  /* `DOC-22a6fa2d69ce-R14` lô 4 — bản "thành công" cho bề mặt ĐẢO. `--success` là
+     emerald-`800` `#065f46` vì `R08` chọn cho nền SÁNG; đặt nó lên vỏ tối cố định thì
+     chỉ còn `2,04:1` — đo được trên nút "Manage Capacity" của sidebar `staff`, nền thật
+     `rgb(27,35,53)`, ở CẢ `8` route. Lấy đúng `#34d399` mà `.dark` đang dùng cho
+     `--success`, không bịa màu mới (cùng luật `R07`): `8,15:1` trên nền đó. */
+  --surface-inverted-success: oklch(0.7729 0.1535 163.22);
+  /* `DOC-7c1e4a9d20b8-R34` — bản "cảnh báo" cho bề mặt ĐẢO, cùng bài toán `-success` ngay trên:
+     `--warning` là amber-`800` `#925000` cho nền SÁNG ⇒ trên navy cố định ở chế độ sáng chỉ
+     `2,58:1` (đo ô `Attention` của sidebar `admin`). Lấy đúng `#fbbf24` mà `.dark` đang dùng
+     cho `--warning`, không bịa màu: `8,14:1` trên ô tint `bg-warning/15`. */
+  --surface-inverted-warning: oklch(0.8369 0.1644 84.43);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.145 0 0);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.145 0 0);
+  --primary-foreground: oklch(1 0 0);
+  --secondary: oklch(0.97 0 0);
+  --secondary-foreground: oklch(0.205 0 0);
+  /* `DOC-c074ed99482a-R02` — bậc nền: L `0.9683`→`0.945` (`#f1f5f9`→`#e9edf1`). Trên canvas
+     `0.972` bản cũ lệch ΔL `0,004` ⇒ `bg-muted` đặt thẳng trên canvas tàng hình; nay `0,027`
+     ≈ sàn Card White (`0,028`, Soft Separation Rule). `muted-foreground` trên nó `5,07`→`4,73:1`
+     (vẫn AA). Chữ trạng thái `*-text` trên `bg-muted` rơi `4,16`–`4,27` — ghép đó đo tĩnh `0`
+     chỗ (sàn, không phải trần) ⇒ tông trạng thái dùng cặp `-bg` của chính nó (Tonal Pair Rule). */
+  --muted: oklch(0.945 0.0069 247.9);
+  /* `DOC-22a6fa2d69ce-R07` — slate-500 `#64748b` trên `--muted`/`--background` `#f1f5f9`
+     chỉ đạt `4,34:1`, DƯỚI AA cho chữ thường: `54` phần tử ở light mode đo `2026-09-18`,
+     cụm lớn nhất còn lại sau khi vá bề mặt đảo. Hạ một bậc sang slate-600 ⇒ `6,29:1` trên
+     `#f1f5f9` và `7,0:1` trên trắng. Đổi ở TOKEN chứ không ở từng chỗ dùng: cùng một cặp
+     `text-muted-foreground` trên nền nhạt lặp lại ở cả 6 app. */
+  --muted-foreground: oklch(
+    0.5182 0.0506 260.99
+  ); /* #586986 — prototype `--muted` `#6d7f9d` ÉP AA (bản gốc `3,75:1` trên canvas) */
+  --foreground-secondary: oklch(0.35 0 0);
+  --accent: oklch(0.9612 0.0182 269.09); /* #edf2ff ← prototype `--blue-soft` */
+  --accent-foreground: oklch(0.205 0 0);
+  /* `DOC-22a6fa2d69ce-R14` lô 3 — cùng lỗi với `--primary` (`R08`) và `--warning` (lô 2),
+     nhẹ hơn nên lọt lâu hơn: red-`600` trên tint `bg-destructive/10` (`#fbe9e9`) được
+     `4,12:1` và chữ slate-`100` trên nền đặc được `4,41:1` — cả hai TRƯỢT `4,5` trong gang
+     tấc, `21` ca. red-`700` cho `5,53:1` và `5,91:1`: thoát có biên, không cần xuống
+     red-`800` (`7,10`) vốn đổi hình nhiều hơn mức cần. `.dark` giữ nguyên. */
+  --destructive: oklch(
+    0.5173 0.1639 30.29
+  ); /* #b33627 — prototype `--danger` ÉP AA trên NỀN THẬT của probe `staff` (`rgb(228,220,232)`), không phải nền suy từ token */
+  /* `DOC-22a6fa2d69ce-R08` — cùng lỗi với `--primary`, nặng hơn: emerald-600 `#059669` trên
+     tint `bg-success/10` chỉ `3,33:1`. emerald-800 `#065f46` cho `6,79:1`. */
+  --success: oklch(
+    0.4769 0.1236 154.67
+  ); /* nền thật `rgb(209,225,223)` ở `/coo` admin: `4,24→4,59` (`DOC-f6dceedba45e-R01`) */
+  /* `DOC-22a6fa2d69ce-R14` lô 2 — amber-`600` là cụm lớn nhất còn lại sau lô 1: `266` ca
+     chữ `text-warning` trên chính tint của nó (`bg-warning/10` = `#fbf1e6`) chỉ `2,86:1`,
+     cộng `53` ca chữ sáng trên nền `bg-warning` đặc (`2,91:1` với slate-`100`). Đo bằng
+     công thức WCAG, khớp đúng số probe đo được: amber-`700` `4,50:1` (sát mép, làm tròn là
+     trượt) · amber-`800` `6,36:1` trên tint và `6,47:1` cho slate-`100` trên nền đặc.
+     Chọn amber-`800` theo đúng tiền lệ `R08` đã làm với `--success` (emerald-600→800).
+     `.dark` giữ amber-`400` — ở đó nền tối nên chiều ngược lại mới đúng. */
+  /* #925000 — prototype `--warning` ÉP AA CÓ BIÊN. Vì sao có biên: đây là bài toán
+     LẶP, không phải một phép ép. Lớp `bg-warning/10` mang SẮC của chính token, nên
+     đổi token ⇒ nền đổi theo ⇒ ngưỡng dịch. Đo thực: lượt `1` nền `/violations` là
+     `rgb(225,223,228)`, ép xong thì lượt `2` nền thành `rgb(224,222,228)` — tối hơn
+     đúng `1` đơn vị mỗi kênh, và `4,47` vẫn hụt `0,03`. Đuổi theo từng nền là vòng
+     lặp không đáy, nên ép tới `4,65` trên MỌI nền đã biết + `3` nền đo được: biên dư
+     còn `0,171`, gấp ~`5` lần độ dịch quan sát được. */
+  --warning: oklch(0.4996 0.117 60.18);
+
+  /* `DOC-aea24031aa16-R44` — bộ pill NGỮ NGHĨA, chuyển từ
+     `apps/websites/portal-resident/app/globals.css` về đây.
+
+     VÌ SAO CHUYỂN: doc theming của shadcn (mục "Adding new tokens") nói thẳng —
+     token mới phải khai ở CẢ `:root` VÀ `.dark`, rồi phơi qua `@theme inline`.
+     Bản cũ khai `16` token chỉ ở `:root`, `0` dòng `.dark`, lại nằm trong APP chứ
+     không ở tầng 1. Hệ quả ĐO ĐƯỢC ngày `2026-09-20` trên `resident/violations`:
+     pill `bg-danger-bg`+`text-danger-text` ra `rgb(254,226,226)`/`rgb(185,28,28)`
+     Y HỆT ở cả hai chế độ ⇒ `55` lượt dùng thành đảo SÁNG trên trang tối. Không
+     gate nào thấy: `UI011` bỏ qua dòng khai `--x:`, `UI009` chỉ soi utility trong
+     TS/TSX, và `contrast-probe` cũng im vì cặp chữ/nền tự nó vẫn đạt AA — nó chỉ
+     sai CHỖ ĐỨNG, không sai tỉ lệ.
+
+     GIÁ TRỊ LIGHT GIỮ NGUYÊN TỪNG BYTE. Giá trị dark KHÔNG bịa: chữ lấy đúng bản
+     `.dark` mà token chung cùng họ đang dùng (`--success` `#34d399` · `--warning`
+     `#fbbf24` · `--primary` `#7b93ff` · `--muted-foreground`), nền lấy bậc `950`
+     cùng sắc của Tailwind — cùng lối `R07` đã đặt ("lấy đúng màu `.dark` đang
+     dùng, không bịa màu mới").
+
+     `--tile-bg` ĐÃ GỘP vào `--banner-bg`: hai tên, cùng một giá trị `#eff6ff`, và
+     `tile-bg` chỉ có `1` lượt dùng. */
+  --success-text: oklch(
+    0.515 0.1287 155.44
+  ); /* #007c46 ← prototype `--success` #13864f, ép AA (4,89:1 trên `--success-bg`; bản 0.534 đo thật 4,42 ở Badge — DOC-6d2f9b81e3a7 T22) */
+  --success-bg: oklch(0.971 0.0165 156.92); /* #edf9f1 ← prototype `--success-bg` */
+  --success-strong: oklch(0.596 0.1274 163.23);
+  --warning-text: oklch(0.5558 0.1239 64.52); /* #a46104 ← prototype `--warning` #a66308, ép AA */
+  --warning-bg: oklch(0.9761 0.022 80.69); /* #fff6e7 ← prototype `--warning-bg` */
+  /* `DOC-a541e5e63672-R03` — info tách khỏi primary (`266°`/`C 0.24`): hue `258°`, chroma hạ
+     `0.217 → 0.125`; trước đó chỉ lệch `1,7°` hue ⇒ "thông tin" đọc như "bấm được". `5,22:1`. */
+  --info-text: oklch(0.4882 0.125 258);
+  --info-bg: oklch(0.9319 0.026 256);
+  --danger-text: oklch(0.5613 0.1633 30.57); /* #c24534 ← prototype `--danger` #c34635, ép AA */
+  --danger-bg: oklch(0.9683 0.0157 32.01); /* #fff1ee ← prototype `--danger-bg` */
+  --danger-dot: oklch(0.6368 0.2078 25.33);
+  --banner-bg: oklch(0.9705 0.0142 254.6);
+  --neutral-bg: oklch(0.9595 0.008 253.85);
+  --neutral-text: oklch(0.4455 0.0374 257.28);
+  /* `DOC-bd1a754bb928` (huyi0 `2026-09-27`): tông Badge tonal không ngữ nghĩa — Tailwind
+     `700` chữ / `50` nền (6,66:1 · 5,57:1). */
+  --purple-text: oklch(0.496 0.265 301.924);
+  --purple-bg: oklch(0.977 0.014 308.299);
+  --sky-text: oklch(0.5 0.134 242.749);
+  --sky-bg: oklch(0.977 0.013 236.62);
+  --activity-green: oklch(0.6271 0.1699 149.21);
+  --activity-orange: oklch(0.7049 0.1867 47.6);
+  /* `DOC-b3e641ff7e34-R01` — viền ô nhập là dấu hiệu DUY NHẤT nhận ra ô ⇒ WCAG 1.4.11 ≥ `3:1`.
+     `#e1e8f2` chỉ `1,23:1`. `0.62` là mức nhạt nhất còn ≥ `3:1` trên card · background · muted
+     (`3,64` · `3,37` · `3,10`; `0.64` rớt muted `2,86`). `--border` GIỮ mềm cho thẻ/phân cách. */
+  --input: oklch(0.62 0.02 257.2); /* #7f8792 */
+  --ring: oklch(0.5461 0.2152 262.88);
+  /* `DOC-a541e5e63672-R04/R05` — mỗi slot MỘT hue cố định ở cả `:root` lẫn `.dark`
+     (`266°` · `205°` · `70°` · `335°` · `140°`); chỉ L/C đổi theo theme. Trước đó khuôn shadcn:
+     chart-4/5 cách `14°` hue (`ΔL 0,06`), chart-1 `41°` light vs `264°` dark. Light: ≥ `3:1`
+     trên Card White, `ΔE_ok` tối thiểu `0,159`. Cặp bị chặn ở `DOC-db505b209fa9-R25` (`0` điểm
+     dùng `chart-N` trong `apps/**` ∧ `packages/platform/web/ui/**`, đo `2026-09-19`; đo lại `2026-10-20`). */
+  --chart-1: oklch(0.56 0.2 266);
+  --chart-2: oklch(0.55 0.095 205);
+  --chart-3: oklch(0.62 0.125 70);
+  --chart-4: oklch(0.6 0.19 335);
+  --chart-5: oklch(0.63 0.15 140);
+  --radius: 0.625rem;
+
+  /* `DOC-1cd5fe1da37e-R14` — hai bậc chữ repo GHI ĐÈ, khai ở `:root` để dùng
+     được NGOÀI utility Tailwind. huyi0 hỏi `2026-09-22` "6 app dùng chung
+     theme chưa, vì sao fontsize khác nhau" — đây là một trong ba gốc.
+
+     Đo `2026-09-22` bằng `getComputedStyle(:root)` trên `localhost:3564`:
+       `--text-sm` `.875rem`   `--text-base` `1rem`   `--text-lg` `1.125rem`
+       `--text-xs`  **RỖNG**   `--text-2xs`  **RỖNG**
+     và `font-size: var(--text-xs)` áp vào phần tử thật cho ra `16px`, tức
+     var() không resolve rồi rơi về kế thừa.
+
+     Vì sao chỉ HAI bậc đó rỗng: chúng là hai bậc DUY NHẤT repo ghi đè bằng
+     giá trị TRỰC TIẾP trong `@theme inline`, mà `inline` nghĩa là Tailwind nội
+     tuyến giá trị vào utility thay vì phát biến. Các bậc còn lại là mặc định
+     Tailwind nên có sẵn ở `:root`; `--radius-*` cũng dùng được vì khai bằng
+     `calc(var(--radius) * n)` — buộc phải phát `--radius`.
+
+     Hệ quả ĐO ĐƯỢC, không phải suy: `staff-portal-frame.module.css` nối được
+     `var(--radius-*)` và `var(--font-weight-*)` vào thang (chú thích đầu tệp
+     ghi rõ đã đo), nhưng `16` dòng `font-size` vẫn là px cứng `13`/`15`/`10px`
+     — `26` phần tử ngoài thang trên `/dashboard`, và là app DUY NHẤT trong `6`
+     app có cỡ ngoài thang. Không ai ghi lại vì sao dừng ở đó.
+
+     Khuôn dưới đây theo đúng cách repo làm với màu (`:root` khai giá trị,
+     `@theme inline` trỏ tới): utility `text-xs` vẫn ra `12px`, và CSS ngoài
+     Tailwind dùng `var(--font-size-xs)` được. */
+  --font-size-2xs: 0.6875rem;
+  --font-size-xs: 0.75rem;
+
+  /* `DOC-1cd5fe1da37e-R18` — bậc RIÊNG cho chữ trong CONTROL, huyi0 chốt
+     `2026-09-22`: "đồng loạt dùng `size='sm'` và fontsize bên trong là `13px`".
+
+     `13px` nằm GIỮA `12` và `14` của thang chữ thường, tức đúng hình dạng mà lô
+     này vừa chữa HAI lần (`R39` gom `13`↔`14`, `R15` gom `11`↔`12`). Nó không
+     lặp lại cái bệnh đó CHỈ KHI có vai trò riêng và không ai dùng nó cho chữ
+     thường — đó là lý do token mang tên `--text-control` chứ không phải một
+     bậc `text-13` trên thang chung, và là lý do có luật ast-grep
+     `text-control-outside-control` chặn dùng nó ngoài control.
+
+     Thang sau `R18` — HAI thang, mỗi thang một vai trò:
+       chữ    `12` phụ · `14` body và nhãn chính · `16` tiêu đề thẻ ·
+              `18` tiêu đề mục · `24` tiêu đề trang (trần)
+       control `12` — Button · Select · Input (desktop) · Tab · MenuItem
+       (hạ từ `13`, huyi0 + Jev `2026-10-03`, `DOC-be09465f8941-R48`: `13` ngoài thang `12`/`14`) */
+  --font-size-control: 0.75rem;
+
+  /* `DOC-f2dff1c3a46e-R03` lô B — bộ `sidebar` theo bảng prototype: nền `--nav` `#10172b`,
+     tức ĐẢO từ sáng (`#fafafa`) sang TỐI. Đảo bề mặt ⇒ CẢ BỘ phải đảo theo, không thì
+     chữ đen trên nền tối. `.dark` khai BẰNG `:root`: prototype tả sidebar là bề mặt tối
+     không phân biệt chế độ, cùng họ với bộ pill ở `R45`.
+
+     PROTOTYPE CHỈ CHO `2` GIÁ TRỊ (`--nav` nền, `--white` chữ). `4` token còn lại SUY,
+     mỗi cái căn cứ trong chính bảng đó chứ không bịa màu mới:
+       `accent` = `--ink` `#16243d` — bậc tối KẾ TIẾP của bảng, dùng làm nền hover
+       `primary` = `--primary` sau khi ép AA ở lô A1
+       `border`  = `--nav` nâng L tới khi THẤY được trên chính nó (`1,26:1`)
+       `ring`    = `--primary` nâng cho đủ `4,5` TRÊN nền nav
+
+     BÀI HỌC LÚC TÍNH: `--sidebar-primary` là NỀN của mục đang chọn, KHÔNG phải chữ.
+     Lần đầu tôi ép nó sáng để "đọc được trên nav" ⇒ chữ trắng trên nó tụt còn `3,42:1`.
+     Vai trò nền và vai trò chữ đòi hai chiều NGƯỢC nhau; tách ra thì cả hai đạt.
+
+     Đo sau khi tách: chữ chính trên nav `17,80` · trên nền hover `15,51` · chữ trắng
+     trên nền mục chọn `5,70` · ring trên nav `5,21` · viền thấy được `1,26`.
+
+     Lịch sử snapshot lúc migrate: 49 lượt tại đường cũ packages/platform/web/ui/src/sidebar.tsx;
+     primitive hiện ở src/shell/sidebar.tsx. Không dùng số dưới làm inventory hiện tại:
+     `0`/`6` app dùng (`DOC-be09465f8941` tầng `5`) ⇒ lô này đổi `0` pixel ĐANG hiển thị;
+     nó dọn sẵn để khi `R08` nối primitive thì ra đúng màu thiết kế ngay. */
+  --sidebar: oklch(0.2092 0.0412 268.13); /* #10172b ← prototype `--nav` */
+  --sidebar-foreground: oklch(1 0 0); /* #ffffff ← prototype `--white` */
+  --sidebar-primary: oklch(0.5286 0.2385 266.1); /* #2b55f2 — NỀN mục chọn, = `--primary` */
+  --sidebar-primary-foreground: oklch(1 0 0);
+  --sidebar-accent: oklch(0.2615 0.051 261.32); /* #16243d ← prototype `--ink`, nền hover */
+  --sidebar-accent-foreground: oklch(1 0 0);
+  --sidebar-border: oklch(0.2917 0.0402 267.88); /* #232b40 — `--nav` nâng cho THẤY được */
+  --sidebar-ring: oklch(0.6432 0.1901 264.12); /* #5085ff — focus, cần `4,5` TRÊN nav */
+}
+
+.dark {
+  --background: oklch(0.145 0 0);
+  --foreground: oklch(0.985 0 0);
+  --surface: oklch(0.221 0.0394 258.28);
+  --border: oklch(1 0 0 / 10%);
+  /* `DOC-22a6fa2d69ce-R07` — `#6f8cff` KHÔNG đủ khi accent nằm trên thẻ `bg-card` có lớp
+     tint `bg-primary/10`: nền hoá `rgb(45,48,60)` và tỉ lệ tụt còn `4,29:1`, dưới AA. Sáng
+     lên `#7b93ff` cho `4,66:1` ở đúng chỗ đó. Đo trên `8` route công khai của `website`;
+     các app khác cùng hướng (nền tối + accent sáng hơn) nhưng CHƯA đo. */
+  --primary: oklch(0.6938 0.1604 272.17);
+  /* Nền `bg-foreground` ở dark mode hoá gần TRẮNG ⇒ accent trên nó phải là bản ĐẬM.
+     Đảo ngược chiều với `--primary`, đúng như `--background` đảo ngược `--foreground`. */
+  --primary-on-dark: oklch(0.5461 0.2152 262.88);
+  --card: oklch(0.205 0 0);
+  --card-foreground: oklch(0.985 0 0);
+  --popover: oklch(0.205 0 0);
+  --popover-foreground: oklch(0.985 0 0);
+  --primary-foreground: oklch(0.205 0 0);
+  --secondary: oklch(0.269 0 0);
+  --secondary-foreground: oklch(0.985 0 0);
+  --muted: oklch(0.269 0 0);
+  --muted-foreground: oklch(0.708 0 0);
+  --foreground-secondary: oklch(0.85 0 0);
+  --accent: oklch(0.269 0 0);
+  --accent-foreground: oklch(0.985 0 0);
+  --destructive: oklch(0.704 0.191 22.216);
+  --success: oklch(0.7729 0.1535 163.22);
+  --warning: oklch(0.8369 0.1644 84.43);
+
+  /* Bộ pill + `banner-bg` ĐẢO theo chế độ — huyi0 `2026-09-24` đảo chốt
+     `DOC-aea24031aa16-R45` (`2026-09-20`, "giữ nguyên màu cả hai chế độ"): nền sáng
+     cố định trên canvas tối chói như nút (ảnh Access & Passes dark).
+
+     ĐẢO CẢ HỌ, không riêng pill: `text-info-text` đứng trên `bg-banner-bg` ở `8` hộp
+     thông báo resident — đảo chữ mà giữ nền là chữ sáng trên nền sáng. Blast radius
+     đo `2026-09-24`: CHỈ `portal-resident-next` dùng họ này (`10` nền · `32` chữ),
+     `0` chỗ nền pill đi với màu chữ cứng. Nền = tint tối cùng hue, chữ = cùng hue
+     sáng; tương phản đo bằng probe trên trang thật (`DOC-23fc4cac3269-R23`).
+     `success-strong` · `danger-dot` · `activity-*` là màu nhấn bão hoà ⇒ giữ. */
+  --success-text: oklch(0.85 0.12 157);
+  /* `DOC-bd1a754bb928` (huyi0 `2026-09-27`, Badge tonal): nền pill về đúng bậc `950`
+     (L thấp hơn, C cao hơn cũ `0.06`–`0.08`); chữ giữ. Tương phản 8,4–9,5:1, trong sRGB. */
+  --success-bg: oklch(0.28 0.065 157);
+  --success-strong: oklch(0.596 0.1274 163.23);
+  --warning-text: oklch(0.87 0.12 82);
+  --warning-bg: oklch(0.29 0.065 72);
+  --info-text: oklch(0.82 0.075 258);
+  --info-bg: oklch(0.28 0.06 258);
+  --danger-text: oklch(0.82 0.1 28);
+  --danger-bg: oklch(0.27 0.09 27);
+  --danger-dot: oklch(0.6368 0.2078 25.33);
+  --banner-bg: oklch(0.27 0.04 258);
+  --neutral-bg: oklch(0.3 0.012 254);
+  --neutral-text: oklch(0.85 0.02 257);
+  --purple-text: oklch(0.827 0.119 306.383);
+  --purple-bg: oklch(0.291 0.149 302.717);
+  --sky-text: oklch(0.828 0.111 230.318);
+  --sky-bg: oklch(0.293 0.066 243.157);
+  --activity-green: oklch(0.6271 0.1699 149.21);
+  --activity-orange: oklch(0.7049 0.1867 47.6);
+  --input: oklch(
+    1 0 0 /
+    40%
+  ); /* `DOC-b3e641ff7e34-R01`: `15%` = `1,57:1`; `40%` ≥ `3,6:1` trên card/background/muted */
+  --ring: oklch(0.6729 0.1724 270.54);
+  --chart-1: oklch(0.66 0.16 266);
+  --chart-2: oklch(0.78 0.1 205);
+  --chart-3: oklch(0.8 0.13 70);
+  --chart-4: oklch(0.72 0.17 335);
+  --chart-5: oklch(0.82 0.16 140);
+  /* `R03` lô B — BẰNG ĐÚNG `:root`: sidebar là bề mặt TỐI ở CẢ hai chế độ theo prototype.
+     Khai ra thay vì bỏ trống, cùng lý do `R45` đã ghi cho bộ pill: bỏ trống thì "cố ý
+     cố định" và "quên viết" trông y hệt nhau. */
+  --sidebar: oklch(0.2092 0.0412 268.13);
+  --sidebar-foreground: oklch(1 0 0);
+  --sidebar-primary: oklch(0.5286 0.2385 266.1);
+  --sidebar-primary-foreground: oklch(1 0 0);
+  --sidebar-accent: oklch(0.2615 0.051 261.32);
+  --sidebar-accent-foreground: oklch(1 0 0);
+  --sidebar-border: oklch(0.2917 0.0402 267.88);
+  --sidebar-ring: oklch(0.6432 0.1901 264.12);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+  scroll-padding-top: 96px;
+  max-width: 100%;
+  overflow-x: hidden;
+  /* Giữ chỗ thanh cuộn: nội dung nạp xong dài hơn khung ⇒ thanh cuộn hiện, KHÔNG làm cả bố cục rewrap (CLS 0,274 ở client /recovery, thanh cuộn cổ điển Windows/Linux). */
+  scrollbar-gutter: stable;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  max-width: 100%;
+  /* `clip` (không `hidden`): `hidden` biến `body` thành scroll container ⇒ mọi `sticky` (header) bám vào body chứ
+     không bám khung nhìn. `clip` vẫn cắt tràn ngang mà KHÔNG tạo hộp cuộn; `html` giữ `hidden` (lan lên viewport). */
+  overflow-x: clip;
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans);
+}
+
+.dark body {
+  background:
+    radial-gradient(circle at top left, rgba(45, 212, 191, 0.15), transparent 28rem),
+    linear-gradient(180deg, #08111f 0%, #0f172a 100%);
+  color: var(--foreground);
+}
+
+.import-button-primary,
+.import-button-secondary {
+  display: inline-flex;
+  min-height: 2.75rem;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  /* Lịch sử/doc đã xoá DOC-be09465f8941-R19: 0.95rem/15.2px → radius-xl.
+     Chuẩn hiện hành: DESIGN.md Shapes + --radius-xl trong file này; số đo dưới
+     thuộc ngày ghi, không thay phép đo computed CSS trên revision hiện tại.
+     ĐỔI `0` PIXEL? KHÔNG: `15,2px` → `14px`, đo trên trang thật.
+     `var(--radius-xl)` DÙNG ĐƯỢC trong CSS thuần — đo `2026-09-20` trên
+     `localhost:3562`: `getComputedStyle(:root)` trả `--radius-xl` =
+     `calc(.625rem * 1.4)`. `@theme inline` VẪN phát biến ra `:root`; thứ
+     `DOC-aea24031aa16-R07` nói là ĐÈ biến từ ngoài không đổi được utility (vì
+     utility đã nội suy giá trị) — hai chuyện khác nhau, đừng suy từ cái này ra
+     cái kia như bản đầu của chính dòng này đã suy. */
+  border-radius: var(--radius-xl);
+  padding: 0.65rem 1rem;
+  font-size: 0.875rem;
+  /* Lịch sử/doc đã xoá DOC-be09465f8941-R22: hạ weight 900.
+     Chuẩn hiện hành: DESIGN.md Typography / Semibold Ceiling; nút14px dùng500
+     theo declaration font-weight-medium bên dưới. Số đo600 dưới là lịch sử.
+     `--font-weight-semibold`
+     CÓ ở `:root` (đo `2026-09-20` trên `localhost:3562`: `600`), Tailwind v4 phát
+     sẵn bậc mặc định dù repo không khai thêm. `DOC-c074ed99482a-R05`: nút `14px` ⇒
+     `500` như `Button` shadcn (*Semibold Ceiling Rule*). */
+  font-weight: var(--font-weight-medium);
+  line-height: 1;
+  transition:
+    background-color 160ms ease,
+    border-color 160ms ease,
+    color 160ms ease,
+    box-shadow 160ms ease,
+    transform 160ms ease;
+}
+
+.import-button-primary {
+  border: 1px solid #020617;
+  background: #020617;
+  color: #ffffff;
+  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.16);
+}
+
+.import-button-primary:hover {
+  background: #0f172a;
+  box-shadow: 0 14px 32px rgba(15, 23, 42, 0.2);
+  transform: translateY(-1px);
+}
+
+.import-button-primary:disabled,
+.import-button-secondary:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+  transform: none;
+  box-shadow: none;
+}
+
+.import-button-secondary {
+  border: 1px solid #cbd5e1;
+  background: #ffffff;
+  color: #334155;
+}
+
+.import-button-secondary:hover {
+  border-color: #67e8f9;
+  background: #ecfeff;
+  color: #0f766e;
+}
+
+img,
+svg,
+video,
+canvas {
+  max-width: 100%;
+}
+
+/* `DOC-60ad6ba66694` — `Icon tràn hộp nút`: nút chỉ-icon đè `h-*`/`w-*` nhỏ hơn nấc mà giữ padding
+   ⇒ content box < svg; kẹp `100%` ở trên ép svg `16→8px` (đo composer staff). Bỏ kẹp trong Button:
+   svg tràn đều sang padding, `inline-flex` căn giữa. Unlayered như rule trên ⇒ utility không đè được. */
+[data-slot="button"] svg {
+  max-width: none;
+}
+
+/* Nút trợ lý nổi (`z-float` 70) cao hơn drawer/dialog/sheet (`z-50`) nên đè lên footer của hộp đang mở (thông báo · menu tài khoản
+   trên mobile · nút Save/Move của dialog ô đỗ). Hộp modal mở ⇒ ẩn nút nổi; đóng ⇒ hiện lại.
+   `DOC-982e0ddc6959`: ngăn điều hướng mobile là `SheetContent` nhưng ghi đè `data-slot="sidebar"` ⇒ chọn thêm theo `data-mobile`. */
+body:has(
+    [data-slot="drawer-popup"],
+    [data-slot="dialog-content"],
+    [data-slot="alert-dialog-content"],
+    [data-slot="sheet-content"],
+    [data-slot="sidebar"][data-mobile="true"]
+  )
+  .easyspotops-floating-support-shell {
+  visibility: hidden;
+}
+
+@media (max-height: 480px) and (orientation: landscape) {
+  .easyspotops-floating-support-shell {
+    bottom: calc(env(safe-area-inset-bottom) + 0.5rem) !important;
+    gap: 0.5rem;
+  }
+
+  .easyspotops-floating-support-shell[data-position="bottom-left"] {
+    left: 0.75rem !important;
+  }
+
+  .easyspotops-floating-support-shell .easyspotops-floating-button {
+    min-height: 2.75rem !important;
+    width: 2.75rem !important;
+    height: 2.75rem !important;
+    padding: 0 !important;
+    transform: none !important;
+    border-radius: 9999px !important;
+  }
+
+  .easyspotops-floating-support-shell .easyspotops-floating-label {
+    display: none !important;
+  }
+
+  .easyspotops-floating-panel {
+    max-height: calc(100dvh - 1rem) !important;
+  }
+
+  .easyspotops-floating-closed-shell {
+    display: none !important;
+  }
+}
+
+.demo-preview-progress {
+  transform: scaleX(0.06);
+  transform-origin: left center;
+}
+
+.demo-preview-step {
+  opacity: 0;
+  transform: translateY(0.7rem);
+}
+
+.demo-preview-scene {
+  opacity: 0;
+  transform: translateY(0.75rem) scale(0.985);
+}
+
+.tow-partner-reveal {
+  opacity: 1;
+  transform: none;
+}
+
+.tow-partner-signal-card {
+  opacity: 1;
+  transform: none;
+}
+
+.tow-partner-route-pulse {
+  transform-origin: left center;
+}
+
+.dashboard-reveal {
+  opacity: 1;
+  transform: none;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .resident-welcome-chevron {
+    animation: resident-welcome-chevron 2.1s ease-in-out infinite;
+  }
+
+  .resident-welcome-button-glow {
+    animation: resident-welcome-glow 2.8s ease-in-out infinite;
+  }
+
+  .demo-preview-frame-glow {
+    animation: demo-preview-frame-glow 5.4s ease-in-out infinite;
+  }
+
+  .demo-preview-progress {
+    animation: demo-preview-progress 12s linear infinite;
+    transform-origin: left center;
+  }
+
+  .demo-preview-step {
+    animation: demo-preview-step 12s ease-in-out infinite;
+  }
+
+  .demo-preview-scene {
+    animation: demo-preview-scene 12s ease-in-out infinite;
+  }
+
+  .demo-preview-metric-card {
+    animation: demo-preview-metric-card 2.4s ease-in-out infinite;
+  }
+
+  .demo-preview-workflow-step,
+  .demo-preview-value-card,
+  .demo-preview-outcome-card {
+    animation: demo-preview-board-focus 2.8s ease-in-out infinite;
+  }
+
+  .tow-partner-reveal {
+    animation: tow-partner-reveal 720ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
+  .tow-partner-reveal-2 {
+    animation-delay: 90ms;
+  }
+
+  .tow-partner-reveal-3 {
+    animation-delay: 180ms;
+  }
+
+  .tow-partner-hero-art {
+    animation: tow-partner-hero-float 7.5s ease-in-out infinite;
+  }
+
+  .tow-partner-hero-glow {
+    animation: tow-partner-soft-glow 5.6s ease-in-out infinite;
+  }
+
+  .tow-partner-signal-card {
+    animation: tow-partner-signal-rise 840ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
+  .tow-partner-signal-card:nth-child(2) {
+    animation-delay: 120ms;
+  }
+
+  .tow-partner-signal-card:nth-child(3) {
+    animation-delay: 240ms;
+  }
+
+  .tow-partner-route-pulse {
+    animation: tow-partner-route-pulse 4.8s ease-in-out infinite;
+  }
+
+  .tow-partner-orbit-dot {
+    animation: tow-partner-orbit-dot 8s linear infinite;
+  }
+
+  .dashboard-reveal {
+    animation: dashboard-reveal 280ms ease-out both;
+    animation-delay: var(--reveal-delay, 0s);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .demo-preview-frame-glow,
+  .demo-preview-progress,
+  .demo-preview-scene,
+  .demo-preview-metric-card,
+  .demo-preview-workflow-step,
+  .demo-preview-value-card,
+  .demo-preview-outcome-card,
+  .demo-preview-step {
+    animation: none !important;
+  }
+
+  .demo-preview-progress {
+    transform: scaleX(0.62);
+    transform-origin: left center;
+  }
+
+  .demo-preview-step {
+    opacity: 0;
+    transform: none;
+  }
+
+  .demo-preview-step:first-child {
+    opacity: 1;
+  }
+
+  .demo-preview-scene {
+    opacity: 0;
+    transform: none;
+  }
+
+  .demo-preview-scene-default {
+    opacity: 1;
+  }
+
+  .tow-partner-reveal,
+  .tow-partner-hero-art,
+  .tow-partner-hero-glow,
+  .tow-partner-signal-card,
+  .tow-partner-route-pulse,
+  .tow-partner-orbit-dot,
+  .dashboard-reveal {
+    animation: none !important;
+  }
+}
+
+/* `DOC-7e3a9c15d2b8-R22` — khung chờ trễ hiện `200ms` (NN/g: chờ `<1s` thì skeleton chớp nháy). Chỉ đổi `opacity`
+   nên nhãn `sr-only` trong vùng `role=status` vẫn đọc ngay (opacity không ẩn khỏi cây truy cập). `backwards` giữ
+   `opacity:0` trong lúc trễ. Reduced-motion: khối dưới đổi `duration` `0.01ms` nhưng KHÔNG đổi `delay` ⇒ vẫn trễ. */
+@keyframes skeleton-delay-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+[role="status"][aria-busy="true"],
+[data-slot="page-skeleton"],
+[data-slot="data-table-skeleton"],
+[data-id="ui.skeleton.block"],
+[data-id="ui.skeleton.rows"],
+[data-id="ui.skeleton.carousel"],
+[data-id="ui.skeleton.messages"],
+[data-slot="data-table-skeleton-row"] {
+  animation: skeleton-delay-in 150ms ease-out 200ms backwards;
+}
+
+/* `DOC-4b7ad2df38aa` — cột action CỐ ĐỊNH bên phải ở MỌI bảng. Bảng nào có ô cuối chứa menu `⋯`
+   (trigger `dropdown-menu-trigger`) ⇒ ô cuối của header + thân dính mép phải khi cuộn ngang.
+   Một rule chung thay vì sửa từng bảng; bảng đã tự `sticky right-0` thì trùng giá trị, vô hại.
+   Bỏ ô `colspan` (trạng thái rỗng) ∧ chân bảng. Nền đặc để chữ cuộn bên dưới không lộ; hover/chọn pha
+   màu hàng lên nền `card` vì hàng dùng nền trong suốt `/50`. */
+[data-slot="table"]:has(
+    > [data-slot="table-body"]
+      > [data-slot="table-row"]
+      > td:last-child:not([colspan])
+      [data-slot="dropdown-menu-trigger"]
+  )
+  > :is([data-slot="table-header"], [data-slot="table-body"])
+  > [data-slot="table-row"]
+  > :is(th, td):last-child:not([colspan]) {
+  position: sticky;
+  right: 0;
+  z-index: 1;
+  border-left: 1px solid var(--border);
+  background-color: var(--card);
+}
+
+[data-slot="table"]:has(
+    > [data-slot="table-body"]
+      > [data-slot="table-row"]
+      > td:last-child:not([colspan])
+      [data-slot="dropdown-menu-trigger"]
+  )
+  > [data-slot="table-body"]
+  > [data-slot="table-row"]:is(:hover, [aria-expanded="true"])
+  > td:last-child:not([colspan]) {
+  background-color: color-mix(in oklab, var(--card), var(--muted) 50%);
+}
+
+[data-slot="table"]:has(
+    > [data-slot="table-body"]
+      > [data-slot="table-row"]
+      > td:last-child:not([colspan])
+      [data-slot="dropdown-menu-trigger"]
+  )
+  > [data-slot="table-body"]
+  > [data-slot="table-row"][data-state="selected"]
+  > td:last-child:not([colspan]) {
+  background-color: color-mix(in oklab, var(--card), var(--primary) 10%);
+}
+
+/* `DOC-19dc6bd1a4b3-R01` — reduced-motion TOÀN CỤC. Khối trên chỉ phủ vài class trang
+   public; `animate-in`/`zoom-in`/`slide-in` của `tw-animate-css@1.4.0` không tự xử lý
+   (đếm `0` lượt) ⇒ Dialog · Popover · Menu · Tooltip… vẫn chạy khi người dùng tắt chuyển động.
+   `0.01ms` chứ KHÔNG `animation: none`: Base UI chờ animation kết thúc mới gỡ popup, không
+   có animation nào để kết thúc thì phải đo lại xem popup có kẹt không. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  ::before,
+  ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  /* Vòng quay là tín hiệu "đang tải" — chuyển động thiết yếu (WCAG 2.3.3) ⇒ giữ nhưng chậm
+     (huyi0 chốt `2026-09-23`); `pulse`/`bounce` vẫn tắt theo luật trên. */
+  .animate-spin {
+    animation-duration: 1.5s !important;
+    animation-iteration-count: infinite !important;
+  }
+}
+
+/* `DOC-0afcf40fc6b3-R04` — chuyển trang (bậc B). `root` giữ LIVE: chrome không bị chụp mờ,
+   hover/focus còn chạy; chỉ nhóm `page-in`/`page-out` (nội dung trang) hoạt hoạ.
+   Ra `120ms` ≺ vào `200ms` (DESIGN: panel `200–300ms`, ra nhanh hơn vào); `ease-out` cả hai. */
+::view-transition {
+  pointer-events: none;
+}
+
+::view-transition-old(root) {
+  display: none;
+}
+
+::view-transition-new(root) {
+  animation: none;
+}
+
+::view-transition-old(.page-out) {
+  animation: 150ms ease-out both page-fade-out;
+}
+
+::view-transition-new(.page-in) {
+  animation: 220ms ease-out both page-fade-in;
+}
+
+/* `DOC-0afcf40fc6b3-R18` — vào chi tiết (`nav-forward`): trang mới trượt từ phải `24px`, trang cũ nhích trái `12px`;
+   quay lại (`nav-back`) đảo chiều. Ra `150ms` ∧ vào `220ms` CHẠY CHỒNG (không trễ): trễ `120ms` trước đây để lộ
+   vùng nội dung trống ⇒ chớp/giật (huyi0 `2026-10-05`). Chỉ `transform` + `opacity` ⇒ chạy trên GPU. */
+::view-transition-old(.page-out-fwd) {
+  animation: 150ms ease-out both page-slide-out-left;
+}
+
+::view-transition-new(.page-in-fwd) {
+  animation: 220ms ease-out both page-slide-in-right;
+}
+
+::view-transition-old(.page-out-back) {
+  animation: 150ms ease-out both page-slide-out-right;
+}
+
+::view-transition-new(.page-in-back) {
+  animation: 220ms ease-out both page-slide-in-left;
+}
+
+@keyframes page-slide-out-left {
+  to {
+    opacity: 0;
+    transform: translateX(-12px);
+  }
+}
+
+@keyframes page-slide-out-right {
+  to {
+    opacity: 0;
+    transform: translateX(12px);
+  }
+}
+
+@keyframes page-slide-in-right {
+  from {
+    opacity: 0;
+    transform: translateX(24px);
+  }
+}
+
+@keyframes page-slide-in-left {
+  from {
+    opacity: 0;
+    transform: translateX(-24px);
+  }
+}
+
+@keyframes page-fade-out {
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes page-fade-in {
+  from {
+    opacity: 0;
+    transform: translateX(16px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-old(*),
+  ::view-transition-new(*),
+  ::view-transition-group(*) {
+    animation-duration: 0s !important;
+    animation-delay: 0s !important;
+  }
+}
+
+/* `DOC-0afcf40fc6b3-R14` — nháy nền hàng vừa tạo (bậc B; thí điểm resident `requests`, Jev `965707ef`).
+   Chỉ `background-color` `1s` ease-out, một lần khi hàng mount. Reduced-motion: bỏ hẳn. */
+@keyframes row-flash {
+  from {
+    background-color: color-mix(in oklab, var(--primary) 15%, transparent);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .row-flash {
+    animation: row-flash 1s ease-out;
+  }
+}
+
+/* `DOC-0afcf40fc6b3-R12` — stagger thẻ vào (bậc B/C). Gắn `stagger-in` ở cha lưới: `8` con đầu vào lệch `40ms`,
+   con thứ `9+` hiện ngay (trần `≤8` mục, `DESIGN.md` § Chuyển động). Chỉ opacity/translate, `200ms` ease-out.
+   Reduced-motion: bỏ hẳn (khối toàn cục chỉ rút thời lượng, KHÔNG xoá `animation-delay` ⇒ phải gỡ ở đây). */
+.stagger-in > * {
+  animation: stagger-in 200ms ease-out both;
+}
+
+.stagger-in > :nth-child(2) {
+  animation-delay: 40ms;
+}
+
+.stagger-in > :nth-child(3) {
+  animation-delay: 80ms;
+}
+
+.stagger-in > :nth-child(4) {
+  animation-delay: 120ms;
+}
+
+.stagger-in > :nth-child(5) {
+  animation-delay: 160ms;
+}
+
+.stagger-in > :nth-child(6) {
+  animation-delay: 200ms;
+}
+
+.stagger-in > :nth-child(7) {
+  animation-delay: 240ms;
+}
+
+.stagger-in > :nth-child(8) {
+  animation-delay: 280ms;
+}
+
+.stagger-in > :nth-child(n + 9) {
+  animation: none;
+}
+
+@keyframes stagger-in {
+  from {
+    opacity: 0;
+    translate: 0 6px;
+  }
+}
+
+/* `DOC-0afcf40fc6b3-R11` — dấu ✓ thành công (`SuccessMark` = Lucide `CircleCheck`: `circle r=10` ≈ `63`, `path` tích ≈ `6`):
+   vòng vẽ `240ms`, dấu tích vẽ `160ms` sau đó (tổng `≤400ms`). */
+.success-mark > circle {
+  stroke-dasharray: 63;
+  animation: success-mark-ring-draw 240ms ease-out both;
+}
+
+.success-mark > path {
+  stroke-dasharray: 6;
+  animation: success-mark-tick-draw 160ms ease-out 200ms both;
+}
+
+@keyframes success-mark-ring-draw {
+  from {
+    stroke-dashoffset: 63;
+  }
+}
+
+@keyframes success-mark-tick-draw {
+  from {
+    stroke-dashoffset: 6;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .stagger-in > *,
+  .success-mark > circle,
+  .success-mark > path {
+    animation: none;
+  }
+}
+
+@keyframes resident-welcome-chevron {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  45% {
+    transform: translateY(-0.28rem);
+  }
+}
+
+@keyframes resident-welcome-glow {
+  0%,
+  100% {
+    opacity: 0.2;
+    transform: scale(1);
+  }
+
+  50% {
+    opacity: 0.52;
+    transform: scale(1.08);
+  }
+}
+
+@keyframes demo-preview-frame-glow {
+  0%,
+  100% {
+    opacity: 0.24;
+    transform: scale(0.98);
+  }
+
+  50% {
+    opacity: 0.48;
+    transform: scale(1.04);
+  }
+}
+
+@keyframes demo-preview-progress {
+  0% {
+    transform: scaleX(0.06);
+  }
+
+  100% {
+    transform: scaleX(1);
+  }
+}
+
+@keyframes demo-preview-step {
+  0%,
+  18% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  24%,
+  100% {
+    opacity: 0;
+    transform: translateY(-0.7rem);
+  }
+}
+
+@keyframes demo-preview-scene {
+  0%,
+  18% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+
+  24%,
+  100% {
+    opacity: 0;
+    transform: translateY(-0.65rem) scale(0.985);
+  }
+}
+
+@keyframes demo-preview-metric-card {
+  0%,
+  100% {
+    filter: brightness(1);
+    transform: translateY(0);
+  }
+
+  45% {
+    filter: brightness(1.16);
+    transform: translateY(-0.08rem);
+  }
+}
+
+@keyframes demo-preview-board-focus {
+  0%,
+  100% {
+    filter: brightness(1);
+    transform: translateY(0);
+  }
+
+  46% {
+    filter: brightness(1.1);
+    transform: translateY(-0.1rem);
+  }
+}
+
+@keyframes dashboard-reveal {
+  0% {
+    opacity: 0;
+    transform: translateY(0.625rem);
+  }
+
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes tow-partner-reveal {
+  0% {
+    opacity: 0;
+    transform: translateY(1rem);
+  }
+
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes tow-partner-hero-float {
+  0%,
+  100% {
+    transform: translate3d(-1rem, 0, 0);
+  }
+
+  50% {
+    transform: translate3d(-1rem, -0.45rem, 0);
+  }
+}
+
+@media (max-width: 1023px) {
+  @keyframes tow-partner-hero-float {
+    0%,
+    100% {
+      transform: translate3d(0, 0, 0);
+    }
+
+    50% {
+      transform: translate3d(0, -0.35rem, 0);
+    }
+  }
+}
+
+@keyframes tow-partner-soft-glow {
+  0%,
+  100% {
+    opacity: 0.28;
+    transform: scale(0.96);
+  }
+
+  50% {
+    opacity: 0.58;
+    transform: scale(1.04);
+  }
+}
+
+@keyframes tow-partner-signal-rise {
+  0% {
+    opacity: 0;
+    transform: translateY(0.75rem) scale(0.98);
+  }
+
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes tow-partner-route-pulse {
+  0%,
+  100% {
+    opacity: 0.58;
+    transform: scaleX(0.22);
+  }
+
+  48% {
+    opacity: 1;
+    transform: scaleX(1);
+  }
+}
+
+@keyframes tow-partner-orbit-dot {
+  0% {
+    transform: rotate(0deg) translateX(4.4rem) rotate(0deg);
+  }
+
+  100% {
+    transform: rotate(360deg) translateX(4.4rem) rotate(-360deg);
+  }
+}
+
+@theme inline {
+  --font-heading: var(--font-sans);
+  --font-sans: var(--font-sans);
+  /* Lịch sử/doc đã xoá DOC-be09465f8941-R41: 13px → 12px, huyi0 2026-09-22.
+     Nguồn hiện hành DESIGN Typography/Small + --font-size-xs; số đếm dưới là snapshot.
+
+     Đo `2026-09-22`: `text-xs` `3311` lượt (`43.6%`) và `text-sm` `3238`
+     (`42.6%`) — `86.2%` chữ toàn FE ở hai bậc cách nhau `1px`, mà cả tầng
+     `16`–`20px` cộng lại chỉ `7.4%`. Mắt không phân biệt `13` với `14px` nên
+     `86%` màn hình trông PHẲNG; muốn nhấn thì phải nhảy thẳng `24`/`30px`. Đó
+     là nguồn của cả hai vế "chữ to quá" và "chữ nhỏ quá" huyi0 báo.
+
+     `R39` đã tách vai trò: `1096` điểm nhãn chính/body về `text-sm`. Bậc này
+     giờ chỉ còn tầng PHỤ (eyebrow · nhãn phụ muted · meta, `2215` lượt), nên
+     hạ xuống `12px` để nó tách khỏi body `14px` bằng `2px` — thấy được.
+
+     LẬT một câu đã ghi, ghi lại cho rõ: `text-13px-instead-of-text-xs` dựng
+     trên diễn giải "`text-[13px]` → `text-xs` đổi `0` pixel". Câu đó ĐÚNG tại
+     lúc migrate `1012` điểm (`2026-09-17`) nhưng không phải cam kết vĩnh viễn
+     về token. Đo `2026-09-22`: `text-[13px]` còn `0` lượt toàn cây ⇒ hạ token
+     không dịch điểm nào qua đường luật đó. Chú thích của luật đã sửa cùng lượt.
+
+     `eyebrow-text` `@apply text-xs` nên đi theo token — đó là ĐÍCH, không
+     phải tác dụng phụ: eyebrow là tầng phụ. */
+  /* `R14`: trỏ tới biến `:root` thay vì khai giá trị thẳng — đó là điều làm
+     biến PHÁT ra `:root` và dùng được ngoài utility. Utility `text-xs` không
+     đổi một pixel nào (vẫn `0.75rem`), đã đo lại sau khi sửa. */
+  --text-xs: var(--font-size-xs);
+  --text-xs--line-height: calc(1 / 0.75);
+  /* Lịch sử DESIGN trước 2026-09-17 khai Overline/Pill 11px 600 16px;
+     DESIGN Typography hiện có Micro 11px/500. Thang trước lúc bổ sung chưa bao giờ
+     có cỡ đó ⇒ 191 node Penpot rơi ra `raw`. Bổ sung cho đủ thang, không phải
+     bịa token mới (chốt huyi0 2026-09-17, DOC-fb0b0648f472).
+     `--text-metric` (26px, cho "Type/Metric 26/800/32") đã XOÁ 2026-09-19: đo ra
+     0 lượt dùng toàn repo, cùng cách xử lý `--radius-xs` ở DOC-aea24031aa16-R02.
+     Đợt Penpot cần lại thì khai lại ở đây — DOC-aea24031aa16-R22. */
+  /* `R14`: trỏ tới `:root` cùng lý do với `--text-xs` ngay trên. */
+  --text-2xs: var(--font-size-2xs);
+  --text-2xs--line-height: calc(1 / 0.6875);
+  /* Lịch sử/doc đã xoá DOC-be09465f8941-R02: số đo/eyebrow tracking dưới là snapshot.
+     Hiện hành DESIGN Typography: eyebrow viết như câu, không giãn; eyebrow-text
+     chỉ apply text-xs font-medium. Token tracking còn khai không đổi chuẩn label.
+     Thang tracking mặc định dừng ở widest 0.1em, mà
+     eyebrow trong repo viết `0.14em` (`173` lượt) · `0.16em` (`125`) · `0.18em` (`78`)
+     · `0.12em` (`74`): KHÔNG cỡ nào nằm trên thang, nên `609` lượt `tracking-[…]`
+     đang là giá trị tuỳ tiện. Bổ sung cho đủ thang đúng lối `--text-2xs`
+     ở trên, KHÔNG bịa cỡ mới: lấy đúng `0.14em` vì nó là cỡ đông nhất, nên utility
+     `eyebrow-text` dưới đây giữ nguyên hình ở cụm lớn nhất (đổi `0` px).
+
+     `DOC-aea24031aa16-R35` — THÊM `2` bậc `2026-09-19` sau khi rà lại `602` lượt:
+     một bậc duy nhất không gom nổi vì cụm trải từ `0.08em` tới `0.24em`. Ba bậc
+     phủ `569`/`602`, lệch ≤ `0.04em` (trên chữ `13px` là `0.5px`):
+       `-sm`  `0.12em` ← `0.08em` `18` · `0.12em` `73`               = `91`
+       base   `0.14em` ← `0.14em` `172` · `0.16em` `124`             = `296`
+       `-lg`  `0.2em`  ← `0.18em` `78` · `0.2em` `35` · `0.22em` `50` · `0.24em` `19` = `182`
+     Còn `33` lượt ngoài thang (`-0.02em` `4` · `0.28em` `2` · `3px` `1` ·
+     `0.6px` `26` → `tracking-wider` `0.05em`, lệch `0.05px`). */
+  --tracking-eyebrow-sm: 0.12em;
+  --tracking-eyebrow: 0.14em;
+  --tracking-eyebrow-lg: 0.2em;
+
+  /* Lịch sử/doc đã xoá DOC-be09465f8941-R17: đặt tên leading-auto cho normal.
+     Nguồn hiện hành: DESIGN.md Typography / Named Step + declaration bên dưới;
+     số175/version compiler/pixel delta dưới là snapshot, không inventory mới.
+     Cần so CSS compile/font thực khi đổi utility, không suy normal = 1.5.
+     Thang `--leading-*` của
+     Tailwind toàn là SỐ (`normal` = `1.5`, `tight` = `1.25`…), nên `line-height:
+     normal` — giá trị do FONT quyết, không phải bội số cỡ chữ — không có tên trên
+     thang và `175` lượt trong `portal-staff/modules/staff/people` phải viết
+     `leading-[normal]`.
+
+     CẢNH BÁO ĐÃ TRẢ GIÁ: `leading-[normal]` KHÔNG phải `leading-normal`. Trần của
+     `UI014` trong `ui-policy.json` từng ghi "`[normal]` → `leading-normal` đổi 0px";
+     biên dịch bằng chính Tailwind `4.3.3` của repo cho thấy ngược lại —
+       `.leading-[normal] { line-height: normal }`   (font quyết, Inter ≈ `1.2`)
+       `.leading-normal   { line-height: 1.5 }`
+     Đi theo câu đó là giãn dòng `25%` trên `175` điểm.
+
+     `--leading-auto: normal` sinh `.leading-auto { line-height: normal }`, KHỚP
+     TỪNG BYTE với bản arbitrary (đo bằng `compile()`), nên migrate là đổi TÊN. */
+  --leading-auto: normal;
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  /* `DOC-aea24031aa16-R44` — bước `3` của khuôn shadcn: phơi bộ pill ra Tailwind.
+     Chuyển từ `@theme inline` của `apps/websites/portal-resident/app/globals.css`. */
+  --color-success-text: var(--success-text);
+  --color-success-bg: var(--success-bg);
+  --color-success-strong: var(--success-strong);
+  --color-warning-text: var(--warning-text);
+  --color-warning-bg: var(--warning-bg);
+  --color-info-text: var(--info-text);
+  --color-info-bg: var(--info-bg);
+  --color-danger-text: var(--danger-text);
+  --color-danger-bg: var(--danger-bg);
+  --color-danger-dot: var(--danger-dot);
+  --color-banner-bg: var(--banner-bg);
+  --color-neutral-bg: var(--neutral-bg);
+  --color-neutral-text: var(--neutral-text);
+  --color-purple-text: var(--purple-text);
+  --color-purple-bg: var(--purple-bg);
+  --color-sky-text: var(--sky-text);
+  --color-sky-bg: var(--sky-bg);
+  --color-activity-green: var(--activity-green);
+  --color-activity-orange: var(--activity-orange);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-primary-on-dark: var(--primary-on-dark);
+  --color-destructive-on-light: var(--destructive-on-light);
+  --color-warning-on-light: var(--warning-on-light);
+  --color-surface-inverted: var(--surface-inverted);
+  --color-surface-inverted-foreground: var(--surface-inverted-foreground);
+  --color-surface-inverted-subtle: var(--surface-inverted-subtle);
+  --color-surface-inverted-accent: var(--surface-inverted-accent);
+  --color-surface-inverted-success: var(--surface-inverted-success);
+  --color-surface-inverted-warning: var(--surface-inverted-warning);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --color-foreground: var(--foreground);
+  --color-foreground-secondary: var(--foreground-secondary);
+  --color-background: var(--background);
+  /* `DOC-db505b209fa9-R25` — thang bo góc dẫn xuất từ `--radius` đúng công thức của
+     https://ui.shadcn.com/docs/theming (`sm` `.6` · `md` `.8` · `lg` `1` · `xl` `1.4`).
+     Trước đó `sm`..`xl` là px CỨNG nên `--radius` chỉ còn điều khiển `2xl`..`4xl`:
+     đổi một biến mà nửa thang không nhúc nhích. huyi0 chốt `2026-09-19`, biết giá:
+     `lg` `12px`→`10px` (`490` lượt) và `xl` `16px`→`14px` (`980` lượt).
+
+     `DOC-aea24031aa16-R34` — THÊM `4` bậc `2026-09-19`, KHÔNG đổi bậc cũ. Lý do đo
+     được: rà `818` lượt `rounded-[…]` viết px thẳng thì khối LỚN NHẤT nằm ở ĐỈNH
+     thang — `32px` `160` lượt · `24px` `149` · `28px` `99` — trong khi thang cũ dừng
+     ở `4xl` `26px`. Người ta viết px vì KHÔNG CÓ BẬC, không phải vì lười. `--radius-xs`
+     quay lại (bỏ ở `R25` khi còn `0` lượt, nay đo `11` lượt trong khoảng `2`–`5px`).
+     NEVER đổi px của bậc đang có: `R02` vừa dịch `lg`/`xl` trên `1470` điểm, dịch lần
+     hai là bắt đúng những điểm đó chịu hai lần.
+
+     Lịch sử/doc đã xoá DOC-be09465f8941-R19, huyi0 2026-09-20; số 0 lượt dưới
+     là snapshot. Nguồn hiện hành DESIGN Shapes/Card: trần xl 14px.
+     Sáu bậc `2xl`..`7xl` còn ở đây nhưng `0` lượt dùng — luật ast-grep
+     `rounded-above-xl-instead-of-rounded-xl` chặn chúng. GIỮ chứ không xoá: xoá
+     khỏi `@theme` thì `rounded-2xl` KHÔNG thành lỗi, nó rơi về bậc MẶC ĐỊNH của
+     Tailwind (`1rem`/`1.5rem`) — lệch hình im lặng, tệ hơn. */
+  --radius-xs: calc(var(--radius) * 0.4);
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
+  --radius-5xl: calc(var(--radius) * 2.8);
+  --radius-6xl: calc(var(--radius) * 3.2);
+  --radius-7xl: calc(var(--radius) * 4);
+
+  /* DOC-736117324fb3-R01 — thang spacing ĐẶT TÊN, alias của bậc số (1 đơn vị = 0.25rem):
+     `step-xs` 4px = `1` · `step-sm` 8px = `2` · `step-md` 12px = `3` · `step-lg` 16px = `4` · `step-xl` 24px = `6`.
+     Tiền tố `step-` BẮT BUỘC: `--spacing-md` trần làm `max-w-md` thành 12px (Tailwind 4.3.3 tra
+     `--spacing` trước `--container`; probe 2026-10-20), đổi pixel `189` điểm `max-w-*`.
+     Bậc số vẫn dùng được (0, bậc lẻ .5/1.5/2.5…). */
+  --spacing-step-xs: 0.25rem;
+  --spacing-step-sm: 0.5rem;
+  --spacing-step-md: 0.75rem;
+  --spacing-step-lg: 1rem;
+  --spacing-step-xl: 1.5rem;
+
+  /* `DOC-aea24031aa16-R37` — thang ĐỘ NÂNG `5` bậc, huyi0 chốt `2026-09-19`.
+
+     TIỀN TỐ `lift` KHÔNG phải để cho đẹp: khai `--shadow-xs|sm|md|lg|xl` TRẦN là
+     GHI ĐÈ bậc mặc định của Tailwind, mà repo đang dùng đúng những tên đó `1033`
+     lượt (`shadow-sm` `549` · `2xl` `153` · `xl` `151` · `lg` `95` · `none` `51` ·
+     `md` `23` · `inner` `10` · `xs` `1`). Nợ dọn ở lô này là `60` lượt `shadow-[…]`
+     viết tay ⇒ chữa `60` bằng cách đổi hình `1033` là hỏng gấp `17` lần thứ đang
+     sửa. NEVER đổi `lift` thành tên trần.
+
+     Giá trị lấy từ cụm ĐÔNG NHẤT của chính repo, không bịa: `0_1px_2px` `.035` ·
+     `0_8px_20px` `.06` · `0_12px_32px` (`3` lượt) · `0_18px_44px` (`2`) ·
+     `0_24px_70px` (`6`, cụm lớn nhất toàn cây). Đây là đổi HÌNH thật, không phải
+     đổi tên — `41`/`60` điểm dịch sang bậc gần nhất.
+
+     `19` lượt CỐ Ý ở ngoài thang, vì khác HỌ chứ không khác cỡ: bóng MÀU thương
+     hiệu (`6`), đổ NGANG `24px_0_70px` (`3`), đổ LÊN `y` âm (`5`), `inset` (`3`),
+     và `0_0_0_1px_var(--sidebar-*)` vốn là RING vẽ bằng shadow (`2`). Muốn đặt tên
+     cho nhóm màu thì tách `--shadow-glow-*` theo MÀU, đợt riêng — đừng nhét vào
+     thang trung tính này. */
+  --shadow-lift-xs: 0 1px 2px rgba(15, 23, 42, 0.035);
+  --shadow-lift-sm: 0 1px 2px rgba(15, 23, 42, 0.06), 0 8px 20px rgba(15, 23, 42, 0.06);
+  --shadow-lift-md: 0 12px 32px rgba(15, 23, 42, 0.14);
+  --shadow-lift-lg: 0 18px 44px rgba(15, 23, 42, 0.16);
+  --shadow-lift-xl: 0 24px 70px rgba(15, 23, 42, 0.24);
+
+  /* `DOC-4c2d91d90651` — bóng mặc định của Card, đo mắt từ ảnh table admin (huyi0 chốt
+     `2026-10-18`): viền sát 1px gần như vô hình + quầng tản rộng bên dưới. Ngoài thang
+     `lift` vì là 2 lớp; áp bằng rule `@layer base` theo `[data-slot=card]` (không qua
+     `cn()` — tailwind-merge không gộp được tên bóng tuỳ chỉnh với `shadow-sm|none`). */
+  --shadow-card: 0 1px 2px rgba(15, 23, 42, 0.04), 0 6px 24px rgba(15, 23, 42, 0.06);
+
+  /* `DOC-aea24031aa16-R40` — `2` bậc làm MỜ mảnh hơn bậc nhỏ nhất của Tailwind.
+
+     Thang `--blur-*` của Tailwind bắt đầu ở `xs` `4px`, trong khi repo dùng
+     `1px` (`4` lượt) và `2px` (`1` lượt) làm lớp sương sau modal/drawer — mờ đủ
+     để tách lớp mà vẫn đọc được nội dung phía sau. `4px` là mờ gấp `4` lần,
+     không phải cùng ý đồ. Không có bậc nào để trỏ tới nên `5` điểm đó buộc phải
+     viết `backdrop-blur-[1px]` tại chỗ.
+
+     KHÔNG gom `1px` và `2px` vào một bậc: gom là đổi hình `4` điểm để tiết kiệm
+     đúng một dòng khai báo. Hai bậc thì cả `5` điểm đổi `0` pixel — cùng luật
+     `R34` đã đặt cho bo góc ("THÊM bậc, NEVER đổi px của bậc đang có").
+
+     Tên `2xs`/`3xs` theo tiền lệ `--text-2xs` của repo, không bịa lối đặt mới. */
+  --blur-3xs: 1px;
+  --blur-2xs: 2px;
+
+  /* `DOC-62ec87391443-R01` — NHỊP chuyển động chung. `675` lượt `transition*` gần như không
+     khai `ease-` (`7` lượt) nên tất cả chạy đường cong mặc định `ease-in-out` của Tailwind:
+     tăng tốc lúc đầu ⇒ phản hồi hover "khựng". Ghi đè MẶC ĐỊNH (không đẻ utility mới) để một
+     dòng áp cho mọi `transition`/`transition-colors`/… chưa tự khai `ease-*`: ease-out-quart,
+     vào nhanh rồi chậm dần. Thời lượng GIỮ `150ms` của Tailwind — app vận hành cần nhanh.
+     Site đã khai `ease-*`/`duration-*` riêng thì thắng (`--tw-ease` đứng trước mặc định). */
+  --default-transition-timing-function: cubic-bezier(0.25, 1, 0.5, 1);
+}
+
+/* Tầng 3 — KIỂU CÓ TÊN (`DOC-be09465f8941-R02`, đợt `R06`).
+ *
+ * Vì sao `@utility` chứ không phải primitive `<Text variant>`: rewrite thuần CHUỖI nên
+ * một luật `ast-grep` có `fix:` chạy được hàng loạt; dựng primitive thì phải thêm import
+ * vào từng điểm, mà số điểm thuần typography đo `2026-09-19` là `2624`/`15081`.
+ *
+ * Nguồn hiện hành DESIGN.md Typography / Named Step; L2 §3.3/DOC-be09465f8941
+ * là lịch sử/doc đã xoá. Utility mang KIỂU (cỡ · độ đậm · giãn chữ · hoa),
+ * className còn lại mang ĐỊNH VỊ (`mt-1` `flex` `gap-2`) và MÀU (token tầng 1). Cố ý
+ * KHÔNG nhét màu vào `eyebrow-text`: repo dùng đúng một hình eyebrow với `5` màu khác
+ * nhau (`muted-foreground` `primary` `warning` `primary-foreground` `foreground`), nhét
+ * màu vào thì thành `5` utility thay vì `1` — đó mới là đẻ ngôn ngữ riêng.
+ *
+ * `@apply` ở đây chỉ gọi thang/token CÓ SẴN của `@theme` (`text-xs`
+ * `font-medium`). KHÔNG px, KHÔNG hex — nếu sau này cần cỡ mà thang chưa có thì
+ * thêm vào `@theme` như `--tracking-eyebrow`, đừng viết thẳng vào đây.
+ *
+ * Tailwind v4 sinh `@utility` theo nhu cầu: utility chưa ai dùng thì ra `0` byte CSS. */
+
+/* Nhãn "eyebrow": chữ nhỏ `500`, viết như câu, giãn thường — đứng trên tiêu đề.
+   Đo `2026-09-19`, riêng họ này đã có `4` cách viết cho CÙNG một hình
+   (`tracking-[0.14em]` `[0.16em]` `wide`, và bản `text-[13px]` thay `text-xs`).
+   Lịch sử DOC-be09465f8941-R22 (doc đã xoá): font-black 900 → semibold 600.
+   Trần hiện hành DESIGN Typography/Semibold Ceiling: 600 chỉ từ 18px;
+   eyebrow-text hiện dùng font-medium 500. Luật ast-grep language: tsx
+   KHÔNG đụng được @apply ở đây —
+   bỏ sót thì mọi điểm dùng utility này vẫn `900` trong khi cả cây đã về `600`.
+   `DOC-c074ed99482a-R04`/`R05`: bỏ hoa + giãn, `600` → `500` (DESIGN.md Label/Eyebrow
+   viết như câu; *Semibold Ceiling Rule* `600` chỉ từ `text-lg`).
+   `DOC-c074ed99482a-R12`: đổi tên `text-eyebrow` → `eyebrow-text` (ID `R02` giữ nguyên),
+   cùng lý do `control-text` bên dưới. Đo `cn()` thật `2026-09-27`:
+   `cn("text-eyebrow text-warning")` ra `"text-warning"` — mất cỡ, mà eyebrow LUÔN đi
+   kèm một màu chữ. Đổi lúc `0` điểm dùng. `text-label-muted` `text-title-sm` cùng bẫy,
+   `0` điểm dùng ⇒ gỡ ở `DOC-c074ed99482a-R19`. */
+/* `DOC-3bc68cfd4e1c-R92` — nội dung rich text (CKEditor): đoạn · danh sách · tiêu đề · link · trích dẫn theo token, không màu rời. */
+@utility rich-text {
+  @apply flex flex-col gap-step-md text-sm leading-6;
+  & p,
+  & ul,
+  & ol,
+  & blockquote {
+    margin: 0;
+  }
+  & ul {
+    @apply list-disc pl-step-lg;
+  }
+  & ol {
+    @apply list-decimal pl-step-lg;
+  }
+  & li + li {
+    @apply mt-step-sm;
+  }
+  & h2,
+  & h3,
+  & h4 {
+    @apply font-semibold text-foreground;
+  }
+  & a {
+    @apply text-primary underline underline-offset-2;
+  }
+  & blockquote {
+    @apply border-l-2 border-border pl-step-md text-muted-foreground;
+  }
+  & hr {
+    @apply border-border;
+  }
+  & figure.table {
+    @apply m-0 overflow-x-auto;
+  }
+  /* Ảnh từ editor: căn trái/giữa/phải ∧ đổi cỡ (`width` %) — cột flex nên căn bằng `align-self`, không bọc chữ quanh ảnh. */
+  & figure.image {
+    @apply m-0 max-w-full self-center;
+  }
+  & figure.image img {
+    @apply block h-auto max-w-full;
+  }
+  & figure.image-style-align-left {
+    @apply self-start;
+  }
+  & figure.image-style-align-right {
+    @apply self-end;
+  }
+  & figcaption {
+    @apply mt-step-sm text-center text-xs text-muted-foreground;
+  }
+  & table {
+    @apply w-full border-collapse;
+  }
+  & th,
+  & td {
+    @apply border border-border p-step-sm text-left align-top;
+  }
+  & th {
+    @apply bg-muted font-semibold;
+  }
+  /* Bút highlight của CKEditor: nền cố định ∧ chữ tối để đọc được ở cả sáng ∧ tối. */
+  & mark {
+    color: hsl(0 0% 10%);
+  }
+  & mark.marker-yellow {
+    background-color: hsl(60 97% 73%);
+  }
+  & mark.marker-green {
+    background-color: hsl(120 93% 68%);
+  }
+  & mark.marker-pink {
+    background-color: hsl(345 96% 73%);
+  }
+  & mark.marker-blue {
+    background-color: hsl(201 97% 72%);
+  }
+  & mark.pen-red {
+    background-color: transparent;
+    color: hsl(0 85% 45%);
+  }
+  & mark.pen-green {
+    background-color: transparent;
+    color: hsl(112 100% 27%);
+  }
+}
+
+/* `DOC-3bc68cfd4e1c-R92` — CKEditor 5 theo token (sáng ∧ tối): đè biến `--ck-*` của hãng, không đè class của nó. */
+/* Balloon (thanh công cụ ảnh, link, tooltip) CKEditor gắn ở `.ck-body-wrapper` NGOÀI `.rich-text-editor` ⇒ cùng bộ biến. */
+.rich-text-editor,
+.ck-body-wrapper {
+  min-width: 0;
+  --ck-color-base-background: var(--color-card);
+  --ck-color-base-foreground: var(--color-muted);
+  /* Cùng ngôn ngữ với `Input`/`Select`: viền `--color-input`, bo `--radius-md`, vòng focus `--color-ring`, thanh công cụ nền `--color-muted`. */
+  --ck-color-base-border: var(--color-input);
+  --ck-color-base-text: var(--color-card-foreground);
+  --ck-color-text: var(--color-card-foreground);
+  --ck-color-toolbar-background: var(--color-muted);
+  --ck-color-toolbar-border: var(--color-input);
+  /* Trạng thái nút: hover/bật phải KHÁC nền thanh công cụ (`--color-accent` = `--color-muted` ở theme này ⇒ phải pha thêm chữ). */
+  --ck-color-button-default-background: transparent;
+  --ck-color-button-default-hover-background: color-mix(in oklab, var(--color-foreground) 10%, var(--color-muted));
+  --ck-color-button-default-active-background: color-mix(in oklab, var(--color-foreground) 14%, var(--color-muted));
+  --ck-color-button-on-background: color-mix(in oklab, var(--color-foreground) 18%, var(--color-muted));
+  --ck-color-button-on-hover-background: color-mix(in oklab, var(--color-foreground) 22%, var(--color-muted));
+  --ck-color-button-on-active-background: color-mix(in oklab, var(--color-foreground) 22%, var(--color-muted));
+  --ck-color-button-on-disabled-background: var(--color-muted);
+  --ck-color-button-on-color: var(--color-foreground);
+  --ck-color-button-action-background: var(--color-primary);
+  --ck-color-button-action-hover-background: var(--color-primary);
+  --ck-color-button-action-active-background: var(--color-primary);
+  --ck-color-button-action-text: var(--color-primary-foreground);
+  --ck-color-split-button-hover-background: color-mix(in oklab, var(--color-foreground) 10%, var(--color-muted));
+  --ck-color-split-button-hover-border: var(--color-input);
+  --ck-color-list-button-hover-background: color-mix(in oklab, var(--color-foreground) 10%, var(--color-popover));
+  --ck-color-list-button-on-background: var(--color-primary);
+  --ck-color-list-button-on-background-focus: var(--color-primary);
+  --ck-color-list-button-on-text: var(--color-primary-foreground);
+  --ck-color-labeled-field-label-background: var(--color-popover);
+  --ck-color-focus-border: var(--color-ring);
+  --ck-color-panel-background: var(--color-popover);
+  --ck-color-panel-border: var(--color-input);
+  --ck-color-dropdown-panel-background: var(--color-popover);
+  --ck-color-dropdown-panel-border: var(--color-input);
+  --ck-color-dialog-background: var(--color-popover);
+  --ck-color-dialog-form-header-border: var(--color-input);
+  --ck-color-list-background: var(--color-popover);
+  --ck-color-input-background: var(--color-card);
+  --ck-color-input-border: var(--color-input);
+  --ck-color-input-text: var(--color-card-foreground);
+  --ck-color-link-default: var(--color-primary);
+  --ck-border-radius: var(--radius-md);
+  /* `DOC-561b6361c1d8` — các biến NGỮ NGHĨA của hãng (`surface-*`, `text-*`, `border-*`) được tính sẵn ở `:root` từ bộ `base-*` trắng,
+     rồi kế thừa xuống ⇒ đè `base-*` ở đây không đổi được chúng (ô soạn vẫn nền trắng ở dark). Khai lại để tính lại theo token. */
+  --ck-color-base-text-light: var(--color-muted-foreground);
+  --ck-color-surface-canvas: var(--ck-color-base-background);
+  --ck-color-surface-control: var(--ck-color-base-background);
+  --ck-color-surface-container: var(--ck-color-base-background);
+  --ck-color-surface-subtle: var(--ck-color-base-foreground);
+  --ck-color-surface-inverse: var(--ck-color-base-text);
+  --ck-color-border-control: var(--ck-color-base-border);
+  --ck-color-border-container: var(--ck-color-base-border);
+  --ck-color-divider: var(--ck-color-base-border);
+  --ck-color-text-primary: var(--ck-color-base-text);
+  --ck-color-text-secondary: var(--ck-color-base-text-light);
+  --ck-color-text-disabled: var(--ck-color-base-text-light);
+  --ck-color-text-inverse: var(--ck-color-base-background);
+}
+.rich-text-editor .ck.ck-editor__top .ck-sticky-panel .ck-sticky-panel__content {
+  border-color: var(--color-input);
+}
+.rich-text-editor .ck.ck-editor__top.ck-reset_all,
+.rich-text-editor .ck.ck-editor__top.ck-reset_all * {
+  font-family: inherit;
+}
+.rich-text-editor .ck.ck-editor__editable {
+  font-family: inherit;
+  font-size: 0.875rem;
+  line-height: 1.5rem;
+}
+.rich-text-editor .ck-editor__editable {
+  min-height: 12rem;
+  background: var(--color-card);
+  color: var(--color-card-foreground);
+}
+/* Thanh công cụ dính đầu vùng cuộn gần nhất (modal) khi cuộn trong một ô soạn dài; chỉ dính trong phạm vi ô đó. */
+.rich-text-editor .ck.ck-editor__top {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+/* `ckeditor5.css` không kèm kiểu NỘI DUNG (h2–h4 bị preflight của Tailwind về chữ thường) ⇒ khớp `.rich-text` ở trang public. */
+.rich-text-editor .ck-content h2 {
+  font-size: 1.25rem;
+  line-height: 1.75rem;
+  font-weight: 600;
+}
+.rich-text-editor .ck-content h3 {
+  font-size: 1.125rem;
+  line-height: 1.5rem;
+  font-weight: 600;
+}
+.rich-text-editor .ck-content h4 {
+  font-size: 1rem;
+  line-height: 1.5rem;
+  font-weight: 600;
+}
+
+@utility eyebrow-text {
+  @apply text-xs font-medium;
+}
+
+/* `DOC-aea24031aa16-R35` — đường viền MẢNH HƠN `1px`.
+ *
+ * Vì sao là `@utility` chứ không phải một token `@theme`: Tailwind KHÔNG có
+ * namespace `--border-width-*`, `border-<n>` nhận số NGUYÊN px. Repo lại cố ý vẽ
+ * mảnh hơn — tức PHẦN LẺ mới là chỗ không có bậc, không phải số nguyên: đo
+ * `2026-09-19` ra `28` lượt trong khoảng `1.2`–`1.6px` (`1.5px` `17` · `1.2px` `4` ·
+ * `1.4px` `3` · `1.6px` `2` · `1.3px` `2`). Không có chỗ nào trên thang để trỏ tới,
+ * nên `28` điểm đó buộc phải viết `border-[1.5px]` tại chỗ.
+ *
+ * Gom về `1.5px` — cụm đông nhất. Lệch ≤ `0.3px`, dưới ngưỡng nhìn thấy trên màn
+ * thường và đúng `0` trên `17`/`28` điểm.
+ *
+ * `3` lượt `border-[3px]` từng bị để ngoài với lý do "`border-4` lệch `1px`, mà
+ * `3` điểm thì không đáng một bậc riêng". Lý do đó dựa trên TIỀN ĐỀ SAI rằng
+ * thang chỉ có `1` `2` `4` `8`. Đo `2026-09-19` (`R40`) bằng cách biên dịch thật:
+ * `border-3` CÓ, ra đúng `border-width: 3px`, và `border-b-3` ra
+ * `border-bottom-width: 3px`. Không cần bậc mới, không lệch pixel nào — `3` điểm
+ * đã chuyển. Bài học: đừng khai một giới hạn của công cụ mà chưa chạy thử nó. */
+/* Cỡ chữ trong CONTROL (`12px`, hạ từ `13px` `2026-10-03`) — Button · Select · Input(desktop) · Tab ·
+   MenuItem. `DOC-1cd5fe1da37e-R18`, huyi0 chốt `2026-09-22`.
+
+   TÊN KHÔNG BẮT ĐẦU BẰNG `text-`, và đó là điều kiện ĐÚNG SAI chứ không phải
+   sở thích. Bản đầu khai `--text-control` trong `@theme` để có utility
+   `text-control` — đúng quy ước Tailwind, nhưng đo trên trang thật thì nút
+   "Open Pass" ra `14px` chứ không phải `13px`, và `className` thật KHÔNG còn
+   token đó. Nguyên nhân: `tailwind-merge` (chính là `cn`) không biết
+   `text-control` thuộc nhóm nào, `text-*` lại vừa có thể là cỡ vừa có thể là
+   MÀU, nên nó xếp vào nhóm màu và gỡ khi call-site khai
+   `text-primary-foreground`. Tức mọi `<Button>` có đặt màu chữ đều mất cỡ.
+   `cn` đến từ package NGOÀI repo (`export { cn } from "cn"`) nên không cấu
+   hình `extendTailwindMerge` được; đổi tên là đường còn lại.
+
+   Cùng lối với `border-hair` ở dưới: utility tự chế, tên không đụng nhóm nào
+   của tailwind-merge. */
+/* Portal Lint Utilities (DOC-4990371673c2-R06): giá trị kế thừa/layout có tên. */
+@utility text-size-inherit {
+  font-size: inherit;
+}
+@utility rounded-inherit {
+  border-radius: inherit;
+}
+@utility pb-safe-4 {
+  padding-bottom: calc(env(safe-area-inset-bottom) + --spacing(4));
+}
+@utility pb-safe-19 {
+  padding-bottom: calc(env(safe-area-inset-bottom) + --spacing(19));
+}
+@utility scrollbar-muted {
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, var(--muted-foreground) 45%, transparent) transparent;
+}
+/* Mép mờ cho hàng cuộn ngang (`DOC-d6512a6977e4`, demo #66): mép chỉ mờ phía còn nội dung để cuộn.
+ * CSS thuần (scroll-driven animation); trình duyệt chưa hỗ trợ ⇒ `@supports` bỏ qua, hàng vẫn cuộn bình thường.
+ * Hàng không tràn ⇒ timeline không chạy ⇒ hai biến giữ 0 ⇒ mặt nạ trong suốt hoàn toàn. */
+@property --edge-fade-start {
+  syntax: "<length>";
+  inherits: false;
+  initial-value: 0px;
+}
+@property --edge-fade-end {
+  syntax: "<length>";
+  inherits: false;
+  initial-value: 0px;
+}
+@keyframes edge-fade-x {
+  0% {
+    --edge-fade-start: 0px;
+    --edge-fade-end: 1.5rem;
+  }
+  8%,
+  92% {
+    --edge-fade-start: 1.5rem;
+    --edge-fade-end: 1.5rem;
+  }
+  100% {
+    --edge-fade-start: 1.5rem;
+    --edge-fade-end: 0px;
+  }
+}
+@utility edge-fade-x {
+  @supports (animation-timeline: scroll()) {
+    animation: edge-fade-x linear both;
+    animation-timeline: scroll(x self);
+    -webkit-mask-image: linear-gradient(
+      to right,
+      transparent,
+      #000 var(--edge-fade-start),
+      #000 calc(100% - var(--edge-fade-end)),
+      transparent
+    );
+    mask-image: linear-gradient(
+      to right,
+      transparent,
+      #000 var(--edge-fade-start),
+      #000 calc(100% - var(--edge-fade-end)),
+      transparent
+    );
+  }
+}
+/* Conversation Selected (DOC-4990371673c2-R07): chỉ thị chọn 3px, không đổi hộp. */
+@utility conversation-selected {
+  box-shadow: inset 3px 0 0 var(--primary);
+}
+@utility chart-grid-thirds {
+  background-image:
+    linear-gradient(var(--border) 1px, transparent 1px), linear-gradient(90deg, var(--border) 1px, transparent 1px);
+  background-size:
+    100% 33%,
+    25% 100%;
+}
+@utility chart-grid-quarters {
+  background-image:
+    linear-gradient(var(--border) 1px, transparent 1px), linear-gradient(90deg, var(--border) 1px, transparent 1px);
+  background-size:
+    100% 25%,
+    12.5% 100%;
+}
+
+@utility control-text {
+  font-size: var(--font-size-control);
+  line-height: calc(1 / 0.75);
+}
+
+/* `DOC-0a2a5b9ce930` — trạng thái control khai MỘT lần; primitive chỉ gọi tên.
+   - `control-disabled`: khoá tạm ⇒ nền xám `--input`, mờ, con trỏ cấm.
+   - `control-readonly`: chỉ đọc ⇒ nền `--muted` nhạt, chữ rõ (không mờ), con trỏ mặc định. */
+@utility control-disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+  background-color: color-mix(in srgb, var(--input) 50%, transparent);
+  @variant dark {
+    background-color: color-mix(in srgb, var(--input) 80%, transparent);
+  }
+}
+@utility control-readonly {
+  cursor: default;
+  background-color: color-mix(in srgb, var(--muted) 40%, transparent);
+  @variant dark {
+    background-color: color-mix(in srgb, var(--muted) 40%, transparent);
+  }
+}
+
+@utility border-hair {
+  border-width: 1.5px;
+}
+
+/* `DOC-d057b9b8a3a0-R07` — thang `z-index` CÓ TÊN cho mọi lớp NỔI TRÊN nền `z-50` của Dialog/Sheet/AlertDialog.
+   Trước đó `8` giá trị tuỳ ý (`60 65 70 100 120 130 1000`) mỗi nơi tự chọn một số, nên thứ tự chồng lớp là ngẫu nhiên.
+   Thứ tự là hợp đồng: `raised` < `float` < `toast` < `popup`. Dưới `50` giữ số trần `z-0`…`z-50` (cục bộ trong thẻ).
+   `z-[N]` tuỳ ý và số trần `> 50` bị luật ast-grep `z-index-off-scale` chặn.
+   - `z-raised` 60: thanh đáy mobile, widget chat nổi, panel cục bộ nổi trên nội dung.
+   - `z-float` 70: nút/hộp trợ lý nổi — phải trên thanh đáy.
+   - `z-toast` 100: thông báo sau hành động + skip-link.
+   - `z-popup` 120: menu/popup định vị tay — trên mọi thứ kể cả toast. */
+@utility z-raised {
+  z-index: 60;
+}
+@utility z-float {
+  z-index: 70;
+}
+@utility z-toast {
+  z-index: 100;
+}
+@utility z-popup {
+  z-index: 120;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  /* DOC-a37bfc17ca6f-R03/R05: thanh cuộn siêu mỏng (rãnh 6px, thumb nhìn thấy 4px), thumb theo token
+   * (sáng ∧ tối tự đổi), rãnh trong suốt. Chrome ≥121 bỏ ::-webkit-scrollbar khi có scrollbar-width/color
+   * ⇒ WebKit/Blink dùng ::-webkit-scrollbar (mỏng hơn `thin` ~11px); Firefox dùng thuộc tính chuẩn.
+   * Ở layer base ⇒ utility `[scrollbar-width:none]` / `[&::-webkit-scrollbar]:hidden` vẫn thắng (dải chip ngang giữ ẩn). */
+  @supports selector(::-webkit-scrollbar) {
+    *::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    *::-webkit-scrollbar-track,
+    *::-webkit-scrollbar-corner {
+      background: transparent;
+    }
+    *::-webkit-scrollbar-thumb {
+      border: 1px solid transparent;
+      border-radius: 9999px;
+      background-clip: padding-box;
+      /* DOC-a37bfc17ca6f-R06: màu loang chart-1 (chàm) → chart-2 (xanh ngọc), theo token ⇒ sáng ∧ tối tự đổi.
+       * Firefox không hỗ trợ gradient ở thumb ⇒ giữ xám `scrollbar-color` ở khối dưới. */
+      background-image: linear-gradient(
+        180deg,
+        color-mix(in srgb, var(--chart-1) 55%, transparent),
+        color-mix(in srgb, var(--chart-2) 55%, transparent)
+      );
+    }
+    *:hover::-webkit-scrollbar-thumb {
+      background-image: linear-gradient(
+        180deg,
+        color-mix(in srgb, var(--chart-1) 90%, transparent),
+        color-mix(in srgb, var(--chart-2) 90%, transparent)
+      );
+    }
+  }
+  @supports not selector(::-webkit-scrollbar) {
+    * {
+      scrollbar-width: thin;
+      scrollbar-color: color-mix(in srgb, var(--muted-foreground) 40%, transparent) transparent;
+    }
+    *:hover {
+      scrollbar-color: color-mix(in srgb, var(--muted-foreground) 65%, transparent) transparent;
+    }
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+  html {
+    @apply font-sans;
+  }
+  button,
+  a,
+  input,
+  select,
+  textarea {
+    font: inherit;
+  }
+  button,
+  a {
+    -webkit-tap-highlight-color: transparent;
+  }
+  /* `DOC-19dc6bd1a4b3-R07` — heading xuống dòng thì chia đều các dòng, tránh một chữ mồ côi
+     ở dòng cuối (luật Typography của `/web-design-guidelines`; `20` heading ở auth-next).
+     Ở tầng `base` nên `text-pretty`/`text-wrap` tại call-site vẫn thắng; heading một dòng
+     hoặc `truncate` (`nowrap`) không đổi gì. */
+  h1,
+  h2,
+  h3 {
+    text-wrap: balance;
+  }
+  /* `DOC-4c2d91d90651` — Card nhận bóng mềm mặc định; `shadow-*` ở call-site (tầng
+     utilities) vẫn thắng. Card lồng trong Card ⇒ phẳng (đã có nền `bg-muted/40`). */
+  [data-slot="card"] {
+    box-shadow: var(--shadow-card);
+  }
+  [data-slot="card"] [data-slot="card"] {
+    box-shadow: none;
+  }
+  /* `DOC-925b9eb20ace` — container cuộn (`overflow-y-auto`) cắt bóng mềm (blur 24px, lệch 6px)
+     vì card sát mép (đo: 0px trên/dưới, 16px hai bên) ⇒ dải xám. Card trong dialog/sheet/
+     scroll-area ⇒ bóng thay bằng viền 1px (nằm trong đệm, không bị cắt). Call-site có
+     `shadow-*`/`ring-*` (tầng utilities) vẫn thắng. */
+  :where(
+      [data-slot="dialog-body"],
+      [data-slot="sheet-body"],
+      [data-slot="drawer-content"],
+      [data-slot="scroll-area-viewport"],
+      [class*="overflow-y-auto"],
+      [class*="overflow-x-auto"],
+      [class*="overflow-auto"]
+    )
+    [data-slot="card"] {
+    box-shadow: 0 0 0 1px color-mix(in oklab, var(--foreground) 10%, transparent);
+  }
+}
+
+/* `DOC-fb0b0648f472-R30` — mô hình chữ của Penpot, bật theo màn đã hiệu chuẩn.
+   Penpot đặt ĐỈNH ASCENT của dòng đầu đúng mép trên node và giãn dòng 1.2em;
+   CSS canh giữa line box nên dư `half-leading` = (line-height − 1.21em)/2, đẩy
+   chữ xuống ~3px ở mọi node. `line-height: 1.2` khử đúng phần dư đó (Inter:
+   ascent+descent = 1.2102em ⇒ half-leading ≈ 0).
+   KHÔNG dùng `text-box-trim`: nó cắt cả ascender/descender nên hộp chữ co lại,
+   kéo sập chuỗi `mt-[Npx]` đo theo board — đo thật 2026-09-17: G4 5,14% →
+   24,55%, G2 0 → 23/27 lệch. */
+.nsm-text :is(p, span, h2, h3, li, label, button) {
+  line-height: 1.2;
+}
+
+@source "./**/*.html";

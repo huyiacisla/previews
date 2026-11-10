@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en" class="light">
+<head>
+<!--include:partials/head.html-->
+<title>Messaging hub · UI preview</title>
+</head>
+<body class="bg-background font-sans text-foreground">
+<a href="#main-content" class="group/button fixed -top-20 left-3 z-toast inline-flex shrink-0 touch-manipulation items-center justify-center gap-1.5 rounded-md border border-transparent bg-primary bg-clip-padding px-2.5 py-1.75 control-text font-medium whitespace-nowrap text-primary-foreground transition outline-none select-none hover:bg-primary/90 focus-visible:top-3 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50">Skip to main content</a>
+
+<!-- body background is reset in dark mode by ui-tokens.css (.dark body), so the page paints its own -->
+<div class="min-h-dvh bg-background text-foreground">
+<main id="main-content" tabindex="-1" class="mx-auto flex max-w-5xl flex-col gap-step-xl px-step-lg py-step-xl outline-none lg:px-step-xl">
+  <header class="flex flex-col gap-step-sm">
+    <div class="flex items-center justify-between gap-step-md">
+      <a href="/index.html" class="inline-flex h-8 items-center rounded-md px-step-sm control-text font-medium text-foreground-secondary outline-none hover:bg-muted hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50 pointer-coarse:h-11">All preview pages</a>
+      <button type="button" data-theme-toggle class="inline-flex h-8 items-center rounded-md bg-foreground/8 px-step-md control-text font-medium text-secondary-foreground outline-none hover:bg-foreground/12 focus-visible:ring-3 focus-visible:ring-ring/50 pointer-coarse:h-11">Light or dark</button>
+    </div>
+    <h1 class="text-2xl leading-8 font-semibold tracking-tight">Messaging hub</h1>
+    <p class="max-w-2xl text-sm text-muted-foreground">One connection for four portals. Open two portals in two tabs to try a conversation from both sides: messages, queue changes and read receipts update live between tabs.</p>
+  </header>
+
+  <section aria-labelledby="h-portals" class="flex flex-col gap-step-md">
+    <h2 id="h-portals" class="text-lg font-semibold tracking-tight">Open a portal</h2>
+    <div id="hub-portals" class="grid gap-step-lg sm:grid-cols-2"></div>
+  </section>
+
+  <section aria-labelledby="h-rules" class="flex flex-col gap-step-md">
+    <h2 id="h-rules" class="text-lg font-semibold tracking-tight">Who can message whom</h2>
+    <div class="overflow-x-auto rounded-xl bg-card shadow-lift-xs">
+      <table class="w-full min-w-xl border-collapse text-left text-sm">
+        <caption class="sr-only">Messaging permissions by role</caption>
+        <thead><tr class="border-b border-border text-xs text-muted-foreground"><th scope="col" class="px-step-lg py-step-md font-medium">Role</th><th scope="col" class="px-step-lg py-step-md font-medium">Can message</th><th scope="col" class="px-step-lg py-step-md font-medium">How it works</th></tr></thead>
+        <tbody class="divide-y divide-border align-top">
+          <tr><th scope="row" class="px-step-lg py-step-md font-medium">Resident</th><td class="px-step-lg py-step-md">Staff</td><td class="px-step-lg py-step-md text-muted-foreground">Starts with the assistant. The property team is only contacted if the resident asks for a person. Cannot message Client or Admin.</td></tr>
+          <tr><th scope="row" class="px-step-lg py-step-md font-medium">Staff</th><td class="px-step-lg py-step-md">Resident, Client, Support (Admin)</td><td class="px-step-lg py-step-md text-muted-foreground">Takes residents from a queue. A note to a resident is one-way until they reply, and is limited so residents are not bothered.</td></tr>
+          <tr><th scope="row" class="px-step-lg py-step-md font-medium">Client</th><td class="px-step-lg py-step-md">Staff, Support (Admin)</td><td class="px-step-lg py-step-md text-muted-foreground">Normal chats with staff. Requests to Support have a status: open, pending or resolved.</td></tr>
+          <tr><th scope="row" class="px-step-lg py-step-md font-medium">Admin</th><td class="px-step-lg py-step-md">Staff, Admin, Resident, Client, everyone</td><td class="px-step-lg py-step-md text-muted-foreground">Works as a support agent for Staff and Client. Announcements go to everyone or chosen groups and are one-way.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section aria-labelledby="h-flow" class="flex flex-col gap-step-md">
+    <h2 id="h-flow" class="text-lg font-semibold tracking-tight">How a resident chat works</h2>
+    <ol class="grid gap-step-lg sm:grid-cols-2 lg:grid-cols-4">
+      <li class="flex flex-col gap-step-xs rounded-xl bg-card p-step-lg shadow-lift-xs"><p class="text-xs text-muted-foreground">Step 1</p><h3 class="text-base leading-snug font-medium">The assistant asks first</h3><p class="text-sm text-muted-foreground">The resident opens Messages and picks a topic or types a question. Staff see nothing yet.</p></li>
+      <li class="flex flex-col gap-step-xs rounded-xl bg-card p-step-lg shadow-lift-xs"><p class="text-xs text-muted-foreground">Step 2</p><h3 class="text-base leading-snug font-medium">Hand-off, only if asked</h3><p class="text-sm text-muted-foreground">If the answer is not enough, the resident asks for a person. The request waits in the Staff queue with a summary.</p></li>
+      <li class="flex flex-col gap-step-xs rounded-xl bg-card p-step-lg shadow-lift-xs"><p class="text-xs text-muted-foreground">Step 3</p><h3 class="text-base leading-snug font-medium">One person takes it</h3><p class="text-sm text-muted-foreground">A staff member takes the chat; only one can. The resident is notified when they join.</p></li>
+      <li class="flex flex-col gap-step-xs rounded-xl bg-card p-step-lg shadow-lift-xs"><p class="text-xs text-muted-foreground">Step 4</p><h3 class="text-base leading-snug font-medium">Resolved, then closed</h3><p class="text-sm text-muted-foreground">Staff resolve it, or the resident ends it. The chat closes; the next visit starts with the assistant again.</p></li>
+    </ol>
+  </section>
+
+  <section aria-labelledby="h-conn" class="flex flex-col gap-step-sm rounded-xl bg-muted/40 p-step-lg">
+    <h2 id="h-conn" class="text-base leading-snug font-medium">Connection and demo data</h2>
+    <p class="text-sm text-muted-foreground">Connection: <span id="hub-conn" class="font-medium text-foreground"></span>. Data lives in this browser and syncs between its tabs. It is not shared across devices.</p>
+    <div class="flex flex-wrap gap-step-sm">
+      <button type="button" id="hub-reset" class="inline-flex h-8 items-center rounded-md bg-background px-step-md control-text font-medium text-foreground ring-1 ring-foreground/10 outline-none hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50 pointer-coarse:h-11">Reset demo data</button>
+      <button type="button" id="hub-empty" class="inline-flex h-8 items-center rounded-md bg-background px-step-md control-text font-medium text-foreground ring-1 ring-foreground/10 outline-none hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50 pointer-coarse:h-11">Start empty</button>
+    </div>
+    <p id="hub-status" role="status" class="text-xs text-muted-foreground"></p>
+  </section>
+</main>
+</div>
+
+<template id="h-card">
+  <article class="flex flex-col gap-step-md rounded-xl bg-card p-step-lg shadow-lift-xs">
+    <div class="flex flex-col gap-step-xs"><h3 data-title class="text-base leading-snug font-medium"></h3><p data-text class="text-sm text-muted-foreground"></p></div>
+    <ul data-people class="flex flex-col gap-step-xs" role="list"></ul>
+    <div><a data-open class="inline-flex h-8 items-center rounded-md bg-primary px-step-md control-text font-medium text-primary-foreground outline-none hover:bg-primary/90 focus-visible:ring-3 focus-visible:ring-ring/50 pointer-coarse:h-11"></a></div>
+  </article>
+</template>
+<template id="h-person">
+  <li><a data-link class="flex items-center gap-step-sm rounded-md px-step-sm py-step-xs text-sm outline-none hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50 pointer-coarse:min-h-11"><span data-name class="font-medium"></span><span data-title class="min-w-0 flex-1 truncate text-xs text-muted-foreground"></span><span data-unread hidden class="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1.5 text-2xs font-medium text-primary-foreground tabular-nums"></span></a></li>
+</template>
+
+<script type="module" src="/messaging/hub.js"></script>
+</body>
+</html>
