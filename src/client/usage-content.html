@@ -1,0 +1,199 @@
+<!doctype html>
+<html lang="en" class="light">
+<head>
+<!--include:partials/head.html-->
+<title>Capacity | Client Portal · client preview</title>
+</head>
+<body class="bg-background font-sans text-foreground" data-portal="client">
+<!-- Usage > Capacity (Client): the plan's resources, and a way to add to them. Each resource has what is used, what is covered, its price, and a stepper; the
+     summary is the calculator (like Billing & Plan's budget planner): what is added each month, the new monthly total, an optional budget. Confirming adds it to Billing & Plan.
+     Prices and figures are in capacity/store.js. Every Tailwind class lives here; usage/app.js clones the templates and fills them. -->
+
+<svg aria-hidden="true" focusable="false" style="position:absolute;width:0;height:0;overflow:hidden">
+  <defs>
+    <symbol id="i-car" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1.1.4-1.4.9l-1.4 2.9A3.7 3.7 0 0 0 2 12v4c0 .6.4 1 1 1h2"/><circle cx="7" cy="17" r="2"/><path d="M9 17h6"/><circle cx="17" cy="17" r="2"/></symbol>
+    <symbol id="i-users" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></symbol>
+    <symbol id="i-staff" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="10" cy="7" r="4"/><path d="M10.3 15H7a4 4 0 0 0-4 4v2"/><circle cx="18" cy="18" r="3"/><path d="m21.7 21.7-1.4-1.4M18 14v1M18 21v1M14 18h1M22 18h-1M14.7 14.7l.7.7"/></symbol>
+    <symbol id="i-drive" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12H2"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/><path d="M6 16h.01"/><path d="M10 16h.01"/></symbol>
+    <symbol id="i-building" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M9 7h1M14 7h1M9 11h1M14 11h1M9 15h1M14 15h1"/></symbol>
+    <symbol id="i-plus" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></symbol>
+    <symbol id="i-minus" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/></symbol>
+    <symbol id="i-x" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></symbol>
+  </defs>
+</svg>
+
+<a href="#main-content" class="sr-only focus-visible:not-sr-only focus-visible:fixed focus-visible:top-step-sm focus-visible:left-step-sm focus-visible:z-toast focus-visible:rounded-md focus-visible:bg-card focus-visible:px-step-md focus-visible:py-step-sm focus-visible:ring-3 focus-visible:ring-ring/50">Skip to main content</a>
+
+<main id="main-content" tabindex="-1" class="mx-auto flex min-h-dvh w-full max-w-5xl flex-col gap-step-lg px-step-lg py-step-lg outline-none lg:px-step-xl">
+  <header class="flex flex-wrap items-start justify-between gap-step-md">
+    <div class="min-w-0">
+      <p class="text-sm text-muted-foreground">Client workspace · Usage</p>
+      <h1 class="text-2xl leading-8 font-semibold tracking-tight text-foreground">Capacity</h1>
+      <p class="text-sm text-muted-foreground">Add what your properties need. Every change is added to Billing &amp; Plan.</p>
+    </div>
+    <p class="inline-flex h-6 items-center rounded-full bg-neutral-bg px-step-md text-xs font-medium whitespace-nowrap text-neutral-text">Starter plan</p>
+  </header>
+
+  <p id="done" role="status" hidden class="flex items-start gap-step-sm rounded-xl bg-success-bg p-step-md text-sm leading-5 font-medium text-success-text">
+    <svg aria-hidden="true" class="mt-0.5 size-4 shrink-0"><use href="#i-check"/></svg><span id="done-text"></span>
+  </p>
+
+  <div class="grid items-start gap-step-lg lg:grid-cols-3">
+    <div class="flex flex-col gap-step-lg lg:col-span-2">
+      <section aria-labelledby="add-h" class="flex flex-col gap-step-md">
+        <div>
+          <h2 id="add-h" class="text-base leading-6 font-medium">Extend your capacity</h2>
+          <p class="text-sm text-muted-foreground">Buy more of what you use without moving to a larger plan. Nothing is charged until you review and confirm.</p>
+        </div>
+        <ul id="items" class="flex flex-col gap-step-md"></ul>
+      </section>
+
+      <section id="property" aria-labelledby="prop-h" class="flex flex-col gap-step-md rounded-xl bg-card p-step-md shadow-lift-xs">
+        <div class="flex flex-wrap items-start justify-between gap-step-md">
+          <div class="min-w-0">
+            <h2 id="prop-h" class="text-base leading-6 font-medium">Add another property</h2>
+            <p class="text-sm text-muted-foreground"><span id="prop-price"></span>/mo, half of your plan price. Prorated for the rest of this billing period.</p>
+          </div>
+          <p id="prop-count" class="inline-flex h-6 items-center rounded-full bg-neutral-bg px-step-md text-xs font-medium whitespace-nowrap text-neutral-text tabular-nums"></p>
+        </div>
+        <form id="prop-form" novalidate class="grid gap-step-md sm:grid-cols-2">
+          <div class="flex flex-col gap-step-xs sm:col-span-2">
+            <label for="p-name" class="text-sm leading-5 font-medium">Property name</label>
+            <input id="p-name" name="name" type="text" autocomplete="off" maxlength="80" aria-describedby="p-name-err" class="h-8 w-full min-w-0 rounded-md border border-input bg-card px-2.5 text-base outline-none transition-colors focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 md:text-sm pointer-coarse:h-11" />
+            <p id="p-name-err" role="alert" hidden class="text-xs leading-4 text-danger-text"></p>
+          </div>
+          <div class="flex flex-col gap-step-xs">
+            <label for="p-units" class="text-sm leading-5 font-medium">Apartment units</label>
+            <input id="p-units" name="units" type="text" inputmode="numeric" autocomplete="off" maxlength="4" aria-describedby="p-units-err" class="h-8 w-full min-w-0 rounded-md border border-input bg-card px-2.5 text-base tabular-nums outline-none transition-colors focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 md:text-sm pointer-coarse:h-11" />
+            <p id="p-units-err" role="alert" hidden class="text-xs leading-4 text-danger-text"></p>
+          </div>
+          <div class="flex flex-col gap-step-xs">
+            <label for="p-address" class="text-sm leading-5 font-medium">Address <span class="font-normal text-muted-foreground">(optional)</span></label>
+            <input id="p-address" name="address" type="text" autocomplete="street-address" maxlength="120" aria-describedby="p-address-help p-address-err" class="h-8 w-full min-w-0 rounded-md border border-input bg-card px-2.5 text-base outline-none transition-colors focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 md:text-sm pointer-coarse:h-11" />
+            <p id="p-address-help" class="text-xs leading-4 text-muted-foreground">Used on notices and the property page.</p>
+            <p id="p-address-err" role="alert" hidden class="text-xs leading-4 text-danger-text"></p>
+          </div>
+          <div class="flex flex-col gap-step-xs sm:col-span-2">
+            <label class="flex cursor-pointer items-start gap-step-sm rounded-lg border border-border p-step-md text-sm leading-5 has-checked:border-primary has-focus-visible:ring-3 has-focus-visible:ring-ring/50">
+              <input id="p-auth" name="authorize" type="checkbox" aria-describedby="p-auth-err" class="mt-0.5 size-4 shrink-0 accent-primary" />
+              <span>I authorize this charge. Increases are billed now, prorated to the end of the current period, and renew monthly.</span>
+            </label>
+            <p id="p-auth-err" role="alert" hidden class="text-xs leading-4 text-danger-text"></p>
+          </div>
+          <div class="sm:col-span-2">
+            <button type="submit" class="group/button inline-flex h-8 shrink-0 touch-manipulation items-center justify-center gap-step-sm rounded-md border border-transparent bg-background bg-clip-padding px-step-md control-text font-medium whitespace-nowrap text-foreground ring-1 ring-foreground/10 transition outline-none select-none hover:bg-muted focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 active:translate-y-px pointer-coarse:h-11 [&_svg]:size-4 [&_svg]:shrink-0">
+              <svg aria-hidden="true"><use href="#i-plus"/></svg>Add property to summary
+            </button>
+          </div>
+        </form>
+        <ul id="pending" class="flex flex-col divide-y divide-border"></ul>
+      </section>
+    </div>
+
+    <!-- The calculator: what is added each month, the new monthly total, an optional budget. It stays in view beside the list on a wide screen. -->
+    <aside aria-labelledby="sum-h" class="flex flex-col gap-step-md rounded-xl bg-card p-step-md shadow-lift-xs lg:sticky lg:top-step-lg">
+      <div>
+        <h2 id="sum-h" class="text-base leading-6 font-medium">Summary</h2>
+        <p class="text-sm text-muted-foreground">What this does to your monthly bill.</p>
+      </div>
+      <dl class="flex flex-col gap-step-sm text-sm leading-5">
+        <div class="flex items-baseline justify-between gap-step-md"><dt class="text-muted-foreground">Plan</dt><dd class="font-medium">Starter</dd></div>
+        <div class="flex items-baseline justify-between gap-step-md"><dt class="text-muted-foreground">Current monthly total</dt><dd id="s-current" class="font-medium tabular-nums"></dd></div>
+      </dl>
+      <ul id="s-lines" class="flex flex-col gap-step-xs border-t border-border pt-step-sm text-sm leading-5"></ul>
+      <p id="s-empty" class="border-t border-border pt-step-sm text-sm text-muted-foreground">Nothing added yet. Use the steppers or add a property.</p>
+      <div class="flex flex-col gap-step-xs border-t border-border pt-step-sm">
+        <div class="flex items-baseline justify-between gap-step-md text-sm leading-5"><span class="text-muted-foreground">Added each month</span><b id="s-add" class="font-medium tabular-nums"></b></div>
+        <div class="flex items-baseline justify-between gap-step-md"><span class="text-sm leading-5 font-medium">New monthly total</span><b id="s-next" aria-live="polite" class="text-xl leading-7 font-semibold tabular-nums"></b></div>
+      </div>
+
+      <div class="flex flex-col gap-step-xs border-t border-border pt-step-sm">
+        <label for="budget" class="text-sm leading-5 font-medium">Monthly budget for add-ons <span class="font-normal text-muted-foreground">(optional)</span></label>
+        <div class="relative">
+          <span aria-hidden="true" class="pointer-events-none absolute top-1/2 left-2.5 -translate-y-1/2 text-sm text-muted-foreground">$</span>
+          <input id="budget" type="text" inputmode="decimal" autocomplete="off" maxlength="7" placeholder="No limit" aria-describedby="budget-help" class="h-8 w-full min-w-0 rounded-md border border-input bg-card pr-2.5 pl-6 text-base tabular-nums outline-none transition-colors placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 md:text-sm pointer-coarse:h-11" />
+        </div>
+        <p id="budget-help" role="status" class="text-xs leading-4 text-muted-foreground"></p>
+      </div>
+
+      <div class="flex flex-col gap-step-sm">
+        <button type="button" id="review" disabled class="group/button inline-flex h-8 w-full shrink-0 touch-manipulation items-center justify-center gap-step-sm rounded-md border border-transparent bg-primary bg-clip-padding px-step-md control-text font-medium whitespace-nowrap text-primary-foreground transition outline-none select-none hover:bg-primary/90 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 active:translate-y-px disabled:pointer-events-none disabled:opacity-50 pointer-coarse:h-11">Review &amp; confirm</button>
+        <button type="button" id="clear" hidden class="self-center rounded-md py-step-xs text-xs leading-4 font-medium text-primary outline-none hover:underline focus-visible:ring-3 focus-visible:ring-ring/50 pointer-coarse:min-h-11">Clear changes</button>
+      </div>
+      <p class="text-xs leading-4 text-muted-foreground">It applies from your next billing period and shows in Billing &amp; Plan. Tax, proration and credits are shown when you confirm.</p>
+    </aside>
+  </div>
+</main>
+
+<template id="t-item">
+  <li class="rounded-xl bg-card p-step-md shadow-lift-xs transition-shadow data-added:ring-2 data-added:ring-primary/30">
+    <div class="flex flex-wrap items-start gap-step-md">
+      <span aria-hidden="true" class="flex size-10 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground"><svg class="size-5"><use data-f="icon" href="#i-car"/></svg></span>
+      <div class="min-w-0 flex-1 basis-56">
+        <div class="flex flex-wrap items-baseline gap-x-step-sm">
+          <h3 data-f="name" class="text-sm leading-5 font-medium"></h3>
+          <p data-f="price" class="text-xs leading-4 font-medium text-primary tabular-nums"></p>
+        </div>
+        <p data-f="using" class="text-xs leading-4 text-muted-foreground tabular-nums"></p>
+        <div data-f="bar" role="img" class="mt-step-sm flex h-2 overflow-hidden rounded-full bg-muted">
+          <div data-seg="used" class="h-full bg-primary"></div>
+          <div data-seg="add" class="h-full bg-primary/30"></div>
+        </div>
+        <p data-f="after" class="mt-step-xs text-xs leading-4 text-muted-foreground tabular-nums"></p>
+      </div>
+      <div class="flex shrink-0 flex-col items-end gap-step-xs">
+        <div role="group" data-f="group" class="inline-flex items-center overflow-hidden rounded-md bg-background ring-1 ring-foreground/10">
+          <button type="button" data-act="minus" class="inline-flex size-8 touch-manipulation items-center justify-center text-foreground outline-none transition hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-40 pointer-coarse:size-11 [&_svg]:size-4"><svg aria-hidden="true"><use href="#i-minus"/></svg></button>
+          <input data-f="qty" type="text" inputmode="numeric" autocomplete="off" maxlength="5" class="h-8 w-14 border-x border-border bg-transparent text-center text-base tabular-nums outline-none focus-visible:bg-muted md:text-sm pointer-coarse:h-11" />
+          <button type="button" data-act="plus" class="inline-flex size-8 touch-manipulation items-center justify-center text-foreground outline-none transition hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-40 pointer-coarse:size-11 [&_svg]:size-4"><svg aria-hidden="true"><use href="#i-plus"/></svg></button>
+        </div>
+        <p data-f="line" hidden class="text-sm leading-5 font-medium tabular-nums"></p>
+      </div>
+    </div>
+  </li>
+</template>
+
+<template id="t-line">
+  <li class="flex items-baseline justify-between gap-step-md"><span data-f="label" class="min-w-0 text-muted-foreground"></span><span data-f="amount" class="font-medium whitespace-nowrap tabular-nums"></span></li>
+</template>
+
+<template id="t-pending">
+  <li class="flex items-center justify-between gap-step-md py-step-sm first:pt-0 last:pb-0">
+    <div class="min-w-0">
+      <p data-f="name" class="truncate text-sm leading-5 font-medium"></p>
+      <p data-f="meta" class="text-xs leading-4 text-muted-foreground tabular-nums"></p>
+    </div>
+    <button type="button" data-act="remove" class="inline-flex h-8 shrink-0 touch-manipulation items-center justify-center gap-step-xs rounded-md px-step-sm text-xs font-medium text-foreground-secondary outline-none transition hover:bg-muted hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50 pointer-coarse:h-11 [&_svg]:size-4"><svg aria-hidden="true"><use href="#i-x"/></svg>Remove</button>
+  </li>
+</template>
+
+<dialog id="dlg-review" aria-labelledby="dlg-review-title" class="m-auto max-h-dvh w-full max-w-md overflow-y-auto rounded-xl bg-card p-0 text-foreground shadow-lift-lg backdrop:bg-foreground/40 max-sm:mb-0 max-sm:max-w-none max-sm:rounded-b-none">
+  <form id="review-form" class="flex flex-col gap-step-md p-step-lg">
+    <div>
+      <h2 id="dlg-review-title" class="text-base leading-6 font-medium">Review your changes</h2>
+      <p class="text-sm text-muted-foreground">Starter plan. These are added to Billing &amp; Plan.</p>
+    </div>
+    <ul id="r-lines" class="flex flex-col gap-step-xs text-sm leading-5"></ul>
+    <dl class="flex flex-col gap-step-xs border-t border-border pt-step-sm text-sm leading-5">
+      <div class="flex items-baseline justify-between gap-step-md"><dt class="text-muted-foreground">Current monthly total</dt><dd id="r-current" class="tabular-nums"></dd></div>
+      <div class="flex items-baseline justify-between gap-step-md"><dt class="text-muted-foreground">Added each month</dt><dd id="r-add" class="tabular-nums"></dd></div>
+      <div class="flex items-baseline justify-between gap-step-md"><dt class="font-medium">New monthly total</dt><dd id="r-next" class="text-base leading-6 font-semibold tabular-nums"></dd></div>
+    </dl>
+    <label id="r-auth-wrap" class="flex cursor-pointer items-start gap-step-sm rounded-lg border border-border p-step-md text-sm leading-5 has-checked:border-primary has-focus-visible:ring-3 has-focus-visible:ring-ring/50">
+      <input id="r-auth" type="checkbox" class="mt-0.5 size-4 shrink-0 accent-primary" />
+      <span>I authorize this charge. Increases are billed now, prorated to the end of the current period, and renew monthly.</span>
+    </label>
+    <p id="r-err" role="alert" hidden class="text-xs leading-4 text-danger-text"></p>
+    <p class="text-xs leading-4 text-muted-foreground">Preview only: nothing is charged and no checkout opens.</p>
+    <div class="flex justify-end gap-step-sm">
+      <button type="button" id="r-cancel" class="group/button inline-flex h-8 shrink-0 touch-manipulation items-center justify-center rounded-md border border-transparent bg-clip-padding px-step-md control-text font-medium whitespace-nowrap text-foreground-secondary transition outline-none select-none hover:bg-muted hover:text-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 active:translate-y-px pointer-coarse:h-11">Cancel</button>
+      <button type="submit" id="r-go" class="group/button inline-flex h-8 shrink-0 touch-manipulation items-center justify-center rounded-md border border-transparent bg-primary bg-clip-padding px-step-md control-text font-medium whitespace-nowrap text-primary-foreground transition outline-none select-none hover:bg-primary/90 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 active:translate-y-px pointer-coarse:h-11">Confirm and add to Billing &amp; Plan</button>
+    </div>
+  </form>
+</dialog>
+
+<div id="toasts" aria-live="polite" class="pointer-events-none fixed inset-x-0 bottom-step-lg z-toast flex flex-col items-center gap-step-sm px-step-lg"></div>
+<script type="module" src="/usage/app.js"></script>
+</body>
+</html>

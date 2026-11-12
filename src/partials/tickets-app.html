@@ -6,6 +6,7 @@
     <symbol id="i-arrow-left" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></symbol>
     <symbol id="i-search" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21 21-4.34-4.34"/><circle cx="11" cy="11" r="8"/></symbol>
     <symbol id="i-x" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></symbol>
+    <symbol id="i-plus" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></symbol>
     <symbol id="i-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></symbol>
     <symbol id="i-alert" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v4"/><path d="M12 16h.01"/></symbol>
     <symbol id="i-clock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></symbol>
@@ -25,11 +26,13 @@
 
 <noscript><p class="bg-warning-bg px-step-lg py-step-md text-sm text-warning-text">The Ticket box needs JavaScript. Turn it on in your browser settings and reload this page.</p></noscript>
 <div id="app" data-pane="list" class="group/app flex h-dvh min-h-0 flex-col bg-background text-foreground">
-  <header class="shrink-0 border-b border-border bg-background">
+  <header data-id="tickets.header" class="shrink-0 border-b border-border bg-background">
     <div class="flex w-full items-center gap-step-md px-step-lg py-step-sm lg:px-step-xl">
-      <button type="button" id="btn-back" class="group/button inline-flex h-8 shrink-0 touch-manipulation items-center justify-center gap-step-xs rounded-md border border-transparent bg-clip-padding pr-step-md pl-step-sm control-text font-medium whitespace-nowrap text-foreground-secondary transition outline-none select-none hover:bg-muted hover:text-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 active:translate-y-px pointer-coarse:h-11 [&_svg]:size-4 [&_svg]:shrink-0">
+      <!-- Exit leaves the Ticket box (to the page the person came from, else Home or the Dashboard). Back steps inside it (a ticket to the list) and shows only then. Icons alone on a phone. -->
+      <a id="btn-exit" href="/resident/home.html" aria-label="Exit Ticket box" class="group/button inline-flex h-8 shrink-0 touch-manipulation items-center justify-center gap-step-xs rounded-md border border-border bg-card px-step-sm text-sm font-medium text-foreground transition outline-none select-none hover:bg-muted focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 active:translate-y-px max-sm:w-8 max-sm:px-0 pointer-coarse:h-11 max-sm:pointer-coarse:w-11 [&_svg]:size-4 [&_svg]:text-danger-text"><svg aria-hidden="true"><use href="#i-x"/></svg><span class="max-sm:sr-only">Exit</span></a>
+      <button type="button" id="btn-back" hidden class="group/button inline-flex h-8 shrink-0 touch-manipulation items-center justify-center gap-step-xs rounded-md border border-transparent bg-clip-padding pr-step-md pl-step-sm control-text font-medium whitespace-nowrap text-foreground-secondary transition outline-none select-none hover:bg-muted hover:text-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 active:translate-y-px max-sm:w-8 max-sm:px-0 pointer-coarse:h-11 max-sm:pointer-coarse:w-11 [&_svg]:size-4 [&_svg]:shrink-0">
         <svg aria-hidden="true"><use href="#i-arrow-left"/></svg>
-        <span id="back-label">Dashboard</span>
+        <span id="back-label" class="max-sm:sr-only">Tickets</span>
       </button>
       <h1 class="min-w-0 flex-1 truncate text-2xl leading-8 font-semibold tracking-tight text-foreground">Ticket box<span id="portal-label" class="ml-step-sm hidden text-sm font-normal tracking-normal text-muted-foreground sm:inline"></span></h1>
       <button type="button" data-theme-toggle aria-label="Switch between light and dark" class="group/button inline-flex size-8 shrink-0 touch-manipulation items-center justify-center rounded-md border border-transparent bg-foreground/8 bg-clip-padding text-secondary-foreground transition outline-none select-none hover:bg-foreground/12 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 active:translate-y-px pointer-coarse:size-11 [&_svg]:size-4">
@@ -47,7 +50,11 @@
       <!-- list -->
       <section id="list-pane" aria-labelledby="list-title" class="flex min-h-0 flex-col overflow-hidden rounded-xl bg-card shadow-lift-xs group-data-[pane=detail]/app:max-lg:hidden">
         <div class="flex flex-col gap-step-md border-b border-border p-step-md">
-          <h2 id="list-title" class="text-base leading-snug font-medium">Tickets</h2>
+          <div class="flex items-center justify-between gap-step-sm">
+            <h2 id="list-title" class="text-base leading-snug font-medium">Tickets</h2>
+            <!-- Staff and Clients open tickets with Support; Residents go through the assistant and Admin answers tickets, so it stays hidden for them. -->
+            <button type="button" id="btn-new" hidden class="group/button inline-flex h-8 shrink-0 touch-manipulation items-center justify-center gap-step-sm rounded-md border border-transparent bg-primary bg-clip-padding px-step-md control-text font-medium whitespace-nowrap text-primary-foreground transition outline-none select-none hover:bg-primary/90 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 active:translate-y-px pointer-coarse:h-11 [&_svg]:size-4 [&_svg]:shrink-0"><svg aria-hidden="true"><use href="#i-plus"/></svg>Create ticket</button>
+          </div>
           <div class="relative">
             <label for="search" class="sr-only">Search tickets</label>
             <svg aria-hidden="true" class="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground"><use href="#i-search"/></svg>
@@ -81,14 +88,61 @@
           <div class="flex items-center gap-step-sm border-b border-border px-step-lg py-step-sm">
             <h3 class="text-sm font-medium">Conversation</h3>
             <span id="d-count" class="text-xs text-muted-foreground tabular-nums"></span>
-            <span class="ml-auto text-xs text-muted-foreground">Read only</span>
+            <span id="d-mode" class="ml-auto text-xs text-muted-foreground">Read only</span>
           </div>
           <div id="record" tabindex="0" aria-label="Conversation record" class="min-h-0 flex-1 outline-none focus-visible:ring-3 focus-visible:ring-inset focus-visible:ring-ring/50 lg:overflow-y-auto"></div>
+          <!-- Reply: only for a support ticket the person opened (or that Admin answers). Enter sends, Shift+Enter adds a line. -->
+          <form id="reply-form" hidden novalidate class="shrink-0 border-t border-border p-step-md">
+            <label for="reply-text" class="sr-only">Reply to this ticket</label>
+            <textarea id="reply-text" rows="2" maxlength="2000" placeholder="Write a reply…" class="max-h-40 min-h-16 w-full resize-y rounded-md border border-input bg-card p-2.5 text-base outline-none transition-colors placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 md:text-sm"></textarea>
+            <div class="mt-step-sm flex items-center justify-between gap-step-md">
+              <p id="reply-hint" class="min-w-0 text-xs text-muted-foreground"></p>
+              <button type="submit" id="reply-send" class="group/button inline-flex h-8 shrink-0 touch-manipulation items-center justify-center gap-step-sm rounded-md border border-transparent bg-primary bg-clip-padding px-step-md control-text font-medium whitespace-nowrap text-primary-foreground transition outline-none select-none hover:bg-primary/90 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 active:translate-y-px disabled:pointer-events-none disabled:opacity-50 pointer-coarse:h-11">Send reply</button>
+            </div>
+            <p id="reply-error" role="alert" hidden class="mt-step-xs text-xs text-danger-text"></p>
+          </form>
         </div>
       </section>
     </div>
   </main>
 </div>
+
+<!-- Create ticket -->
+<dialog id="dlg-new-ticket" aria-labelledby="dlg-new-ticket-title" class="m-auto w-full max-w-lg rounded-xl bg-card p-0 text-foreground shadow-lift-lg backdrop:bg-foreground/40 max-sm:mb-0 max-sm:max-w-none max-sm:rounded-b-none">
+  <form id="form-new-ticket" method="dialog" novalidate class="flex flex-col gap-step-lg p-step-xl">
+    <div class="flex flex-col gap-step-xs">
+      <h2 id="dlg-new-ticket-title" class="text-lg font-semibold tracking-tight">Create ticket</h2>
+      <p class="text-sm text-muted-foreground">Describe the problem. Support replies here, and you can answer in the ticket. Each ticket gets its own number.</p>
+    </div>
+    <div class="flex flex-col gap-step-xs">
+      <label for="nt-subject" class="text-sm font-medium">Subject</label>
+      <input id="nt-subject" type="text" maxlength="120" autocomplete="off" required aria-describedby="nt-error" class="h-8 w-full rounded-md border border-input bg-card px-2.5 text-base outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 md:text-sm pointer-coarse:h-11" />
+    </div>
+    <div class="grid grid-cols-2 gap-step-md">
+      <div class="flex min-w-0 flex-col gap-step-xs">
+        <label for="nt-category" class="text-sm font-medium">Category</label>
+        <select id="nt-category" class="h-8 w-full min-w-0 rounded-md border border-input bg-card px-2 text-base outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 md:text-sm pointer-coarse:h-11"></select>
+      </div>
+      <div class="flex min-w-0 flex-col gap-step-xs">
+        <label for="nt-priority" class="text-sm font-medium">Priority</label>
+        <select id="nt-priority" class="h-8 w-full min-w-0 rounded-md border border-input bg-card px-2 text-base outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 md:text-sm pointer-coarse:h-11">
+          <option value="low">Low</option>
+          <option value="normal" selected>Normal</option>
+          <option value="high">High</option>
+        </select>
+      </div>
+    </div>
+    <div class="flex flex-col gap-step-xs">
+      <label for="nt-text" class="text-sm font-medium">What happened</label>
+      <textarea id="nt-text" rows="5" maxlength="2000" required aria-describedby="nt-error" class="min-h-24 w-full resize-y rounded-md border border-input bg-card p-2.5 text-base outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 md:text-sm"></textarea>
+    </div>
+    <p id="nt-error" role="alert" hidden class="text-xs text-danger-text"></p>
+    <div class="flex justify-end gap-step-sm">
+      <button type="button" data-close class="group/button inline-flex h-8 items-center justify-center rounded-md bg-secondary px-step-md control-text font-medium text-secondary-foreground outline-none hover:bg-secondary/80 focus-visible:ring-3 focus-visible:ring-ring/50 pointer-coarse:h-11">Cancel</button>
+      <button type="submit" id="nt-submit" class="group/button inline-flex h-8 items-center justify-center rounded-md border border-transparent bg-primary px-step-md control-text font-medium text-primary-foreground outline-none hover:bg-primary/90 focus-visible:ring-3 focus-visible:ring-ring/50 pointer-coarse:h-11">Create ticket</button>
+    </div>
+  </form>
+</dialog>
 
 <div id="toasts" class="pointer-events-none fixed inset-x-0 top-step-lg z-toast flex flex-col items-center gap-step-sm px-step-lg"></div>
 

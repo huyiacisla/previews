@@ -1,0 +1,153 @@
+<!-- Notifications page (Client). Shell and templates only: every Tailwind class lives here, notifications/app.js clones templates,
+     fills text and toggles hidden / data-* / aria-*. Same tokens and patterns as the Ticket box and Messages pages. -->
+
+<svg aria-hidden="true" focusable="false" style="position:absolute;width:0;height:0;overflow:hidden">
+  <defs>
+    <symbol id="i-search" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21 21-4.34-4.34"/><circle cx="11" cy="11" r="8"/></symbol>
+    <symbol id="i-x" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></symbol>
+    <symbol id="i-check-all" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 7 17l-5-5"/><path d="m22 10-7.5 7.5L13 16"/></symbol>
+    <symbol id="i-filter" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 3H2l8 9.46V19l4 2v-8.54z"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></symbol>
+    <symbol id="i-mail" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></symbol>
+    <symbol id="i-mail-open" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.2 8.4c.5.38.8.97.8 1.6v10a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V10a2 2 0 0 1 .8-1.6l8-6a2 2 0 0 1 2.4 0l8 6Z"/><path d="m22 10-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 10"/></symbol>
+    <symbol id="i-message" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 17a2 2 0 0 1-2 2H6.828a2 2 0 0 0-1.414.586l-2.202 2.202A.71.71 0 0 1 2 21.286V5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2z"/></symbol>
+    <symbol id="i-clipboard" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="8" height="4" x="8" y="2" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/></symbol>
+    <symbol id="i-alert" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4"/><path d="M12 17h.01"/></symbol>
+    <symbol id="i-parking" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M9 17V7h4a3 3 0 0 1 0 6H9"/></symbol>
+    <symbol id="i-gauge" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 14 4-4"/><path d="M3.34 19a10 10 0 1 1 17.32 0"/></symbol>
+    <symbol id="i-building" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M9 7h1M14 7h1M9 11h1M14 11h1M9 15h1M14 15h1"/></symbol>
+    <symbol id="i-chart" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v16a2 2 0 0 0 2 2h16"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/></symbol>
+    <symbol id="i-shield" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12 2 2 4-4"/></symbol>
+    <symbol id="i-users" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></symbol>
+    <symbol id="i-tag" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.586 2.586A2 2 0 0 0 11.172 2H4a2 2 0 0 0-2 2v7.172a2 2 0 0 0 .586 1.414l8.704 8.704a2.426 2.426 0 0 0 3.42 0l6.58-6.58a2.426 2.426 0 0 0 0-3.42z"/><circle cx="7.5" cy="7.5" r=".5" fill="currentColor"/></symbol>
+    <symbol id="i-megaphone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 11 18-5v12L3 14v-3z"/><path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"/></symbol>
+    <symbol id="i-card" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="14" x="2" y="5" rx="2"/><line x1="2" x2="22" y1="10" y2="10"/></symbol>
+    <symbol id="i-bell" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 1 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.9 1.9 0 0 0 3.4 0"/></symbol>
+    <symbol id="i-settings" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 7h-9"/><path d="M14 17H5"/><circle cx="17" cy="17" r="3"/><circle cx="7" cy="7" r="3"/></symbol>
+  </defs>
+</svg>
+
+<a href="#main-content" class="group/button fixed -top-20 left-3 z-toast inline-flex shrink-0 touch-manipulation items-center justify-center gap-1.5 rounded-md border border-transparent bg-primary bg-clip-padding px-2.5 py-1.75 control-text font-medium whitespace-nowrap text-primary-foreground transition outline-none select-none hover:bg-primary/90 focus-visible:top-3 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50">Skip to main content</a>
+
+<noscript><p class="bg-warning-bg px-step-lg py-step-md text-sm text-warning-text">Notifications need JavaScript. Turn it on in your browser settings and reload this page.</p></noscript>
+
+<main id="main-content" tabindex="-1" class="mx-auto flex min-h-dvh w-full max-w-4xl flex-col gap-step-lg px-step-lg py-step-lg outline-none lg:px-step-xl">
+  <header class="flex flex-wrap items-start justify-between gap-step-md">
+    <div class="min-w-0">
+      <h1 class="text-2xl leading-8 font-semibold tracking-tight text-foreground">Notifications</h1>
+      <p id="summary" role="status" class="text-sm text-muted-foreground tabular-nums"></p>
+    </div>
+    <div class="flex flex-wrap items-center gap-step-sm">
+      <button type="button" id="mark-all" data-variant="outline" class="group/button inline-flex h-8 shrink-0 touch-manipulation items-center justify-center gap-step-sm rounded-md border border-transparent bg-background bg-clip-padding px-step-md control-text font-medium whitespace-nowrap text-foreground ring-1 ring-foreground/10 transition outline-none select-none hover:bg-muted focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 active:translate-y-px disabled:pointer-events-none disabled:opacity-50 pointer-coarse:h-11 [&_svg]:size-4 [&_svg]:shrink-0">
+        <svg aria-hidden="true"><use href="#i-check-all"/></svg><span id="mark-all-label">Mark all as read</span>
+      </button>
+      <a id="settings-link" href="/client/settings/notifications.html" class="group/button inline-flex h-8 shrink-0 touch-manipulation items-center justify-center gap-step-sm rounded-md border border-transparent bg-clip-padding px-step-md control-text font-medium whitespace-nowrap text-foreground-secondary transition outline-none select-none hover:bg-muted hover:text-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 active:translate-y-px pointer-coarse:h-11 [&_svg]:size-4 [&_svg]:shrink-0">
+        <svg aria-hidden="true"><use href="#i-settings"/></svg>Notification settings
+      </a>
+    </div>
+  </header>
+
+  <!-- search and filters -->
+  <!-- One line: search and a Filters button (category, property and sort live in its panel). Under it: the tabs, and a chip for each filter in use. -->
+  <section aria-label="Search and filter notifications" class="flex flex-col gap-step-sm rounded-xl bg-card p-step-md shadow-lift-xs">
+    <div class="flex items-center gap-step-sm">
+      <div class="relative min-w-0 flex-1">
+        <label for="search" class="sr-only">Search notifications</label>
+        <svg aria-hidden="true" class="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground"><use href="#i-search"/></svg>
+        <input id="search" type="search" autocomplete="off" spellcheck="false" placeholder="Search notifications…" class="h-8 w-full min-w-0 rounded-md border border-input bg-card pr-2.5 pl-8 text-base text-ellipsis outline-none transition-colors placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 md:text-sm pointer-coarse:h-11" />
+      </div>
+      <div class="relative shrink-0">
+        <button type="button" id="filters-btn" aria-haspopup="dialog" aria-expanded="false" aria-controls="filters-panel" data-variant="outline" class="group/button inline-flex h-8 touch-manipulation items-center justify-center gap-step-sm rounded-md border border-transparent bg-background bg-clip-padding px-step-md control-text font-medium whitespace-nowrap text-foreground ring-1 ring-foreground/10 transition outline-none select-none hover:bg-muted focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 active:translate-y-px aria-expanded:bg-muted pointer-coarse:h-11 [&_svg]:size-4 [&_svg]:shrink-0">
+          <svg aria-hidden="true"><use href="#i-filter"/></svg><span class="max-sm:sr-only">Filters</span><span id="filters-count" hidden class="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-accent px-step-xs text-xs font-medium text-primary tabular-nums"></span>
+        </button>
+        <div id="filters-panel" role="dialog" aria-label="Filters" hidden class="absolute top-full right-0 z-popup mt-step-xs flex w-72 max-w-[calc(100vw-2rem)] flex-col gap-step-md rounded-xl bg-card p-step-md shadow-lift-md ring-1 ring-foreground/10">
+          <div class="flex flex-col gap-step-xs">
+            <label for="f-cat" class="text-xs font-medium text-muted-foreground">Category</label>
+            <select id="f-cat" class="h-8 w-full min-w-0 rounded-md border border-input bg-card px-2.5 text-sm outline-none transition-colors focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 pointer-coarse:h-11"></select>
+          </div>
+          <div id="f-prop-wrap" class="flex flex-col gap-step-xs">
+            <label for="f-prop" class="text-xs font-medium text-muted-foreground">Property</label>
+            <select id="f-prop" class="h-8 w-full min-w-0 rounded-md border border-input bg-card px-2.5 text-sm outline-none transition-colors focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 pointer-coarse:h-11"></select>
+          </div>
+          <div class="flex flex-col gap-step-xs">
+            <label for="f-sort" class="text-xs font-medium text-muted-foreground">Sort by</label>
+            <select id="f-sort" class="h-8 w-full min-w-0 rounded-md border border-input bg-card px-2.5 text-sm outline-none transition-colors focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 pointer-coarse:h-11">
+              <option value="newest">Newest first</option>
+              <option value="oldest">Oldest first</option>
+              <option value="unread">Unread first</option>
+            </select>
+          </div>
+          <button type="button" id="clear" hidden class="group/button inline-flex h-8 shrink-0 touch-manipulation items-center justify-center gap-step-xs self-start rounded-md border border-transparent bg-clip-padding px-step-sm control-text font-medium whitespace-nowrap text-foreground-secondary transition outline-none select-none hover:bg-muted hover:text-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 pointer-coarse:h-11 [&_svg]:size-4"><svg aria-hidden="true"><use href="#i-x"/></svg>Clear all filters</button>
+        </div>
+      </div>
+    </div>
+    <div class="flex flex-wrap items-center justify-between gap-x-step-md gap-y-step-sm">
+      <div id="tabs" role="tablist" aria-label="Show notifications" class="flex flex-wrap gap-step-xs"></div>
+      <div id="chips" class="flex flex-wrap items-center gap-step-xs empty:hidden"></div>
+    </div>
+  </section>
+
+  <!-- the list, grouped by day -->
+  <section aria-label="Notifications" class="flex min-h-0 flex-col gap-step-md">
+    <p id="count" role="status" class="px-step-xs text-xs text-muted-foreground tabular-nums"></p>
+    <div id="list" class="overflow-hidden rounded-xl bg-card shadow-lift-xs"></div>
+    <div id="empty" hidden class="flex flex-col items-center gap-step-md rounded-xl bg-card p-step-xl text-center shadow-lift-xs">
+      <span class="inline-flex size-10 items-center justify-center rounded-full bg-muted text-muted-foreground [&_svg]:size-5"><svg aria-hidden="true"><use id="empty-icon" href="#i-bell"/></svg></span>
+      <h2 id="empty-title" class="text-base leading-snug font-medium"></h2>
+      <p id="empty-text" class="max-w-sm text-sm text-muted-foreground"></p>
+      <button type="button" id="empty-clear" hidden data-variant="outline" class="group/button inline-flex h-8 shrink-0 touch-manipulation items-center justify-center gap-step-sm rounded-md border border-transparent bg-background bg-clip-padding px-step-md control-text font-medium whitespace-nowrap text-foreground ring-1 ring-foreground/10 transition outline-none select-none hover:bg-muted focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 active:translate-y-px pointer-coarse:h-11">Clear filters</button>
+    </div>
+    <div id="more-wrap" hidden class="flex flex-col items-center gap-step-sm">
+      <button type="button" id="more" data-variant="outline" class="group/button inline-flex h-8 shrink-0 touch-manipulation items-center justify-center gap-step-sm rounded-md border border-transparent bg-background bg-clip-padding px-step-md control-text font-medium whitespace-nowrap text-foreground ring-1 ring-foreground/10 transition outline-none select-none hover:bg-muted focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 active:translate-y-px pointer-coarse:h-11"></button>
+    </div>
+    <p id="sample-note" class="text-center text-xs text-muted-foreground">Sample data. This preview has no notification service, so these examples follow what the Client pages show.</p>
+  </section>
+</main>
+
+<div id="toasts" aria-live="polite" class="pointer-events-none fixed inset-x-0 bottom-step-lg z-toast flex flex-col items-center gap-step-sm px-step-lg"></div>
+
+<!-- Templates -->
+<template id="t-tab">
+  <button type="button" role="tab" aria-selected="false" class="group/button inline-flex h-8 shrink-0 touch-manipulation items-center justify-center gap-step-xs rounded-md border border-transparent bg-clip-padding px-step-md control-text font-medium whitespace-nowrap text-foreground-secondary transition outline-none select-none hover:bg-muted focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 aria-selected:bg-accent aria-selected:text-primary pointer-coarse:h-11"><span data-label></span><span data-count class="text-xs text-muted-foreground tabular-nums"></span></button>
+</template>
+
+<template id="t-chip">
+  <button type="button" class="inline-flex h-6 items-center gap-step-xs rounded-md bg-secondary px-step-sm text-xs text-secondary-foreground outline-none transition-colors hover:bg-secondary/80 focus-visible:ring-3 focus-visible:ring-ring/50 pointer-coarse:h-8 [&_svg]:size-3"><span data-label></span><svg aria-hidden="true"><use href="#i-x"/></svg></button>
+</template>
+
+<template id="t-day">
+  <div data-group>
+    <h2 class="sticky top-0 z-raised flex items-center justify-between border-b border-border bg-card px-step-md py-step-xs text-xs font-medium text-muted-foreground"><span data-day></span><span data-n class="font-normal tabular-nums"></span></h2>
+    <ul data-items role="list" class="divide-y divide-border"></ul>
+  </div>
+</template>
+
+<!-- One notification. Unread: tinted row, medium title, a dot on the icon. Read: plain row, softer icon.
+     Line 1 title and time, line 2 what happened, line 3 the category (in its colour) and the property. -->
+<template id="t-row">
+  <li data-row data-read="false" class="relative flex items-start gap-step-md px-step-md py-step-md transition-colors hover:bg-muted/60 data-[read=false]:bg-accent/50">
+    <span class="relative shrink-0">
+      <span data-chip data-read="false" data-tone="neutral" class="inline-flex size-9 items-center justify-center rounded-lg bg-secondary text-secondary-foreground data-[read=true]:opacity-60 data-[tone=danger]:bg-danger-bg data-[tone=danger]:text-danger-text data-[tone=info]:bg-info-bg data-[tone=info]:text-info-text data-[tone=success]:bg-success-bg data-[tone=success]:text-success-text data-[tone=warning]:bg-warning-bg data-[tone=warning]:text-warning-text [&_svg]:size-4"><svg aria-hidden="true"><use data-icon href="#i-bell"/></svg></span>
+      <span data-dot data-read="false" aria-hidden="true" class="absolute -top-0.5 -right-0.5 size-2.5 rounded-full bg-primary ring-2 ring-card data-[read=true]:hidden"></span>
+    </span>
+    <div class="flex min-w-0 flex-1 flex-col gap-0.5">
+      <div class="flex items-start justify-between gap-step-md">
+        <p class="min-w-0 text-sm leading-5 wrap-anywhere text-foreground"><span data-state class="sr-only"></span><a data-link hidden target="_top" class="-my-1 inline-block rounded-sm py-1 underline-offset-2 outline-none hover:underline focus-visible:ring-3 focus-visible:ring-ring/50"></a><span data-title></span></p>
+        <time data-time class="shrink-0 text-xs leading-5 whitespace-nowrap text-muted-foreground tabular-nums"></time>
+      </div>
+      <p data-detail class="text-sm leading-5 wrap-anywhere text-muted-foreground"></p>
+      <p class="flex flex-wrap items-center gap-x-step-md gap-y-0 text-xs leading-5 text-muted-foreground">
+        <span data-cat class="font-medium text-foreground-secondary"></span>
+        <span data-prop class="min-w-0 truncate"></span>
+      </p>
+    </div>
+    <button type="button" data-toggle aria-pressed="false" class="group/button inline-flex size-8 shrink-0 touch-manipulation items-center justify-center rounded-md border border-transparent bg-clip-padding text-muted-foreground transition outline-none select-none hover:bg-foreground/8 hover:text-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 active:translate-y-px pointer-coarse:size-11 [&_svg]:size-4"><svg aria-hidden="true"><use data-toggle-icon href="#i-check"/></svg></button>
+  </li>
+</template>
+
+<template id="t-toast">
+  <div role="status" class="pointer-events-auto flex max-w-md items-center gap-step-md rounded-lg bg-foreground px-step-lg py-step-md text-sm text-background shadow-lift-md">
+    <span data-text></span>
+    <button type="button" data-undo hidden class="rounded-sm font-medium underline underline-offset-2 outline-none focus-visible:ring-3 focus-visible:ring-ring/50 pointer-coarse:min-h-11">Undo</button>
+  </div>
+</template>

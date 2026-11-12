@@ -22,6 +22,8 @@ npm run build    # kiểm tra; ra dist/
 | Messages từng portal | `/resident/messages.html`, `/staff/messages.html`, `/client/messages.html`, `/admin/messages.html` |
 | Ticket box từng portal (mở từ đáy sidebar dashboard) | `/resident/tickets.html`, `/staff/tickets.html`, `/client/tickets.html`, `/admin/tickets.html` |
 | Account settings (Settings và Promotions của Staff; bản riêng của Client, không có Social và Promotions) | `/staff/account-settings.html`, `/client/account-settings.html` |
+| Client: Workspace Settings (theo công ty, portfolio, property) | `/client/workspace.html`, `/client/workspace/billing.html`, `/client/workspace/parking.html`… |
+| Client: Usage > Capacity (nhóm Usage dưới Ticket box trong sidebar) và Management > Documents | `/client/usage/capacity.html`, `/client/documents.html` |
 | Resident: Promotions (Staff đã publish), Social (xem và tương tác, không đăng bài, có hộp hướng dẫn cộng đồng), Settings (Profile, Personalize, My property) | `/resident/promotions.html`, `/resident/social.html`, `/resident/settings.html` |
 
 Thêm `?dark` vào URL để xem chế độ tối. Trang Messages hoạt động thật trong trình duyệt (xem [docs/messaging-design.md](docs/messaging-design.md)); chạy `npm test` để kiểm lõi nghiệp vụ.

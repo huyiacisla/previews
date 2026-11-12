@@ -54,9 +54,11 @@
 <div id="app" data-pane="list" class="group/app flex h-dvh min-h-0 flex-col bg-background text-foreground">
   <header data-id="messages.header" class="shrink-0 border-b border-border bg-background">
     <div class="flex w-full items-center gap-step-md px-step-lg py-step-sm lg:px-step-xl">
-      <button type="button" id="btn-back" class="group/button inline-flex h-8 shrink-0 touch-manipulation items-center justify-center gap-step-xs rounded-md border border-transparent bg-clip-padding pr-step-md pl-step-sm control-text font-medium whitespace-nowrap text-foreground-secondary transition outline-none select-none hover:bg-muted hover:text-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 active:translate-y-px pointer-coarse:h-11 [&_svg]:size-4 [&_svg]:shrink-0">
+      <!-- Exit leaves Messages (to the page the person came from, else Home or the Dashboard). Back steps inside it (a conversation to the list) and shows only then. Icons alone on a phone. -->
+      <a id="btn-exit" href="/resident/home.html" aria-label="Exit Messages" class="group/button inline-flex h-8 shrink-0 touch-manipulation items-center justify-center gap-step-xs rounded-md border border-border bg-card px-step-sm text-sm font-medium text-foreground transition outline-none select-none hover:bg-muted focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 active:translate-y-px max-sm:w-8 max-sm:px-0 pointer-coarse:h-11 max-sm:pointer-coarse:w-11 [&_svg]:size-4 [&_svg]:text-danger-text"><svg aria-hidden="true"><use href="#i-x"/></svg><span class="max-sm:sr-only">Exit</span></a>
+      <button type="button" id="btn-back" hidden class="group/button inline-flex h-8 shrink-0 touch-manipulation items-center justify-center gap-step-xs rounded-md border border-transparent bg-clip-padding pr-step-md pl-step-sm control-text font-medium whitespace-nowrap text-foreground-secondary transition outline-none select-none hover:bg-muted hover:text-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 active:translate-y-px max-sm:w-8 max-sm:px-0 pointer-coarse:h-11 max-sm:pointer-coarse:w-11 [&_svg]:size-4 [&_svg]:shrink-0">
         <svg aria-hidden="true"><use href="#i-arrow-left"/></svg>
-        <span id="back-label">Dashboard</span>
+        <span id="back-label" class="max-sm:sr-only">Messages</span>
       </button>
       <h1 class="min-w-0 flex-1 truncate text-2xl leading-8 font-semibold tracking-tight text-foreground">Messages<span id="portal-label" class="ml-step-sm hidden text-sm font-normal tracking-normal text-muted-foreground sm:inline"></span></h1>
       <button type="button" id="btn-preview" class="group/button hidden h-8 shrink-0 touch-manipulation items-center justify-center gap-step-sm rounded-md border border-transparent bg-clip-padding px-step-md control-text font-medium whitespace-nowrap text-foreground-secondary transition outline-none select-none hover:bg-muted hover:text-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 active:translate-y-px sm:inline-flex pointer-coarse:h-11 [&_svg]:size-4 [&_svg]:shrink-0">
@@ -309,7 +311,7 @@
   </div>
 </dialog>
 
-<dialog id="dlg-members"aria-labelledby="dlg-members-title" class="m-auto w-full max-w-md rounded-xl bg-card p-0 text-foreground shadow-lift-lg backdrop:bg-foreground/40 max-sm:mb-0 max-sm:max-w-none max-sm:rounded-b-none">
+<dialog id="dlg-members" aria-labelledby="dlg-members-title" class="m-auto w-full max-w-md rounded-xl bg-card p-0 text-foreground shadow-lift-lg backdrop:bg-foreground/40 max-sm:mb-0 max-sm:max-w-none max-sm:rounded-b-none">
   <div class="flex flex-col gap-step-lg p-step-xl">
     <div class="flex flex-col gap-step-xs"><h2 id="dlg-members-title" class="text-lg font-semibold tracking-tight"></h2><p id="members-sub" class="text-sm text-muted-foreground"></p></div>
     <ul id="members-list" role="list" class="flex max-h-72 flex-col divide-y divide-border overflow-y-auto"></ul>

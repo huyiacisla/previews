@@ -21,15 +21,13 @@
 <div id="app" class="flex h-dvh min-h-0 flex-col bg-background text-foreground">
   <header class="shrink-0 border-b border-border bg-background">
     <div class="flex w-full items-center gap-step-md px-step-lg py-step-sm lg:px-step-xl">
-      <button type="button" id="btn-back" class="group/button inline-flex h-8 shrink-0 touch-manipulation items-center justify-center gap-step-xs rounded-md border border-transparent bg-clip-padding pr-step-md pl-step-sm control-text font-medium whitespace-nowrap text-foreground-secondary transition outline-none select-none hover:bg-muted hover:text-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 active:translate-y-px pointer-coarse:h-11 [&_svg]:size-4 [&_svg]:shrink-0">
-        <svg aria-hidden="true"><use href="#i-arrow-left"/></svg>
-        <span>Home</span>
-      </button>
+      <!-- Exit leaves Promotions (to the page the person came from, else Home). The page has no inner steps, so there is no Back. Icon alone on a phone. -->
+      <a id="btn-exit" data-chrome href="/resident/home.html" aria-label="Exit Promotions" class="group/button inline-flex h-8 shrink-0 touch-manipulation items-center justify-center gap-step-xs rounded-md border border-border bg-card px-step-sm text-sm font-medium text-foreground transition outline-none select-none hover:bg-muted focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 active:translate-y-px max-sm:w-8 max-sm:px-0 pointer-coarse:h-11 max-sm:pointer-coarse:w-11 [&_svg]:size-4 [&_svg]:text-danger-text"><svg aria-hidden="true"><use href="#i-x"/></svg><span class="max-sm:sr-only">Exit</span></a>
       <h1 class="min-w-0 flex-1 truncate text-2xl leading-8 font-semibold tracking-tight text-foreground">Promotions<span id="portal-label" class="ml-step-sm hidden text-sm font-normal tracking-normal text-muted-foreground sm:inline"></span></h1>
-      <button type="button" data-theme-toggle aria-label="Switch between light and dark" class="group/button inline-flex size-8 shrink-0 touch-manipulation items-center justify-center rounded-md border border-transparent bg-foreground/8 bg-clip-padding text-secondary-foreground transition outline-none select-none hover:bg-foreground/12 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 active:translate-y-px pointer-coarse:size-11 [&_svg]:size-4">
+      <button type="button" data-theme-toggle data-chrome aria-label="Switch between light and dark" class="group/button inline-flex size-8 shrink-0 touch-manipulation items-center justify-center rounded-md border border-transparent bg-foreground/8 bg-clip-padding text-secondary-foreground transition outline-none select-none hover:bg-foreground/12 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 active:translate-y-px pointer-coarse:size-11 [&_svg]:size-4">
         <svg aria-hidden="true"><use href="#i-sun-moon"/></svg>
       </button>
-      <div class="hidden min-w-0 items-center gap-step-sm sm:flex">
+      <div data-chrome class="hidden min-w-0 items-center gap-step-sm sm:flex">
         <span id="me-avatar" class="inline-flex size-8 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-medium text-muted-foreground"></span>
         <span class="flex min-w-0 flex-col leading-tight"><span id="me-name" class="truncate text-sm font-medium"></span><span id="me-role" class="truncate text-xs text-muted-foreground"></span></span>
       </div>

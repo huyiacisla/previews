@@ -2,11 +2,12 @@
 // All markup and Tailwind classes live in partials/tickets-app.html; this file clones templates, fills text and
 // toggles hidden / data-* / aria-*. The data comes from the same store as Messages (store.ticketBox / ticketRecord).
 
-import { createStore, STAGE_LABEL } from './store.js';
+import { createStore, STAGE_LABEL, TICKET_CATEGORIES } from './store.js';
 import { createTransport } from './transport.js';
 import { PORTALS, pickPersona, initials } from './personas.js';
 import { formatFull, formatTime, listTime, groupByDay, duration, formatBytes } from './format.js';
 import { parseQuery, describeFilters, withoutFilter } from './query.js';
+import { exitTarget } from '../exit-target.js';
 
 const $ = (sel, root = document) => root.querySelector(sel);
 const $$ = (sel, root = document) => [...root.querySelectorAll(sel)];
@@ -32,7 +33,9 @@ const info = PORTALS[portal];
 
 const store = createStore({ transport: createTransport() });
 
-const ui = { tab: 'open', query: '', id: null, pane: 'list', sigList: '', sigDetail: '', lastId: null };
+const ui = { tab: 'open', query: '', id: null, pane: 'list', sigList: '', sigDetail: '', lastId: null, drafts: {}, stick: false };
+// Staff and Clients open tickets with Support (the store enforces it too); Residents use the assistant, Admin answers.
+const canCreate = ['staff', 'client'].includes(me.role);
 const isMobile = () => matchMedia('(max-width: 1023px)').matches;
 
 /* ------------------------------------------------------------------ header */
@@ -78,8 +81,10 @@ const stageBadge = (t) => badge(t.stageLabel, t.kind === 'support' && t.stage ==
 
 /* -------------------------------------------------------------- navigation */
 
-const backLabel = () => ((history.state && history.state.depth) > 0 ? 'Tickets' : threadOverList() ? 'Tickets' : me.role === 'resident' ? 'Home' : 'Dashboard');
+// Two buttons: Exit (a link, see exit-target.js) always leaves the Ticket box; Back only steps inside it (a ticket to the list) and shows only then.
+const backLabel = () => 'Tickets';
 const threadOverList = () => isMobile() && ui.pane === 'detail';
+const stepsBack = () => ((history.state && history.state.depth) || 0) > 0 || threadOverList();
 let leaving = false;
 
 function leave() {
@@ -87,15 +92,9 @@ function leave() {
   const depth = (history.state && history.state.depth) || 0;
   if (depth > 0) { leaving = true; setTimeout(() => { leaving = false; }, 500); return history.back(); }
   if (threadOverList()) return go({ pane: 'list' });
-  let sameSite = false;
-  try {
-    const ref = new URL(document.referrer);
-    sameSite = ref.origin === location.origin && !ref.pathname.endsWith('/tickets.html');
-  } catch { /* no referrer */ }
-  if (sameSite && history.length > 1) history.back();
-  else location.assign(info.home);
 }
 $('#btn-back').addEventListener('click', leave);
+$('#btn-exit').href = exitTarget('/tickets.html', info.home);
 
 const routeId = () => (location.hash.match(/^#\/t\/(\w+)/) || [])[1] || null;
 
@@ -189,7 +188,7 @@ function renderList(force) {
   list.hidden = rows.length === 0;
   if (!rows.length) {
     if (ui.query.trim()) emptyState(empty, ['No matching tickets', 'Check the spelling, remove a filter, or look in another tab.'], [(() => { const b = button('Clear search', { onClick: () => { ui.query = ''; $('#search').value = ''; render(true); } }); return b; })()]);
-    else if (counts.all === 0) emptyState(empty, EMPTY[portal]);
+    else if (counts.all === 0) emptyState(empty, EMPTY[portal], canCreate ? [button('Create ticket', { icon: 'plus', onClick: openNewTicket })] : []);
     else emptyState(empty, ui.tab === 'open' ? ['Nothing open', 'Every ticket is closed. They are kept under Closed.'] : ['Nothing closed yet', 'Tickets move here when they are closed or resolved.']);
   }
   for (const t of rows) {
@@ -318,6 +317,7 @@ function renderDetail(force) {
   metaRow('Requester', `${t.requester.name}${t.requester.title ? `, ${t.requester.title}` : ''}`);
   if (t.kind === 'resident') metaRow('Unit', [t.unit, t.building].filter(Boolean).join(', ') || 'Not set');
   metaRow('Assigned to', t.assignee || 'Unassigned', t.assignee ? '' : 'warning');
+  if (t.category) metaRow('Category', t.category);
   metaRow('Opened', formatFull(t.openedAt));
   metaRow(t.isOpen ? 'Status' : 'Closed', t.isOpen ? 'Still open' : formatFull(t.closedAt || t.updatedAt));
   if (!t.isOpen && t.closedAt) metaRow('Time to resolve', duration(t.closedAt - t.openedAt));
@@ -392,8 +392,92 @@ function renderDetail(force) {
       }
     }
   }
-  record.scrollTop = sameTicket ? prevTop : 0;
+  record.scrollTop = ui.stick ? record.scrollHeight : sameTicket ? prevTop : 0;
+  ui.stick = false;
+  renderReply(t, sameTicket);
 }
+
+/* ------------------------------------------------------------------- reply */
+
+// A support ticket can be answered here by the person who opened it and by Admin; a reply to a resolved ticket opens it again.
+function renderReply(t, sameTicket) {
+  const form = $('#reply-form');
+  const can = t.kind === 'support' && t.canOpenLive;
+  form.hidden = !can;
+  $('#d-mode').textContent = !can ? 'Read only' : t.isOpen ? 'You can reply' : 'Resolved: a reply opens it again';
+  if (!can) return;
+  const ta = $('#reply-text');
+  if (!sameTicket) ta.value = ui.drafts[t.id] || '';
+  $('#reply-hint').textContent = t.isOpen ? 'Enter sends. Shift+Enter adds a line.' : 'Replying opens this ticket again.';
+  $('#reply-error').hidden = true;
+}
+
+$('#reply-text').addEventListener('input', (e) => { if (ui.id) ui.drafts[ui.id] = e.target.value; });
+$('#reply-text').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) { e.preventDefault(); $('#reply-form').requestSubmit(); }
+});
+$('#reply-form').addEventListener('submit', (e) => {
+  e.preventDefault();
+  const ta = $('#reply-text');
+  const err = $('#reply-error');
+  const text = ta.value.trim();
+  if (!text || !ui.id) { err.textContent = 'Write a reply first.'; err.hidden = false; ta.focus(); return; }
+  const r = store.send(ui.id, me.id, text);
+  if (!r.ok) {
+    err.textContent = r.reason === 'too_long' ? `Keep a reply under ${r.max} characters.` : 'The reply could not be sent. Try again.';
+    err.hidden = false;
+    return;
+  }
+  err.hidden = true;
+  ta.value = '';
+  delete ui.drafts[ui.id];
+  ui.stick = true;
+  render(true);
+  ta.focus();
+});
+
+/* ------------------------------------------------------------ create ticket */
+
+const dlgNew = $('#dlg-new-ticket');
+function openNewTicket() {
+  if (!canCreate) return;
+  const cat = $('#nt-category');
+  if (!cat.options.length) TICKET_CATEGORIES.forEach((c) => cat.add(new Option(c, c)));
+  $('#nt-subject').value = '';
+  $('#nt-text').value = '';
+  cat.value = 'Other';
+  $('#nt-priority').value = 'normal';
+  $('#nt-error').hidden = true;
+  dlgNew.showModal();
+  $('#nt-subject').focus();
+}
+$('#btn-new').hidden = !canCreate;
+$('#btn-new').addEventListener('click', openNewTicket);
+$$('[data-close]', dlgNew).forEach((b) => b.addEventListener('click', () => dlgNew.close()));
+$('#form-new-ticket').addEventListener('submit', (e) => {
+  e.preventDefault();
+  const err = $('#nt-error');
+  const fail = (msg, field) => { err.textContent = msg; err.hidden = false; $(field).focus(); };
+  const subject = $('#nt-subject').value.trim();
+  const text = $('#nt-text').value.trim();
+  if (!subject) return fail('Enter a subject so Support knows what this is about.', '#nt-subject');
+  if (!text) return fail('Describe what happened.', '#nt-text');
+  const r = store.startSupport(me.id, { subject, text, priority: $('#nt-priority').value, category: $('#nt-category').value });
+  if (!r.ok) {
+    if (r.reason === 'subject_too_long') return fail(`Keep the subject under ${r.max} characters.`, '#nt-subject');
+    if (r.reason === 'too_long') return fail(`Keep the description under ${r.max} characters.`, '#nt-text');
+    return fail('The ticket could not be created. Try again.', '#nt-subject');
+  }
+  dlgNew.close();
+  // show it: the Open tab, no search, the new ticket selected, with its own number in the confirmation
+  ui.tab = 'open';
+  ui.query = '';
+  $('#search').value = '';
+  open(r.convId);
+  const no = store.ticketRecord(me.id, r.convId).ticket.no;
+  toast(`Created ${no}. Support will reply in this ticket.`);
+  setTimeout(() => $('#reply-text').focus(), 0);
+});
 
 /* ------------------------------------------------------------------ render */
 
@@ -401,6 +485,7 @@ function render(force) {
   const root = $('#app');
   root.dataset.pane = ui.pane;
   $('#back-label').textContent = backLabel();
+  $('#btn-back').hidden = !stepsBack();
   renderList(force);
   renderDetail(force);
 }
@@ -415,6 +500,7 @@ if (ui.id && !store.ticketRecord(me.id, ui.id).ok) ui.id = null;
 ui.pane = ui.id ? 'detail' : 'list';
 history.replaceState({ depth: (history.state && history.state.depth) || 0, pane: ui.pane, id: ui.id }, '', ui.id ? `#/t/${ui.id}` : location.pathname + location.search);
 render(true);
+if (q.has('new') && canCreate) setTimeout(openNewTicket, 0); // "Submit a ticket" on the Support page lands here with the form open
 if (!ui.id && !isMobile()) {
   const first = rowsNow().rows[0];
   if (first) { ui.id = first.id; ui.pane = 'list'; render(true); }

@@ -15,8 +15,8 @@ export const PERSONAS = [
   { id: 'res-3', role: 'resident', name: 'Morgan Ellis', title: 'Unit 08-033', org: 'Mallard Pointe at Riverbend', unit: { number: '08-033', building: 'Building 8', leaseStart: '2025-12-16', leaseEnd: '2026-12-15', block: 'Building A', segments: ['members'], entry: 'Key in lockbox at the office.' } },
   { id: 'stf-1', role: 'staff', name: 'Jordan Lee', title: 'Property Manager', org: 'Mallard Pointe at Riverbend' },
   { id: 'stf-2', role: 'staff', name: 'Sam Okafor', title: 'Parking Coordinator', org: 'Mallard Pointe at Riverbend' },
-  { id: 'cli-1', role: 'client', name: 'Dana Whitfield', title: 'Client', org: 'Mallard Pointe Management' },
-  { id: 'cli-2', role: 'client', name: 'Marcus Cole', title: 'Client', org: 'Mallard Pointe Management' },
+  { id: 'cli-1', role: 'client', name: 'Dana Whitfield', title: 'Client', org: 'AMC LLC' },
+  { id: 'cli-2', role: 'client', name: 'Marcus Cole', title: 'Client', org: 'AMC LLC' },
   { id: 'adm-1', role: 'admin', name: 'Taylor Brooks', title: 'Support Lead', org: 'EasySpotOps Support' },
   { id: 'adm-2', role: 'admin', name: 'Casey Ng', title: 'Support Agent', org: 'EasySpotOps Support' },
 ];

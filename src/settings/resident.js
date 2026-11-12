@@ -5,6 +5,7 @@
 import { PORTALS, pickPersona, initials } from '../messaging/personas.js';
 import { readPrefs, savePrefs, phoneError, isDark, demoEmail } from './prefs.js';
 import { socialOn, needsGuidelines, residentState, setShow, timeline } from '../social/store.js';
+import { exitTarget } from '../exit-target.js';
 
 const $ = (sel, root = document) => root.querySelector(sel);
 const tpl = (id) => document.getElementById(id).content.firstElementChild.cloneNode(true);
@@ -14,20 +15,14 @@ const portal = document.body.dataset.portal;
 const me = pickPersona(portal, new URLSearchParams(location.search).get('as'));
 const info = PORTALS[portal];
 const storage = window.localStorage;
-const withAs = (path) => path + location.search;
+// Links keep ?as= and ?dark but not "embed": that one only says this page sits inside the frame.
+const withAs = (path) => { const q = new URLSearchParams(location.search); q.delete('embed'); return q.toString() ? `${path}?${q}` : path; };
 const root = document.documentElement;
 
 $('#portal-label').textContent = `· ${info.label}`;
 
-$('#btn-back').addEventListener('click', () => {
-  let sameSite = false;
-  try {
-    const ref = new URL(document.referrer);
-    sameSite = ref.origin === location.origin && !ref.pathname.endsWith('/settings.html');
-  } catch { /* no referrer */ }
-  if (sameSite && history.length > 1) history.back();
-  else location.assign(info.home);
-});
+// Exit leaves Settings (see exit-target.js). The tabs are tabs, not steps, so there is no Back.
+$('#btn-exit').href = exitTarget('/settings.html', info.home);
 
 function toast(text) {
   const el = tpl('t-toast');

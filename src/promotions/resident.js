@@ -4,6 +4,7 @@
 
 import { PORTALS, pickPersona, initials } from '../messaging/personas.js';
 import { listPromotions, categoriesIn, readConfig, residentState, toggleSaved, claim, KEY } from './store.js';
+import { exitTarget } from '../exit-target.js';
 
 const $ = (sel, root = document) => root.querySelector(sel);
 const tpl = (id) => document.getElementById(id).content.firstElementChild.cloneNode(true);
@@ -25,16 +26,8 @@ $('#me-avatar').textContent = initials(me.name);
 $('#me-name').textContent = me.name;
 $('#me-role').textContent = me.title;
 
-function leave() {
-  let sameSite = false;
-  try {
-    const ref = new URL(document.referrer);
-    sameSite = ref.origin === location.origin && !ref.pathname.endsWith('/promotions.html');
-  } catch { /* no referrer */ }
-  if (sameSite && history.length > 1) history.back();
-  else location.assign(info.home);
-}
-$('#btn-back').addEventListener('click', leave);
+// Exit leaves the page (see exit-target.js); the page has no inner steps, so there is no Back.
+$('#btn-exit').href = exitTarget('/promotions.html', info.home);
 
 function toast(text) {
   const el = tpl('t-toast');

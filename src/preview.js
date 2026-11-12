@@ -1,3 +1,7 @@
+import { lookCss, gestureConfig } from "./look-prefs.js";
+import { pathForHash, STAFF_ROUTES, RESIDENT_ROUTES, CLIENT_ROUTES } from "./staff-routes.js";
+// An address typed without the ending (/staff/workspace, /staff/settings/profile) is the page with the ending, so every check below sees one form.
+if (/^\/(staff|client|resident|admin|messages)\//.test(location.pathname) && !/\.[a-z0-9]+$/i.test(location.pathname)) history.replaceState(null, "", `${location.pathname.replace(/\/$/, "")}.html${location.search}${location.hash}`);
 // Chỉ đổi giao diện: bật/tắt dark qua ?dark (app thật dùng next-themes: class `light`/`dark` trên <html>).
 const root = document.documentElement;
 // Các dashboard chụp từ app thật ghi lang="vi" nhưng nội dung là tiếng Anh: trình đọc màn hình sẽ đọc sai giọng. Đặt lại đúng ngôn ngữ của nội dung.
@@ -10,12 +14,34 @@ if (new URLSearchParams(location.search).has("dark")) setDark(true);
 
 // Header và sidebar của mọi trang Client (dashboard, Settings) lấy đúng thiết kế của Staff (xem portal-frame.js), nên một vai trò chỉ có một kiểu.
 // Phải chạy trước mọi đoạn bên dưới vì chúng tìm phần tử trong header và sidebar. Ẩn trang một lúc để không thấy khung cũ nháy lên.
-if (/^\/client\/(dashboard|account-settings)\.html$/.test(location.pathname)) {
+// Pages of the Client that are "frame + content in an iframe" (see EMBED below); the content pages are the *-content.html files.
+const isClientFrame = /^\/client\/(dashboard|account-settings|notifications|messages|tickets|workspace|support|documents)\.html$|^\/client\/(settings|workspace|usage)\/[a-z]+\.html$/.test(location.pathname);
+// Resident pages that take the same frame (header and sidebar from the Staff design, filled with the Resident's own menu), and the
+// Staff pages that already have that header but need its behaviours (filter, clock, bell, search, favourites).
+const isResidentFrame = /^\/resident\/(home|notifications|messages|tickets|settings|promotions)\.html$|^\/resident\/settings\/[a-z]+\.html$/.test(location.pathname);
+const isStaffFrame = /^\/staff\/(dashboard|notifications|messages|tickets|workspace|promotions|support)\.html$|^\/staff\/(settings|workspace)\/[a-z]+\.html$/.test(location.pathname);
+// The old address of the Staff settings page (/staff/account-settings.html#/…) leads to the address the page has now (/staff/settings/profile, /staff/workspace…).
+if (location.pathname === "/staff/account-settings.html") {
+  const h = location.hash || "#/workspace";
+  // Social has its own page now (and its own My profile); everything else maps to a path of the settings page.
+  if (/^#\/social/.test(h)) location.replace(`/staff/social.html${location.search}${/^#\/social\/me/.test(h) ? "#/me" : ""}`);
+  else location.replace(`${pathForHash(h) || "/staff/workspace.html"}${location.search}${pathForHash(h) ? "" : h}`);
+}
+// Messages and Ticket box are full-page apps (the *-content.html files, and Admin's pages). For Client, Staff and Resident the page you open
+// is the portal's own frame with the app inside it (see EMBED below), so those are not "standalone".
+const standaloneApp = /\/(messages|tickets)(-content)?\.html$/.test(location.pathname) && !/^\/(client|staff|resident)\/(messages|tickets)\.html$/.test(location.pathname);
+if (isClientFrame || isResidentFrame || isStaffFrame) {
   root.style.visibility = "hidden";
   const reveal = setTimeout(() => { root.style.visibility = ""; }, 3000); // an toàn: không bao giờ để trang trống
   try {
+    const frameOf = location.pathname.split("/")[1]; // client | resident | staff
     const [{ adoptStaffFrame }, { pickPersona, initials }] = await Promise.all([import("./portal-frame.js"), import("./messaging/personas.js")]);
-    await adoptStaffFrame({ me: pickPersona("client", new URLSearchParams(location.search).get("as")), initials });
+    const me = pickPersona(frameOf, new URLSearchParams(location.search).get("as"));
+    // Staff already has the design: its header only needs the sizing mark. Client and Resident are rebuilt from it.
+    let adopted;
+    if (frameOf === "staff") { document.querySelector("header")?.setAttribute("data-eso-frame", ""); adopted = true; }
+    else adopted = await adoptStaffFrame({ me, initials, portal: frameOf });
+    if (adopted) (await import("./portal-frame-extras.js")).addFrameBehaviours({ me, portal: frameOf }); // filter, local time, notifications, search, help: the frame was a static snapshot
   } catch { /* trang giữ nguyên khung cũ */ }
   clearTimeout(reveal);
   root.style.visibility = "";
@@ -33,13 +59,45 @@ document.addEventListener("click", (e) => {
 // Cá nhân hóa chọn trong trang Settings (Staff và Client): màu sidebar, theme và màu nhấn đi theo người dùng sang các trang thật.
 // Trang Settings ghi `ui-prefs:<portal>` mỗi khi người dùng đổi; chưa đổi gì thì không có khóa này và các trang giữ nguyên diện mạo gốc.
 // Trang prototype (nội dung Settings) tự quản lý giao diện của nó; mọi trang còn lại, kể cả khung dashboard bọc Settings của Client, nhận từ đây.
-const isPrototypePage = /\/staff\/account-settings\.html$|\/account-settings-content\.html$/.test(location.pathname);
+const isPrototypePage = /\/staff\/account-settings\.html$|\/account-settings-content\.html$|\/resident\/settings-content\.html$/.test(location.pathname);
+// A content page shown inside the Client frame (?embed=1 and a parent window): the frame owns the header, the theme and the address.
+// Light/dark follows the frame, a link to another page opens in the whole window (not nested in the frame), and the page's own
+// address (#/c/…) is mirrored on the frame so a reload comes back to the same place. The Settings prototype does these itself.
+const embedded = new URLSearchParams(location.search).has("embed") && parent !== window && !isPrototypePage;
+if (embedded) {
+  root.setAttribute("data-eso-embed", "");
+  try {
+    const sync = () => setDark(parent.document.documentElement.classList.contains("dark"));
+    new MutationObserver(sync).observe(parent.document.documentElement, { attributes: true, attributeFilter: ["class"] });
+    sync();
+    // The other way: a page that changes the look itself (Resident Settings > Personalize: theme, contrast, reduced motion) tells the frame,
+    // so the header and the page never disagree.
+    new MutationObserver(() => {
+      const p = parent.document.documentElement;
+      p.classList.toggle("dark", root.classList.contains("dark"));
+      p.classList.toggle("light", root.classList.contains("light"));
+      for (const a of ["data-contrast", "data-reduce-motion"]) p.toggleAttribute(a, root.hasAttribute(a));
+    }).observe(root, { attributes: true, attributeFilter: ["class", "data-contrast", "data-reduce-motion"] });
+  } catch { /* no usable parent */ }
+  document.addEventListener("click", (e) => {
+    const a = e.target.closest("a[href]");
+    if (!a || e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || a.target || a.hasAttribute("download")) return;
+    const u = new URL(a.href, location.href);
+    if (u.origin !== location.origin || u.pathname === location.pathname) return;
+    e.preventDefault();
+    try { parent.location.href = u.href; } catch { location.href = u.href; }
+  });
+  addEventListener("hashchange", () => { try { if (parent.location.hash !== location.hash) parent.history.replaceState(null, "", parent.location.pathname + parent.location.search + location.hash); } catch { /* no parent */ } });
+}
+
 const applyUiPrefs = () => {
   const p = location.pathname.split("/")[1];
-  if ((p === "staff" || p === "client") && !isPrototypePage) {
+  if ((p === "staff" || p === "client" || p === "resident") && !isPrototypePage) {
     try {
       const ui = JSON.parse(localStorage.getItem(`ui-prefs:${p}`) || "null");
       const hex = (v) => typeof v === "string" && /^#[0-9a-f]{6}$/i.test(v);
+      // Nút thu gọn ở mép sidebar chỉ có khi người dùng bật "Enable sidebar collapse" (Settings > Personalize > Sidebar) và chỉ trên desktop.
+      root.setAttribute("data-sb-collapse", ui && ui.collapse === true ? "on" : "off");
       if (ui) {
         const s = root.style;
         // Chọn lại "Default" (không có màu) thì bỏ màu đã đặt trước đó, không cần tải lại trang.
@@ -73,17 +131,94 @@ const applyUiPrefs = () => {
         root.setAttribute("data-sb-icons", ui.icons === false ? "off" : "on");
         root.setAttribute("data-sb-counts", ui.counts === false ? "off" : "on");
         // Thẻ "Portfolio Capacity" ở đầu sidebar (thiết kế của Staff): con trực tiếp của khối đầu sidebar.
-        const cap = [...document.querySelectorAll('[data-slot="sidebar-container"] p')].find((e) => e.textContent.trim() === "Portfolio Capacity");
+        const cap = [...document.querySelectorAll('[data-slot="sidebar-container"] p')].find((e) => e.textContent.trim() === "Capacity summary");
         const top = document.querySelector('[data-slot="sidebar-inner"]')?.firstElementChild;
         let card = cap;
         while (card && top && card.parentElement !== top) card = card.parentElement;
         if (card && top) card.hidden = ui.cap === false;
+        // Text, buttons, cards, density: one small stylesheet that stays empty until a choice differs from the default (see look-prefs.js).
+        let look = document.getElementById("eso-look");
+        if (!look) { look = document.createElement("style"); look.id = "eso-look"; document.head.append(look); }
+        look.textContent = lookCss(ui);
+        root.setAttribute("data-nav-side", ui.gestures && ui.gestures.side === "right" ? "right" : "left");
+        // Accessibility (Settings > Accessibility): higher contrast and reduced motion reach every page; the other two are for the settings page itself.
+        if (ui.a11y) { root.toggleAttribute("data-contrast", !!ui.a11y.contrast); root.toggleAttribute("data-reduce-motion", !!ui.a11y.motion); }
         if (hex(ui.accent) && ui.accent.toLowerCase() !== "#2b55f2") { root.style.setProperty("--primary", ui.accent); root.style.setProperty("--sidebar-primary", ui.accent); }
       }
     } catch { /* trang vẫn dùng diện mạo gốc */ }
   }
 };
 applyUiPrefs();
+
+// Thu gọn sidebar thành thanh biểu tượng (desktop, khi đã bật trong Settings): nút ở mép sidebar hoặc Ctrl/⌘+B. Nhớ trạng thái giữa các trang.
+{
+  const p = location.pathname.split("/")[1];
+  if ((p === "staff" || p === "client" || p === "resident") && !isPrototypePage) {
+    const key = `ui-sidebar-collapsed:${p}`;
+    const wrap = () => document.querySelector('[data-slot="sidebar"]');
+    const toggle = () => document.querySelector('[data-slot="sidebar-container"] button[aria-label="Collapse sidebar"], [data-slot="sidebar-container"] button[aria-label="Expand sidebar"]');
+    const usable = () => root.getAttribute("data-sb-collapse") === "on" && matchMedia("(min-width: 1024px)").matches;
+    const set = (on) => {
+      const w = wrap();
+      if (!w) return;
+      w.setAttribute("data-state", on ? "collapsed" : "expanded");
+      if (on) w.setAttribute("data-collapsible", "icon"); else w.removeAttribute("data-collapsible");
+      toggle()?.setAttribute("aria-label", on ? "Expand sidebar" : "Collapse sidebar");
+      try { localStorage.setItem(key, on ? "1" : "0"); } catch { /* storage blocked */ }
+    };
+    const sync = () => { try { set(usable() && localStorage.getItem(key) === "1"); } catch { /* storage blocked */ } };
+    document.addEventListener("click", (e) => {
+      const b = e.target.closest('button[aria-label="Collapse sidebar"], button[aria-label="Expand sidebar"]');
+      if (b && usable()) set(b.getAttribute("aria-label") === "Collapse sidebar");
+    });
+    document.addEventListener("keydown", (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "b" && usable()) { e.preventDefault(); set(wrap()?.getAttribute("data-state") !== "collapsed"); }
+    });
+    matchMedia("(min-width: 1024px)").addEventListener("change", sync);
+    addEventListener("message", (e) => { if (e.origin === location.origin && e.data && e.data.type === "eso-ui-prefs") sync(); });
+    sync();
+  }
+}
+
+// Staff và Resident: header của dashboard chụp ghi "User 5" / "User 1"; Messages và Ticket box đã gọi họ bằng tên người dùng (Jordan Lee,
+// Alex Rivera), nên header cũng vậy. Menu hồ sơ là menu của thiết kế (thẻ tên, Status cho Staff, nhóm Account, Sign out).
+const portalNow = location.pathname.split("/")[1]; // (`portal`, below, is declared further down)
+if ((portalNow === "staff" || portalNow === "resident") && !standaloneApp && !isPrototypePage) {
+  const portal = portalNow;
+  const trigger = document.querySelector('header button[aria-label^="Open profile menu"]');
+  if (trigger) {
+    (async () => {
+      try {
+        const { pickPersona, initials } = await import("./messaging/personas.js");
+        const me = pickPersona(portal, new URLSearchParams(location.search).get("as"));
+        for (const s of [...trigger.querySelectorAll("span")].filter((x) => !x.children.length)) {
+          const t = s.textContent.trim();
+          if (/^User \d+$/.test(t)) s.textContent = me.name;
+          else if (/^[A-Z]{2}$/.test(t)) s.textContent = initials(me.name);
+        }
+        trigger.setAttribute("aria-label", `Open profile menu for ${me.name}`);
+        // The Resident greeting of the capture says "Welcome back, QA": greet the person by name.
+        if (portal === "resident") for (const h of document.querySelectorAll("main h1, main h2, main p")) if (!h.children.length && /^Welcome back, QA\b/.test(h.textContent.trim())) h.textContent = `Welcome back, ${me.name.split(" ")[0]}`;
+        const q = location.search;
+        const account = portal === "staff"
+          ? [["user", "View profile", `/staff/settings/profile.html${q}`], ["chat", "Messenger & availability", `/staff/settings/availability.html${q}`], ["key", "My permissions", `/staff/workspace/access.html${q}`], ["bell", "Notification preferences", `/staff/settings/notifications.html${q}`], ["user", "My Social", `/staff/social.html${q}#/me`], ["user", "Saved posts", `/staff/social.html${q}#/me`]]
+          : [["chat", "Messages", `/resident/messages.html${q}`], ["clipboard", "Ticket box", `/resident/tickets.html${q}`]]; // Settings has its own item in the menu: no second way in here
+        (await import("./portal-frame-extras.js")).addProfileMenu({ me, initials, portal, account, hasStatus: portal === "staff" });
+      } catch { /* the header stays as captured */ }
+    })();
+  }
+}
+
+// Liên kết "#" (trang chưa có trong bản xem thử) ở Staff, Admin và Resident: báo thay vì im lặng. Client làm việc này trong portal-frame-extras.js.
+if (["staff", "admin", "resident"].includes(portalNow) && !isPrototypePage) {
+  document.addEventListener("click", (e) => {
+    const a = e.target.closest('a[href="#"]');
+    if (!a || a.closest(".eso-pm")) return;
+    e.preventDefault();
+    import("./portal-frame-extras.js").then((m) => m.say("That page is not part of this preview yet."));
+  });
+}
+
 // Settings của Client nằm trong khung dashboard thật (xem mountSettingsShell bên dưới): khi người dùng đổi màu sidebar, theme hoặc màu nhấn
 // trong nội dung nhúng, sidebar thật đổi theo ngay.
 addEventListener("message", (e) => { if (e.origin === location.origin && e.data && e.data.type === "eso-ui-prefs") applyUiPrefs(); });
@@ -100,11 +235,11 @@ addEventListener("message", (e) => { if (e.origin === location.origin && e.data 
   document.body.appendChild(scrim);
   toggle.setAttribute("aria-expanded", "false");
   const wide = matchMedia("(min-width: 1024px)");
-  const setOpen = (open, { restore = true } = {}) => {
+  const setOpen = (open, { restore = true, focus = true } = {}) => {
     root.toggleAttribute("data-nav-open", open);
     scrim.hidden = !open;
     toggle.setAttribute("aria-expanded", String(open));
-    if (open) sidebar.querySelector("a,button,input")?.focus({ preventScroll: true });
+    if (open) { if (focus) sidebar.querySelector("a,button,input")?.focus({ preventScroll: true }); }
     else if (restore) toggle.focus({ preventScroll: true });
   };
   toggle.addEventListener("click", () => setOpen(!root.hasAttribute("data-nav-open")));
@@ -112,6 +247,62 @@ addEventListener("message", (e) => { if (e.origin === location.origin && e.data 
   document.addEventListener("keydown", (e) => { if (e.key === "Escape" && root.hasAttribute("data-nav-open")) setOpen(false); });
   sidebar.addEventListener("click", (e) => { if (e.target.closest("a[href]") && !wide.matches) setOpen(false, { restore: false }); });
   wide.addEventListener("change", () => { if (wide.matches) setOpen(false, { restore: false }); });
+
+  // Swipe to open and close the menu (Settings > Personalize > Gestures & navigation). Only for Staff and Client pages whose person has
+  // saved a Personalize choice; every other page has no swipe, as before. Vertical scrolling never starts a gesture.
+  const pp = location.pathname.split("/")[1];
+  const config = () => {
+    if (pp !== "staff" && pp !== "client") return null;
+    try { const ui = JSON.parse(localStorage.getItem(`ui-prefs:${pp}`) || "null"); return ui ? gestureConfig(ui) : null; } catch { return null; }
+  };
+  let drag = null;
+  const place = (x) => { sidebar.style.animation = "none"; sidebar.style.transform = `translateX(${Math.round(x)}px)`; };
+  const finish = (commit) => {
+    const d = drag;
+    drag = null;
+    if (!d || !d.engaged) return;
+    sidebar.style.animation = "";
+    sidebar.style.transform = "";
+    setOpen(d.open ? !commit : commit, { restore: false, focus: false });
+  };
+  document.addEventListener("touchstart", (e) => {
+    const cfg = config();
+    if (!cfg || !cfg.on || wide.matches || e.touches.length !== 1) return;
+    const t = e.touches[0];
+    const open = root.hasAttribute("data-nav-open");
+    if (open && !cfg.close) return;
+    if (!open && (cfg.side === "right" ? innerWidth - t.clientX : t.clientX) > (cfg.zone === "any" ? innerWidth * 0.5 : 24)) return;
+    drag = { x: t.clientX, y: t.clientY, at: Date.now(), open, cfg, engaged: false, dx: 0 };
+  }, { passive: true });
+  document.addEventListener("touchmove", (e) => {
+    if (!drag) return;
+    const t = e.touches[0];
+    const dx = t.clientX - drag.x;
+    const dy = t.clientY - drag.y;
+    const towardOpen = drag.cfg.side === "right" ? -dx : dx; // positive moves the menu further in
+    if (!drag.engaged) {
+      if (Math.abs(dy) > 10 && Math.abs(dy) > Math.abs(dx)) { drag = null; return; } // a scroll, not a swipe
+      if (Math.abs(dx) < 10 || Math.abs(dx) < Math.abs(dy) * 1.5) return;
+      if (drag.open ? towardOpen > 0 : towardOpen < 0) { drag = null; return; } // wrong way
+      drag.engaged = true;
+      if (!drag.open) setOpen(true, { restore: false, focus: false });
+    }
+    drag.dx = towardOpen;
+    if (drag.cfg.follow) {
+      const w = sidebar.offsetWidth || 320;
+      const sign = drag.cfg.side === "right" ? 1 : -1; // the closed position is -w on the left, +w on the right
+      const shown = Math.min(w, Math.max(0, (drag.open ? w : 0) + towardOpen)); // how much of the menu is in view
+      place(sign * (w - shown));
+    }
+  }, { passive: true });
+  document.addEventListener("touchend", () => {
+    if (!drag) return;
+    const w = sidebar.offsetWidth || 320;
+    const moved = Math.abs(drag.dx);
+    const fast = moved / Math.max(1, Date.now() - drag.at) > 0.5; // a quick flick counts
+    finish(moved >= w * drag.cfg.ratio || fast);
+  });
+  document.addEventListener("touchcancel", () => finish(false));
 })();
 
 // Nhóm thu gọn (Communication, Operations, Hide/Show…): HTML chụp là bản tĩnh nên bấm không có phản ứng.
@@ -135,7 +326,7 @@ document.addEventListener("click", (e) => {
 (async () => {
   const portalName = location.pathname.split("/")[1];
   if (!["staff", "admin", "client", "resident"].includes(portalName)) return;
-  if (location.pathname.endsWith("/messages.html") || location.pathname.endsWith("/tickets.html")) return;
+  if (standaloneApp) return;
   const triggerOf = (g) => g.querySelector(':scope > [data-slot="collapsible-trigger"]');
   const groups = [...document.querySelectorAll('[data-slot="collapsible"][data-sidebar="group"]')].filter(triggerOf);
   if (!groups.length) return;
@@ -192,6 +383,27 @@ document.addEventListener("click", (e) => {
   // Số mục của nhóm (ví dụ "Services 4") tăng thêm một.
   const tally = triggerOf(services).querySelector(".tabular-nums");
   if (tally && /^\d+$/.test(tally.textContent.trim())) tally.textContent = String(Number(tally.textContent) + 1);
+  // Client: "Usage", a group of its own under Services (Ticket box) and above Settings. Its Capacity page is where the plan's three limits
+  // (properties, parking spots, staff seats) are explained; "Manage Capacity" on the Capacity summary card opens it.
+  if (portalName === "client") {
+    const usage = services.cloneNode(true);
+    usage.setAttribute("data-key", "Usage");
+    usage.removeAttribute("data-id");
+    triggerOf(usage).firstElementChild.textContent = "Usage";
+    const uTally = triggerOf(usage).querySelector(".tabular-nums");
+    if (uTally) uTally.textContent = "1";
+    const uList = usage.querySelector('ul[data-slot="sidebar-menu"]');
+    const uItem = uList.lastElementChild.cloneNode(true);
+    const ua = uItem.querySelector('a[data-slot="sidebar-menu-button"]');
+    ua.querySelectorAll('[data-slot="badge"]').forEach((x) => x.remove());
+    ua.removeAttribute("aria-label");
+    ua.setAttribute("href", `/client/usage/capacity.html${location.search}`);
+    ua.querySelector("span").innerHTML =
+      '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4" aria-hidden="true"><path d="m12 14 4-4"></path><path d="M3.34 19a10 10 0 1 1 17.32 0"></path></svg>';
+    [...ua.children].find((c) => c !== ua.querySelector("span")).textContent = "Capacity";
+    uList.replaceChildren(uItem);
+    services.after(usage);
+  }
   try {
     const [{ createStore }, { createTransport }, { pickPersona }] = await Promise.all([
       import("./messaging/store.js"), import("./messaging/transport.js"), import("./messaging/personas.js"),
@@ -217,7 +429,7 @@ const portal = location.pathname.split("/")[1];
 // Các dashboard cuộn trong vùng <main> riêng nên trình duyệt không tự khôi phục vị trí cuộn khi bấm Back.
 // Nhớ vị trí lúc rời trang và đặt lại khi quay về (chỉ khi là điều hướng Back/Forward).
 const scroller = () => document.getElementById("main-content");
-if (["staff", "admin", "client", "resident"].includes(portal) && !location.pathname.endsWith("/messages.html")) {
+if (["staff", "admin", "client", "resident"].includes(portal) && !standaloneApp) {
   const key = `eso-scroll:${location.pathname}`;
   addEventListener("pagehide", () => {
     const el = scroller();
@@ -229,13 +441,13 @@ if (["staff", "admin", "client", "resident"].includes(portal) && !location.pathn
     if (top) requestAnimationFrame(() => { const el = scroller(); if (el) el.scrollTop = top; });
   }
 }
-if (["staff", "admin", "client", "resident"].includes(portal) && !location.pathname.endsWith("/messages.html")) {
+if (["staff", "admin", "client", "resident"].includes(portal) && !standaloneApp) {
   const labels = new Set(["Messages", "Messaging & Support"]);
   // Other items that have a real page: Staff Settings and Promotions open the account-settings page (Promotions is a section of it);
   // the Resident Promotions item opens the page that lists what Staff published.
   const pages = {
-    staff: { Settings: "/staff/account-settings.html#/workspace", Promotions: "/staff/account-settings.html#/promotions" },
-    client: { "Workspace Settings": "/client/account-settings.html#/workspace" },
+    staff: { Settings: "/staff/workspace.html", Promotions: "/staff/promotions.html", Social: "/staff/social.html" },
+    client: { "Workspace Settings": "/client/workspace.html", Support: "/client/support.html", Documents: "/client/documents.html" },
     resident: { Promotions: "/resident/promotions.html", Social: "/resident/social.html" },
   }[portal] || {};
   for (const a of document.querySelectorAll('a[data-slot="sidebar-menu-button"]')) {
@@ -248,11 +460,19 @@ if (["staff", "admin", "client", "resident"].includes(portal) && !location.pathn
   }
 }
 
+// The Property filter on a dashboard is a picture of a select: it opens no list, and a person could type into it ("All Properties dsds").
+// A select is not typed into, so it is read-only (the design's own read-only look comes with it).
+for (const i of document.querySelectorAll('main input[role="combobox"]')) i.readOnly = true;
+// The Client's Property filter also opens a list of the company's properties (property-filter.js).
+if (document.querySelector('main input[role="combobox"][aria-label="Property"]')) (await import("./property-filter.js")).wirePropertyFilter();
+
 // Client: bỏ nhãn "PRO" cạnh Recovery trong sidebar; header hiện đúng người dùng (cùng persona với trang Messages) và menu hồ sơ bấm được.
 // Menu hồ sơ trong bản chụp là tĩnh (bấm không ra gì), nên dựng lại bằng đúng các mục của trang Settings.
 // Class của menu lấy từ các mẫu đã có trong partials/messages-app.html (đã nằm trong CSS build).
 if (portal === "client") {
   for (const b of document.querySelectorAll('[data-slot="sidebar-container"] span')) if (!b.children.length && b.textContent.trim() === "PRO") b.remove();
+  // The label above the page title names the account. A Client is a company (AMC LLC) with several properties; Mallard Pointe is one of them.
+  for (const p of document.querySelectorAll("main p, header p")) if (!p.children.length && p.textContent.trim() === "Mallard Pointe Management") p.textContent = "AMC LLC";
   const trigger = document.querySelector('header button[aria-label^="Open profile menu"]');
   if (trigger) {
     (async () => {
@@ -267,121 +487,98 @@ if (portal === "client") {
           else if (t === "QC") s.textContent = initials(me.name);
         }
         trigger.setAttribute("aria-label", `Open profile menu for ${me.name}`);
-        const q = location.search;
-        const base = `/client/account-settings.html${q}`;
-        const items = [
-          ["Profile settings", `${base}#/settings`],
-          ["Messenger & availability", `${base}#/settings/availability`],
-          ["My permissions", `${base}#/workspace/access`],
-          ["Notification preferences", `${base}#/settings/notifications`],
-        ];
-        const itemClass = "flex min-h-8 w-full touch-manipulation items-center gap-step-sm rounded-md px-step-sm py-1 text-left text-sm text-foreground outline-none transition-colors hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50 pointer-coarse:min-h-11";
-        const menu = document.createElement("div");
-        menu.setAttribute("role", "menu");
-        menu.setAttribute("aria-label", "Profile menu");
-        menu.hidden = true;
-        menu.className = "fixed z-popup flex w-52 flex-col rounded-lg bg-card p-1 text-foreground shadow-lift-md ring-1 ring-foreground/10";
-        const head = document.createElement("div");
-        head.className = "flex flex-col px-step-sm py-step-sm";
-        const n = Object.assign(document.createElement("span"), { textContent: me.name });
-        n.className = "truncate text-sm font-medium";
-        const r = Object.assign(document.createElement("span"), { textContent: `${me.title} · ${me.org}` });
-        r.className = "truncate text-xs text-muted-foreground";
-        head.append(n, r);
-        menu.append(head);
-        for (const [label, href] of items) {
-          const a = Object.assign(document.createElement("a"), { href, textContent: label });
-          a.setAttribute("role", "menuitem");
-          a.className = itemClass;
-          a.addEventListener("click", () => { menu.hidden = true; trigger.setAttribute("aria-expanded", "false"); }); // đi tới mục xong thì menu đóng
-          menu.append(a);
-        }
-        const out = Object.assign(document.createElement("button"), { type: "button", textContent: "Sign out" });
-        out.setAttribute("role", "menuitem");
-        out.className = itemClass;
-        out.addEventListener("click", () => {
-          const box = document.createElement("div");
-          box.className = "fixed inset-x-0 top-step-lg z-toast flex flex-col items-center px-step-lg";
-          const t = Object.assign(document.createElement("div"), { textContent: "Signing out is not part of this preview." });
-          t.setAttribute("role", "status");
-          t.className = "pointer-events-auto flex max-w-md items-center gap-step-md rounded-lg bg-foreground px-step-lg py-step-md text-sm text-background shadow-lift-md";
-          box.append(t);
-          document.body.append(box);
-          setTimeout(() => box.remove(), 3500);
-          close();
-        });
-        menu.append(out);
-        document.body.append(menu);
-        const close = (focusBack) => { menu.hidden = true; trigger.setAttribute("aria-expanded", "false"); if (focusBack) trigger.focus(); };
-        const open = () => {
-          const b = trigger.getBoundingClientRect();
-          menu.style.top = `${Math.round(b.bottom + 4)}px`;
-          menu.style.right = `${Math.max(8, Math.round(innerWidth - b.right))}px`;
-          menu.hidden = false;
-          trigger.setAttribute("aria-expanded", "true");
-          menu.querySelector('[role="menuitem"]').focus();
-        };
-        trigger.addEventListener("click", (e) => { e.stopPropagation(); if (menu.hidden) open(); else close(); });
-        document.addEventListener("click", (e) => { if (!menu.hidden && !menu.contains(e.target)) close(); });
-        menu.addEventListener("keydown", (e) => {
-          const list = [...menu.querySelectorAll('[role="menuitem"]')];
-          const i = list.indexOf(document.activeElement);
-          if (e.key === "Escape") { e.preventDefault(); close(true); }
-          if (e.key === "ArrowDown" || e.key === "ArrowUp") { e.preventDefault(); list[(i + (e.key === "ArrowDown" ? 1 : -1) + list.length) % list.length].focus(); }
-        });
+        // The menu is the one from the account-settings design (name card, Status, Account, Sign out); see portal-frame-extras.js.
+        (await import("./portal-frame-extras.js")).addProfileMenu({ me, initials });
       } catch { /* the header stays as captured */ }
     })();
   }
 }
 
-// Settings của Client: /client/account-settings.html là CHÍNH khung dashboard Client (cùng header, cùng sidebar, nên hai nơi luôn giống nhau),
-// phần nội dung được thay bằng trang Settings (account-settings-content.html) nhúng trong một iframe cùng gốc.
-// Sidebar là bản dựng thật nên không còn sidebar thứ hai do prototype tự vẽ.
-if (portal === "client" && location.pathname.endsWith("/client/account-settings.html")) {
+// Settings, Workspace and Support of the Client: each has an address of its own (/client/settings/profile, /client/workspace, /client/support… see
+// staff-routes.js) and is the Client dashboard's frame (same header, same sidebar) with the settings page inside it, built like the Staff ones (EMBED below).
+// The old address /client/account-settings.html#/… leads to the new one.
+if (location.pathname === "/client/account-settings.html") {
+  const h = location.hash || "#/workspace";
+  location.replace(`${pathForHash(h, "client") || "/client/workspace.html"}${location.search}${pathForHash(h, "client") ? "" : h}`);
+}
+
+// Notifications, Messages và Ticket box của Client: cùng khung dashboard Client (cùng header, cùng sidebar, nên chỉ có một kiểu),
+// nội dung là trang *-content.html nhúng trong iframe cùng gốc, giống cách trang Settings được dựng ở trên.
+// `active` là mục sidebar được tô; null thì không mục nào được tô.
+const EMBED = {
+  "/client/notifications.html": { title: "Notifications", src: "/client/notifications-content.html", active: null },
+  "/client/messages.html": { title: "Messages", src: "/client/messages-content.html", active: "Messages" },
+  "/client/tickets.html": { title: "Ticket box", src: "/client/tickets-content.html", active: "Ticket box" },
+  "/client/documents.html": { title: "Documents", src: "/client/documents-content.html", active: "Documents" },
+  "/client/usage/capacity.html": { title: "Capacity", src: "/client/usage-content.html", active: "Capacity" },
+  "/staff/notifications.html": { title: "Notifications", src: "/staff/notifications-content.html", active: null },
+  "/resident/notifications.html": { title: "Notifications", src: "/resident/notifications-content.html", active: null },
+  "/staff/messages.html": { title: "Messages", src: "/staff/messages-content.html", active: "Messages" },
+  "/staff/tickets.html": { title: "Ticket box", src: "/staff/tickets-content.html", active: "Ticket box" },
+  // Staff Settings, Workspace, Promotions and Help Center: each has an address of its own (see staff-routes.js) and shows the settings page inside the frame.
+  ...Object.fromEntries(STAFF_ROUTES.map(([hash, path]) => [path, {
+    title: hash === "#/promotions" ? "Promotions" : hash === "#/support" ? "Help Center" : "Settings",
+    src: "/staff/account-settings-content.html",
+    hash,
+    active: hash === "#/promotions" ? "Promotions" : hash === "#/support" ? null : "Settings",
+  }])),
+  // Client Settings, Workspace and Support.
+  ...Object.fromEntries(CLIENT_ROUTES.map(([hash, path]) => [path, {
+    title: hash === "#/support" ? "Support" : "Workspace settings",
+    src: "/client/account-settings-content.html",
+    hash,
+    active: hash === "#/support" ? "Support" : "Workspace Settings",
+  }])),
+  // Resident Settings: the same page as Staff's, without Workspace. Its sections have addresses like /resident/settings/personalize.
+  ...Object.fromEntries(RESIDENT_ROUTES.map(([hash, path]) => [path, { title: "Settings", src: "/resident/settings-content.html", hash, active: "Settings" }])),
+  "/resident/promotions.html": { title: "Promotions", src: "/resident/promotions-content.html", active: "Promotions" },
+  "/resident/messages.html": { title: "Messages", src: "/resident/messages-content.html", active: "Messages" },
+  "/resident/tickets.html": { title: "Ticket box", src: "/resident/tickets-content.html", active: "Ticket box" },
+};
+if (EMBED[location.pathname]) {
+  const page = EMBED[location.pathname];
   const main = document.getElementById("main-content");
   const header = document.querySelector("header");
   if (main) {
-    document.title = "Workspace settings | Client Portal · client preview";
-    // Menu: "Workspace Settings" là mục đang mở, Dashboard thì đi về trang dashboard.
-    // Mục đang mở trong bản chụp tô màu bằng class, nên đổi chỗ class giữa hai mục (cùng cấu trúc) thay vì chỉ đổi thuộc tính.
+    const label = { client: "Client", staff: "Staff", resident: "Resident" }[portal];
+    document.title = `${page.title} | ${label} Portal · ${portal} preview`;
+    // Mục đang mở của bản chụp là Dashboard: chuyển dấu sang mục của trang này (đổi class giữa hai mục), hoặc bỏ dấu nếu không có mục nào
+    // (đổi class với một bản sao của mục không mở).
     const links = [...document.querySelectorAll('a[data-slot="sidebar-menu-button"]')];
-    const byLabel = (t) => links.find((a) => a.querySelector("span.truncate")?.textContent.trim() === t);
     const current = links.find((a) => a.hasAttribute("aria-current"));
-    const settings = byLabel("Workspace Settings");
-    if (current && settings && current !== settings) {
-      // Mục đang mở có thêm thanh nhấn ở đầu (span aria-hidden); đổi class của mục, ô biểu tượng và nhãn, rồi chuyển thanh nhấn sang mục mới.
+    const target = page.active && links.find((a) => a.querySelector("span.truncate")?.textContent.trim() === page.active);
+    const spare = target || links.find((a) => a !== current && !a.hasAttribute("aria-current") && a.querySelector(":scope > span.grid"));
+    if (current && spare && current !== spare) {
+      const other = target ? spare : spare.cloneNode(true);
       const swap = (x, y) => { if (!x || !y) return; const t = x.getAttribute("class"); x.setAttribute("class", y.getAttribute("class") || ""); y.setAttribute("class", t || ""); };
-      swap(current, settings);
-      swap(current.querySelector(":scope > span.grid"), settings.querySelector(":scope > span.grid"));
-      swap(current.querySelector(":scope > span.truncate"), settings.querySelector(":scope > span.truncate"));
+      swap(current, other);
+      swap(current.querySelector(":scope > span.grid"), other.querySelector(":scope > span.grid"));
+      swap(current.querySelector(":scope > span.truncate"), other.querySelector(":scope > span.truncate"));
       const bar = current.querySelector(':scope > span[aria-hidden="true"]:not(.grid)');
-      if (bar) settings.prepend(bar);
+      if (target && bar) other.prepend(bar); else bar?.remove();
       current.removeAttribute("aria-current");
       current.removeAttribute("data-active");
-      settings.setAttribute("aria-current", "page");
-      settings.setAttribute("data-active", "");
+      if (target) { other.setAttribute("aria-current", "page"); other.setAttribute("data-active", ""); }
+      current.setAttribute("href", `/${portal}/${portal === "resident" ? "home" : "dashboard"}.html${location.search}`);
     }
-    const dash = byLabel("Dashboard");
-    if (dash) dash.setAttribute("href", `/client/dashboard.html${location.search}`);
     const frame = document.createElement("iframe");
-    frame.title = "Workspace settings";
+    frame.title = page.title;
     const q = new URLSearchParams(location.search);
     q.set("embed", "1");
-    frame.src = `/client/account-settings-content.html?${q}${location.hash}`;
+    frame.src = `${page.src}?${q}${location.hash || page.hash || ""}`;
     frame.style.cssText = "display:block;width:100%;border:0;background:transparent";
     main.replaceChildren(frame);
     main.style.cssText = "padding:0;max-width:none;overflow:hidden";
+    if (page.hash) root.setAttribute("data-eso-settings", ""); // styles.css lifts the floating assistant above the Settings search bar on small screens
     const fit = () => { frame.style.height = `${Math.max(320, innerHeight - (header ? header.offsetHeight : 0))}px`; };
     fit();
     addEventListener("resize", fit);
-    // Hash của trang khung ↔ hash của nội dung (mục sidebar, nút Back và đường dẫn đều đi đúng chỗ).
-    addEventListener("hashchange", () => { try { if (frame.contentWindow.location.hash !== location.hash) frame.contentWindow.location.hash = location.hash; } catch { /* khung chưa tải */ } });
   }
 }
 
 // Resident: nhớ lựa chọn của chính cư dân (Settings). Theme đã lưu áp dụng cho mọi trang Resident (trừ khi có ?dark),
 // và mục Social trong sidebar ẩn đi khi cư dân tắt Social (hoặc Staff tắt Social cho cả tòa nhà).
-if (portal === "resident") {
+if (portal === "resident" && !isPrototypePage) {
   (async () => {
     try {
       const [{ pickPersona }, prefs, social] = await Promise.all([
@@ -389,9 +586,15 @@ if (portal === "resident") {
       ]);
       const me = pickPersona("resident", new URLSearchParams(location.search).get("as"));
       const saved = prefs.readPrefs(localStorage, me.id);
-      root.toggleAttribute("data-contrast", saved.contrast); // Settings > Personalize > Comfort
-      root.toggleAttribute("data-reduce-motion", saved.reduceMotion);
-      if (!new URLSearchParams(location.search).has("dark")) {
+      // The Settings page (Personalize, Accessibility) writes "ui-prefs:resident" and applyUiPrefs() applies it; the older per-resident choices
+      // only count until that page has been used.
+      let ui = null;
+      try { ui = JSON.parse(localStorage.getItem("ui-prefs:resident") || "null"); } catch { /* none */ }
+      if (!ui || !ui.a11y) {
+        root.toggleAttribute("data-contrast", saved.contrast);
+        root.toggleAttribute("data-reduce-motion", saved.reduceMotion);
+      }
+      if (!new URLSearchParams(location.search).has("dark") && !(ui && ui.theme)) {
         const sys = matchMedia("(prefers-color-scheme: dark)");
         const theme = prefs.readPrefs(localStorage, me.id).theme;
         if (theme !== "system" || sys.matches) setDark(prefs.isDark(theme, sys.matches));

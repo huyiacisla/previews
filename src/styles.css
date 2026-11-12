@@ -19,10 +19,13 @@
     animation: nav-slide-in 200ms ease-out;
   }
   html[data-nav-open] [data-slot="sidebar-container"] [data-slot="sidebar-inner"] { overflow-y: auto; }
+  /* Menu on the right edge (Settings > Personalize > Gestures & navigation); without the attribute the menu stays on the left. */
+  html[data-nav-side="right"][data-nav-open] [data-slot="sidebar-container"] { left: auto; right: 0; animation-name: nav-slide-in-right; }
   [data-nav-scrim] { position: fixed; inset: 0; z-index: 50; background: color-mix(in oklab, var(--foreground) 45%, transparent); animation: nav-fade-in 200ms ease-out; }
 }
 [data-nav-scrim][hidden] { display: none; }
 @keyframes nav-slide-in { from { transform: translateX(-100%); } to { transform: none; } }
+@keyframes nav-slide-in-right { from { transform: translateX(100%); } to { transform: none; } }
 @keyframes nav-fade-in { from { opacity: 0; } to { opacity: 1; } }
 @media (prefers-reduced-motion: reduce) {
   html[data-nav-open] [data-slot="sidebar-container"], [data-nav-scrim] { animation: none; }
@@ -51,6 +54,145 @@ html[data-contrast] [class*="ring-foreground/10"] { --tw-ring-color: var(--foreg
 /* Tùy chọn sidebar chọn ở Settings (preview.js đặt thuộc tính trên <html>); chưa chọn thì không có thuộc tính và sidebar giữ nguyên. */
 html[data-sb-icons="off"] [data-slot="sidebar-container"] [data-slot="sidebar-menu-button"] > span.grid { display: none; }
 html[data-sb-counts="off"] [data-slot="sidebar-container"] [data-slot="collapsible-trigger"] .tabular-nums { display: none; }
+
+/* Nút thu gọn sidebar ở mép: chỉ hiện khi người dùng bật "Enable sidebar collapse" (preview.js đặt data-sb-collapse) và chỉ trên desktop.
+   Trang của Admin và Resident không có thuộc tính này nên không đổi gì. */
+html[data-sb-collapse="off"] [data-slot="sidebar-container"] button[aria-label="Collapse sidebar"],
+html[data-sb-collapse="off"] [data-slot="sidebar-container"] button[aria-label="Expand sidebar"] { display: none; }
+@media (max-width: 1023px) {
+  html[data-sb-collapse="on"] [data-slot="sidebar-container"] button[aria-label="Collapse sidebar"],
+  html[data-sb-collapse="on"] [data-slot="sidebar-container"] button[aria-label="Expand sidebar"] { display: none; }
+}
+
+/* Panel and rows drawn by portal-frame-extras.js (notifications, search results) and the Client profile menu.
+   Only theme tokens; nothing here applies to a page that does not create these elements. */
+[data-frame-row]:hover, [data-frame-row][aria-selected="true"] { background: var(--muted); }
+[data-frame-row]:focus-visible { outline: 2px solid var(--ring); outline-offset: -2px; }
+.eso-pm { position: fixed; z-index: 70; width: min(20rem, calc(100vw - 1rem)); overflow-y: auto; overscroll-behavior: contain; padding: 0.5rem; background: var(--popover); color: var(--foreground); border: 1px solid var(--border); border-radius: 0.875rem; box-shadow: 0 12px 32px rgb(0 0 0 / 0.14); font-size: 0.875rem; line-height: 1.25rem; }
+/* The Property filter's list on the Client dashboard (property-filter.js): the same panel as the profile menu, one row per property. */
+.eso-lb { position: fixed; z-index: 70; overflow-y: auto; overscroll-behavior: contain; padding: 0.25rem; background: var(--popover); color: var(--foreground); border: 1px solid var(--border); border-radius: 0.75rem; box-shadow: 0 12px 32px rgb(0 0 0 / 0.14); font-size: 0.875rem; line-height: 1.25rem; }
+.eso-lb[hidden] { display: none; }
+.eso-lb-opt { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; min-height: 2.5rem; padding: 0.5rem 0.625rem; border-radius: 0.5rem; cursor: pointer; outline: none; }
+.eso-lb-opt:hover, .eso-lb-opt:focus-visible { background: color-mix(in srgb, var(--muted-foreground) 12%, transparent); }
+.eso-lb-opt:focus-visible { outline: 2px solid var(--ring); outline-offset: -2px; }
+.eso-lb-opt[aria-selected="true"] { font-weight: 500; }
+.eso-lb-opt[aria-selected="true"]::after { content: ""; flex: none; width: 0.3125rem; height: 0.625rem; margin-right: 0.25rem; border: solid currentColor; border-width: 0 2px 2px 0; transform: rotate(45deg) translateY(-1px); }
+/* Header of the adopted frame (portal-frame.js), sized like the account-settings design: a 60 px bar, 32 x 36 px buttons (40 px for the menu)
+   with 18 px icons. The captured header drew 39-51 px buttons with 24 px icons, and hid the theme button below 1024 px. */
+header[data-eso-frame] { padding-block: 0.75rem; }
+header[data-eso-frame] > :first-child { min-height: 0; padding: 0; gap: 0.5rem; flex-wrap: nowrap; }
+/* One row at every width: between about 640 and 880 px the captured header wrapped the buttons and the name under the search bar.
+   The search bar gives up width instead (it may shrink to nothing but the buttons never wrap), and the buttons stay together on the right. */
+header[data-eso-frame] > :first-child > :nth-child(2) { flex: 0 1 27.5rem; min-width: 0; }
+header[data-eso-frame] > :first-child > :last-child { flex-shrink: 0; margin-left: auto; }
+header[data-eso-frame] :is(button[aria-label="Open navigation"], button[aria-label^="Open EasySpotOps Help"], button[aria-label^="Theme"], button[aria-label^="Open notifications"]) { width: 2rem; min-width: 0; height: 2.25rem; min-height: 0; padding: 0; border-radius: 0.625rem; }
+header[data-eso-frame] button[aria-label="Open navigation"] { width: 2.5rem; }
+header[data-eso-frame] :is(button[aria-label="Open navigation"], button[aria-label^="Open EasySpotOps Help"], button[aria-label^="Theme"], button[aria-label^="Open notifications"]) svg { width: 1.125rem; height: 1.125rem; }
+header[data-eso-frame] button[aria-label^="Open profile menu"] { min-height: 0; height: 2.25rem; }
+header[data-eso-frame] [data-slot="input-group-addon"] svg { width: 0.875rem; height: 0.875rem; }
+header[data-eso-frame] [data-slot="input-group"] { min-height: 0; height: 2.125rem; }
+/* Short screens and the phone drawer: the residence card, clock, capacity and note left the menu three rows (Dashboard, Messages, one group).
+   The whole sidebar scrolls instead: the cards scroll away and the menu gets its full length. Wide, tall screens keep the design as it is. */
+@media (max-width: 1023px), (max-height: 760px) {
+  html:has(header[data-eso-frame]) [data-slot="sidebar-container"] [class*="sidebarRoot"] { overflow-y: auto; overscroll-behavior: contain; }
+  html:has(header[data-eso-frame]) [data-slot="sidebar-container"] [data-slot="sidebar-content"][class*="sidebarNav"] { flex: 0 0 auto; overflow: visible; }
+}
+/* The floating assistant sat above the menu drawer's dimmed backdrop (it stayed bright while everything else was dimmed). It now sits under the
+   backdrop and the drawer, and above the page and the header. */
+.easyspotops-floating-support-shell { z-index: 45 !important; }
+/* Dashboard title row (Staff): below 1024 px the Refresh button dropped under the subtitle on a row of its own. It stays on the title's row, at the right. */
+main header:has(> div:first-child > h1):has(> div:last-child > button:only-child) { flex-direction: row; align-items: flex-start; justify-content: space-between; gap: 0.75rem; }
+/* Touch screens: the buttons keep the design's look (32 x 36 px) but their tappable area grows to 44 x 44 px, with an invisible margin
+   (the gap between two buttons is 12 px, so the areas touch without overlapping). */
+@media (pointer: coarse) {
+  header[data-eso-frame] :is(button[aria-label="Open navigation"], button[aria-label^="Open EasySpotOps Help"], button[aria-label^="Theme"], button[aria-label^="Open notifications"], button[aria-label^="Open profile menu"]) { position: relative; }
+  header[data-eso-frame] :is(button[aria-label="Open navigation"], button[aria-label^="Open EasySpotOps Help"], button[aria-label^="Theme"], button[aria-label^="Open notifications"], button[aria-label^="Open profile menu"])::after { content: ""; position: absolute; inset: -4px -6px; }
+}
+@media (max-width: 1023px) {
+  header[data-eso-frame] { padding-inline: 0.75rem; }
+  header[data-eso-frame] :is(button[aria-label="Open navigation"], button[aria-label^="Theme"], button[aria-label^="Open notifications"]) { display: inline-flex; }
+}
+
+/* On phones and tablets the Settings content ends with its own "Search settings" bar; the floating assistant sits above it, not on it.
+   A position the person dragged it to (inline style) still wins. */
+@media (max-width: 1023px) {
+  html[data-eso-settings] .easyspotops-floating-support-shell { bottom: 5rem; }
+}
+
+/* Pages shown inside the Client frame (preview.js sets data-eso-embed): the frame already has the header, so the page's own Back button,
+   title, theme button and name are not drawn twice. Messages keeps a slim bar with its Preview tools; the Ticket box has none. */
+html[data-eso-embed] #app > header[data-id="tickets.header"] { display: none; }
+html[data-eso-embed] #app > header[data-id="messages.header"] > div { justify-content: flex-end; padding-block: 0.375rem; }
+html[data-eso-embed] #app > header[data-id="messages.header"] :is(#btn-back, h1, [data-theme-toggle], #me) { display: none; }
+/* Exit leaves the app page for the portal's Home or Dashboard: inside the frame the frame's own menu does that. */
+html[data-eso-embed] #btn-exit { display: none; }
+html[data-eso-embed] #app { height: 100dvh; }
+/* Settings, Social and Promotions of the Resident: only the page title stays; Back, theme button and name chip belong to the frame. */
+html[data-eso-embed] #app > header [data-chrome] { display: none; }
+/* On a phone or tablet a conversation or ticket fills the screen, and its Back button (to the list) is the only way out: keep that one. */
+@media (max-width: 1023px) {
+  html[data-eso-embed] #app[data-pane="detail"] > header[data-id="tickets.header"] { display: block; }
+  html[data-eso-embed] #app:is([data-pane="detail"], [data-pane="thread"]) > header #btn-back { display: inline-flex; margin-right: auto; }
+  html[data-eso-embed] #app[data-pane="detail"] > header[data-id="tickets.header"] :is(h1, [data-theme-toggle], #me-avatar, #portal-label) { display: none; }
+  html[data-eso-embed] #app[data-pane="detail"] > header[data-id="tickets.header"] > div > div { display: none; }
+}
+
+/* Star that pins a sidebar page to Favorites (portal-frame-extras.js). Shown on hover, focus and for pinned pages; always on touch screens. */
+.eso-pin { position: absolute; right: 0.25rem; top: 50%; translate: 0 -50%; display: grid; place-items: center; width: 1.75rem; height: 1.75rem; border: 0; border-radius: 0.375rem; background: none; color: inherit; opacity: 0; cursor: pointer; }
+li:hover > .eso-pin, .eso-pin:focus-visible, .eso-pin[aria-pressed="true"] { opacity: 0.85; }
+.eso-pin:hover { opacity: 1; background: color-mix(in oklab, currentColor 12%, transparent); }
+.eso-pin:focus-visible { outline: 2px solid var(--ring); }
+li:has(> .eso-pin) > a { padding-right: 2.25rem; }
+@media (pointer: coarse) { .eso-pin { opacity: 0.6; width: 2.75rem; height: 2.75rem; right: 0; } }
+/* Notifications panel (bell): same rhythm as the profile menu: icon chip, title, one muted line, "View all" at the right of the heading. */
+.eso-np { padding: 0.5rem; }
+.eso-np-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 0.5rem; padding: 0.25rem 0.25rem 0.5rem; }
+.eso-np-head h2 { margin: 0; font-size: 1rem; font-weight: 500; line-height: 1.5rem; }
+.eso-np-head p { margin: 0; font-size: 0.75rem; line-height: 1rem; color: var(--muted-foreground); }
+.eso-np-link { display: inline-flex; align-items: center; flex: none; height: 1.75rem; padding: 0 0.5rem; text-decoration: none; border: 0; border-radius: 0.5rem; background: none; color: var(--primary); font: inherit; font-size: 0.75rem; font-weight: 500; cursor: pointer; }
+.eso-np-link:hover { background: color-mix(in oklab, var(--primary) 10%, transparent); }
+.eso-np-row { display: flex; align-items: center; gap: 0.625rem; width: 100%; min-height: 2.75rem; padding: 0.5rem; border: 0; border-radius: 0.5rem; background: none; color: inherit; font: inherit; text-align: left; text-decoration: none; cursor: pointer; }
+.eso-np-row:hover { background: color-mix(in oklab, var(--foreground) 6%, transparent); }
+.eso-np-link:focus-visible, .eso-np-row:focus-visible { outline: 2px solid var(--ring); outline-offset: -2px; }
+.eso-np-tx { min-width: 0; }
+.eso-np-tx b { display: block; font-weight: 500; }
+.eso-np-tx small { display: block; font-size: 0.75rem; line-height: 1rem; color: var(--muted-foreground); }
+.eso-np-foot { margin-top: 0.25rem; padding-top: 0.25rem; border-top: 1px solid var(--border); }
+.eso-np-note { margin: 0; padding: 0.25rem 0.5rem 0.5rem; font-size: 0.75rem; line-height: 1rem; color: var(--muted-foreground); }
+.eso-pm[hidden], .eso-pm [hidden] { display: none; }
+.eso-pm-card { display: flex; align-items: center; gap: 0.625rem; padding: 0.625rem; margin-bottom: 0.375rem; border-radius: 0.625rem; background: var(--muted); }
+.eso-pm-av { position: relative; display: grid; place-items: center; flex: none; width: 2.25rem; height: 2.25rem; border-radius: 0.5rem; background: var(--surface-inverted); color: white; font-size: 0.75rem; font-weight: 500; }
+.eso-pm-avdot { position: absolute; right: -3px; bottom: -3px; display: grid; padding: 2px; border-radius: 50%; background: var(--card); }
+.eso-pm-who { min-width: 0; }
+.eso-pm-who b { display: block; font-weight: 500; }
+.eso-pm-who small, .eso-pm-tx small { display: block; font-size: 0.6875rem; line-height: 1rem; color: var(--muted-foreground); }
+.eso-pm-h { margin: 0.625rem 0.375rem 0.25rem; font-size: 0.6875rem; font-weight: 500; line-height: 1rem; color: var(--muted-foreground); }
+.eso-pm-item, .eso-pm-strow, .eso-pm-stdd button { display: flex; align-items: center; gap: 0.625rem; width: 100%; padding: 0.5rem; border: 0; border-radius: 0.5rem; background: none; color: inherit; font: inherit; text-align: left; text-decoration: none; cursor: pointer; }
+.eso-pm-item:hover, .eso-pm-stdd button:hover, .eso-pm-strow:hover { background: color-mix(in oklab, var(--foreground) 6%, transparent); }
+.eso-pm-item:focus-visible, .eso-pm-strow:focus-visible, .eso-pm-stdd button:focus-visible, .eso-pm-field :is(input, button):focus-visible { outline: 2px solid var(--ring); outline-offset: -2px; }
+.eso-pm-pi { display: grid; place-items: center; flex: none; width: 1.625rem; height: 1.625rem; border-radius: 0.375rem; background: color-mix(in oklab, var(--foreground) 6%, transparent); color: var(--muted-foreground); }
+.eso-pm-tx { min-width: 0; }
+.eso-pm-st { display: inline-grid; flex: none; }
+.eso-pm-st-success { color: var(--success-text); }
+.eso-pm-st-danger { color: var(--danger-text); }
+.eso-pm-st-warning { color: var(--warning-text); }
+.eso-pm-st-muted { color: var(--muted-foreground); }
+.eso-pm-stwrap { position: relative; }
+.eso-pm-strow { border: 1px solid var(--border); background: var(--card); min-height: 2.5rem; }
+.eso-pm-lb { flex: 1 1 0; min-width: 0; }
+.eso-pm-lb b { display: block; font-weight: 500; }
+.eso-pm-lb small { display: block; overflow: hidden; font-size: 0.6875rem; line-height: 1rem; color: var(--muted-foreground); text-overflow: ellipsis; white-space: nowrap; }
+.eso-pm-cv { color: var(--muted-foreground); transition: transform 150ms; }
+.eso-pm-strow[aria-expanded="true"] .eso-pm-cv { transform: rotate(180deg); }
+.eso-pm-stdd { margin-top: 0.25rem; padding: 0.25rem; border: 1px solid var(--border); border-radius: 0.625rem; background: var(--popover); }
+.eso-pm-stdd hr, .eso-pm > hr { margin: 0.375rem 0; border: 0; border-top: 1px solid var(--border); }
+.eso-pm-ck { margin-left: auto; color: var(--foreground); }
+.eso-pm-field { display: flex; gap: 0.375rem; padding: 0.25rem 0.5rem 0.5rem; }
+.eso-pm-field input { flex: 1 1 0; min-width: 0; height: 2rem; padding: 0 0.5rem; border: 1px solid var(--input); border-radius: 0.5rem; background: var(--card); color: inherit; font: inherit; }
+.eso-pm-field button { height: 2rem; padding: 0 0.75rem; border: 1px solid var(--border); border-radius: 0.5rem; background: var(--card); color: inherit; font: inherit; cursor: pointer; }
+.eso-pm-out { color: var(--danger-text); }
+.eso-pm-out .eso-pm-pi { background: var(--danger-bg); color: var(--danger-text); }
+@media (pointer: coarse) { .eso-pm-item, .eso-pm-strow, .eso-pm-stdd button { min-height: 2.75rem; } .eso-pm-field :is(input, button) { height: 2.75rem; } }
 
 /* Giảm chuyển động theo lựa chọn của người dùng (Settings > Personalize > Comfort), cộng với thiết lập của máy.
    Chỉ có tác dụng khi <html> có thuộc tính này, nên các trang chưa bật thì không đổi gì. */

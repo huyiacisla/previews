@@ -61,11 +61,16 @@ test('hiding the timeline is the resident’s own switch and is remembered', () 
 });
 
 test('like toggles per resident; hidden posts cannot be liked', () => {
+  // A number the feed kept ("likes": 2) is not counted: a like is a person. Nobody liked this post, then one resident did, and everyone sees them.
   const s = memory(feed(post('1', { likes: 2 }), post('2', { aud: 'staff' })));
+  assert.equal(timeline(s, 'res-1')[0].likes, 0);
   assert.equal(toggleLike(s, 'res-1', '1'), true);
-  assert.equal(timeline(s, 'res-1')[0].likes, 3);
-  assert.equal(timeline(s, 'res-2')[0].likes, 2);
+  assert.equal(timeline(s, 'res-1')[0].likes, 1);
+  assert.equal(timeline(s, 'res-1')[0].liked, true);
+  assert.equal(timeline(s, 'res-2')[0].likes, 1, 'another resident sees that one person liked it');
+  assert.equal(timeline(s, 'res-2')[0].liked, false, 'but it is not their like');
   assert.equal(toggleLike(s, 'res-1', '1'), false);
+  assert.equal(timeline(s, 'res-2')[0].likes, 0);
   assert.equal(toggleLike(s, 'res-1', '2'), null, 'staff-only post');
   assert.equal(toggleLike(s, 'res-1', 'nope'), null);
 });
@@ -78,7 +83,7 @@ test('reply: trimmed, limited, only on visible posts, off when Staff restrict re
   assert.equal(r.reply.text, 'Thanks!');
   const replies = timeline(s, 'res-1')[0].replies;
   assert.deepEqual(replies.map((x) => [x.name, x.text]), [['Dana Whitfield', 'Hello'], ['You', 'Thanks!']]);
-  assert.equal(timeline(s, 'res-2')[0].replies.length, 1, 'my reply is mine');
+  assert.deepEqual(timeline(s, 'res-2')[0].replies.map((x) => [x.name, x.mine]), [['Dana Whitfield', false], ['Alex Rivera', false]], 'another resident reads it, by name, and it is not theirs');
   assert.equal(s.getItem(KEY.feed), before, 'the Staff feed is never written to');
   assert.equal(addReply(s, 'res-1', '1', '   ').ok, false);
   assert.equal(addReply(s, 'res-1', '1', 'x'.repeat(MAX_REPLY + 1)).ok, false);

@@ -1,4 +1,4 @@
-import { readdirSync, readFileSync, statSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import tailwindcss from "@tailwindcss/vite";
@@ -25,9 +25,21 @@ const includes = (): Plugin => ({
   transformIndexHtml: { order: "pre", handler: (html) => expandIncludes(html) },
 });
 
+// Địa chỉ không có đuôi (/staff/workspace, /staff/settings/profile) mở đúng trang .html tương ứng, như app thật; chỉ cho máy chủ dev.
+const cleanUrls = (): Plugin => ({
+  name: "preview-clean-urls",
+  configureServer(server) {
+    server.middlewares.use((req, _res, next) => {
+      const [path, query] = (req.url || "").split("?");
+      if (path && !path.endsWith("/") && !/\.[a-z0-9]+$/i.test(path) && existsSync(join(root, `${path}.html`))) req.url = `${path}.html${query ? `?${query}` : ""}`;
+      next();
+    });
+  },
+});
+
 export default defineConfig({
   root,
-  plugins: [includes(), tailwindcss()],
+  plugins: [includes(), cleanUrls(), tailwindcss()],
   server: { port: 3590, strictPort: true },
   build: {
     outDir: resolve(root, "../dist"),

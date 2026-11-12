@@ -7,6 +7,16 @@ html body :is(a,button,input,select,textarea,summary,[tabindex],[role=tab],[role
 html body .sb :is(a,button,input):focus-visible{outline-color:var(--sbfg)!important;outline-offset:-2px!important}
 /* Pin buttons were opacity:0 until mouse hover; reveal them for keyboard users too */
 .sb a:focus-within .pin,.pin:focus-visible{opacity:1!important}
+/* The "<" Back button of a Settings page is 16px wide. Same look; the area that takes the tap is wider (an invisible 4px above and below, 8px to each side). */
+.phead .bk2{position:relative}
+.phead .bk2::after{content:"";position:absolute;inset:-4px -8px}
+
+/* Dark: text that takes the accent blue (links such as "Reset to defaults", the line under the design summary) was 3.1:1 on the dark card.
+   Use the lighter tint the sidebar already uses for its accent, which reads at well above 4.5:1. */
+html.dark .lnk,html.dark .pzsum small{color:#9bb4ff!important}
+/* Dark: the System status lines on the Support page ("All systems operational", green "Operational", amber "Degraded") were 3.6:1 on the dark card. */
+html.dark .sup-st,html.dark .sup-sl em{color:#4ade80!important}
+html.dark .sup-st.w,html.dark .sup-sl em.w{color:#fbbf24!important}
 
 /* Touch / click targets (WCAG 2.2 target size) */
 .pin{width:32px!important;height:32px!important}
@@ -57,6 +67,148 @@ html body #content .psum{display:none!important}
 
 /* 1024-1279px: three columns were cramped, narrow the settings menu */
 @media (min-width:1024px) and (max-width:1279px){.pgrid{grid-template-columns:208px minmax(0,1fr)!important;gap:12px!important}}
+
+/* Social header (Staff): a "Pulse" button beside the privacy and bell buttons (the pulse used to open only from inside the bell menu),
+   and a header that fits a phone: the subtitle stays on one line and the desktop-only "Expand Social" button is not drawn. */
+html body .fd-ib.fd-pulse,html body #feedroot .fd-ib.fd-pulse{width:auto!important;min-width:36px!important;padding:0 12px!important;gap:6px!important;display:inline-flex!important;flex-direction:row!important;align-items:center!important;justify-content:center;white-space:nowrap}
+.fd-pl{font-size:14px;font-weight:500;line-height:20px}
+@media(max-width:767px){
+  html body .fd-ib.fd-pulse,html body #feedroot .fd-ib.fd-pulse{width:36px!important;padding:0!important}
+  .fd-pl{display:none}
+  .fd-th>div:first-child{flex:1 1 0;min-width:0}
+  .fd-th .sp{display:none}
+  .fd-sub{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .fd-th .fsm-t{display:none!important}
+}
+
+/* Floating pieces of the prototype page each get a place of their own, so none sits on another or on the page content:
+   the AI button stays bottom right, the "Prototype · Look" pill sits to its left on the same line, and a toast rises above both. */
+@media(min-width:768px){
+  html body #badge{left:auto!important;top:auto!important;right:84px!important;bottom:28px!important}
+  html body .toast{left:auto!important;right:24px!important;bottom:88px!important}
+}
+
+/* Inside a portal's frame the AI button belongs to the frame (it is wide, with its label, and sits bottom right), so the "Prototype · Look" pill
+   cannot sit beside it from in here: it goes bottom left, above the "Search settings" bar where there is one. */
+html.embed body #badge.badge{left:16px!important;right:auto!important;top:auto!important;bottom:28px!important}
+@media(max-width:1023px){
+  html.embed body #badge.badge{bottom:calc(84px + env(safe-area-inset-bottom))!important}
+}
+
+/* Pages that end with the "Search settings" bar (phone and tablet): the AI button was half hidden behind it, and on a tablet the pill sat on it.
+   Both rise above the bar. */
+@media(max-width:1023px){
+  html:has(#bsr) body .aifab{bottom:calc(76px + env(safe-area-inset-bottom))!important}
+}
+@media(min-width:768px) and (max-width:1023px){
+  html:has(#bsr) body #badge{bottom:calc(84px + env(safe-area-inset-bottom))!important}
+}
+
+/* Resident: no Workspace. The "Profile | Workspace" switch and the workspace head are not drawn; the list of settings is the page. */
+html.resident-portal .stabs,html.resident-portal .wshead{display:none!important}
+
+/* Client Workspace (client-workspace.js): plan and capacity meters, the over-limit call-out, inline field errors. */
+.cw-ms{display:flex;flex-direction:column;gap:2px}
+.cw-m{padding:8px 0}
+.cw-mh{display:flex;justify-content:space-between;align-items:baseline;gap:12px;font-size:14px;line-height:20px}
+.cw-mh b{font-weight:500}
+.cw-mh span{font-size:12px;line-height:16px;color:var(--muted);font-variant-numeric:tabular-nums;text-align:right}
+.cw-bar{display:flex;height:8px;border-radius:4px;margin-top:6px;overflow:hidden;background:color-mix(in srgb,var(--fg) 10%,transparent)}
+.cw-bar i{display:block;height:100%;flex:none;background:var(--primary)}
+.cw-bar i.a+i.o{border-left:2px solid var(--card);box-sizing:border-box}
+.cw-bar i.o{background:var(--danger,#dc2626)}
+.cw-m small{display:block;margin-top:4px;font-size:12px;line-height:16px;color:var(--muted)}
+.cw-m.near .cw-bar i.a{background:var(--warn,#d97706)}
+.cw-m.over .cw-mh span{color:var(--danger,#b91c1c);font-weight:500}
+html.dark .cw-m.over .cw-mh span{color:#f87171}
+.cw-act{display:flex;justify-content:flex-end;padding:12px 0 0}
+
+/* Document secret key (dockey-settings.js): the opening path, the two places a key can go, the extra layer and its forms. */
+.dk{display:flex;flex-direction:column;gap:16px}
+.dk .pscard{margin-bottom:0}
+/* one line of a card: what it is on the left (a dot and two lines of text), what can be done on the right */
+.dk-line{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:8px 0 4px}
+.dk-lt{display:flex;align-items:center;gap:10px;min-width:0;flex:1 1 220px}
+.dk-lt b{display:block;font-size:14px;font-weight:500;line-height:20px}
+.dk-lt small{display:block;margin-top:1px;font-size:12px;line-height:16px;color:var(--muted);font-variant-numeric:tabular-nums}
+.dk-la{flex:none}
+.dk-quiet{font-size:12px;line-height:16px;color:var(--muted)}
+.dk-dot{flex:none;width:8px;height:8px;border-radius:50%;background:color-mix(in srgb,var(--fg) 25%,transparent)}
+.dk-dot.on{background:#16a34a}
+html.dark .dk-dot.on{background:#4ade80}
+.dk-foot{margin:4px 0 0;font-size:12px;line-height:16px;color:var(--muted)}
+.dk-links{display:flex;flex-wrap:wrap;gap:4px 16px;padding-top:6px}
+.dk-link{padding:4px 0;border:0;background:none;color:var(--primary);font:inherit;font-size:12px;font-weight:500;line-height:16px;cursor:pointer;min-height:24px}
+.dk-link:hover{text-decoration:underline}
+.dk-link:focus-visible{outline:2px solid var(--primary);outline-offset:2px;border-radius:4px}
+.dk-path{list-style:none;margin:0;padding:0;display:flex;flex-direction:column}
+.dk-path li{position:relative;display:flex;gap:14px;padding:0 0 18px}
+.dk-path li:last-child{padding-bottom:0}
+.dk-path li:not(:last-child)::before{content:"";position:absolute;left:13px;top:30px;bottom:2px;width:2px;background:var(--border)}
+.dk-n{flex:none;display:grid;place-items:center;width:28px;height:28px;border-radius:50%;background:color-mix(in srgb,var(--primary) 12%,transparent);color:var(--primary);font-size:12px;font-weight:500;line-height:16px;font-variant-numeric:tabular-nums}
+.dk-path b{display:block;font-size:14px;font-weight:500;line-height:20px;padding-top:4px}
+.dk-path small{display:block;margin-top:2px;font-size:12px;line-height:16px;color:var(--muted)}
+.dk-opts{display:grid;gap:8px;grid-template-columns:repeat(auto-fit,minmax(220px,1fr))}
+.dk-opt{display:flex;gap:10px;align-items:flex-start;padding:12px;border:1px solid var(--border);border-radius:10px;cursor:pointer;background:var(--card)}
+.dk-opt:has(input:checked){border-color:var(--primary);background:color-mix(in srgb,var(--primary) 6%,var(--card))}
+.dk-opt:has(input:focus-visible){outline:2px solid var(--primary);outline-offset:2px}
+.dk-opt input{margin-top:3px;accent-color:var(--primary);width:16px;height:16px;flex:none}
+.dk-opt b{display:block;font-size:14px;font-weight:500;line-height:20px}
+.dk-opt small{display:block;margin-top:2px;font-size:12px;line-height:16px;color:var(--muted)}
+.dk-chip{align-self:flex-start;margin-left:auto;padding:2px 10px;border-radius:999px;font-size:12px;font-weight:500;line-height:16px;background:color-mix(in srgb,var(--fg) 8%,transparent);color:var(--muted)}
+.dk-chip.on{background:color-mix(in srgb,#16a34a 14%,transparent);color:#15803d}
+html.dark .dk-chip.on{color:#4ade80}
+.dk .pscard .hd{align-items:flex-start}
+.dk-form{display:flex;flex-direction:column;gap:12px;padding-top:6px}
+.dk-f{display:flex;flex-direction:column;gap:4px}
+.dk-f label{font-size:14px;font-weight:500;line-height:20px}
+.dk-help,.dk-note{margin:0;font-size:12px;line-height:16px;color:var(--muted)}
+.dk-demo{margin:0;padding:6px 10px;border-radius:8px;font-size:12px;line-height:16px;background:color-mix(in srgb,#d97706 12%,transparent);color:oklch(0.45 0.1 64.5)}
+html.dark .dk-demo{color:#fbbf24}
+.dk-seg{display:inline-flex;align-self:flex-start;gap:2px;padding:3px;margin:0;border:0;border-radius:10px;background:color-mix(in srgb,var(--fg) 6%,transparent)}
+.dk-seg label{display:inline-flex;position:relative}
+.dk-seg input{position:absolute;inset:0;width:100%;height:100%;margin:0;opacity:0;cursor:pointer}
+.dk-seg span{display:inline-flex;align-items:center;height:28px;padding:0 14px;border-radius:8px;font-size:14px;font-weight:500;cursor:pointer;color:var(--muted)}
+.dk-seg input:checked+span{background:var(--card);color:var(--fg);box-shadow:0 1px 2px color-mix(in srgb,var(--fg) 14%,transparent)}
+.dk-seg input:focus-visible+span{outline:2px solid var(--primary);outline-offset:2px}
+.dk-actions{display:flex;justify-content:flex-end;gap:8px;flex-wrap:wrap}
+.dk-actions.dk-row{justify-content:flex-start;padding-top:10px}
+.dk-gap{height:12px}
+/* the "Open key" modal: its own dialog, outside the page's content */
+dialog.dk-dlg{margin:auto;padding:0;border:0;border-radius:14px;width:min(440px,calc(100% - 32px));background:var(--card);color:var(--fg);box-shadow:0 20px 50px color-mix(in srgb,var(--fg) 28%,transparent)}
+dialog.dk-dlg::backdrop{background:color-mix(in srgb,#000 45%,transparent)}
+.dk-dlg-in{display:flex;flex-direction:column;gap:12px;padding:20px}
+.dk-dlg-hd h2{margin:0;font-size:16px;font-weight:500;line-height:24px}
+.dk-dlg-hd p{margin:2px 0 0;font-size:14px;line-height:20px;color:var(--muted)}
+.dk-dlg .dk-keybox{margin:0}
+@media(max-width:560px){dialog.dk-dlg{margin:auto 0 0;width:100%;max-width:none;border-radius:14px 14px 0 0}}
+.dk a.stbtn{text-decoration:none;display:inline-flex;align-items:center}
+.dk-keybox{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:12px 14px;margin:2px 0 8px;border:1px dashed var(--border);border-radius:10px;background:color-mix(in srgb,var(--primary) 5%,var(--card))}
+.dk-keybox code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:18px;line-height:28px;font-weight:500;letter-spacing:.06em;color:var(--fg);word-break:break-all;user-select:all}
+.dk-empty{margin:0;padding:10px 0;font-size:14px;line-height:20px;color:var(--muted)}
+.dk .stbtn.d{background:var(--danger,#b91c1c);color:#fff}
+@media(max-width:560px){.dk-actions:not(.dk-row) .stbtn{flex:1}}
+.cw-err{display:block;margin-top:4px;font-size:12px;line-height:16px;color:var(--danger,#b91c1c)}
+html.dark .cw-err{color:#f87171}
+.cw-err[hidden]{display:none}
+.cw input[aria-invalid=true]{border-color:var(--danger,#dc2626)}
+.cw .pzrow label{font-size:14px;font-weight:500;line-height:20px}
+.cw .pscard .prow+.prow,.cw .pscard .pro+.prow{border-top:1px solid var(--border)}
+.cw .pscard .pro{margin:0 0 6px}
+.cw .prow.cw-prop{flex-wrap:wrap}.cw .prow.cw-prop .stbtn{flex:none;white-space:nowrap}
+/* A plain row inside a grouped card ("Bill to", "Card on file") sits at the same 20px as the form rows and switches; it had no padding and hugged the card's edge. */
+.cw .sgroup>.prow{padding:10px 20px}
+.cw .sgroup>.prow+.srow,.cw .sgroup>.srow+.prow{border-top:1px solid var(--border)}
+/* A form row is label and hint above the field on a phone. Once the page has room (tablet and desktop) the label and hint sit on the left and the
+   field on the right at a fixed, readable width, so a short value is not stretched across a 900px card. The page's own rule makes every row a block
+   with !important, so these say it again. The error line is the field's second line. */
+.cw{container-type:inline-size}
+@container (min-width:600px){
+  .cw .pzrow{display:grid!important;grid-template-columns:minmax(0,1fr) minmax(0,24rem);column-gap:32px;row-gap:0;align-items:start}
+  .cw .pzrow>.stt{grid-column:1;grid-row:1/span 2;margin-bottom:0}
+  .cw .pzrow>:not(.stt){grid-column:2}
+}
+.cw .pzsec{margin-top:0}
 
 /* Respect "reduce motion" */
 @media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important;scroll-behavior:auto!important}}

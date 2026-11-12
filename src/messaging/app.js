@@ -7,6 +7,7 @@ import { createTransport } from './transport.js';
 import { PERSONAS, PORTALS, pickPersona, initials } from './personas.js';
 import { formatTime, formatFull, groupByDay, listTime, duration, formatBytes } from './format.js';
 import { EMOJI_CATEGORIES, QUICK_REACTIONS, searchEmoji } from './emoji.js';
+import { exitTarget } from '../exit-target.js';
 
 /* ----------------------------------------------------------------- helpers */
 
@@ -244,15 +245,15 @@ export function mount({ portal }) {
 
   // On a phone the list and the thread are two screens: from a thread, Back goes to the list first, even when the page
   // was opened straight onto a thread (link, reload) and there is no history entry of ours to go back to.
-  // Residents land on the assistant by design, so for them Back leaves.
+  // Residents land on the assistant by design, so for them there is no step back from a thread.
+  // Two buttons: Exit (a link, see exit-target.js) always leaves Messages; Back only steps inside it, and shows only when there is a step to take.
   const threadOverList = () => isMobile() && ui.pane === 'thread' && me.role !== 'resident';
+  const stepsBack = () => ((history.state && history.state.depth) || 0) > 0 || threadOverList();
   const backLabel = () => {
     const depth = (history.state && history.state.depth) || 0;
-    if (depth > 0) return ui.pane === 'thread' ? 'Messages' : 'Chat';
-    if (threadOverList()) return 'Messages';
-    return me.role === 'resident' ? 'Home' : 'Dashboard';
+    return depth > 0 && ui.pane !== 'thread' ? 'Chat' : 'Messages';
   };
-  let leaving = false; // a second tap before the first Back lands would walk out of Messages
+  let leaving = false; // a second tap before the first Back lands would walk back twice
   function leave() {
     if (leaving) return;
     const depth = (history.state && history.state.depth) || 0;
@@ -262,15 +263,9 @@ export function mount({ portal }) {
       return history.back();
     }
     if (threadOverList()) return go({ pane: 'list' });
-    let sameSite = false;
-    try {
-      const ref = new URL(document.referrer);
-      sameSite = ref.origin === location.origin && !ref.pathname.endsWith('/messages.html');
-    } catch { /* no referrer */ }
-    if (sameSite && history.length > 1) history.back();
-    else location.assign(portalInfo.home);
   }
   $('#btn-back').addEventListener('click', leave);
+  $('#btn-exit').href = exitTarget('/messages.html', portalInfo.home);
 
   /* ----------------------------------------------------------- navigation */
 
@@ -2158,7 +2153,12 @@ export function mount({ portal }) {
     clear(sel);
     PERSONAS.filter((p) => p.role === portal).forEach((p) => sel.add(new Option(`${p.name} · ${p.title}`, p.id)));
     sel.value = me.id;
-    sel.onchange = () => { location.href = `${location.pathname}?as=${sel.value}${q.has('dark') ? '&dark' : ''}`; };
+    // Inside the Client frame the person is chosen for the whole frame (header, sidebar and this page), so the frame reloads.
+    sel.onchange = () => {
+      const embedded = q.has('embed') && parent !== window;
+      const win = embedded ? parent : window;
+      win.location.href = `${win.location.pathname.replace('-content.html', '.html')}?as=${sel.value}${q.has('dark') ? '&dark' : ''}`;
+    };
     const box = $('#pv-portals');
     clear(box);
     Object.entries(PORTALS).forEach(([key, p]) => {
@@ -2221,6 +2221,7 @@ export function mount({ portal }) {
     root.dataset.pane = ui.pane;
     const label = backLabel();
     $('#back-label').textContent = label;
+    $('#btn-back').hidden = !stepsBack();
     renderEmergencyBanner();
     renderList(force);
     renderThread(force);

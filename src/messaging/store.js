@@ -38,6 +38,8 @@ export const CONFIG = {
 
 export const STAGE_LABEL = { open: 'Open', in_progress: 'In progress', waiting_on_resident: 'Waiting on resident', resolved: 'Resolved', closed: 'Closed' };
 /** Human ticket number from the conversation id, stable and unique: c8 -> T-1008. */
+/** What a Staff or Client person can pick when they open a ticket with Support (the same topics the Support page lists). */
+export const TICKET_CATEGORIES = ['Billing', 'Account & access', 'Bug / technical', 'Parking ops', 'Feature request', 'Other'];
 export const ticketNo = (conv) => `T-${conv.ticketNo || 1000 + (parseInt(String(conv.id).replace(/\D/g, ''), 10) || 0)}`;
 const nextTicket = (d) => { d.ticketSeq = (d.ticketSeq || 1080) + 1; return d.ticketSeq; };
 export const STAGES = ['open', 'in_progress', 'waiting_on_resident', 'resolved', 'closed'];
@@ -635,10 +637,11 @@ export function createStore({ transport, now = Date.now, config = {} } = {}) {
       });
     },
 
-    _startSupportIn(d, requester, { subject, text, priority }) {
+    _startSupportIn(d, requester, { subject, text, priority, category }) {
       if (!['staff', 'client'].includes(requester.role)) return { ok: false, reason: 'not_allowed' };
       const id = nid(d, 'c');
-      const conv = { id, kind: 'support', status: 'open', ticketNo: nextTicket(d), createdAt: now(), updatedAt: now(), last: null, requesterId: requester.id, assigneeId: null, subject: preview(subject) || 'Support request', priority: priority || 'normal', resolvedAt: null };
+      // Every ticket gets the next number of its own (T-1081, T-1082, …); priority and category are checked against the allowed lists.
+      const conv = { id, kind: 'support', status: 'open', ticketNo: nextTicket(d), createdAt: now(), updatedAt: now(), last: null, requesterId: requester.id, assigneeId: null, subject: preview(subject) || 'Support request', priority: ['low', 'normal', 'high'].includes(priority) ? priority : 'normal', category: TICKET_CATEGORIES.includes(category) ? category : '', resolvedAt: null };
       d.convs[id] = conv;
       d.msgs[id] = [];
       push(d, conv, requester.id, 'text', text);
@@ -646,12 +649,13 @@ export function createStore({ transport, now = Date.now, config = {} } = {}) {
     },
 
     /** Staff or client asks Admin for help. */
-    startSupport(requesterId, { subject, text, priority } = {}) {
+    startSupport(requesterId, { subject, text, priority, category } = {}) {
       const c = clean(text);
       if (!c.ok) return c;
       const s = clean(subject);
       if (!s.ok) return { ok: false, reason: 'subject_required' };
-      return act((d) => api._startSupportIn(d, user(requesterId), { subject: s.text, text: c.text, priority }));
+      if (s.text.length > 120) return { ok: false, reason: 'subject_too_long', max: 120 };
+      return act((d) => api._startSupportIn(d, user(requesterId), { subject: s.text, text: c.text, priority, category }));
     },
 
     _setSupportStatus(d, conv, u, status) {
@@ -1210,7 +1214,7 @@ export function createStore({ transport, now = Date.now, config = {} } = {}) {
       }
       const req = user(conv.requesterId);
       const label = { open: 'Open', pending: 'Pending', resolved: 'Resolved' }[conv.status];
-      return { ...base, kind: 'support', subject: conv.subject, topic: conv.subject, requester: { id: req.id, name: req.name, role: req.role, title: req.title }, unit: '', building: '', stage: conv.status, status: conv.status, stageLabel: label, isOpen: conv.status !== 'resolved', openedAt: conv.createdAt, closedAt: conv.resolvedAt || null, csat: null, priority: conv.priority || 'normal' };
+      return { ...base, kind: 'support', category: conv.category || '', subject: conv.subject, topic: conv.subject, requester: { id: req.id, name: req.name, role: req.role, title: req.title }, unit: '', building: '', stage: conv.status, status: conv.status, stageLabel: label, isOpen: conv.status !== 'resolved', openedAt: conv.createdAt, closedAt: conv.resolvedAt || null, csat: null, priority: conv.priority || 'normal' };
     },
 
     /** Everything this person can find in the box, newest activity first. */
