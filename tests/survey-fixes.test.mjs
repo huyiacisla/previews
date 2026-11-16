@@ -2,12 +2,12 @@
 // leftovers of a reset, one set of names in Social.
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { ensureFeed } from '../src/social/seed.js';
-import { timeline as staffTimeline, addPost, deletePost, muteThread, muted } from '../src/social/staff-store.js';
-import { addReply as residentReply, residentState, timeline as residentTimeline, share } from '../src/social/store.js';
-import { clearSideData } from '../src/messaging/transport.js';
-import { listPromotions, claim, claimedByResidents, KEY as PKEY } from '../src/promotions/store.js';
-import { PERSONAS } from '../src/messaging/personas.js';
+import { ensureFeed } from '../src/features/social/seed.js';
+import { timeline as staffTimeline, addPost, deletePost, muteThread, muted } from '../src/features/social/staff-store.js';
+import { addReply as residentReply, residentState, timeline as residentTimeline, share } from '../src/features/social/store.js';
+import { clearSideData } from '../src/features/messaging/transport.js';
+import { listPromotions, claim, claimedByResidents, KEY as PKEY } from '../src/features/promotions/store.js';
+import { PERSONAS } from '../src/features/messaging/personas.js';
 
 const NOW = Date.parse('2026-11-10T15:00:00');
 const mem = () => {

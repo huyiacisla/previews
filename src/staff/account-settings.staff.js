@@ -5,13 +5,13 @@
    2. adds the settings the prototype lacked: Messages, Accessibility, and Resident promotions,
    3. keeps the values in the prototype's own store (S, key "eso-proto"), which /resident/promotions.html also reads.
    Demo only: nothing is sent to a server. Everything else in Settings (Notifications, Security, Support...) is the prototype's own. */
-import { pathForHash as routePath } from '../staff-routes.js';
-import { backTarget } from '../back-target.js';
-import { pickPersona, initials as initialsOf } from '../messaging/personas.js';
-import { readPrefs, savePrefs, phoneError, CONTACTS, demoEmail } from '../settings/prefs.js';
-import { residentState, setShow } from '../social/store.js';
-import { companyPrefs } from '../company-prefs.js';
-import { normalizePurchased, propertiesCount } from '../capacity/store.js';
+import { pathForHash as routePath } from '../shared/js/staff-routes.js';
+import { backTarget } from '../shared/js/back-target.js';
+import { pickPersona, initials as initialsOf } from '../features/messaging/personas.js';
+import { readPrefs, savePrefs, phoneError, CONTACTS, demoEmail } from '../features/settings/prefs.js';
+import { residentState, setShow } from '../features/social/store.js';
+import { companyPrefs } from '../shared/js/company-prefs.js';
+import { normalizePurchased, propertiesCount } from '../features/capacity/store.js';
 // How many properties the company has now: the one it started with and each one added in Capacity (kept under a name without "eso-", see portal-frame.js).
 const propCount = () => { try { return propertiesCount(normalizePurchased(JSON.parse(localStorage.getItem('capacity-state:client')))); } catch { return 1; } };
 const companyMgmt = () => companyPrefs(globalThis.localStorage); // what the company decided for its residents (Show "Managed by …", and the rest)
@@ -23,7 +23,7 @@ const mfaNote = () => (companyPrefs(globalThis.localStorage).mfa
 // switch is "Require 2-step verification for everyone" in Workspace settings). Asked each time, so a change of the company's switch is seen at once.
 globalThis._companyMfa = () => /^\/(staff|client)\//.test(globalThis.location.pathname) && companyPrefs(globalThis.localStorage).mfa === true;
 import { clientWorkspaceTree, installClientWorkspace, CW_DEFAULTS, PROP as CW_PROP } from './client-workspace.js';
-import { ITEMS as PLAN_ITEMS } from '../capacity/store.js';
+import { ITEMS as PLAN_ITEMS } from '../features/capacity/store.js';
 
 (function () {
   const w = window;

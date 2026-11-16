@@ -1,9 +1,9 @@
 // End-to-end flows through the real store, pair by pair: who talks to whom, and whether finished support work stays as ticket history.
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createStore } from '../src/messaging/store.js';
-import { createMemoryBus } from '../src/messaging/transport.js';
-import { exitTarget } from '../src/exit-target.js';
+import { createStore } from '../src/features/messaging/store.js';
+import { createMemoryBus } from '../src/features/messaging/transport.js';
+import { exitTarget } from '../src/shared/js/exit-target.js';
 
 const T0 = Date.UTC(2026, 10, 13, 15, 0, 0);
 function setup() {

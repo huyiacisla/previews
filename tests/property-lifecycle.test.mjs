@@ -1,10 +1,10 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { endProperty, startOver, isEnded, hasLostAccess, socialKeysOf, NO_ACCESS, portfolio, removeFromPortfolio } from '../src/property-lifecycle.js';
-import { normalizePurchased, newPropertyId, applyCart, propertiesCount, recurring } from '../src/capacity/store.js';
-import { ensureFeed, ensurePropertyFeed } from '../src/social/seed.js';
-import { channels, monitor } from '../src/social/monitor.js';
-import { modules } from '../src/health/health.js';
+import { endProperty, startOver, isEnded, hasLostAccess, socialKeysOf, NO_ACCESS, portfolio, removeFromPortfolio } from '../src/shared/js/property-lifecycle.js';
+import { normalizePurchased, newPropertyId, applyCart, propertiesCount, recurring } from '../src/features/capacity/store.js';
+import { ensureFeed, ensurePropertyFeed } from '../src/features/social/seed.js';
+import { channels, monitor } from '../src/features/social/monitor.js';
+import { modules } from '../src/features/health/health.js';
 
 const store = (init = {}) => { const m = new Map(Object.entries(init)); return { getItem: (k) => (m.has(k) ? m.get(k) : null), setItem: (k, v) => m.set(k, String(v)), removeItem: (k) => m.delete(k), keys: () => [...m.keys()] }; };
 const withProps = (names) => {

@@ -2,8 +2,8 @@
 // Deterministic (seeded) so a failure can be replayed: SEED=123 npm test
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createStore, canMessage } from '../src/messaging/store.js';
-import { createMemoryBus } from '../src/messaging/transport.js';
+import { createStore, canMessage } from '../src/features/messaging/store.js';
+import { createMemoryBus } from '../src/features/messaging/transport.js';
 
 const USERS = ['res-1', 'res-2', 'res-3', 'stf-1', 'stf-2', 'cli-1', 'cli-2', 'adm-1', 'adm-2'];
 const role = (id) => id.split('-')[0] === 'res' ? 'resident' : id.split('-')[0] === 'stf' ? 'staff' : id.split('-')[0] === 'cli' ? 'client' : 'admin';

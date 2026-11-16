@@ -1,11 +1,11 @@
 // Social monitoring (Admin), an Alpine.js component. Structure and classes: admin/social-monitoring-content.html (x-data="socialMonitoring").
 // What is shown is worked out by social/monitor.js (pure, tested in Node); this file keeps what the person chose (property, tab, search, filters,
 // which replies are open) and redraws when another tab changes the feed. It never writes the feed: Admin only looks.
-import { component, start } from '../alpine.js';
-import { channels, monitor, filterPosts, KINDS } from '../social/monitor.js';
-import { filterActivity, reportText } from '../social/diagnose.js';
-import { reportMixin } from '../health/report-ui.js';
-import { postFinding } from '../health/report-to-team.js';
+import { component, start } from '../shared/js/alpine.js';
+import { channels, monitor, filterPosts, KINDS } from '../features/social/monitor.js';
+import { filterActivity, reportText } from '../features/social/diagnose.js';
+import { reportMixin } from '../features/health/report-ui.js';
+import { postFinding } from '../features/health/report-to-team.js';
 
 const ch = channels(localStorage);
 const qs = new URLSearchParams(location.search);

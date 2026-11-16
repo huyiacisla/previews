@@ -2,9 +2,9 @@
 // audit cards, broadcast reach, structured search. Pure core only (no DOM).
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createStore, ticketStage, STAGE_LABEL } from '../src/messaging/store.js';
-import { createMemoryBus } from '../src/messaging/transport.js';
-import { parseQuery, matchFilters, matchText, withoutFilter } from '../src/messaging/query.js';
+import { createStore, ticketStage, STAGE_LABEL } from '../src/features/messaging/store.js';
+import { createMemoryBus } from '../src/features/messaging/transport.js';
+import { parseQuery, matchFilters, matchText, withoutFilter } from '../src/features/messaging/query.js';
 
 const T0 = Date.UTC(2026, 10, 9, 15, 0, 0);
 function setup(opts = {}) {

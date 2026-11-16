@@ -1,7 +1,7 @@
 // "Back goes to the page you came from": every portal, every page that links into Settings. Run alone with: npm run check:back
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { backTarget } from '../src/back-target.js';
+import { backTarget } from '../src/shared/js/back-target.js';
 
 const ORIGIN = 'http://localhost:3590';
 const PAGES = {

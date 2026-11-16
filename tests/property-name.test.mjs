@@ -1,7 +1,7 @@
 // The property's display name (F367): saved in the property profile, read everywhere the property is named.
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { propertyName, DEFAULT_PROPERTY } from '../src/property-name.js';
+import { propertyName, DEFAULT_PROPERTY } from '../src/shared/js/property-name.js';
 
 const mem = (o = {}) => ({ getItem: (k) => (k in o ? (typeof o[k] === 'string' ? o[k] : JSON.stringify(o[k])) : null) });
 

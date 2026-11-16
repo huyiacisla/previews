@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { lookCss, gestureConfig, onAccent, accentText, contrastRatio, PAGE_LIGHT, PAGE_DARK } from '../src/look-prefs.js';
+import { lookCss, gestureConfig, onAccent, accentText, contrastRatio, PAGE_LIGHT, PAGE_DARK } from '../src/shared/js/look-prefs.js';
 
 const defaults = {
   text: { font: 'system', size: 14, weight: 400, line: 1.43, color: '', head: '' },
@@ -62,10 +62,10 @@ test('gestures: design defaults, thresholds and the menu side', () => {
 });
 
 test('touch screens get 44 px targets by default, a choice made in Settings wins, and the Settings pages and Social carry the same rules', () => {
-  const pv = readFileSync(new URL('../src/preview.js', import.meta.url), 'utf8');
+  const pv = readFileSync(new URL('../src/shared/js/preview.js', import.meta.url), 'utf8');
   assert.ok(pv.includes('typeof ui.a11y.target === "boolean" ? ui.a11y.target : matchMedia("(pointer: coarse)").matches'), 'with no choice, a touch screen is on');
   assert.ok(pv.includes('if (matchMedia("(pointer: coarse)").matches && chosen !== false) root.setAttribute("data-big-target", "");'), 'only an explicit OFF keeps it off');
-  const css = readFileSync(new URL('../src/styles.css', import.meta.url), 'utf8');
+  const css = readFileSync(new URL('../src/shared/css/styles.css', import.meta.url), 'utf8');
   assert.ok(css.includes(':not([role="tab"]):not([class*="flex-1"]):not([class*="grow"]) { min-width: 2.75rem; }'), 'a short word on a button is 44 wide, but a tab or a flex-1 button keeps its own width (min-width there let a long label run over its neighbour)');
   assert.ok(css.includes('html[data-big-target] #me-link { min-width: 2.75rem;'));
   const q = readFileSync(new URL('../src/staff/account-settings.quality.css', import.meta.url), 'utf8');
@@ -107,9 +107,9 @@ test('whatever accent is picked, the text on it and the accent as text are reada
   // tonal and outline buttons use the readable text colour; preview.js sets it for the light and the dark page and hands it to frames
   assert.ok(lookCss({ buttons: { style: 'tonal' } }).includes('color:var(--primary-text,var(--primary))'));
   assert.ok(lookCss({ buttons: { style: 'outline' } }).includes('color:var(--primary-text,var(--primary))'));
-  const pv = readFileSync(new URL('../src/preview.js', import.meta.url), 'utf8');
+  const pv = readFileSync(new URL('../src/shared/js/preview.js', import.meta.url), 'utf8');
   assert.ok(pv.includes('"--primary-foreground", onAccent(ui.accent)'));
   assert.ok(pv.includes('"--primary-text-d", accentText(ui.accent, PAGE_DARK)'));
   assert.ok(pv.includes('for (const v of ["--primary-foreground", "--primary-text-l", "--primary-text-d"]) {'), 'frames get the same colours');
-  assert.match(readFileSync(new URL('../src/styles.css', import.meta.url), 'utf8'), /html\.dark \{ --primary-text: var\(--primary-text-d, var\(--primary\)\); \}/);
+  assert.match(readFileSync(new URL('../src/shared/css/styles.css', import.meta.url), 'utf8'), /html\.dark \{ --primary-text: var\(--primary-text-d, var\(--primary\)\); \}/);
 });

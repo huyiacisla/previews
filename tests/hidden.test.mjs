@@ -2,8 +2,8 @@
 // Pure core only (no DOM). Run with: npm test
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createStore } from '../src/messaging/store.js';
-import { createMemoryBus } from '../src/messaging/transport.js';
+import { createStore } from '../src/features/messaging/store.js';
+import { createMemoryBus } from '../src/features/messaging/transport.js';
 
 const T0 = Date.UTC(2026, 10, 9, 15, 0, 0);
 function setup() {

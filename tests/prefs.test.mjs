@@ -1,7 +1,7 @@
-// Resident profile and personalization (src/settings/prefs.js). Run with: npm test
+// Resident profile and personalization (src/features/settings/prefs.js). Run with: npm test
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { readPrefs, savePrefs, phoneError, isDark, demoEmail, prefKey } from '../src/settings/prefs.js';
+import { readPrefs, savePrefs, phoneError, isDark, demoEmail, prefKey } from '../src/features/settings/prefs.js';
 
 const memory = () => { const m = new Map(); return { getItem: (k) => (m.has(k) ? m.get(k) : null), setItem: (k, v) => void m.set(k, String(v)) }; };
 

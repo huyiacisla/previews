@@ -1,11 +1,11 @@
 // What the company decided for its residents (Client > Workspace settings > Residents) reaches Social, Promotions and Messages.
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { companyPrefs } from '../src/company-prefs.js';
-import { socialOn } from '../src/social/store.js';
-import { readConfig } from '../src/promotions/store.js';
-import { createStore } from '../src/messaging/store.js';
-import { createMemoryBus } from '../src/messaging/transport.js';
+import { companyPrefs } from '../src/shared/js/company-prefs.js';
+import { socialOn } from '../src/features/social/store.js';
+import { readConfig } from '../src/features/promotions/store.js';
+import { createStore } from '../src/features/messaging/store.js';
+import { createMemoryBus } from '../src/features/messaging/transport.js';
 
 const mem = (o = {}) => { const m = new Map(Object.entries(o).map(([k, v]) => [k, typeof v === 'string' ? v : JSON.stringify(v)])); return { getItem: (k) => (m.has(k) ? m.get(k) : null), setItem: (k, v) => void m.set(k, String(v)), removeItem: (k) => void m.delete(k) }; };
 

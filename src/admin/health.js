@@ -1,9 +1,9 @@
 // System health (Admin), an Alpine.js component: the checks of every module. Structure and classes: admin/health-content.html (x-data="systemHealth").
 // What is shown is worked out by health/health.js (pure, tested in Node). The page only reads; "Check again" and a change in another tab run the checks again.
-import { component, start } from '../alpine.js';
-import { modules, overall, healthReport } from '../health/health.js';
-import { reportText } from '../social/diagnose.js';
-import { reportMixin } from '../health/report-ui.js';
+import { component, start } from '../shared/js/alpine.js';
+import { modules, overall, healthReport } from '../features/health/health.js';
+import { reportText } from '../features/social/diagnose.js';
+import { reportMixin } from '../features/health/report-ui.js';
 
 // Links keep the query (?as, ?dark) but not "embed", and open in the whole window.
 const keep = new URLSearchParams(location.search); keep.delete('embed');

@@ -9,7 +9,7 @@
 import {
   makePending, checkPending, isLive, keyWaitMs, clock, maskEmail, generateUnused, rememberIssued, validateGuard, makeGuard, verifyGuard, canTryGuard, failGuard, guardTriesLeft, guardLabel,
   GUARD_PAUSE_MS, KEY_TTL_MS, UNLOCK_MS, PIN_LENGTH, PASSWORD_MIN,
-} from '../documents/store.js';
+} from '../features/documents/store.js';
 
 const ME = { email: 'dana.whitfield@amcllc.example', company: 'AMC LLC' };
 const K = { log: 'docs-secret:log', issued: 'docs-secret:issued', via: 'docs-secret:via', guard: 'docs-secret:guard', tries: 'docs-secret:tries', pending: 'docs-secret:pending', window: 'docs-secret:window' };

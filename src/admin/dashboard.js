@@ -3,11 +3,11 @@
 // the result where the partial can see it, and reads it again whenever the store changes.
 // NOTE: BRIEF.md allows no JS besides preview.js; like the Messages and Notifications pages this is a deliberate exception.
 // The captured file is not edited: its sidebar and header stay, only what <main> shows is replaced when the page opens.
-import { component, start } from '../alpine.js';
-import { createStore } from '../messaging/store.js';
-import { createTransport } from '../messaging/transport.js';
-import { pickPersona } from '../messaging/personas.js';
-import { listTime } from '../messaging/format.js';
+import { component, start } from '../shared/js/alpine.js';
+import { createStore } from '../features/messaging/store.js';
+import { createTransport } from '../features/messaging/transport.js';
+import { pickPersona } from '../features/messaging/personas.js';
+import { listTime } from '../features/messaging/format.js';
 import { adminOverview, adminView, PLATFORM, HEALTH, ACTIVITY } from './overview.js';
 
 const root = document.getElementById('adm-root');

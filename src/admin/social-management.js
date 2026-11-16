@@ -1,13 +1,13 @@
 // Social management (Admin), an Alpine.js component: the properties of the company, each with its Social and an "Open social" button.
 // Structure and classes: admin/social-management-content.html (x-data="socialManagement"). The cards come from social/monitor.js (pure, tested).
 // A property added in Capacity shows up here by itself; a change to the feed in another tab redraws the numbers.
-import { component, start } from '../alpine.js';
-import { overview, filterChannels, monitor } from '../social/monitor.js';
-import { reportText } from '../social/diagnose.js';
-import { reportMixin } from '../health/report-ui.js';
-import { trapTab, restoreFocus } from '../dialog-trap.js';
-import { endProperty, startOver } from '../property-lifecycle.js';
-import { pickPersona } from '../messaging/personas.js';
+import { component, start } from '../shared/js/alpine.js';
+import { overview, filterChannels, monitor } from '../features/social/monitor.js';
+import { reportText } from '../features/social/diagnose.js';
+import { reportMixin } from '../features/health/report-ui.js';
+import { trapTab, restoreFocus } from '../shared/js/dialog-trap.js';
+import { endProperty, startOver } from '../shared/js/property-lifecycle.js';
+import { pickPersona } from '../features/messaging/personas.js';
 
 // The links keep the query (?as, ?dark) but not "embed", and open in the whole window, not inside this frame.
 const keep = new URLSearchParams(location.search); keep.delete('embed');

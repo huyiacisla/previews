@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { restoreFocus, trapTab } from '../src/dialog-trap.js';
+import { restoreFocus, trapTab } from '../src/shared/js/dialog-trap.js';
 
 // A page element with just what the helpers read.
 const el = (id, { hidden = false, disabled = false, connected = true, visible = true } = {}) => ({ id, hidden, disabled, isConnected: connected, getClientRects: () => (visible ? [{}] : []), focused: false, focus() { this.focused = true; } });

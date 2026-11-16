@@ -4,7 +4,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 
-const css = readFileSync(new URL('../src/styles.css', import.meta.url), 'utf8');
+const css = readFileSync(new URL('../src/shared/css/styles.css', import.meta.url), 'utf8');
 const quality = readFileSync(new URL('../src/staff/account-settings.quality.js', import.meta.url), 'utf8');
 
 test('while its chat is closed the assistant is an icon: no label, 44px, no padding', () => {

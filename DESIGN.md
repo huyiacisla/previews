@@ -331,7 +331,7 @@ Một họ chữ duy nhất: **Inter** (`--font-heading` → `--font-sans`; fall
 ## Layout
 
 - Nav cố định + vùng nội dung cuộn. Dưới `768px` (`MOBILE_BREAKPOINT` = `md` Tailwind) nav → thanh dưới đáy. KHÔNG có thang breakpoint riêng (`sm` 640 · `md` 768 · `lg` 1024 · `xl` 1280 · `2xl` 1536).
-- Khoảng cách theo `--spacing` Tailwind (bội `4px`) ∧ 5 bậc có tên `step-*` (`--spacing-step-*` trong `packages/platform/web/ui/src/styles.css`; tiền tố `step-` bắt buộc vì `max-w-md` tra `--spacing` trước `--container`). Bậc không có tên (`0` · lẻ `.5` · `1.5` · `2.5` · `3.5` · `5` · ≥`7`) giữ số. Thẻ: `--card-spacing` = `16px`, `12px` ở biến thể gọn; đổi 1 biến ⇒ đổi cả đệm dọc lẫn gap khối con.
+- Khoảng cách theo `--spacing` Tailwind (bội `4px`) ∧ 5 bậc có tên `step-*` (`--spacing-step-*` trong `packages/platform/web/ui/src/shared/css/styles.css`; tiền tố `step-` bắt buộc vì `max-w-md` tra `--spacing` trước `--container`). Bậc không có tên (`0` · lẻ `.5` · `1.5` · `2.5` · `3.5` · `5` · ≥`7`) giữ số. Thẻ: `--card-spacing` = `16px`, `12px` ở biến thể gọn; đổi 1 biến ⇒ đổi cả đệm dọc lẫn gap khối con.
 - Lưới dữ liệu dày: `gap` `8`–`12px` ⇒ trả giá bằng Grid Item Floor.
 
 | Tên (`gap-step-md`, `p-step-lg`…) | px     | Số cũ | Dùng cho                          |

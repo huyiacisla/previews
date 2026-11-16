@@ -11,7 +11,7 @@
    the Client copy keeps its own, the page shim prefixes the key). Demo only: nothing is sent anywhere. */
 
 import { dockeyLeaf, dockeyDesc, installDockey } from './dockey-settings.js';
-import { ITEMS, normalizePurchased, limitFor, propertiesCount } from '../capacity/store.js';
+import { ITEMS, normalizePurchased, limitFor, propertiesCount } from '../features/capacity/store.js';
 
 export const PROP = 'Mallard Pointe at Riverbend';
 const COMPANY = 'AMC LLC';

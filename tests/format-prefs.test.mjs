@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { formatTime, listTime, dayKey, timePrefs } from '../src/messaging/format.js';
+import { formatTime, listTime, dayKey, timePrefs } from '../src/features/messaging/format.js';
 
 // 2026-11-15 15:07 UTC
 const TS = Date.UTC(2026, 10, 15, 15, 7);

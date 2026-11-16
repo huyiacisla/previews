@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { guardAccess, accessScreen, portalOf } from '../src/access-guard.js';
-import { endProperty } from '../src/property-lifecycle.js';
+import { guardAccess, accessScreen, portalOf } from '../src/shared/js/access-guard.js';
+import { endProperty } from '../src/shared/js/property-lifecycle.js';
 
 const store = (init = {}) => { const m = new Map(Object.entries(init)); return { getItem: (k) => (m.has(k) ? m.get(k) : null), setItem: (k, v) => m.set(k, String(v)), removeItem: (k) => m.delete(k), keys: () => [...m.keys()] }; };
 // a document with just enough of the DOM for the guard
