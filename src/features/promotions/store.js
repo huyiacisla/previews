@@ -229,6 +229,30 @@ export function inAudience(x, viewer) {
   return false;
 }
 
+/** Every record the Resident app knows about (what Staff published and the running samples), live or not. */
+export function allRecords(storage) {
+  const published = read(storage, KEY.published, []);
+  return [...(Array.isArray(published) ? published : []), ...sampleRecords(storage)];
+}
+
+/**
+ * The Redeem box: what does this code belong to?
+ * { state: "empty" | "none" | "live" | "full" | "ended" | "soon" | "audience", promo }.
+ * A draft or a removed promotion answers "none": a resident is not told about what Staff have not published.
+ */
+export function lookupCode(storage, raw, { today = todayISO(), viewer } = {}) {
+  const code = String(raw || "").trim().toUpperCase();
+  if (!code) return { state: "empty" };
+  if (!readConfig(storage).show) return { state: "none" };
+  const rec = allRecords(storage).find((r) => r.x && (r.x.method === "static" || r.x.method === "qr") && String(r.x.code || "").trim().toUpperCase() === code);
+  if (!rec || rec.st === "draft" || rec.st === "removed") return { state: "none" };
+  const promo = toPromo(rec, categoryNames(storage), claimedByResidents(storage, rec.id), today);
+  if (rec.st === "closed" || (rec.x.end && rec.x.end < today)) return { state: "ended", promo };
+  if (rec.x.start && rec.x.start > today) return { state: "soon", promo };
+  if (!inAudience(rec.x, viewer)) return { state: "audience", promo };
+  return { state: promo.full ? "full" : "live", promo };
+}
+
 /** Live promotions for this resident, newest first, filtered by free text and category. */
 export function listPromotions(storage, { today = todayISO(), query = "", category = "all", viewer, samples = true } = {}) {
   if (!readConfig(storage).show) return [];

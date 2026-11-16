@@ -2,9 +2,8 @@
 // All markup and Tailwind classes live in partials/promotions-app.html; this file clones templates, fills text and
 // toggles hidden / data-* / aria-*. The data comes from promotions/store.js (what Staff published).
 
-import { exitTarget } from "../../shared/js/exit-target.js";
 import { initials, PORTALS, pickPersona } from "../messaging/personas.js";
-import { activeClaims, categoriesIn, claim, claimStatus, KEY, listPromotions, readConfig, residentState, toggleSaved } from "./store.js";
+import { activeClaims, allRecords, categoriesIn, claim, claimStatus, KEY, listPromotions, lookupCode, readConfig, residentState, toggleSaved } from "./store.js";
 
 const $ = (sel, root = document) => root.querySelector(sel);
 const tpl = (id) => document.getElementById(id).content.firstElementChild.cloneNode(true);
@@ -44,13 +43,10 @@ const SORTS = {
 
 /* ------------------------------------------------------------------ header */
 
-$("#portal-label").textContent = `· ${info.label}`;
 $("#me-avatar").textContent = initials(me.name);
 $("#me-name").textContent = me.name;
 $("#me-role").textContent = me.title;
 
-// Exit leaves the page (see exit-target.js); the page has no inner steps, so there is no Back.
-$("#btn-exit").href = exitTarget("/promotions.html", info.home);
 
 function toast(text) {
   const el = tpl("t-toast");
@@ -126,6 +122,14 @@ function setCover(img, none, cover, visual) {
 /* --------------------------------------------------------------------- list */
 
 // The filter button, its count and the panel (chips for New, Hot, Limited, Ending soon, Free, Still available).
+function paintRewardsBadge() {
+  const mine = residentState(storage, me.id);
+  const n = Object.keys(mine.claims).filter((id) => mine.claims[id] && mine.claims[id].code && activeClaims(storage, me.id, id).active > 0).length;
+  const c = $("#rewards-count");
+  c.hidden = n === 0;
+  c.textContent = String(n);
+}
+
 function paintFilterPanel(counts) {
   const n = ui.tags.size + (ui.sort !== "rec" ? 1 : 0);
   const btn = $("#btn-filter");
@@ -170,6 +174,7 @@ function render() {
   }
   if (SORTS[ui.sort]) list = [...list].sort(SORTS[ui.sort]);
   paintFilterPanel(counts);
+  paintRewardsBadge();
 
   // filter row: All, one per category, Saved
   const filters = $("#filters");
@@ -493,7 +498,7 @@ $("#dlg-copy").addEventListener("click", async () => {
 
 /* ---------------------------------------------------------------- search + live */
 
-// The three-dot menu: Saved promotions, Filters, and the way back Home.
+// The three-dot menu: Saved promotions and Filters.
 const moreBtn = $("#btn-more");
 const moreMenu = $("#more-menu");
 function closeMore(focusBtn = false) {
@@ -534,6 +539,115 @@ document.addEventListener("click", (e) => {
 });
 document.addEventListener("keydown", (e) => {
   if (e.key === "Escape" && !moreMenu.hidden) closeMore(true);
+});
+
+// ---- Redeem a code and My rewards ----
+const rdDlg = $("#dlg-redeem");
+const rwDlg = $("#dlg-rewards");
+for (const d of [rdDlg, rwDlg]) {
+  $("[data-close]", d).addEventListener("click", () => d.close());
+  d.addEventListener("click", (e) => {
+    if (e.target === d) d.close(); // the backdrop
+  });
+}
+const longDate = (iso) => new Date(`${iso}T00:00:00`).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+
+function redeemOut(title, text, openId) {
+  const out = $("#rd-out");
+  clear(out);
+  const el = tpl("t-redeem-hit");
+  $("[data-title]", el).textContent = title;
+  $("[data-text]", el).textContent = text;
+  const open = $("[data-open]", el);
+  open.hidden = !openId;
+  open.addEventListener("click", () => {
+    rdDlg.close();
+    openDialog(openId);
+  });
+  out.appendChild(el);
+}
+
+function checkCode(raw) {
+  const code = String(raw).trim().toUpperCase();
+  if (!code) return redeemOut("Type a code first", "Codes are letters and numbers, like VALET20.", null);
+  // a code the resident already holds (a unique code from a claim)
+  const mine = residentState(storage, me.id);
+  const own = Object.entries(mine.claims).find(([, c]) => String(c.code || "").toUpperCase() === code);
+  if (own) {
+    const rec = allRecords(storage).find((r) => String(r.id) === own[0]);
+    const cs = claimStatus(storage, me.id, own[0]);
+    const say = { pending: "Waiting for the property team.", verified: "Confirmed by the property team.", redeemed: "Already used.", rejected: "Not approved." };
+    return redeemOut("This is your own code", `${rec ? rec.x.title : "A promotion"}. ${cs ? say[cs.st] : ""} It is in My rewards.`, rec ? own[0] : null);
+  }
+  const r = lookupCode(storage, code, { viewer });
+  const t = r.promo ? r.promo.title : "";
+  if (r.state === "none") return redeemOut("We could not find that code", "Check the spelling and try again, or ask the partner for the code.", null);
+  if (r.state === "ended") return redeemOut(t, "This promotion has ended.", null);
+  if (r.state === "soon") return redeemOut(t, "This promotion has not started yet.", null);
+  if (r.state === "audience") return redeemOut(t, "This promotion is not open to your unit.", null);
+  if (r.state === "full") return redeemOut(t, "Sold out: every offer has been claimed.", r.promo.id);
+  return redeemOut(t, "Valid. Open the promotion to claim your offer.", r.promo.id);
+}
+
+$("#btn-redeem").addEventListener("click", () => {
+  clear($("#rd-out"));
+  $("#rd-input").value = "";
+  rdDlg.showModal();
+  $("#rd-input").focus();
+});
+$("#rd-form").addEventListener("submit", (e) => {
+  e.preventDefault();
+  checkCode($("#rd-input").value);
+});
+
+const STATUS = {
+  pending: ["Waiting", "wait", "Waiting for the property team to confirm."],
+  verified: ["Confirmed", "ok", "Confirmed by the property team."],
+  redeemed: ["Used", "ok", "Used. Thank you."],
+  rejected: ["Not approved", "no", ""],
+};
+function paintRewards() {
+  const mine = residentState(storage, me.id);
+  const list = $("#rw-list");
+  clear(list);
+  const ids = Object.keys(mine.claims).filter((id) => mine.claims[id] && mine.claims[id].code);
+  $("#rw-empty").hidden = ids.length > 0;
+  for (const id of ids) {
+    const rec = allRecords(storage).find((r) => String(r.id) === id);
+    const cs = claimStatus(storage, me.id, id);
+    const st = STATUS[cs ? cs.st : "pending"];
+    const li = tpl("t-reward");
+    $("[data-title]", li).textContent = rec ? rec.x.title : "Promotion";
+    const badge = $("[data-status]", li);
+    badge.textContent = st[0];
+    badge.dataset.tone = st[1];
+    $("[data-note]", li).textContent = cs && cs.st === "rejected" && cs.reason ? cs.reason : st[2];
+    $("[data-code]", li).textContent = mine.claims[id].code;
+    $("[data-copy]", li).addEventListener("click", async () => {
+      try {
+        await navigator.clipboard.writeText(mine.claims[id].code);
+        toast("Code copied");
+      } catch {
+        toast("Could not copy. Select the code and copy it.");
+      }
+    });
+    const view = $("[data-view]", li);
+    view.hidden = !rec || !find(id);
+    view.addEventListener("click", () => {
+      rwDlg.close();
+      openDialog(id);
+    });
+    list.appendChild(li);
+  }
+  const n = ids.filter((id) => activeClaims(storage, me.id, id).active > 0).length;
+  const c = $("#rewards-count");
+  c.hidden = n === 0;
+  c.textContent = String(n);
+}
+$("#btn-rewards").addEventListener("click", () => {
+  paintRewards();
+  rwDlg.showModal();
+  $("#rw-title").focus({ preventScroll: true });
 });
 
 $("#btn-filter").addEventListener("click", () => {

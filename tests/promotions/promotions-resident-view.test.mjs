@@ -86,3 +86,34 @@ test("only a picture data URL is taken as a logo or cover (a script address is d
   assert.equal(list.find((p) => p.id === "parking0").partnerLogo, "");
   assert.equal(list.find((p) => p.id === "parking1").cover.src, "https://evil.example/x.png", "an https picture is allowed, as for Staff's own deals");
 });
+
+// The Redeem box: a resident types a code and is told what it belongs to.
+import { lookupCode } from "../../src/features/promotions/store.js";
+
+const withCode = (st, x, claims = 0) => memory({ [KEY.published]: [{ id: "p1", st, x: form({ code: "BRIGHT20", ...x }), views: 0, claims }] });
+const look = (s, code, viewer) => lookupCode(s, code, { today: TODAY, viewer });
+
+test("Redeem: a live code opens its promotion, with any spaces and any case", () => {
+  const r = look(withCode("active"), "  bright20 ");
+  assert.equal(r.state, "live");
+  assert.equal(r.promo.id, "p1");
+  assert.equal(look(withCode("active"), "").state, "empty");
+  assert.equal(look(withCode("active"), "NOPE").state, "none");
+});
+
+test("Redeem: ended, not started, sold out and not-for-me say so; a draft or removed one is simply not found", () => {
+  assert.equal(look(withCode("closed"), "BRIGHT20").state, "ended");
+  assert.equal(look(withCode("active", { end: "2026-11-15" }), "BRIGHT20").state, "ended");
+  assert.equal(look(withCode("active", { start: "2026-12-01" }), "BRIGHT20").state, "soon");
+  assert.equal(look(withCode("active", { limT: "5" }, 5), "BRIGHT20").state, "full");
+  assert.equal(look(withCode("active", { au: "bld", blds: ["Building A"] }), "BRIGHT20", { block: "Building B" }).state, "audience");
+  assert.equal(look(withCode("draft"), "BRIGHT20").state, "none", "unpublished: not revealed");
+  assert.equal(look(withCode("removed"), "BRIGHT20").state, "none");
+});
+
+test("Redeem: a sample deal's code works, and only static or QR codes can be looked up (a unique code is made per resident)", () => {
+  const s = memory();
+  const p = listPromotions(s, { today: TODAY }).find((x) => x.code);
+  assert.equal(look(s, p.code).state, "live");
+  assert.equal(look(withCode("active", { method: "unique", code: "" }), "BRIGHT20").state, "none");
+});
