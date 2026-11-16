@@ -168,3 +168,11 @@ Người dùng chụp ảnh: bấm sao Saved thì không ra chỗ Saved riêng m
 - **Sao tô vàng**: biểu tượng `i-star` có `fill="none"` ngay trong symbol nên `fill-current` không bao giờ tô được (thuộc tính trên symbol thắng giá trị thừa kế). Bỏ thuộc tính khỏi symbol, đặt `fill="none"` ở từng nơi dùng, và khi `aria-pressed` thì `fill-amber-400 text-amber-500`: nút Saved trên thanh, sao trên thẻ, sao trong chi tiết.
 - **Thông báo (toast) xuống đáy** màn hình: ở đỉnh nó đè lên nút Redeem/My rewards.
 - Bài học: một lớp CSS "chắc chắn chạy" vẫn phải thử bằng cách bấm thật và xem màu tính ra (`getComputedStyle(...).fill`).
+
+### Ba lỗi do tôi tự làm rồi người dùng bắt được (ghi để không lặp lại)
+
+1. **Tôi ẩn thanh tìm kiếm chung của portal** ("Search Resident pages…") trên trang Promotions vì cho là hai ô tìm kiếm chồng nhau. Người dùng khoanh vùng trống và nói mất thanh search chung. Đã khôi phục (chỉ còn chép theme sang khung portal). Quy tắc: không bỏ điều khiển thuộc portal theo ý riêng; nghi trùng lặp thì hỏi.
+2. **Tôi cho thanh trên cùng trượt đi khi cuộn xuống** để nhỏ lại; người dùng thấy "kéo sâu hơn thì thanh search không còn đi theo nữa" và coi là lỗi. Thay bằng **gấp lại**: dưới 640px, cuộn quá 140px thì thanh thành một hàng (search, nút lọc, Redeem, My rewards, Saved dạng icon; chữ vẫn có cho trình đọc màn hình), cuộn về gần đầu (dưới 60px) thì mở ra. Lề dưới âm bằng đúng phần giảm đi nên trang không giật. Quy tắc: thứ phải "đi theo" thì không bao giờ biến mất khi cuộn, chỉ được thu gọn.
+3. **Saved lần đầu là bộ lọc trong trang, lần hai là màn thay thế trang**; người dùng muốn "khu save riêng". Giờ là một hộp thoại riêng như My rewards: tiêu đề "Saved" kèm số đếm, mỗi deal một hàng (tên, đối tác, danh mục, giá, hạn) với nút Remove (sao vàng) và View (mở chi tiết, đóng thì quay về Saved). Quy tắc: "khu riêng" là panel riêng theo mẫu My rewards/Redeem.
+
+Cách bắt lỗi thứ hai: chỉ lộ ra khi cuộn thật sâu và nhìn lại; test cuộn ngắn không thấy. Đã đo thêm: vị trí `page-top` sau khi gấp đúng bằng vị trí dự kiến (không dịch).

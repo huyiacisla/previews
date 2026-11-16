@@ -21,7 +21,7 @@ const storage = window.localStorage;
 // What Staff can target a promotion at: this resident's building and segments.
 const viewer = me.unit ? { block: me.unit.block, segments: me.unit.segments } : undefined;
 
-const ui = { query: "", category: "all", savedOnly: false, openId: null, tags: new Set(), sort: "rec", panel: false };
+const ui = { query: "", category: "all", openId: null, tags: new Set(), sort: "rec", panel: false };
 
 // The quick filters in the panel next to the search box.
 const TAGS = [
@@ -129,8 +129,8 @@ function setCover(img, none, cover, visual) {
 function paintSavedButton(n, on) {
   const b = $("#btn-saved");
   b.hidden = !on;
-  b.setAttribute("aria-pressed", String(ui.savedOnly));
-  b.setAttribute("aria-label", `Saved promotions, ${n}${ui.savedOnly ? ", showing" : ""}`);
+  b.setAttribute("aria-haspopup", "dialog");
+  b.setAttribute("aria-label", `Saved promotions, ${n}`);
   const c = $("#saved-count");
   c.hidden = n === 0;
   c.textContent = String(n);
@@ -160,19 +160,12 @@ function wearTheme(snap) {
   el.textContent = css;
   wearInFrame(css);
 }
-// The portal around this page is another document of the same origin. Its own page search would sit above this page's search: it steps aside while Promotions is open.
+// The portal around this page is another document of the same origin: it wears the same theme (its header, badge and buttons). Its shared page search stays as it is.
 // A new page loads a new portal document, so nothing here outlives the page.
 function wearInFrame(css) {
   try {
     if (window.parent === window) return;
     const pd = window.parent.document;
-    let hide = pd.getElementById("pm-shell");
-    if (!hide) {
-      hide = pd.createElement("style");
-      hide.id = "pm-shell";
-      hide.textContent = '[class*="desktopSearch"]{display:none!important}';
-      pd.head.append(hide);
-    }
     let el = pd.getElementById("pm-theme");
     if (!css) return el?.remove();
     if (!el) {
@@ -185,31 +178,34 @@ function wearInFrame(css) {
     /* a portal of another origin: left alone */
   }
 }
-// On a phone or a tablet the bar takes a good part of the screen: it slips away while you scroll down and is back as soon as you scroll up (always shown at the top,
-// while the search has focus, and while the app itself scrolls to the results). From laptop width it stays.
+// The top bar always stays. On a phone it takes a good part of the screen, so once you have scrolled it folds into ONE row (search, filter, Redeem, My rewards, Saved)
+// and unfolds again near the top. A negative bottom margin keeps the page from shifting when it folds.
 const topBar = $("#toolbar");
 const mainEl = $("#main-content");
-let lastY = 0;
-let keepUntil = 0;
-mainEl.addEventListener(
-  "scroll",
-  () => {
-    const y = mainEl.scrollTop;
-    if (!matchMedia("(max-width: 1023px)").matches || y < 80 || Date.now() < keepUntil) topBar.dataset.away = "false";
-    else if (y > lastY + 8) topBar.dataset.away = "true";
-    else if (y < lastY - 8) topBar.dataset.away = "false";
-    if (Math.abs(y - lastY) > 8) lastY = y;
-  },
-  { passive: true },
-);
+let folded = false;
+function fitBar() {
+  const phone = matchMedia("(max-width: 639px)").matches;
+  const y = mainEl.scrollTop;
+  const want = phone && (folded ? y > 60 : y > 140);
+  if (want === folded) return;
+  folded = want;
+  topBar.dataset.condensed = "false";
+  topBar.style.marginBottom = "";
+  const full = topBar.offsetHeight;
+  if (want) {
+    topBar.dataset.condensed = "true";
+    topBar.style.marginBottom = `${topBar.offsetHeight - full}px`;
+  }
+}
+mainEl.addEventListener("scroll", fitBar, { passive: true });
+addEventListener("resize", fitBar);
 function scrollToCatalog() {
-  keepUntil = Date.now() + 1200;
-  topBar.dataset.away = "false";
+  // the results are reached with the bar folded on a phone, so leave room for the folded bar only
+  $("#count").style.scrollMarginTop = matchMedia("(max-width: 639px)").matches ? "76px" : `${topBar.offsetHeight + 12}px`;
   $("#count").scrollIntoView({ block: "start", behavior: "smooth" });
 }
 function pickCategory(key) {
   ui.category = key || "all";
-  ui.savedOnly = false;
   render();
   scrollToCatalog();
 }
@@ -298,9 +294,7 @@ function render() {
   const all = listPromotions(storage, { viewer });
   const cats = categoriesIn(storage, undefined, viewer);
   if (ui.category !== "all" && !cats.some((c) => c.key === ui.category)) ui.category = "all";
-  if (!cfg.save) ui.savedOnly = false;
   let list = listPromotions(storage, { query: ui.query, category: ui.category, viewer });
-  if (ui.savedOnly) list = list.filter((p) => mine.saved.has(p.id));
   const hot = hotSet(all);
   const counts = Object.fromEntries(TAGS.map(([k, , test]) => [k, list.filter((p) => test(p, hot)).length]));
   for (const k of ui.tags) {
@@ -311,8 +305,8 @@ function render() {
   paintFilterPanel(counts);
   paintRewardsBadge();
   paintPage(all, mine, cfg, hot, cats);
-  $("#page-top").hidden = ui.savedOnly || !$("#page-top").childElementCount;
-  $("#saved-head").hidden = !ui.savedOnly;
+  $("#page-top").hidden = !$("#page-top").childElementCount;
+  if (svDlg.open) paintSaved();
   paintSavedButton(all.filter((p) => mine.saved.has(p.id)).length, cfg.save);
 
   // filter row: All, one per category, Saved
@@ -327,26 +321,24 @@ function render() {
     filters.appendChild(b);
   };
   if (all.length) {
-    chip("All", all.length, ui.category === "all" && !ui.savedOnly, () => {
+    chip("All", all.length, ui.category === "all", () => {
       ui.category = "all";
-      ui.savedOnly = false;
       render();
       scrollToCatalog();
     });
     for (const c of cats)
-      chip(c.name, c.count, ui.category === c.key && !ui.savedOnly, () => {
+      chip(c.name, c.count, ui.category === c.key, () => {
         ui.category = c.key;
-        ui.savedOnly = false;
         render();
         scrollToCatalog();
       });
   }
-  filters.hidden = ui.savedOnly || !filters.childElementCount;
+  filters.hidden = !filters.childElementCount;
 
   const grid = $("#grid");
   clear(grid);
   for (const p of list) grid.appendChild(card(p, mine, cfg, hot));
-  $("#count").textContent = ui.savedOnly ? `${list.length} saved ${list.length === 1 ? "promotion" : "promotions"}` : all.length ? `${list.length} of ${all.length} ${all.length === 1 ? "promotion" : "promotions"}` : "";
+  $("#count").textContent = all.length ? `${list.length} of ${all.length} ${all.length === 1 ? "promotion" : "promotions"}` : "";
 
   const empty = $("#empty");
   empty.hidden = list.length > 0;
@@ -364,7 +356,6 @@ function render() {
 function emptyText(cfg, total) {
   if (!cfg.show) return ["Promotions are off", "The property team has turned promotions off for now."];
   if (!total) return ["No promotions yet", "Offers from the property team and its partners will show up here as soon as they are published."];
-  if (ui.savedOnly) return ["Nothing saved yet", "Star a promotion to keep it here."];
   return ["No matches", "Try another word or pick a different category."];
 }
 
@@ -621,6 +612,9 @@ dlg.addEventListener("close", () => {
     paintRewards();
     rwDlg.showModal();
     $("#rw-title").focus({ preventScroll: true });
+  } else if (back === "saved") {
+    paintSaved();
+    svDlg.showModal();
   } else if (back === "redeem") {
     rdDlg.showModal();
   } else returnFocus();
@@ -654,22 +648,40 @@ $("#dlg-copy").addEventListener("click", async () => {
 
 /* ---------------------------------------------------------------- search + live */
 
+// Saved is a panel of its own, like My rewards: the saved promotions with a way to view or remove each.
+const svDlg = $("#dlg-saved");
+function paintSaved() {
+  const mine = residentState(storage, me.id);
+  const rows = listPromotions(storage, { viewer }).filter((p) => mine.saved.has(p.id));
+  $("#sv-count").textContent = rows.length ? String(rows.length) : "";
+  $("#sv-empty").hidden = rows.length > 0;
+  const list = $("#sv-list");
+  clear(list);
+  for (const p of rows) {
+    const li = tpl("t-saved");
+    $("[data-title]", li).textContent = p.title;
+    $("[data-meta]", li).textContent = [p.partner, p.category && p.category.name].filter(Boolean).join(" · ");
+    $("[data-offer]", li).textContent = p.offer || "";
+    $("[data-offer]", li).hidden = !p.offer;
+    $("[data-end]", li).textContent = expText(p);
+    $("[data-unsave]", li).addEventListener("click", () => onSave(p));
+    $("[data-view]", li).addEventListener("click", () => {
+      svDlg.close();
+      openDialog(p.id, null, "saved");
+    });
+    list.appendChild(li);
+  }
+}
 $("#btn-saved").addEventListener("click", () => {
-  ui.savedOnly = !ui.savedOnly;
-  ui.category = "all";
-  render();
-  mainEl.scrollTo({ top: 0, behavior: "smooth" });
-});
-$("#saved-back").addEventListener("click", () => {
-  ui.savedOnly = false;
-  render();
-  mainEl.scrollTo({ top: 0, behavior: "smooth" });
+  paintSaved();
+  svDlg.showModal();
+  $("#sv-title").focus({ preventScroll: true });
 });
 
 // ---- Redeem a code and My rewards ----
 const rdDlg = $("#dlg-redeem");
 const rwDlg = $("#dlg-rewards");
-for (const d of [rdDlg, rwDlg]) {
+for (const d of [rdDlg, rwDlg, svDlg]) {
   $("[data-close]", d).addEventListener("click", () => d.close());
   d.addEventListener("click", (e) => {
     if (e.target === d) d.close(); // the backdrop

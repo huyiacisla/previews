@@ -116,7 +116,8 @@ test("the design of the page holds together: bands edge to edge, one search, one
   assert.ok(page.includes('btn("Use code"') && !page.includes('btn("Redeem"'), "the coupon says Use code, so there are not two Redeem buttons");
   assert.match(page, /b\.type === "tiles"\) \{[^}]*continue;/, "the category tiles are not drawn: the chips under the search are the one category list");
   const js = readFileSync(new URL("../../src/features/promotions/resident.js", import.meta.url), "utf8");
-  assert.ok(js.includes("window.parent.document") && js.includes("desktopSearch"), "the portal around the page wears the theme and its own page search steps aside");
+  assert.ok(js.includes("window.parent.document"), "the portal around the page wears the theme");
+  assert.ok(!js.includes("desktopSearch") && !js.includes("pm-shell"), "the portal's shared page search is left alone: it is part of the portal, not of this page");
   assert.ok(js.includes("h1,h2,h3{font-family:"), "the heading font reaches every heading");
   assert.ok(themeVars({ theme: { accent: "#123456" } }).vars["--sidebar-primary"] === "#123456", "the portal's selected item follows the accent");
 });
@@ -135,13 +136,15 @@ test("choosing a category chip or starting a search brings the results into view
   assert.ok(js.includes("if (first) scrollToCatalog();"), "the first letters typed in the search do too");
 });
 
-test("the top bar is compact: one row from tablet width, and it slips away on a scroll down on phones and tablets", () => {
+test("the top bar is compact: one row from tablet width, and on a phone it folds into one row that keeps following (it never slides away)", () => {
   const html = readFileSync(new URL("../../src/partials/promotions-app.html", import.meta.url), "utf8");
   assert.ok(html.includes("sm:flex-row") && html.includes("sm:order-3") && html.includes("sm:contents"), "Redeem, My rewards, Search, filter and Saved share one row from 640px");
-  assert.ok(html.includes("data-[away=true]:not-focus-within:-translate-y-full"), "it moves away unless the search has focus");
+  assert.ok(!html.includes("-translate-y-full"), "the bar does not slide away on a scroll down: the search keeps following");
+  assert.ok(html.includes('#toolbar[data-condensed="true"]') && html.includes("#search-wrap") && html.includes(".lbl"), "folded: search, filter and the three buttons as icons in one row");
   assert.ok(html.includes('class="hidden truncate text-sm text-muted-foreground sm:block"'), "no subtitle on a phone");
   const js = readFileSync(new URL("../../src/features/promotions/resident.js", import.meta.url), "utf8");
-  assert.ok(js.includes("max-width: 1023px") && js.includes("keepUntil"), "only below laptop width, and not while the app scrolls to the results");
+  assert.ok(js.includes("max-width: 639px") && js.includes("marginBottom"), "only on a phone, and a negative margin keeps the page from shifting when it folds");
+  assert.ok(!js.includes("keepUntil") && !js.includes("dataset.away"), "no hiding logic is left");
 });
 
 test("a countdown and a coupon are part of the hero: one offer, a small Ends-in badge, one main Copy code button and a quiet View details", () => {
@@ -155,13 +158,15 @@ test("a countdown and a coupon are part of the hero: one offer, a small Ends-in 
   assert.ok(res.includes("openDeal: (p) => openDialog(p.id)") && res.includes("return false;"));
 });
 
-test("Saved is a view of its own, and a saved star is filled gold", () => {
+test("Saved is a panel of its own, like My rewards, and a saved star is filled gold", () => {
   const html = readFileSync(new URL("../../src/partials/promotions-app.html", import.meta.url), "utf8");
   assert.ok(!/<symbol id="i-star"[^>]*fill="none"/.test(html), "the star symbol leaves its fill to the page, so a saved star can be filled");
-  assert.equal((html.match(/fill-amber-400/g) || []).length, 3, "the Saved button, the card star and the details star are gold when pressed");
-  assert.ok(html.includes('id="saved-head"') && html.includes('id="saved-back"'), "a heading and a way back");
+  assert.ok((html.match(/fill-amber-400/g) || []).length >= 3, "the Saved button, the card star and the details star are gold when pressed");
+  assert.ok(html.includes('<dialog id="dlg-saved"') && html.includes('id="sv-list"') && html.includes('id="t-saved"'), "the saved promotions have a panel with a row each");
+  assert.ok(html.includes("data-unsave") && html.includes("data-view"), "each row can be removed or viewed");
+  assert.ok(!html.includes('id="saved-head"') && !html.includes('id="saved-back"'), "not a filter of the list on the page");
   const js = readFileSync(new URL("../../src/features/promotions/resident.js", import.meta.url), "utf8");
-  assert.ok(js.includes('$("#page-top").hidden = ui.savedOnly'), "the designed page steps aside in the Saved view");
-  assert.ok(js.includes("filters.hidden = ui.savedOnly"), "and so do the category chips");
+  assert.ok(js.includes('svDlg.showModal()') && js.includes('back === "saved"'), "it opens as a panel, and closing the details returns to it");
+  assert.ok(!js.includes("savedOnly"), "no in-page Saved mode is left");
   assert.ok(html.includes("top-auto bottom-step-lg"), "messages appear at the bottom, not over the bar");
 });

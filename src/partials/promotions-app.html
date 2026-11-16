@@ -41,12 +41,29 @@
   </header>
 
   <main id="main-content" tabindex="-1" class="min-h-0 flex-1 overflow-y-auto outline-none">
+    <style>
+      /* On a phone, once you have scrolled, the bar folds into ONE row that keeps following you: search, filter, Redeem, My rewards, Saved (icons; the words stay for screen readers). */
+      @media (max-width: 639px) {
+        #toolbar[data-condensed="true"] > div { flex-direction: row; flex-wrap: wrap; align-items: center; gap: 0.5rem; }
+        #toolbar[data-condensed="true"] > div > div:not(#filter-panel):not(#filters) { display: contents; }
+        #toolbar[data-condensed="true"] #filters { display: none !important; }
+        #toolbar[data-condensed="true"] #search-wrap { order: 1; flex: 1 1 6rem; min-width: 6rem; }
+        #toolbar[data-condensed="true"] #btn-filter { order: 2; }
+        #toolbar[data-condensed="true"] #btn-redeem { order: 3; }
+        #toolbar[data-condensed="true"] #btn-rewards { order: 4; }
+        #toolbar[data-condensed="true"] #btn-saved { order: 5; margin-left: 0; }
+        #toolbar[data-condensed="true"] #filter-panel { order: 9; flex-basis: 100%; }
+        #toolbar[data-condensed="true"] #btn-redeem,
+        #toolbar[data-condensed="true"] #btn-rewards { padding-inline: 0.625rem; }
+        #toolbar[data-condensed="true"] .lbl { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+      }
+    </style>
     <!-- Redeem, My rewards, Saved, Search and the category chips stay at the very top, found at once whatever page Staff designed below them -->
-    <div id="toolbar" class="sticky top-0 z-20 border-b border-border bg-background transition-transform duration-200 motion-reduce:transition-none data-[away=true]:not-focus-within:-translate-y-full">
+    <div id="toolbar" class="sticky top-0 z-20 border-b border-border bg-background">
       <div class="mx-auto flex w-full max-w-6xl flex-col gap-step-xs px-step-lg py-step-xs sm:flex-row sm:flex-wrap sm:items-center sm:gap-step-sm sm:py-step-sm lg:px-step-xl">
         <div class="flex flex-wrap items-center gap-step-sm sm:contents">
-          <button type="button" id="btn-redeem" class="sm:order-1 group/button inline-flex h-8 shrink-0 touch-manipulation items-center justify-center gap-step-sm rounded-md border border-input bg-card px-step-md text-sm font-medium text-foreground transition outline-none select-none hover:bg-muted focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 active:translate-y-px pointer-coarse:h-9 [&_svg]:size-4"><svg aria-hidden="true"><use href="#i-ticket"/></svg>Redeem<span class="max-sm:sr-only"> a code</span></button>
-          <button type="button" id="btn-rewards" class="sm:order-2 group/button inline-flex h-8 shrink-0 touch-manipulation items-center justify-center gap-step-sm rounded-md border border-input bg-card px-step-md text-sm font-medium text-foreground transition outline-none select-none hover:bg-muted focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 active:translate-y-px pointer-coarse:h-9 [&_svg]:size-4"><svg aria-hidden="true"><use href="#i-check"/></svg>My rewards<span id="rewards-count" hidden class="inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] leading-none font-medium text-primary-foreground tabular-nums"></span></button>
+          <button type="button" id="btn-redeem" class="sm:order-1 group/button inline-flex h-8 shrink-0 touch-manipulation items-center justify-center gap-step-sm rounded-md border border-input bg-card px-step-md text-sm font-medium text-foreground transition outline-none select-none hover:bg-muted focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 active:translate-y-px pointer-coarse:h-9 [&_svg]:size-4"><svg aria-hidden="true"><use href="#i-ticket"/></svg><span class="lbl">Redeem</span><span class="max-sm:sr-only"> a code</span></button>
+          <button type="button" id="btn-rewards" class="sm:order-2 group/button inline-flex h-8 shrink-0 touch-manipulation items-center justify-center gap-step-sm rounded-md border border-input bg-card px-step-md text-sm font-medium text-foreground transition outline-none select-none hover:bg-muted focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 active:translate-y-px pointer-coarse:h-9 [&_svg]:size-4"><svg aria-hidden="true"><use href="#i-check"/></svg><span class="lbl">My rewards</span><span id="rewards-count" hidden class="inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] leading-none font-medium text-primary-foreground tabular-nums"></span></button>
           <button type="button" id="btn-saved" aria-pressed="false" aria-label="Saved promotions" class="sm:order-5 group/button relative ml-auto inline-flex h-8 shrink-0 touch-manipulation items-center justify-center gap-step-sm rounded-md border border-input bg-card px-step-sm text-sm font-medium text-foreground transition outline-none select-none hover:bg-muted focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 active:translate-y-px aria-pressed:bg-muted pointer-coarse:h-9 [&_svg]:size-4">
             <svg aria-hidden="true" fill="none" class="group-aria-pressed/button:fill-amber-400 group-aria-pressed/button:text-amber-500"><use href="#i-star"/></svg>
             <span class="max-sm:sr-only">Saved</span>
@@ -54,7 +71,7 @@
           </button>
         </div>
         <div class="flex items-center gap-step-sm sm:contents">
-        <div class="relative min-w-0 flex-1 sm:order-3 sm:min-w-56">
+        <div id="search-wrap" class="relative min-w-0 flex-1 sm:order-3 sm:min-w-56">
           <label for="search" class="sr-only">Search promotions</label>
           <svg aria-hidden="true" class="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground"><use href="#i-search"/></svg>
           <input id="search" type="search" autocomplete="off" spellcheck="false" placeholder="Search promotions…" class="h-8 w-full min-w-0 rounded-md border border-input bg-card pr-2.5 pl-8 text-base text-ellipsis outline-none transition-colors placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 md:text-sm pointer-coarse:h-9" />
@@ -86,16 +103,41 @@
     <!-- the page Staff designed in Templates & brand (drawn by page.js), when they published one: full width -->
     <div id="page-top" hidden class="isolate"></div>
     <div class="mx-auto flex w-full max-w-6xl flex-col gap-step-lg px-step-lg py-step-lg lg:px-step-xl">
-      <div id="saved-head" hidden class="flex items-center justify-between gap-step-md">
-        <h2 class="text-lg font-semibold tracking-tight">Saved promotions</h2>
-        <button type="button" id="saved-back" class="inline-flex h-8 touch-manipulation items-center rounded-md border border-input bg-card px-step-md text-sm font-medium outline-none transition hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50">Show all promotions</button>
-      </div>
       <p id="count" role="status" class="scroll-mt-52 text-sm text-muted-foreground tabular-nums"></p>
       <ul id="grid" role="list" class="isolate grid grid-cols-1 gap-step-lg sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"></ul>
       <div id="empty" hidden></div>
     </div>
   </main>
 </div>
+
+<!-- Saved: its own panel -->
+<dialog id="dlg-saved" aria-labelledby="sv-title" class="m-auto max-h-dvh w-full max-w-md overflow-y-auto rounded-xl bg-card p-0 text-foreground shadow-lift-md backdrop:bg-foreground/40">
+  <div class="flex flex-col gap-step-md p-step-lg">
+    <div class="flex items-start justify-between gap-step-md">
+      <h2 id="sv-title" tabindex="-1" class="text-xl leading-7 font-semibold tracking-tight outline-none">Saved<span id="sv-count" class="ml-step-sm text-base font-normal text-muted-foreground tabular-nums"></span></h2>
+      <button type="button" data-close aria-label="Close" class="group/button inline-flex size-8 shrink-0 touch-manipulation items-center justify-center rounded-md border border-transparent bg-foreground/8 text-secondary-foreground transition outline-none select-none hover:bg-foreground/12 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 active:translate-y-px pointer-coarse:size-11 [&_svg]:size-4"><svg aria-hidden="true"><use href="#i-x"/></svg></button>
+    </div>
+    <ul id="sv-list" role="list" class="flex flex-col gap-step-sm"></ul>
+    <p id="sv-empty" hidden class="rounded-lg bg-background p-step-md text-sm text-muted-foreground ring-1 ring-foreground/10">Nothing saved yet. Star a promotion to keep it here.</p>
+  </div>
+</dialog>
+
+<template id="t-saved">
+  <li class="flex flex-col gap-step-xs rounded-lg bg-background p-step-md ring-1 ring-foreground/10">
+    <div class="flex items-start justify-between gap-step-sm">
+      <div class="min-w-0">
+        <p data-title class="text-sm font-medium wrap-anywhere"></p>
+        <p data-meta class="text-xs text-muted-foreground wrap-anywhere"></p>
+      </div>
+      <span data-offer class="inline-flex h-5 shrink-0 items-center rounded-full bg-secondary px-step-sm text-xs whitespace-nowrap text-secondary-foreground"></span>
+    </div>
+    <div class="flex flex-wrap items-center gap-step-sm">
+      <span data-end class="mr-auto text-xs text-muted-foreground"></span>
+      <button type="button" data-unsave aria-pressed="true" class="group/button inline-flex h-8 shrink-0 touch-manipulation items-center justify-center gap-step-xs rounded-md border border-input bg-card px-step-md text-sm font-medium text-foreground transition outline-none select-none hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50 [&_svg]:size-4"><svg aria-hidden="true" fill="none" class="fill-amber-400 text-amber-500"><use href="#i-star"/></svg>Remove</button>
+      <button type="button" data-view class="group/button inline-flex h-8 shrink-0 touch-manipulation items-center justify-center rounded-md border border-transparent bg-primary px-step-md text-sm font-medium text-primary-foreground transition outline-none select-none hover:bg-primary/90 focus-visible:ring-3 focus-visible:ring-ring/50">View</button>
+    </div>
+  </li>
+</template>
 
 <!-- a short explanation behind an (i) -->
 <dialog id="dlg-info" aria-labelledby="info-title" class="m-auto max-h-dvh w-full max-w-sm overflow-y-auto rounded-xl bg-card p-0 text-foreground shadow-lift-md backdrop:bg-foreground/40">
