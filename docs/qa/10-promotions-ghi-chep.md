@@ -450,7 +450,7 @@ Lỗ hổng thấy khi dựng ca: (1) bot trả lời câu hỏi giảm giá b�
 - [x] **R4-6: Context Card và panel tự mở (UX-01, UX-02).** "Ask about this claim" chèn sẵn một thẻ ngữ cảnh gọn (Claim ID, deal, mã, trạng thái, giờ claim, số ticket) vào tin nhắn gửi đi, cả hai bên thấy thẻ trong khung chat; Staff mở cuộc trò chuyện có thẻ thì panel bên phải tự mở và làm nổi bật claim đó (không bắt bấm icon (i)); nút mở panel có chữ "Details" thay vì icon (i) trần.
 - [x] **R4-7: Quick Actions tại chat và dấu vết hệ thống (UX-03, Audit Trail).** Trong panel chat: "Confirm claim", "Apply by hand (Override)" (bắt buộc lý do), "Reject" (lý do) và "View unit history" xong trong tối đa 2 click, không đổi tab; mỗi Override tự chèn một System Message vào khung chat để hai bên đối soát; Claims inbox và chat luôn khớp nhau.
 - [x] **R4-8: Ma trận trường hợp.** Claim 2 lần, huỷ rồi claim lại, hai Staff cùng xử lý một claim, Verify hai lần, deal bị Off live hoặc hết hạn khi claim đang Pending, hết suất giữa chừng, cư dân A xem claim của B, Staff property khác, cư dân đã chuyển đi, hỏi sau khi claim Redeemed, tài khoản thứ hai cùng căn hộ nhắn khiếu nại (ca Jamie), checklist UX-01, UX-02, UX-03, BIZ-01 của tài liệu hướng dẫn. Ghi kết quả từng ca.
-- [ ] **R4-9: Tổng kết vòng 4.** Kiểm lại toàn bộ (npm test, ba mục UX-01, UX-02, UX-03, BIZ-01 trong tài liệu hướng dẫn), dọn dữ liệu thử do các phần tạo ra, cập nhật ghi chép và tổng kết, hỏi push. KHÔNG xoá ca tập của người dùng (ticket T-1086 của Alex kèm claim Pending MALLA10, ticket T-1087 của Jamie) trừ khi người dùng nói; chỉ ghi cách xoá trong tổng kết. Nêu rõ những việc chờ người dùng chốt (mã của người cùng căn hộ hiển thị hay ẩn).
+- [x] **R4-9: Tổng kết vòng 4.** Kiểm lại toàn bộ (npm test, ba mục UX-01, UX-02, UX-03, BIZ-01 trong tài liệu hướng dẫn), dọn dữ liệu thử do các phần tạo ra, cập nhật ghi chép và tổng kết, hỏi push. KHÔNG xoá ca tập của người dùng (ticket T-1086 của Alex kèm claim Pending MALLA10, ticket T-1087 của Jamie) trừ khi người dùng nói; chỉ ghi cách xoá trong tổng kết. Nêu rõ những việc chờ người dùng chốt (mã của người cùng căn hộ hiển thị hay ẩn).
 
 ### R4-1 (xong): panel Promotions trong chat của Staff
 
@@ -592,3 +592,35 @@ Ghi lại để quyết định: hộp deal của tài khoản bị chặn vẫn
 Dữ liệu: không tạo dữ liệu thật trong phần này (các ca chạy trên bộ nhớ riêng của test); T-1086, T-1087 và claim Pending của Alex không đổi (7 và 6 tin, vẫn trong hàng đợi).
 
 Test: `promotions-matrix.test.mjs` (12 test). `npm test` 541 test, 540 qua, 1 lỗi cũ.
+
+### R4-9 (xong): tổng kết vòng 4
+
+Goal của vòng 4: cư dân claim deal rồi hỏi Staff qua chat; Staff mở chat, thấy claim của đúng cư dân và của căn hộ, xử lý ngay tại đó, cư dân nhận được kết quả; theo tài liệu hướng dẫn Chat UI/UX & Promotion Workflow.
+
+**Đã làm (R4-1 đến R4-8)**
+- Panel chat của Staff có mục Promotions: claim của đúng cư dân (tự cập nhật khi đổi ở tab khác), claim của cả căn hộ và khung đỏ khi căn hộ đã nhận qua tài khoản khác; nút "Details" bằng chữ; panel tự mở và claim được hỏi được tô nổi khi tin nhắn có thẻ.
+- Cư dân bấm "Ask about this claim" (My rewards, hộp deal) hoặc "Ask the property team about this" (tài khoản bị chặn theo căn hộ): chat thẳng cho property team, thẻ "Promotion claim" có Claim ID và ticket, nhãn Promotions; không tạo ticket hay tin trùng.
+- Bot hiểu câu hỏi về deal, claim, giảm giá, tính tiền; ticket nhãn Promotions.
+- Staff xử lý ngay trong chat: Confirm claim (1 click), Apply by hand và Reject (2 click, lý do bắt buộc); Apply và Reject tự chèn System Message vào chat; Claims inbox khớp chat; ghi chú nội bộ; "Message <tên>" từ claim.
+- Quy tắc 1 căn hộ / 1 ưu đãi thật cho deal mẫu; Jamie (cùng căn hộ Alex) có chat.
+- 12 ca ma trận và checklist UX-01, UX-02, UX-03, BIZ-01 đều đạt (xem R4-8).
+
+**Lỗi tìm thấy và đã sửa trong vòng**: bot trả lời câu hỏi giảm giá bằng nội dung xe lạ; panel không tự cập nhật; deal mẫu ghi "One per household" nhưng không chặn; Jamie không có chat; panel không gom theo căn hộ; câu chọn sẵn không điền vào ô lý do; thẻ ngữ cảnh xếp dài và Status bị cắt; panel không tự mở do ngưỡng 1280 px; nút Details sai trạng thái do thứ tự vẽ; publish của inbox xoá quyết định đưa vào từ chat; tài khoản bị chặn không có đường hỏi team.
+
+**Rà lại lần cuối bằng giao diện thật (R4-9, ca mới Priya Nair res-2)**: UX-01 panel đã mở sẵn khi vào cuộc trò chuyện dù lựa chọn đã lưu là đóng, nút "Details" bằng chữ, không có hành động nào sau icon (i), claim được hỏi tô nổi; UX-02 hộp deal có chữ "Ask about this claim", thẻ có Claim ID `r_res_2_moving1_1` và Ticket T-1081; UX-03 Apply by hand đúng 2 click, panel, trạng thái cư dân, Claims inbox (verified) và dòng hệ thống trong chat đều cập nhật; chụp hình hai lần. BIZ-01 đã kiểm ở R4-5 và R4-8. `npm test` 541 test, 540 qua, 1 lỗi cũ của messaging-ui.
+
+**Chưa sửa hoặc hạn chế**
+- Ảnh ở 375 và 830 và chế độ tối: cửa sổ giả lập hay lệch hoặc ẩn nên đo bằng DOM và tương phản bằng mã, chưa có ảnh đáng tin cho các cấu hình này.
+- Hai Staff bấm đồng thời thật trên hai trình duyệt chưa thử (mới thử hai quyết định nối tiếp); Staff của property khác và cư dân đã chuyển đi chưa có dữ liệu để thử.
+- Panel của Staff liệt kê mọi claim đang chờ của cư dân (cư dân claim hàng chục deal thì danh sách "Decide" dài).
+- Apply by hand chỉ chạy ở bản local, chưa nối API ngoài như Verify khi có `aid`.
+- Thanh đầu chat có nút "Details" cả khi panel đang mở ở một số lần vẽ (không hại).
+- Ticket T-1087 do Jamie tạo trước khi có nhãn tự động vẫn ghi "General question".
+
+**Việc chờ người dùng chốt**
+1. Hộp deal của tài khoản bị chặn theo căn hộ hiện **mã của người cùng căn hộ** ("Your unit's code, claimed by Alex Rivera … MALLA10") theo thiết kế "claim chia sẻ trong căn hộ", còn câu trả lời mẫu của người dùng cho Staff nói không tiết lộ thời điểm hay chi tiết claim của tài khoản khác. Đối chiếu: Staff đã làm đúng (panel của Staff có khung đỏ nhưng chỉ Staff thấy; tin nhắn của Jamie không kèm mã hay Claim ID của Alex). Cần chốt giữ hay ẩn mã ở hộp deal của Jamie. Đề xuất: ẩn mã, giữ lời "Alex Rivera already claimed this on Nov 16" hoặc đổi thành "someone in your unit", vì quy tắc 1 căn hộ không cần Jamie thấy mã.
+2. Có cho Resident cũ giữ nút "Cancelled" gồm cả claim bị từ chối ("Not approved" nằm trong tab Cancelled) hay tách tab.
+
+**Ca tập của người dùng giữ nguyên**: ticket T-1086 (Alex Rivera, 7 tin, claim Pending MALLA10) và ticket T-1087 (Jamie Rivera, 6 tin) vẫn trong hàng đợi, chưa Take, chưa trả lời. Muốn xoá thì dọn bằng cách: gỡ cuộc trò chuyện c55 và cuộc của Alex khỏi `eso-msg-v1` (convs và msgs), xoá `eso-res-promo:res-1` và bản ghi `r_res_1_parking0_1` trong `eso-pmclaims`; hoặc dùng nút reset dữ liệu mẫu của Messages. Chỉ làm khi người dùng bảo.
+
+Dọn dữ liệu phần này: claim, tin nhắn và trạng thái của Priya đã gỡ (cuộc c8 đặt lại 9 tin như trước), tab Staff về Dashboard, viewport desktop.
