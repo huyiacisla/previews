@@ -138,6 +138,12 @@ function paintSavedButton(n, on) {
 
 // The page Staff designed (Templates & brand), drawn above the list. It is drawn again only when what it shows changed.
 let pageKey = "";
+// a block can be hidden on phones or tablets: the page is drawn again when the screen crosses those widths
+for (const q of ["(max-width: 639px)", "(max-width: 1023px)"])
+  matchMedia(q).addEventListener("change", () => {
+    pageKey = "";
+    render();
+  });
 // The template covers the whole app (see themeVars). Its tokens go in a stylesheet marked !important, so neither the dark/light class nor the portal's own accent
 // (which the shell copies into this frame) can bring back the old look; with no template the sheet is removed and the portal's own look returns.
 function wearTheme(snap) {
@@ -224,6 +230,7 @@ function paintPage(all, mine, cfg, hot, cats) {
         makeCard: (p) => card(p, mine, cfg, hot),
         toCatalog: scrollToCatalog,
         openDeal: (p) => openDialog(p.id),
+        building: (me.unit && me.unit.block) || "",
         pickCategory,
         goLink: (label) => {
           const l = label.toLowerCase();

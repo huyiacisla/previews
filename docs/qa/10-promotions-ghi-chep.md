@@ -303,8 +303,23 @@ Cả sáu phần: `npm test` 495 test, 494 qua, 1 lỗi cũ của messaging-ui (
 
 Vòng 1 (Phần 1 đến 6) đã kiểm template, brand kit, tạo deal, claim, vòng đời, truy cập. Chưa kiểm luồng cốt lõi của mục tiêu: **Staff tự chỉnh trang bằng trình dựng rồi Resident thấy**. Mỗi phần xong thì 5 phút sau chạy phần kế (`[ ]` đầu tiên).
 
-- [ ] **R2-1: Trình dựng → Resident.** Live editor: sửa chữ hero, đổi thứ tự khối, thêm khối (Featured, Coupon, FAQ), ẩn khối trên điện thoại, xoá khối; bản nháp so với đã công bố (Resident chỉ thấy khi Publish & set as current?); "Stop using" (Resident về diện mạo portal, không còn dấu vết theme); Customize một template thành "My creations" rồi Use; Resident đổi ngay không cần tải lại.
+- [x] **R2-1: Trình dựng → Resident.** Live editor: sửa chữ hero, đổi thứ tự khối, thêm khối (Featured, Coupon, FAQ), ẩn khối trên điện thoại, xoá khối; bản nháp so với đã công bố (Resident chỉ thấy khi Publish & set as current?); "Stop using" (Resident về diện mạo portal, không còn dấu vết theme); Customize một template thành "My creations" rồi Use; Resident đổi ngay không cần tải lại.
 - [ ] **R2-2: "Resident view" của Staff giống hệt Resident thật.** Công tắc Resident view ở trang Staff (khung nhúng): so thanh trên cùng, Saved, hero gộp, theme, My rewards, History ở 375/830/1440; cuộn hết trang; không còn điều khiển cũ.
 - [ ] **R2-3: Quét hình ảnh bố cục mới.** Thanh trên cùng gập một hàng, hero gộp, Saved, (i), hộp thoại: 375, 830, 1440 × sáng, tối × template Deals, Store, Luxury dark, Minimal mono; cuộn hết trang, chụp hai lần.
 - [ ] **R2-4: Việc còn mở.** Canvas trình dựng Staff cho giống Resident (đếm ngược và mã giảm giá nằm trong hero), "Scheduled" chọn được ngày bắt đầu, "Price / value" đổi giá trị giảm thật, thử lại lỗi claim Phần 4.
 - [ ] **R2-5: Tổng kết vòng 2.** Dọn dữ liệu, ghi tổng kết, hỏi push.
+
+### R2-1 (xong): Trình dựng → Resident
+
+Cách làm: Staff mở Live editor của template Deals (tab thứ hai, 1440), sửa chữ hero, đọc bản công bố `eso-pm-page` và trang Resident đang mở ở tab khác (không tải lại); Done → Publish & set as current; Stop using; ghi tay ảnh chụp có đủ các thiết lập mà trình dựng cho (Advanced, Style, link) và xem Resident ở 375 và 830.
+
+Lỗi tìm thấy và đã sửa:
+1. **Bản nháp lộ ra cho Resident.** Đầu trình dựng ghi "Draft · autosaved" và menu Done ghi "Save as draft: Not visible to residents", nhưng bản công bố được dựng từ chính bản tự lưu, nên sửa chữ hero là Resident thấy ngay. Giờ có một bản **đã công bố** riêng (`ST.pubL`): nhớ trước lần sửa đầu của template đang dùng, cập nhật khi Publish & set as current; bản công bố cho Resident dựng từ bản này. Thử: sửa hero (snapshot không đổi, header "Draft"), Publish (Resident đổi ngay).
+2. **Resident bỏ qua gần hết thiết lập của từng khối.** Chỉ có "Hide on mobile" được dùng. Trình dựng còn cho: ẩn theo màn hình (Desktop, Tablet, Mobile), đối tượng (mọi người, chỉ cư dân, toà nhà cụ thể, **chỉ Staff**), ngày hiện từ và đến, nền riêng của khối (màu, gradient, ảnh), màu chữ, đệm trên dưới, bo góc, căn lề, và link của nút (trang https hoặc chi tiết một deal). Một khối "Staff only (hidden)" từng hiện cho cư dân. Giờ tất cả được áp dụng: `blockHidden()` (màn hình, đối tượng theo toà nhà của cư dân `unit.block`, ngày) và `applySx()` (chỉ nhận màu hex 6 chữ số, ảnh `data:image`, link https mở với `noopener`); trang vẽ lại khi màn hình qua mốc điện thoại hoặc máy tính bảng.
+3. Stop using: kiểm tra trang Resident trở về hẳn diện mạo portal (không còn `pm-theme` ở khung và ở portal, không còn trang thiết kế, nút sáng tối trở lại); Use this template trả template về.
+
+Không làm (ghi lại): hoạt ảnh khi cuộn, neo (`adv.id`), kiểu chữ riêng từng khối (`tx`), biến thể và cỡ nút (`bv`, `bs`, `bi`), thẻ kiểu (`sx.card`), cỡ ảnh. Customize bản sao rồi Use cho "My creations" chưa thử: chuyển sang R2-4.
+
+Test: `promotions-blocks.test.mjs` (7 test).
+
+Dọn dữ liệu: chữ hero trả về `{{offer}}`, template Deals "In use", `ST.off` false, snapshot `deals`.

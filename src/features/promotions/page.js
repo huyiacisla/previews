@@ -112,6 +112,60 @@ function promoCode(code, light, accent, fg, copy, open) {
   return wrap;
 }
 
+const DAY = /^\d{4}-\d{2}-\d{2}$/;
+
+/**
+ * Is this block left out for this resident, right now, on this screen? The editor's Advanced tab sets: devices it is hidden on (adv.hide), who sees it
+ * (adv.aud: all, res, bld with adv.bld, staff), and the days it shows (adv.from, adv.until).
+ */
+export function blockHidden(b, ctx, device, now = Date.now()) {
+  const a = (b && b.adv) || {};
+  if (b.hideMobile && device === "mobile") return true;
+  if (Array.isArray(a.hide) && a.hide.includes(device)) return true;
+  if (a.aud === "staff") return true;
+  if (a.aud === "bld" && !(Array.isArray(a.bld) && a.bld.includes(ctx.building))) return true;
+  if (typeof a.from === "string" && DAY.test(a.from) && now < new Date(`${a.from}T00:00:00`).getTime()) return true;
+  if (typeof a.until === "string" && DAY.test(a.until) && now > new Date(`${a.until}T23:59:59`).getTime()) return true;
+  return false;
+}
+
+// "#rrggbb" and an opacity of 0 to 100 as rgba(): only plain 6-digit colours are taken
+function withAlpha(hex, pct) {
+  const m = /^#([0-9a-f]{6})$/i.exec(hex || "");
+  if (!m) return "";
+  const n = parseInt(m[1], 16);
+  const a = Math.min(100, Math.max(0, Number.isFinite(+pct) ? +pct : 100)) / 100;
+  return `rgba(${(n >> 16) & 255},${(n >> 8) & 255},${n & 255},${a})`;
+}
+
+/** The editor's Style tab for one block: its own background (colour, gradient, picture), text colour, spacing, corners, alignment. */
+function applySx(node, sx) {
+  if (!sx || typeof sx !== "object") return;
+  let solid = "";
+  if (sx.fill === "color" && withAlpha(sx.color, sx.alpha)) {
+    node.style.background = withAlpha(sx.color, sx.alpha);
+    if ((sx.alpha ?? 100) >= 60) solid = sx.color;
+  } else if (sx.fill === "grad" && sx.grad && withAlpha(sx.grad.a, 100) && withAlpha(sx.grad.b, 100)) {
+    const g = sx.grad;
+    node.style.background = `linear-gradient(${num(g.ang, 0, 360, 135)}deg,${withAlpha(g.a, g.aa)} 0%,${withAlpha(g.b, g.ba)} 100%)`;
+    solid = g.a;
+  } else if (sx.fill === "img" && sx.img && safeImg(sx.img.src)) {
+    const i = sx.img;
+    const tint = withAlpha(i.tint, i.ta ?? 40);
+    node.style.background = `${tint ? `linear-gradient(${tint},${tint}),` : ""}url('${i.src}') ${num(i.px, 0, 100, 50)}% ${num(i.py, 0, 100, 50)}%/cover no-repeat`;
+  }
+  // the text colour: the one Staff chose, or white or near-black to read on the colour they chose
+  if (withAlpha(sx.fg, 100)) node.style.color = sx.fg;
+  else if (solid) node.style.color = ink(solid);
+  if (sx.pt !== undefined && sx.pt !== "" && Number.isFinite(+sx.pt)) node.style.paddingTop = `${num(sx.pt, 0, 240, 0)}px`;
+  if (sx.pb !== undefined && sx.pb !== "" && Number.isFinite(+sx.pb)) node.style.paddingBottom = `${num(sx.pb, 0, 240, 0)}px`;
+  if (sx.rad !== undefined && sx.rad !== "" && Number.isFinite(+sx.rad)) {
+    node.style.borderRadius = `${num(sx.rad, 0, 64, 0)}px`;
+    node.style.overflow = "hidden";
+  }
+  if (["left", "center", "right"].includes(sx.al)) node.style.textAlign = sx.al;
+}
+
 function h(tag, css, ...kids) {
   const e = document.createElement(tag);
   if (css) e.style.cssText = css;
@@ -175,6 +229,7 @@ export function themeVars(snap) {
  *  makeCard(p)   one of the app's own cards (a <li>)
  *  toCatalog()   scroll to the full list
  *  openDeal(p)   open the details of one promotion
+ *  building      the resident's building (for blocks shown to specific buildings)
  *  pickCategory(key | null)
  *  goLink(label) a navbar link
  *  redeem(code)  open the Redeem box with this code
@@ -206,6 +261,7 @@ export function renderPage(snap, ctx) {
   };
   const sub = (s) => text(s).replace(/\{\{(\w+)\}\}/g, (_, k) => TOK[k] ?? "");
   const mobile = typeof matchMedia === "function" && matchMedia("(max-width: 639px)").matches;
+  const device = mobile ? "mobile" : typeof matchMedia === "function" && matchMedia("(max-width: 1023px)").matches ? "tablet" : "desktop";
 
   const root = h("div", `background:${T.bg};color:${T.fg};font-family:${T.bf};overflow:hidden`);
   root.dataset.pagePublished = String(snap.at || 0);
@@ -269,12 +325,22 @@ export function renderPage(snap, ctx) {
   const heroBlock = snap.blocks.find((x) => x && x.type === "hero");
   const cdBlock = heroBlock ? snap.blocks.find((x) => x && x.type === "countdown") : null;
   const cpBlock = heroBlock ? snap.blocks.find((x) => x && x.type === "coupon" && sub(((x.props || {}).code))) : null;
+  // where a button goes: what Staff set in the editor (an https page, or one promotion), else what the block does by itself
+  const go = (lk, fallback) => {
+    if (!lk || typeof lk !== "object" || !lk.t || lk.t === "none") return fallback;
+    if (lk.t === "url" && typeof lk.v === "string" && /^https:\/\/[^\s]+$/i.test(lk.v)) return () => window.open(lk.v, "_blank", "noopener,noreferrer");
+    if (lk.t === "promo") {
+      const target = ctx.promos.find((x) => String(x.id) === String(lk.v));
+      return target ? () => ctx.openDeal(target) : fallback;
+    }
+    return fallback;
+  };
   const pick = (cat) => (cat && cat !== "all" ? ctx.promos.filter((p) => p.category.key === cat) : ctx.promos);
 
   for (const b of snap.blocks) {
     const s = b.style || {};
     const p = b.props || {};
-    if (b.hideMobile && mobile) continue;
+    if (blockHidden(b, ctx, device)) continue;
     if (b === cdBlock || b === cpBlock) continue; // drawn inside the hero
     const bg = bgOf(s);
     curBg = bg;
@@ -334,7 +400,7 @@ export function renderPage(snap, ctx) {
         h("h2", `margin:0 0 10px;font-family:${T.hf};font-size:${TS[s.ts] || TS.l}px;line-height:1.1;font-weight:800`, sub(p.title)),
         p.sub ? h("p", `margin:${s.align === "center" ? "0 auto 18px" : s.align === "right" ? "0 0 18px auto" : "0 0 18px"};max-width:46ch;font-size:16px;line-height:1.5;opacity:.92`, sub(p.sub)) : null,
         strip,
-        !strip && p.btn ? btn(p.btn, open, !light) : null,
+        !strip && p.btn ? btn(p.btn, go(p.lk, open), !light) : null,
       );
       node.style.background = hb;
       node.style.color = hc;
@@ -344,7 +410,7 @@ export function renderPage(snap, ctx) {
         if (p.kicker) txt.append(h("p", "margin:0 0 6px;font-size:12px;letter-spacing:.12em;text-transform:uppercase;font-weight:700;opacity:.75", sub(p.kicker)));
         txt.append(title(sub(p.title), { ts: s.ts || "l" }));
         if (p.sub) txt.append(h("p", "margin:0 0 16px;font-size:16px;line-height:1.5", sub(p.sub)));
-        if (p.btn) txt.append(btn(p.btn, () => ctx.toCatalog()));
+        if (p.btn) txt.append(btn(p.btn, go(p.lk, () => ctx.toCatalog())));
       } else {
         txt.append(title(sub(p.title), s));
         txt.append(h("p", "margin:0;font-size:16px;line-height:1.6", sub(p.text)));
@@ -420,14 +486,17 @@ export function renderPage(snap, ctx) {
     } else if (b.type === "map") {
       node = sec("map", title(sub(p.title), s), h("p", "margin:0;font-size:15px;line-height:1.5", text(p.address)));
     } else if (b.type === "cta") {
-      node = sec("cta", h("p", `margin:0 0 12px;font-family:${T.hf};font-size:20px;font-weight:700`, sub(p.text)), p.btn ? btn(p.btn, () => ctx.toCatalog(), bg === T.accent) : null);
+      node = sec("cta", h("p", `margin:0 0 12px;font-family:${T.hf};font-size:20px;font-weight:700`, sub(p.text)), p.btn ? btn(p.btn, go(p.lk, () => ctx.toCatalog()), bg === T.accent) : null);
     } else if (b.type === "spacer") {
       const hh = num(p.h, 4, 160, 32);
       node = h("div", `height:${hh}px;background:${T.bg};display:flex;align-items:center;padding:0 ${SP.m}px`);
       node.dataset.block = "spacer";
       if (p.line) node.append(h("hr", "width:100%;border:0;border-top:1px solid rgba(100,116,139,.35);margin:0"));
     }
-    if (node) root.append(node);
+    if (node) {
+      applySx(node, b.sx);
+      root.append(node);
+    }
   }
   return root.childElementCount ? root : null;
 }

@@ -4257,13 +4257,15 @@ function doSave(k,then){const m=meta(),r=m[W.key]=m[W.key]||{};const S=P().ST;S.
  if(k=="saved"){r.state="saved";pdV("Saved to My creations","cr")}
  if(k=="live"){W.menu="pub";return draw()}
  W.dirty=false;W.hist=[snap()];W.hi=0;P().sv();W.menu=null;return close()}
-function publish(){const m=meta(),r=m[W.key]=m[W.key]||{};const S=P().ST;S.layouts[W.key]=W.L;
+function publish(){const m=meta(),r=m[W.key]=m[W.key]||{};const S=P().ST;S.layouts[W.key]=W.L;S.pubL=S.pubL||{};S.pubL[W.key]=JSON.parse(JSON.stringify(W.L));
  Object.keys(m).forEach(k=>{if(k!=W.key&&m[k].state=="live"&&k.slice(0,4)==W.key.slice(0,4)&&(W.key.startsWith("tpl:")||k==W.key))m[k].state="saved"});
  r.state="live";r.pubAt=Date.now();r.at=Date.now();r.by="You";if(W.key.startsWith("tpl:"))S.def=W.key.slice(4);else{S.status=S.status||{};S.status[W.key]="published"}
  P().sv();W.dirty=false;W.hist=[snap()];W.hi=0;W.menu=null;pdV("Published","cr");close()}
 function close(){const ret=W.ret;W=null;draw();document.body.classList.remove("lwon");if(ret&&ret.hash&&!/builder/.test(ret.hash)){location.hash=ret.hash;if(ret.tpv){let n=0;const f=()=>{const b=document.querySelector(`[data-tpv="${ret.tpv}"]`);if(b&&!document.querySelector(".tpv-b")){b.click()}else if(++n<20)setTimeout(f,100)};setTimeout(f,60)}}else location.hash=W0key&&W0key.startsWith("tpl:")?"#/promotions/templates":"#/promotions";}
 let W0key=null;
 window.lwOpen=(key,id)=>{if(W&&W.key==key)return draw();const L=JSON.parse(JSON.stringify(P().getL(key)));W0key=key;
+ /* the template residents see now is remembered before the first edit, so the editor's autosaved draft does not reach them */
+ {const S0=P().ST;S0.pubL=S0.pubL||{};if(key.startsWith("tpl:")&&S0.def==key.slice(4)&&!S0.off&&!S0.pubL[key])S0.pubL[key]=JSON.parse(JSON.stringify(L))}
  W={key,L,sel:[],tool:null,dev:bp()=="mob"?"mobile":"desktop",zoom:"fit",hist:[JSON.stringify(L)],hi:0,dirty:false,ret:window._lwRet||null,col:false};window._lwRet=null;draw();setTimeout(()=>document.querySelector("#lw [data-lwexit]")?.focus(),30)};
 window.lwClose=q=>{if(W){W=null;draw()}};
 window.lwState=()=>W;
@@ -8374,7 +8376,7 @@ function build(){
  var P=window._lwpb;if(!P||!P.ST||!P.allT||!P.getL)return null;
  var ST=P.ST,BK=P.BK||{},key=ST.def,T=P.allT();
  if(ST.off||!key||!T[key])return{v:1,off:true,at:0};
- var L=P.getL('tpl:'+key);if(!L||!Array.isArray(L.blocks))return{v:1,off:true,at:0};
+ var L=(ST.pubL&&ST.pubL['tpl:'+key])||P.getL('tpl:'+key);if(!L||!Array.isArray(L.blocks))return{v:1,off:true,at:0};
  var th=L.theme||{},F=P.FONTS[BK.font||th.font]||P.FONTS.sans||['inherit','inherit'];
  return{v:1,at:0,off:false,key:key,name:T[key].n,
   brand:{logo:BK.logo||'',primary:BK.primary||'',secondary:BK.secondary||'',btn:BK.btn||th.btn||'pill',img:BK.img||'rounded'},
