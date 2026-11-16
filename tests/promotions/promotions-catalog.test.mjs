@@ -197,7 +197,8 @@ test("a resident's claim keeps who made it (for Staff's Claims inbox), and Staff
   assert.equal(JSON.parse(s.getItem("eso-res-promo:nobody")).claims[p.id].who, undefined);
   const staff = readFileSync(new URL("../../src/staff/account-settings-content.html", import.meta.url), "utf8");
   assert.ok(staff.includes("function fromRes(){"), "Staff builds inbox claims from the residents' records");
-  assert.ok(staff.includes("if(CL.some(x=>x.rk===rk))continue;"), "once each");
+  assert.ok(staff.includes("const ex=CL.find(x=>x.rk===rk);if(ex){"), "once each: a claim already in the inbox is not added again");
+  assert.ok(staff.includes('ex.reason="Cancelled by resident"'), "a claim the resident cancelled shows as cancelled in the inbox");
   assert.ok(staff.includes('c.deal==id&&c.st!="rejected"&&!c.rid'), "a resident claim is not counted twice in the stock numbers");
   assert.ok(staff.includes('c.rid&&c.st=="rejected"'), "rejecting a resident claim frees its place");
   assert.ok(staff.includes("sv();fromRes()}}"), "a reset of the inbox keeps the real claims");

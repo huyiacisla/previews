@@ -146,12 +146,15 @@ const safeSrc = (v) => (typeof v === "string" && /^(data:image\/|https?:\/\/)/i.
  * `locked` is true when Staff rejected one of them with "Lock": the deal is really out and this resident cannot claim it again.
  */
 export function activeClaims(storage, residentId, promoId) {
-  const count = Number(residentState(storage, residentId).claims[promoId]?.count) || 0;
+  const mineClaim = residentState(storage, residentId).claims[promoId];
+  const count = Number(mineClaim?.count) || 0;
+  const cancelled = new Set(Array.isArray(mineClaim?.cancelled) ? mineClaim.cancelled : []);
   const all = read(storage, KEY.claimState, {}) || {};
   let rejected = 0;
   let locked = false;
   for (let n = 1; n <= count; n += 1) {
     const s = all[`${residentId}|${promoId}|${n}`];
+    if (cancelled.has(n) && !(s && s.st === "rejected")) rejected += 1; // cancelled by the resident
     if (s && s.st === "rejected") {
       rejected += 1;
       if (s.lock) locked = true;
@@ -321,11 +324,43 @@ export function claimStatus(storage, residentId, promoId) {
   const count = Number(residentState(storage, residentId).claims[promoId]?.count) || 0;
   if (!count) return null;
   const all = read(storage, KEY.claimState, {}) || {};
+  const gone = residentState(storage, residentId).claims[promoId]?.cancelled;
+  if (Array.isArray(gone) && gone.includes(count) && !all[`${residentId}|${promoId}|${count}`]) return { st: "rejected", reason: "Cancelled by you", locked: false, cancelled: true };
   // the newest claim is the one that is shown: an older rejected one does not speak for a new claim that waits
   const s = all[`${residentId}|${promoId}|${count}`];
   if (s && (s.st === "verified" || s.st === "redeemed" || s.st === "rejected"))
     return { st: s.st, reason: s.st === "rejected" ? String(s.reason || "").slice(0, 200) : "", locked: s.st === "rejected" && !!s.lock };
   return { st: "pending", reason: "", locked: false };
+}
+
+/** The resident cancels a claim that is still waiting. It gives its place back (and the unit's). Staff's inbox shows it as cancelled by the resident. */
+export function cancelClaim(storage, residentId, promoId, now = new Date()) {
+  const st = residentState(storage, residentId);
+  const c = st.claims[promoId];
+  if (!c || !c.count) return { ok: false, reason: "You have not claimed this." };
+  const status = claimStatus(storage, residentId, promoId);
+  if (status && status.st !== "pending") return { ok: false, reason: "Only a claim that is waiting can be cancelled." };
+  c.cancelled = [...(Array.isArray(c.cancelled) ? c.cancelled : []), c.count];
+  c.cancelledAt = { ...(c.cancelledAt || {}), [c.count]: now.toISOString() };
+  return put(storage, residentId, st) ? { ok: true } : { ok: false, reason: "Could not save. Try again." };
+}
+
+/**
+ * The history of this resident's newest claim of a promotion, oldest first: [{ label, at, note, tone }].
+ * Claimed, then what Staff decided (Verified, Redeemed, Rejected) with the times Staff published, or Cancelled by the resident.
+ */
+export function claimTimeline(storage, residentId, promoId) {
+  const c = residentState(storage, residentId).claims[promoId];
+  if (!c || !c.count) return [];
+  const n = c.count;
+  const s = (read(storage, KEY.claimState, {}) || {})[`${residentId}|${promoId}|${n}`];
+  const ms = (v) => (Number(v) > 0 ? new Date(Number(v)).toISOString() : "");
+  const out = [{ label: "Claimed", at: c.at || "", note: c.code ? `Code issued: ${c.code}` : "", tone: "wait" }];
+  if (s && (s.st === "verified" || s.st === "redeemed")) out.push({ label: "Verified", at: ms(s.vt) || (s.st === "verified" ? ms(s.at) : ""), note: "The property team confirmed your claim", tone: "ok" });
+  if (s && s.st === "redeemed") out.push({ label: "Redeemed", at: ms(s.rt) || ms(s.at), note: "The code was used", tone: "ok" });
+  if (s && s.st === "rejected") out.push({ label: "Rejected", at: ms(s.jt) || ms(s.at), note: String(s.reason || "No reason given").slice(0, 200), tone: "no" });
+  if (Array.isArray(c.cancelled) && c.cancelled.includes(n) && !(s && s.st === "rejected")) out.push({ label: "Cancelled", at: (c.cancelledAt && c.cancelledAt[n]) || "", note: "You cancelled this claim", tone: "no" });
+  return out;
 }
 
 /** When Staff decided about this resident's newest claim of the promotion (milliseconds), or 0 while it waits. */

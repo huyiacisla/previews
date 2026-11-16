@@ -38,3 +38,19 @@ Mục tiêu: **Staff tạo được trang promotion riêng, Resident dùng đư�
 - **Templates & brand → trang Resident.** Hiện Resident bỏ qua template/brand Staff chọn. Kế hoạch: Staff công bố một ảnh chụp trang (`eso-pm-page`: template đang dùng, brand kit, các khối), Resident vẽ lại: annbar, hero, split, tiles, grid, carousel, featured, countdown, coupon, imgtext, quotes, map, spacer, faq, cta, navbar; thẻ trong grid là card thật của Resident.
 - Test lặp: tạo deal mới bằng form, claim bằng hai người trong một unit, đóng, gia hạn, xuất CSV; ngày thật; sáng/tối; 375/830/1440.
 - Chưa push lên `origin/main` (đang chờ).
+
+## Đợt 3 (xong): lịch sử nhận như bản cũ của người dùng, icon Saved như giỏ hàng
+
+Lục lại bản My rewards trước đây (trong cửa hàng giả của Staff) và chuyển sang trang Resident thật:
+
+- **Tab trạng thái** có số đếm: All, Pending, Verified, Redeemed, Cancelled.
+- **Mỗi claim có dòng thời gian**: Claimed, Verified, Redeemed (hoặc Rejected kèm lý do, hoặc Cancelled), mỗi bước có giờ. Staff công bố thêm giờ xác nhận (`vt`), giờ dùng (`rt`), giờ từ chối (`jt`) trong `eso-pm-claimstate`.
+- **Cancel claim** cho claim đang chờ: Resident ghi `cancelled` vào record của mình, Staff đọc và hiện "Cancelled by resident" trong Claims; chỗ trả lại cho người đó và cả unit.
+- Mục **Your unit's claims**: claim của người cùng unit (promotion giới hạn theo unit), dùng chung cả unit.
+- **Icon Saved** thay cho nút ba chấm: ngôi sao có số đếm như giỏ hàng (lưu 10 thì hiện 10); bấm vào thì chỉ hiện các deal đã lưu, bấm lại thì quay về. Chip "Saved" ở hàng category bỏ.
+
+Test: `promotions-resident-view.test.mjs` có thêm 2 test (lịch sử, hủy).
+
+Lỗi tôi gây ra và đã sửa (để khỏi lặp lại):
+- Một lần xóa mã bằng cách cắt từ mốc này đến mốc kia: đoạn đó chứa luôn mã Redeem và My rewards nên mất cả hai. Phải cắt trong phạm vi đúng, rồi chạy trang thật ngay.
+- Thuộc tính `data-count` bị dùng cho hai việc (số đếm của chip lọc và đồng hồ đếm ngược) nên đồng hồ đọc nhầm chip. Đồng hồ đổi thành `data-countdown`.

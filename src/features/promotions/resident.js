@@ -3,7 +3,7 @@
 // toggles hidden / data-* / aria-*. The data comes from promotions/store.js (what Staff published).
 
 import { initials, PORTALS, pickPersona } from "../messaging/personas.js";
-import { activeClaims, allRecords, categoriesIn, claim, claimStatus, claimDecidedAt, householdClaims, HOUSEHOLD, KEY, listPromotions, lookupCode, readConfig, residentState, toggleSaved, unitMates } from "./store.js";
+import { activeClaims, allRecords, cancelClaim, categoriesIn, claim, claimStatus, claimDecidedAt, claimTimeline, householdClaims, HOUSEHOLD, KEY, listPromotions, lookupCode, readConfig, residentState, toggleSaved, unitMates } from "./store.js";
 
 const $ = (sel, root = document) => root.querySelector(sel);
 const tpl = (id) => document.getElementById(id).content.firstElementChild.cloneNode(true);
@@ -124,9 +124,19 @@ function setCover(img, none, cover, visual) {
 /* --------------------------------------------------------------------- list */
 
 // The filter button, its count and the panel (chips for New, Hot, Limited, Ending soon, Free, Still available).
+// The Saved icon next to Redeem and My rewards: how many promotions are saved (it grows with every star, like a cart), and a press opens them.
+function paintSavedButton(n, on) {
+  const b = $("#btn-saved");
+  b.hidden = !on;
+  b.setAttribute("aria-pressed", String(ui.savedOnly));
+  b.setAttribute("aria-label", `Saved promotions, ${n}${ui.savedOnly ? ", showing" : ""}`);
+  const c = $("#saved-count");
+  c.hidden = n === 0;
+  c.textContent = String(n);
+}
+
 function paintRewardsBadge() {
-  const mine = residentState(storage, me.id);
-  const n = Object.keys(mine.claims).filter((id) => mine.claims[id] && mine.claims[id].code && activeClaims(storage, me.id, id).active > 0).length;
+  const n = rewardRows().filter((r) => ["pending", "verified", "redeemed"].includes(r.key)).length;
   const c = $("#rewards-count");
   c.hidden = n === 0;
   c.textContent = String(n);
@@ -177,6 +187,7 @@ function render() {
   if (SORTS[ui.sort]) list = [...list].sort(SORTS[ui.sort]);
   paintFilterPanel(counts);
   paintRewardsBadge();
+  paintSavedButton(all.filter((p) => mine.saved.has(p.id)).length, cfg.save);
 
   // filter row: All, one per category, Saved
   const filters = $("#filters");
@@ -201,18 +212,12 @@ function render() {
         ui.savedOnly = false;
         render();
       });
-    if (cfg.save)
-      chip("Saved", all.filter((p) => mine.saved.has(p.id)).length, ui.savedOnly, () => {
-        ui.savedOnly = !ui.savedOnly;
-        ui.category = "all";
-        render();
-      });
   }
 
   const grid = $("#grid");
   clear(grid);
   for (const p of list) grid.appendChild(card(p, mine, cfg, hot));
-  $("#count").textContent = all.length ? `${list.length} of ${all.length} ${all.length === 1 ? "promotion" : "promotions"}` : "";
+  $("#count").textContent = ui.savedOnly ? `${list.length} saved ${list.length === 1 ? "promotion" : "promotions"}` : all.length ? `${list.length} of ${all.length} ${all.length === 1 ? "promotion" : "promotions"}` : "";
 
   const empty = $("#empty");
   empty.hidden = list.length > 0;
@@ -273,7 +278,7 @@ function paintCount(el) {
     el.hidden = true;
     return true;
   }
-  $("[data-count-text]", el).textContent = leftText(ms);
+  $("[data-countdown-text]", el).textContent = leftText(ms);
   return false;
 }
 let counting = 0;
@@ -281,7 +286,7 @@ function startTicker() {
   if (counting) return;
   counting = setInterval(() => {
     let done = false;
-    for (const el of document.querySelectorAll("[data-count]:not([hidden])")) done = paintCount(el) || done;
+    for (const el of document.querySelectorAll("[data-countdown]:not([hidden])")) done = paintCount(el) || done;
     if (done) render();
   }, 1000);
 }
@@ -311,7 +316,7 @@ function card(p, mine, cfg, hot = new Set()) {
   if (p.full) badges.appendChild(badge("Sold out", "danger"));
   const stock = stockEl(p);
   if (stock) $("[data-stock]", li).appendChild(stock);
-  const cnt = $("[data-count]", li);
+  const cnt = $("[data-countdown]", li);
   if (p.endsAt && p.daysLeft != null && p.daysLeft <= 7 && !p.full) {
     cnt.dataset.ends = String(p.endsAt);
     cnt.hidden = false;
@@ -508,47 +513,11 @@ $("#dlg-copy").addEventListener("click", async () => {
 
 /* ---------------------------------------------------------------- search + live */
 
-// The three-dot menu: Saved promotions and Filters.
-const moreBtn = $("#btn-more");
-const moreMenu = $("#more-menu");
-function closeMore(focusBtn = false) {
-  if (moreMenu.hidden) return;
-  moreMenu.hidden = true;
-  moreBtn.setAttribute("aria-expanded", "false");
-  if (focusBtn) moreBtn.focus();
-}
-moreBtn.addEventListener("click", () => {
-  const open = moreMenu.hidden;
-  moreMenu.hidden = !open;
-  moreBtn.setAttribute("aria-expanded", String(open));
-  if (open) $("[role=menuitem]", moreMenu).focus();
-});
-moreMenu.addEventListener("click", (e) => {
-  const b = e.target.closest("[data-more]");
-  if (!b) return;
-  if (b.dataset.more === "saved") {
-    ui.savedOnly = true;
-    ui.category = "all";
-  }
-  if (b.dataset.more === "filters") ui.panel = true;
-  closeMore();
+$("#btn-saved").addEventListener("click", () => {
+  ui.savedOnly = !ui.savedOnly;
+  ui.category = "all";
   render();
-  if (b.dataset.more === "filters") $("#tag-filters button")?.focus();
-});
-moreMenu.addEventListener("keydown", (e) => {
-  const items = [...moreMenu.querySelectorAll("[role=menuitem]")];
-  const i = items.indexOf(document.activeElement);
-  if (e.key === "ArrowDown") items[(i + 1) % items.length].focus();
-  else if (e.key === "ArrowUp") items[(i - 1 + items.length) % items.length].focus();
-  else if (e.key === "Escape") closeMore(true);
-  else return;
-  e.preventDefault();
-});
-document.addEventListener("click", (e) => {
-  if (!e.target.closest("#btn-more, #more-menu")) closeMore();
-});
-document.addEventListener("keydown", (e) => {
-  if (e.key === "Escape" && !moreMenu.hidden) closeMore(true);
+  if (ui.savedOnly) $("#count").scrollIntoView({ block: "start", behavior: "smooth" });
 });
 
 // ---- Redeem a code and My rewards ----
@@ -610,43 +579,83 @@ $("#rd-form").addEventListener("submit", (e) => {
   checkCode($("#rd-input").value);
 });
 
+// Words for each state of a claim: [label, tone, what it means]
 const STATUS = {
-  pending: ["Waiting", "wait", "Waiting for the property team to confirm."],
-  verified: ["Confirmed", "ok", "Confirmed by the property team."],
-  redeemed: ["Used", "ok", "Used. Thank you."],
+  pending: ["Pending", "wait", "Waiting for the property team to confirm."],
+  verified: ["Verified", "ok", "Confirmed by the property team."],
+  redeemed: ["Redeemed", "ok", "Used. Thank you."],
   rejected: ["Not approved", "no", ""],
+  cancelled: ["Cancelled", "no", "You cancelled this claim."],
 };
+const TABS = [
+  ["all", "All"],
+  ["pending", "Pending"],
+  ["verified", "Verified"],
+  ["redeemed", "Redeemed"],
+  ["cancelled", "Cancelled"],
+];
+let rwTab = "all";
 const when = (iso) => (iso ? new Date(iso).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }) : "");
-function paintRewards() {
+const ago = (iso) => {
+  const m = Math.max(0, (Date.now() - new Date(iso).getTime()) / 60000);
+  return m < 1 ? "just now" : m < 60 ? `${Math.round(m)}m ago` : m < 1440 ? `${Math.round(m / 60)}h ago` : when(iso);
+};
+// the state a claim is in, as a tab key: pending, verified, redeemed, cancelled (the resident's own or Staff's rejection)
+function stateOf(cs) {
+  if (!cs) return "pending";
+  return cs.st === "rejected" ? (cs.cancelled ? "cancelled" : "rejected") : cs.st;
+}
+const tabOf = (k) => (k === "rejected" ? "cancelled" : k);
+
+function rewardRows() {
   const mine = residentState(storage, me.id);
+  return Object.keys(mine.claims)
+    .filter((id) => mine.claims[id] && mine.claims[id].code)
+    .map((id) => ({ id, code: mine.claims[id].code, at: mine.claims[id].at, key: stateOf(claimStatus(storage, me.id, id)), cs: claimStatus(storage, me.id, id) }))
+    .sort((x, y) => String(y.at || "").localeCompare(String(x.at || "")));
+}
+
+function paintRewards() {
+  const rows = rewardRows();
+  const count = (k) => (k === "all" ? rows.length : rows.filter((r) => tabOf(r.key) === k).length);
+  const tabs = $("#rw-tabs");
+  clear(tabs);
+  for (const [k, label] of TABS) {
+    const b = tpl("t-filter");
+    $("[data-label]", b).textContent = label;
+    $("[data-count]", b).textContent = String(count(k));
+    b.setAttribute("aria-pressed", String(rwTab === k));
+    b.addEventListener("click", () => {
+      rwTab = k;
+      paintRewards();
+    });
+    tabs.appendChild(b);
+  }
   const list = $("#rw-list");
   clear(list);
-  // this resident's claims, and (for a promotion limited per unit) what the people of the unit claimed
-  const rows = Object.keys(mine.claims)
-    .filter((id) => mine.claims[id] && mine.claims[id].code)
-    .map((id) => ({ id, code: mine.claims[id].code, at: mine.claims[id].at, by: "", cs: claimStatus(storage, me.id, id), decided: claimDecidedAt(storage, me.id, id) }));
-  for (const m of unitMates(me.id)) {
-    const theirs = residentState(storage, m.id).claims;
-    for (const id of Object.keys(theirs)) {
-      const rec = allRecords(storage).find((r) => String(r.id) === id);
-      if (!rec || rec.x.limS !== "unit" || rows.some((r) => r.id === id) || activeClaims(storage, m.id, id).active < 1) continue;
-      rows.push({ id, code: theirs[id].code, at: theirs[id].at, by: m.name, cs: claimStatus(storage, m.id, id), decided: claimDecidedAt(storage, m.id, id) });
-    }
-  }
-  rows.sort((x, y) => String(y.at || "").localeCompare(String(x.at || "")));
-  $("#rw-empty").hidden = rows.length > 0;
-  for (const r of rows) {
+  const shown = rows.filter((r) => rwTab === "all" || tabOf(r.key) === rwTab);
+  const empty = $("#rw-empty");
+  empty.hidden = shown.length > 0;
+  empty.textContent = rows.length ? "No rewards with this status." : "Nothing claimed yet. Claim an offer and its code shows up here.";
+  for (const r of shown) {
     const rec = allRecords(storage).find((x) => String(x.id) === r.id);
-    const st = STATUS[r.cs ? r.cs.st : "pending"];
+    const st = STATUS[r.key];
     const li = tpl("t-reward");
     $("[data-title]", li).textContent = rec ? rec.x.title : "Promotion";
     const badge = $("[data-status]", li);
     badge.textContent = st[0];
     badge.dataset.tone = st[1];
-    // the history of this claim: who claimed, when, and when Staff decided
-    const note = [r.by ? `Claimed by ${r.by} (your unit)` : "Claimed by you", r.at ? when(r.at) : ""].filter(Boolean).join(" · ");
-    const decision = r.cs && r.cs.st === "rejected" && r.cs.reason ? r.cs.reason : st[2];
-    $("[data-note]", li).textContent = [note, r.decided && r.cs && r.cs.st !== "pending" ? `${st[0]} ${when(r.decided)}` : "", decision].filter(Boolean).join(". ");
+    $("[data-note]", li).textContent = `Claimed ${ago(r.at)}${r.key === "rejected" && r.cs && r.cs.reason ? `. ${r.cs.reason}` : ""}`;
+    // the history: every step with its time
+    const tl = $("[data-timeline]", li);
+    for (const ev of claimTimeline(storage, me.id, r.id)) {
+      const e = tpl("t-rw-event");
+      $("[data-dot]", e).dataset.tone = ev.tone;
+      $("[data-label]", e).textContent = ev.label;
+      $("[data-when]", e).textContent = when(ev.at);
+      $("[data-text]", e).textContent = ev.note;
+      tl.appendChild(e);
+    }
     $("[data-code]", li).textContent = r.code;
     $("[data-copy]", li).addEventListener("click", async () => {
       try {
@@ -656,6 +665,14 @@ function paintRewards() {
         toast("Could not copy. Select the code and copy it.");
       }
     });
+    const cancel = $("[data-cancel]", li);
+    cancel.hidden = r.key !== "pending";
+    cancel.addEventListener("click", () => {
+      const res = cancelClaim(storage, me.id, r.id);
+      toast(res.ok ? "Claim cancelled" : res.reason);
+      paintRewards();
+      render();
+    });
     const view = $("[data-view]", li);
     view.hidden = !rec || !find(r.id);
     view.addEventListener("click", () => {
@@ -664,12 +681,46 @@ function paintRewards() {
     });
     list.appendChild(li);
   }
-  const n = rows.filter((r) => !r.by && activeClaims(storage, me.id, r.id).active > 0).length;
+  // what the people of this unit claimed (only for a promotion limited per unit): shared with the whole unit
+  const ul = $("#rw-unit-list");
+  clear(ul);
+  const unitRows = [];
+  for (const m of unitMates(me.id)) {
+    const theirs = residentState(storage, m.id).claims;
+    for (const id of Object.keys(theirs)) {
+      const rec = allRecords(storage).find((x) => String(x.id) === id);
+      if (!rec || rec.x.limS !== "unit" || activeClaims(storage, m.id, id).active < 1) continue;
+      unitRows.push({ id, title: rec.x.title, name: m.name, code: theirs[id].code, at: theirs[id].at, cs: claimStatus(storage, m.id, id) });
+    }
+  }
+  $("#rw-unit").hidden = unitRows.length === 0;
+  for (const u of unitRows) {
+    const li = tpl("t-reward");
+    $("[data-title]", li).textContent = u.title;
+    const badge = $("[data-status]", li);
+    const st = STATUS[stateOf(u.cs)];
+    badge.textContent = st[0];
+    badge.dataset.tone = st[1];
+    $("[data-note]", li).textContent = `${u.name} · ${when(u.at)}`;
+    $("[data-timeline]", li).hidden = true;
+    $("[data-code]", li).textContent = u.code;
+    $("[data-copy]", li).hidden = true;
+    $("[data-cancel]", li).hidden = true;
+    const view = $("[data-view]", li);
+    view.hidden = !find(u.id);
+    view.addEventListener("click", () => {
+      rwDlg.close();
+      openDialog(u.id);
+    });
+    ul.appendChild(li);
+  }
+  const n = rows.filter((r) => ["pending", "verified", "redeemed"].includes(r.key)).length;
   const c = $("#rewards-count");
   c.hidden = n === 0;
   c.textContent = String(n);
 }
 $("#btn-rewards").addEventListener("click", () => {
+  rwTab = "all";
   paintRewards();
   rwDlg.showModal();
   $("#rw-title").focus({ preventScroll: true });

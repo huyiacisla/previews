@@ -45,13 +45,11 @@
         <div class="flex flex-wrap items-center gap-step-sm">
           <button type="button" id="btn-redeem" class="group/button inline-flex h-8 shrink-0 touch-manipulation items-center justify-center gap-step-sm rounded-md border border-input bg-card px-step-md text-sm font-medium text-foreground transition outline-none select-none hover:bg-muted focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 active:translate-y-px pointer-coarse:h-11 [&_svg]:size-4"><svg aria-hidden="true"><use href="#i-ticket"/></svg>Redeem a code</button>
           <button type="button" id="btn-rewards" class="group/button inline-flex h-8 shrink-0 touch-manipulation items-center justify-center gap-step-sm rounded-md border border-input bg-card px-step-md text-sm font-medium text-foreground transition outline-none select-none hover:bg-muted focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 active:translate-y-px pointer-coarse:h-11 [&_svg]:size-4"><svg aria-hidden="true"><use href="#i-check"/></svg>My rewards<span id="rewards-count" hidden class="inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] leading-none font-medium text-primary-foreground tabular-nums"></span></button>
-          <div class="relative ml-auto">
-            <button type="button" id="btn-more" aria-haspopup="menu" aria-expanded="false" aria-controls="more-menu" aria-label="More" class="group/button inline-flex size-8 touch-manipulation items-center justify-center rounded-md border border-input bg-card text-foreground transition outline-none select-none hover:bg-muted focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 active:translate-y-px aria-expanded:bg-muted pointer-coarse:size-11 [&_svg]:size-4"><svg aria-hidden="true"><use href="#i-more"/></svg></button>
-            <div id="more-menu" role="menu" aria-label="More" hidden class="absolute right-0 z-50 mt-step-xs flex min-w-48 flex-col rounded-lg bg-card p-step-xs text-foreground shadow-lift-md ring-1 ring-foreground/10">
-              <button type="button" role="menuitem" data-more="saved" class="flex h-8 w-full items-center gap-step-sm rounded-md px-step-sm text-left text-sm text-foreground outline-none hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50 pointer-coarse:h-11"><svg aria-hidden="true" class="size-4"><use href="#i-star"/></svg>Saved promotions</button>
-              <button type="button" role="menuitem" data-more="filters" class="flex h-8 w-full items-center gap-step-sm rounded-md px-step-sm text-left text-sm text-foreground outline-none hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50 pointer-coarse:h-11"><svg aria-hidden="true" class="size-4"><use href="#i-filter"/></svg>Filters</button>
-            </div>
-          </div>
+          <button type="button" id="btn-saved" aria-pressed="false" aria-label="Saved promotions" class="group/button relative ml-auto inline-flex h-8 shrink-0 touch-manipulation items-center justify-center gap-step-sm rounded-md border border-input bg-card px-step-sm text-sm font-medium text-foreground transition outline-none select-none hover:bg-muted focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 active:translate-y-px aria-pressed:bg-muted pointer-coarse:h-11 [&_svg]:size-4">
+            <svg aria-hidden="true"><use href="#i-star"/></svg>
+            <span class="max-sm:sr-only">Saved</span>
+            <span id="saved-count" hidden class="absolute -top-1.5 -right-1.5 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] leading-none font-medium text-primary-foreground tabular-nums"></span>
+          </button>
         </div>
         <div class="flex items-center gap-step-sm">
         <div class="relative min-w-0 flex-1">
@@ -149,8 +147,14 @@
       <button type="button" data-close aria-label="Close" class="group/button inline-flex size-8 shrink-0 touch-manipulation items-center justify-center rounded-md border border-transparent bg-foreground/8 text-secondary-foreground transition outline-none select-none hover:bg-foreground/12 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 pointer-coarse:size-11 [&_svg]:size-4"><svg aria-hidden="true"><use href="#i-x"/></svg></button>
     </div>
     <p class="text-sm text-muted-foreground">The offers you claimed. Show the code to the partner; the property team marks it used.</p>
+    <div id="rw-tabs" role="group" aria-label="Reward status" class="flex flex-wrap gap-step-xs"></div>
     <ul id="rw-list" role="list" class="flex flex-col gap-step-sm"></ul>
-    <p id="rw-empty" hidden class="rounded-lg bg-background p-step-md text-sm text-muted-foreground ring-1 ring-foreground/10">Nothing claimed yet. Claim an offer and its code shows up here.</p>
+    <p id="rw-empty" hidden class="rounded-lg bg-background p-step-md text-sm text-muted-foreground ring-1 ring-foreground/10"></p>
+    <section id="rw-unit" hidden aria-labelledby="rw-unit-h" class="flex flex-col gap-step-sm">
+      <h3 id="rw-unit-h" class="text-sm font-medium">Your unit's claims</h3>
+      <p class="text-xs text-muted-foreground">Shared with everyone who lives in your unit.</p>
+      <ul id="rw-unit-list" role="list" class="flex flex-col gap-step-sm"></ul>
+    </section>
   </div>
 </dialog>
 
@@ -161,11 +165,22 @@
       <span data-status data-tone="neutral" class="inline-flex h-5 shrink-0 items-center rounded-full bg-secondary px-step-sm text-xs whitespace-nowrap text-secondary-foreground data-[tone=ok]:bg-success-bg data-[tone=ok]:text-success-text data-[tone=wait]:bg-warning-bg data-[tone=wait]:text-warning-text data-[tone=no]:bg-danger-bg data-[tone=no]:text-danger-text"></span>
     </div>
     <p data-note class="text-xs text-muted-foreground empty:hidden"></p>
+    <ol data-timeline aria-label="History" class="my-step-xs flex flex-col gap-step-sm border-l border-border pl-step-md"></ol>
     <div class="flex flex-wrap items-center gap-step-sm">
       <output data-code class="min-w-0 flex-1 text-base font-medium tracking-wider wrap-anywhere tabular-nums"></output>
       <button type="button" data-copy class="group/button inline-flex h-8 shrink-0 touch-manipulation items-center justify-center gap-step-sm rounded-md border border-input bg-card px-step-md text-sm font-medium text-foreground transition outline-none select-none hover:bg-muted focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 active:translate-y-px pointer-coarse:h-11 [&_svg]:size-4">Copy</button>
+      <button type="button" data-cancel hidden class="group/button inline-flex h-8 shrink-0 touch-manipulation items-center justify-center gap-step-sm rounded-md border border-input bg-card px-step-md text-sm font-medium text-foreground transition outline-none select-none hover:bg-muted focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 active:translate-y-px pointer-coarse:h-11 [&_svg]:size-4">Cancel claim</button>
       <button type="button" data-view class="group/button inline-flex h-8 shrink-0 touch-manipulation items-center justify-center gap-step-sm rounded-md border border-input bg-card px-step-md text-sm font-medium text-foreground transition outline-none select-none hover:bg-muted focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 active:translate-y-px pointer-coarse:h-11 [&_svg]:size-4">View</button>
     </div>
+  </li>
+</template>
+
+<template id="t-rw-event">
+  <li class="relative flex flex-col gap-0.5">
+    <span data-dot data-tone="wait" class="absolute top-1 -left-[1.2rem] size-2.5 rounded-full bg-muted-foreground data-[tone=ok]:bg-success-text data-[tone=wait]:bg-warning-text data-[tone=no]:bg-danger-text"></span>
+    <span data-label class="text-xs font-medium"></span>
+    <span data-when class="text-xs text-muted-foreground tabular-nums"></span>
+    <span data-text class="text-xs text-muted-foreground empty:hidden"></span>
   </li>
 </template>
 
@@ -187,7 +202,7 @@
         <span data-nocover class="absolute inset-0 flex items-center justify-center text-muted-foreground [&_svg]:size-8"><svg aria-hidden="true"><use href="#i-tag"/></svg></span>
       </div>
       <span data-avatar aria-hidden="true" class="absolute -bottom-5 left-step-md z-raised flex size-10 items-center justify-center overflow-hidden rounded-xl bg-foreground text-xs font-semibold text-background ring-4 ring-card"></span>
-      <span data-count hidden role="timer" class="absolute -bottom-3 right-step-md z-raised inline-flex h-6 items-center gap-1 rounded-full bg-card px-step-sm text-xs font-medium tabular-nums text-warning-text ring-4 ring-card [&_svg]:size-3.5"><svg aria-hidden="true"><use href="#i-clock"/></svg><span data-count-text></span></span>
+      <span data-countdown hidden role="timer" class="absolute -bottom-3 right-step-md z-raised inline-flex h-6 items-center gap-1 rounded-full bg-card px-step-sm text-xs font-medium tabular-nums text-warning-text ring-4 ring-card [&_svg]:size-3.5"><svg aria-hidden="true"><use href="#i-clock"/></svg><span data-countdown-text></span></span>
       </div>
       <div class="flex min-w-0 flex-1 flex-col gap-step-sm px-step-md pt-8 pb-step-md">
         <p data-partner class="truncate text-xs text-muted-foreground empty:hidden"></p>

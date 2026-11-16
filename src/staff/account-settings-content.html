@@ -6537,7 +6537,7 @@ function sv(){localStorage.setItem(K,JSON.stringify(CL));publish()}
 function publish(){
 try{const out={};let prev={};try{prev=JSON.parse(localStorage.getItem("eso-pm-claimstate")||"{}")||{}}catch(e){}
 /* `at` is when the decision was published (kept while the decision stays the same): the resident's notice is dated by it */
-CL.forEach(c=>{if(c.rk&&c.st&&c.st!=="pending"){const o=prev[c.rk];out[c.rk]={st:c.st,reason:c.st==="rejected"?String(c.reason||"").slice(0,200):"",...(c.st==="rejected"&&c.lock?{lock:true}:{}),at:o&&o.st===c.st&&o.at?o.at:Date.now()}}});
+CL.forEach(c=>{if(c.rk&&c.st&&c.st!=="pending"){const o=prev[c.rk];out[c.rk]={st:c.st,reason:c.st==="rejected"?String(c.reason||"").slice(0,200):"",...(c.st==="rejected"&&c.lock?{lock:true}:{}),at:o&&o.st===c.st&&o.at?o.at:Date.now(),...(c.vt?{vt:c.vt}:{}),...(c.rt?{rt:c.rt}:{}),...(c.jt?{jt:c.jt}:{})}}});
 const next=JSON.stringify(out);if(localStorage.getItem("eso-pm-claimstate")!==next)localStorage.setItem("eso-pm-claimstate",next)}catch(e){}}
 /* Claims made in the Resident app (each resident's own record, eso-res-promo:<id>) become claims in this inbox, Pending, once each (rk = resident|promotion|n).
    A deal Staff made is named by the id it was published with there and by "dining5" here: c.promo keeps the first, c.deal is the second. */
@@ -6548,7 +6548,7 @@ const rid=key.slice(14);let s=null;try{s=JSON.parse(localStorage.getItem(key))}c
 const cl=s&&s.claims;if(!cl||typeof cl!=="object")continue;
 for(const pid of Object.keys(cl)){const c=cl[pid],n=c&&+c.count;if(!(n>0))continue;
 const m=META[pid]||Object.values(META).find(z=>z.pmc==pid);if(!m)continue;
-for(let j=1;j<=n;j++){const rk=rid+"|"+pid+"|"+j;if(CL.some(x=>x.rk===rk))continue;
+for(let j=1;j<=n;j++){const rk=rid+"|"+pid+"|"+j;const ex=CL.find(x=>x.rk===rk);if(ex){if(ex.st==="pending"&&Array.isArray(c.cancelled)&&c.cancelled.includes(j)){ex.st="rejected";ex.reason="Cancelled by resident";ex.jt=Date.parse(c.cancelledAt&&c.cancelledAt[j])||Date.now();ch=1}continue}
 const who=c.who||{};
 CL.push({id:"r_"+rk.replace(/[^a-zA-Z0-9]/g,"_"),rk,rid,promo:pid,deal:m.id,name:String(who.name||"Resident").slice(0,60),unit:String(who.unit||"—").slice(0,12),pv:"staff",t:Date.parse(c.at)||Date.now(),code:String(c.code||"").slice(0,40),st:"pending",sync:false,note:"",reason:"",meth:"app"});ch=1}}}}catch(e){}
 if(ch){CL.sort((a,b)=>b.t-a.t);sv()}return ch}

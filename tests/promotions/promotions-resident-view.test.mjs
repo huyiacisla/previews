@@ -167,3 +167,40 @@ test("a claim Staff rejected gives the unit its place back", () => {
   assert.equal(householdClaims(s, "res-4", "u1").length, 0);
   assert.equal(claim(s, "res-4", promoOf(s, "u1")).ok, true);
 });
+
+// My rewards: the history of a claim, and cancelling one that is still waiting.
+import { cancelClaim, claimStatus, claimTimeline, activeClaims } from "../../src/features/promotions/store.js";
+
+test("a claim has a history: claimed, then what Staff decided with the times they published", () => {
+  const s = unitDeal({ limS: "resident" });
+  claim(s, "res-1", promoOf(s, "u1"), new Date("2026-11-16T09:00:00Z"));
+  assert.deepEqual(claimTimeline(s, "res-1", "u1").map((e) => e.label), ["Claimed"]);
+  s.setItem(KEY.claimState, JSON.stringify({ "res-1|u1|1": { st: "redeemed", at: 3, vt: Date.parse("2026-11-16T10:00:00Z"), rt: Date.parse("2026-11-16T11:30:00Z") } }));
+  const tl = claimTimeline(s, "res-1", "u1");
+  assert.deepEqual(tl.map((e) => e.label), ["Claimed", "Verified", "Redeemed"]);
+  assert.equal(tl[1].at, "2026-11-16T10:00:00.000Z");
+  assert.equal(tl[2].at, "2026-11-16T11:30:00.000Z");
+  s.setItem(KEY.claimState, JSON.stringify({ "res-1|u1|1": { st: "rejected", reason: "Wrong unit", at: Date.parse("2026-11-16T12:00:00Z"), jt: Date.parse("2026-11-16T12:00:00Z") } }));
+  const rj = claimTimeline(s, "res-1", "u1");
+  assert.equal(rj[1].label, "Rejected");
+  assert.equal(rj[1].note, "Wrong unit");
+  assert.deepEqual(claimTimeline(s, "res-3", "u1"), [], "no claim, no history");
+});
+
+test("cancel: only a waiting claim, it gives the place back (and the unit's), and the history says so", () => {
+  const s = unitDeal();
+  claim(s, "res-1", promoOf(s, "u1"));
+  assert.equal(claim(s, "res-4", promoOf(s, "u1")).ok, false, "the unit's place is taken");
+  const c = cancelClaim(s, "res-1", "u1", new Date("2026-11-16T09:30:00Z"));
+  assert.equal(c.ok, true);
+  assert.equal(activeClaims(s, "res-1", "u1").active, 0);
+  assert.deepEqual(claimStatus(s, "res-1", "u1"), { st: "rejected", reason: "Cancelled by you", locked: false, cancelled: true });
+  assert.deepEqual(claimTimeline(s, "res-1", "u1").map((e) => e.label), ["Claimed", "Cancelled"]);
+  assert.equal(claim(s, "res-4", promoOf(s, "u1")).ok, true, "the place went back to the unit");
+  // a claim Staff already decided cannot be cancelled
+  const t = unitDeal({ limS: "resident" });
+  claim(t, "res-1", promoOf(t, "u1"));
+  t.setItem(KEY.claimState, JSON.stringify({ "res-1|u1|1": { st: "verified", at: 1 } }));
+  assert.equal(cancelClaim(t, "res-1", "u1").ok, false);
+  assert.equal(cancelClaim(t, "res-2", "u1").ok, false, "nothing to cancel");
+});
