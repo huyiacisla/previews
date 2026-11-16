@@ -391,7 +391,7 @@ Còn mở (chưa sửa):
 Lý do: goal Promotions đạt ở luồng chính nhưng còn khoảng cách "Staff chỉnh gì thì Resident thấy đúng như vậy", và bảng QA lượt 3 (`05-bao-cao-tong-hop.md`) còn dòng Không đạt, chưa kiểm được, cùng các sửa chưa đo lại. Mỗi phần xong thì 5 phút sau chạy phần kế (`[ ]` đầu tiên).
 
 - [x] **R3-1: Trình dựng nói đúng điều Resident áp dụng.** Tuỳ chọn Resident chưa hỗ trợ (hoạt ảnh, neo, kiểu chữ `tx`, biến thể và cỡ nút `bv/bs/bi`, thẻ kiểu `sx.card`): làm cho chạy nếu rẻ, nếu không thì ẩn hoặc ghi rõ ngay trong trình dựng "Resident chưa hiển thị". Thử lại ở Resident thật.
-- [ ] **R3-1b: Năm điều khiển bắt buộc ở MỌI template.** Redeem, My rewards, Saved, ô tìm kiếm và nút Filter phải có, tìm thấy và bấm được ở mọi template (Deals, Store, Luxury dark, Minimal mono, Seasonal và các template còn lại), 375/830/1440, sáng và tối, ở đầu trang và sau khi cuộn sâu (thanh gập, không biến mất). Mỗi template giữ thiết kế riêng, chỉ sửa nơi thiếu hoặc bị che; không ép về khuôn của Deals. Thêm test cho điều này.
+- [ ] **R3-1b: Năm điều khiển bắt buộc ở MỌI template.** Redeem, My rewards, Saved, ô tìm kiếm và nút Filter phải có, tìm thấy và bấm được ở mọi template (Deals, Store, Luxury dark, Minimal mono, Seasonal và các template còn lại), 375/830/1440, sáng và tối, ở đầu trang và sau khi cuộn sâu (thanh gập, không biến mất). Mỗi template giữ thiết kế riêng, chỉ sửa nơi thiếu hoặc bị che; không ép về khuôn của Deals. Thêm test cho điều này. Với mỗi template, so luôn "Resident view" của Staff với Resident thật (cùng chữ ký trang và cùng thao tác).
 - [ ] **R3-2: Claim Phần 4 và vòng Staff → Resident cuối.** Thử lại lỗi claim chập chờn (claim, huỷ, claim lại, Staff duyệt/từ chối, redeem, lịch sử) nhiều lần, hai tab.
 - [ ] **R3-3: Kiểm lại các sửa chưa đo lại của lượt 3.** S325 (ô Property profile cắt ký tự), R607 (khẩn cấp viết bằng lời), R624 (Ticket box không lộ tên nhân viên), Pin trùng, aria-current, Larger tap targets.
 - [ ] **R3-4: A3 Settings còn Không đạt / Chưa kiểm được.** Chạy lại các dòng của `08-ket-qua-lai-A3.md` chưa kiểm hết (42 Không đạt, 32 chưa kiểm được); sửa lỗi thấy.
@@ -419,3 +419,17 @@ Vẫn chưa hỗ trợ ở Resident (ghi lại): biểu tượng trong nút (`bi
 Test: `promotions-blocks.test.mjs` (thêm 1 test). `npm test` 503 test, 502 qua, 1 lỗi cũ.
 
 Dọn dữ liệu: `eso-pm-page` trả về bản gốc (6 khối, hero `{{offer}}`), không còn khoá `qa-*`, viewport desktop.
+
+### Rà soát giữa Vòng 3: Resident view của Staff có khớp Resident thật khi dùng không (người dùng yêu cầu)
+
+Cách làm: Staff (tab riêng, 1440) bật Resident view; Resident thật ở tab khác. Cùng một hàm chữ ký (nền, phông, màu và bo góc nút chính, các khối, tiêu đề, danh sách thẻ, toàn bộ nút nhìn thấy) chạy ở cả hai khung; rồi cùng một chuỗi thao tác ở cả hai: tìm "valet", chip Parking, Filters, Redeem a code, My rewards, Saved; so chữ ký và nội dung hộp thoại sau mỗi bước. Sau đó bấm "Phone" của Staff (390 px) và so với Resident thật ở 375 px.
+
+Kết quả: **không có khác biệt.** Chữ ký đầu trang giống hệt ở 1440; sáu bước thao tác cho cùng kết quả (số thẻ, "N of 17 promotions", nội dung hộp thoại, vị trí focus); Phone của Staff giống Resident thật 375 về nút, tiêu đề, khối, màu và bo góc nút.
+
+Dùng thật: claim "Covered Spot Upgrade" trong Resident view của Staff tạo claim của res-1 (Pending, mã RES-…), xuất hiện ngay ở Resident thật (My rewards 1 → 2, không tải lại); huỷ ở Resident thật thì Staff cũng thấy "Cancelled by resident" và My rewards về 1. Hai bên dùng chung một tệp trang (`promotions-content.html?embed=1`) và chung dữ liệu res-1 nên không thể lệch.
+
+Lưu ý ghi lại: Resident view của Staff hành động như cư dân res-1 (Alex Rivera), nên claim thử ở đó là claim thật của res-1. Khung Phone của Staff rộng 390, Resident thật thử ở 375 (khác 15 px, không đổi bố cục).
+
+Chưa so: các template khác Deals (đưa vào R3-1b), và chế độ tối.
+
+Dọn dữ liệu: xoá toàn bộ claim của res-1 (gồm 2 claim thử cũ lúc 8:43 sáng nay) khỏi `eso-res-promo:res-1`, `eso-pmclaims`, `eso-pm-claimstate` (giữ ngôi sao đã lưu của Mallard Pointe Valet); tắt Resident view, đóng tab Staff, viewport desktop.
