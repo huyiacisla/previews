@@ -66,7 +66,7 @@ test("a row says what a click on its button does, links only when the page exist
   const rows = v.groups.flatMap((g) => g.items);
   const unread = rows.find((r) => !r.read);
   assert.equal(unread.toggleTitle, "Mark as read");
-  assert.equal(unread.toggleIcon, "i-check");
+  assert.equal(unread.toggleIcon, "i-mail-open");
   assert.match(unread.toggleLabel, /^Mark as read: /);
   const read = rows.find((r) => r.read);
   assert.equal(read.toggleTitle, "Mark as unread");

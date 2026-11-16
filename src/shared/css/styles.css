@@ -214,6 +214,10 @@ a[data-slot="sidebar-menu-button"][data-soon="1"] { pointer-events: auto; cursor
 .eso-np-head p { margin: 0; font-size: 0.75rem; line-height: 1rem; color: var(--muted-foreground); }
 .eso-np-link { display: inline-flex; align-items: center; flex: none; height: 1.75rem; padding: 0 0.5rem; text-decoration: none; border: 0; border-radius: 0.5rem; background: none; color: var(--primary); font: inherit; font-size: 0.75rem; font-weight: 500; cursor: pointer; }
 .eso-np-link:hover { background: color-mix(in oklab, var(--primary) 10%, transparent); }
+.eso-np-actions { display: flex; flex: none; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 0.125rem; }
+.eso-np-quiet { color: var(--muted-foreground); font-weight: 400; }
+.eso-np-icon { width: 1.75rem; padding: 0; justify-content: center; }
+.eso-np-quiet:hover { color: var(--foreground); background: color-mix(in oklab, var(--foreground) 8%, transparent); }
 .eso-np-row { display: flex; align-items: center; gap: 0.625rem; width: 100%; min-height: 2.75rem; padding: 0.5rem; border: 0; border-radius: 0.5rem; background: none; color: inherit; font: inherit; text-align: left; text-decoration: none; cursor: pointer; }
 .eso-np-row:hover { background: color-mix(in oklab, var(--foreground) 6%, transparent); }
 .eso-np-link:focus-visible, .eso-np-row:focus-visible { outline: 2px solid var(--ring); outline-offset: -2px; }

@@ -524,11 +524,39 @@ function wireBell(header, me) {
     title.innerHTML = "<h2></h2><p></p>";
     title.querySelector("h2").textContent = "Notifications";
     title.querySelector("p").textContent = n > 0 ? `${n} need attention` : "You are all caught up";
+    title.querySelector("p").setAttribute("role", "status"); // said aloud when it changes to "all caught up"
     const viewAll = document.createElement("a");
     viewAll.className = "eso-np-link";
     viewAll.href = PAGE;
     viewAll.textContent = "View all";
-    head.append(title, viewAll);
+    // "Mark all read" sits next to "View all" while something is unread (Resident, Staff, Client and Admin bells alike): every notification becomes read, the number on the bell goes away
+    // and this heading says all is caught up
+    const actions = document.createElement("div");
+    actions.className = "eso-np-actions";
+    if (n > 0) {
+      const markAll = document.createElement("button");
+      markAll.type = "button";
+      markAll.className = "eso-np-link eso-np-quiet eso-np-icon";
+      markAll.innerHTML = ICON.mailCheck; // an envelope with a check, our own drawing: compact, and the label says what it does
+      markAll.setAttribute("aria-label", "Mark all read");
+      markAll.title = "Mark all read";
+      markAll.addEventListener("click", () => {
+        const cur = state();
+        setRead(
+          localStorage,
+          personId,
+          list()
+            .filter((r) => !isRead(r, cur))
+            .map((r) => r.id),
+          true,
+        );
+        emitNotif();
+        openPanel?.node?.querySelector(".eso-np-link")?.focus(); // the panel is drawn again: keep the keyboard in it
+      });
+      actions.append(markAll);
+    }
+    actions.append(viewAll);
+    head.append(title, actions);
     const rows = document.createElement("div");
     const latest = latestUnread(all, map, 4);
     for (const r of latest) {
@@ -857,6 +885,7 @@ const ICON = {
   chat: svg('<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>'),
   key: svg('<circle cx="8" cy="15" r="4"/><path d="m10.8 12.2 9.2-9.2M17 6l3 3"/>'),
   bell: svg('<path d="M6 8a6 6 0 1 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.9 1.9 0 0 0 3.4 0"/>'),
+  mailCheck: svg('<path d="M4 10.5v7A2.5 2.5 0 0 0 6.5 20h11a2.5 2.5 0 0 0 2.5-2.5v-7"/><path d="M4 10.5 12 5l8 5.5"/><path d="m8.5 14 2.5 2.5 4.5-5"/>', 16),
   gauge: svg('<path d="m12 14 4-4"/><path d="M3.3 17a10 10 0 1 1 17.4 0"/>'),
   clipboard: svg('<rect width="8" height="4" x="8" y="2" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/>'),
   alert: svg('<path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4"/><path d="M12 17h.01"/>'),

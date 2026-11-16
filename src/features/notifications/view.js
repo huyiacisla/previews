@@ -99,7 +99,7 @@ export function notificationsView(all, map, ui, now, { dest = {}, multiProp = fa
       iso: new Date(n.ts).toISOString(),
       toggleLabel: `${read ? "Mark as unread" : "Mark as read"}: ${n.title}`,
       toggleTitle: read ? "Mark as unread" : "Mark as read",
-      toggleIcon: read ? "i-mail" : "i-check", // the icon shows what a click does
+      toggleIcon: read ? "i-mail" : "i-mail-open", // the envelope shows the state: closed once read, open while unread (the title says what a click does)
     };
   };
   // By date for newest and oldest; "unread first" is grouped by state instead of by day.

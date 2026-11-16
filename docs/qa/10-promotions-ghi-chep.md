@@ -655,7 +655,7 @@ Test: `tests/promotions/promotions-bar.test.mjs` (5 test). `npm test`: 547 test,
 
 Goal: giao diện Staff Promotions khi đặt cạnh Resident phải KHỚP (Resident view, theme, mọi thứ), và mọi phản ánh người dùng đã đưa trước đó phải được xác nhận xong bằng bằng chứng. Người dùng đã cho phép push ở phần cuối khi hoàn tất. Mỗi phần xong thì 5 phút sau chạy phần kế (`[ ]` đầu tiên).
 
-- [ ] **R5-1: Rà lại mọi phản ánh trước đó.** Lập bảng từng phản ánh của người dùng (thanh tìm kiếm chung giữ nguyên; thanh bám khi kéo; Saved là panel riêng và sao vàng khi đã lưu; chip và tìm kiếm không trùng; hero gộp đếm ngược và mã; cỡ chữ quá lớn ở mobile và tablet; Redeem a code rõ nghĩa; theme phủ kín không chừa kiểu cũ; icon (i) chỉ cho thông tin; mỗi template giữ thiết kế riêng nhưng đủ Redeem, My rewards, Saved, tìm kiếm, Filter; tab Not approved tách Cancelled; icon My rewards người-sao; Saved ở cuối hàng; ví dụ claim, ticket, quy tắc căn hộ), kiểm lại từng cái bằng giao diện thật (kéo trang, chụp hai lần) và ghi kết quả: xong (có bằng chứng) hoặc chưa (rồi sửa).
+- [x] **R5-1: Rà lại mọi phản ánh trước đó.** Lập bảng từng phản ánh của người dùng (thanh tìm kiếm chung giữ nguyên; thanh bám khi kéo; Saved là panel riêng và sao vàng khi đã lưu; chip và tìm kiếm không trùng; hero gộp đếm ngược và mã; cỡ chữ quá lớn ở mobile và tablet; Redeem a code rõ nghĩa; theme phủ kín không chừa kiểu cũ; icon (i) chỉ cho thông tin; mỗi template giữ thiết kế riêng nhưng đủ Redeem, My rewards, Saved, tìm kiếm, Filter; tab Not approved tách Cancelled; icon My rewards người-sao; Saved ở cuối hàng; ví dụ claim, ticket, quy tắc căn hộ), kiểm lại từng cái bằng giao diện thật (kéo trang, chụp hai lần) và ghi kết quả: xong (có bằng chứng) hoặc chưa (rồi sửa).
 - [ ] **R5-2: "Resident view" của Staff khớp Resident thật, mọi template.** Với 7 template (Deals, Store, Modern, Editorial, Mono, Seasonal, Luxury) × Phone, Tablet, Desktop × sáng, tối: so chữ ký trang (thanh, chip, khối, tiêu đề, thẻ, màu và bo góc nút chính) và hành vi (tìm, chip, Saved, My rewards, hộp deal) giữa khung Resident view của Staff và Resident thật; ảnh thật hai lần; sửa chỗ lệch.
 - [ ] **R5-3: Trang Staff Promotions khớp theme.** Tab Deals (mục "Section style · Follows …", thẻ, màu, phông), Templates (hình xem trước, "In use"), trình dựng (canvas, countdown và coupon gộp hero): đặt cạnh Resident cho từng template ở 375, 830, 1440, sáng và tối; sửa chỗ lệch hoặc gây hoang mang.
 - [ ] **R5-4: Việc còn lại của Vòng 3.** Thử lại lỗi claim chập chờn (claim, huỷ, claim lại, Staff duyệt hoặc từ chối, redeem, lịch sử, hai tab), kiểm lại các sửa của QA lượt 3 (S325, R607, R624, Pin trùng, aria-current, Larger tap targets) bằng giao diện thật; sửa lỗi thấy.
@@ -680,3 +680,40 @@ Người dùng thích kiểu panel Saved hiện tại (không đổi chỗ, khô
 Kiểm bằng giao diện thật (375 px): chip "Services" đang bật làm thẻ biến mất → mở Saved, bấm vùng trắng của "Mallard Pointe Valet" → panel đóng, chip về "All 17", trang cuộn tới thẻ nằm dưới thanh (thẻ cách đáy thanh 17 px), thẻ có viền; một cú bấm chuột thật (chụp hai lần) cho kết quả y hệt.
 
 Test: `promotions-bar.test.mjs` (8 test). `npm test` 549 test, 548 qua, 1 lỗi cũ. Dữ liệu: ngôi sao "Covered Spot Upgrade" thừa do kiểm thử trước đã gỡ, Saved của Alex về một mục như cũ.
+
+### R5-1 (xong): rà lại mọi phản ánh của người dùng, từng cái có bằng chứng (16/11, giao diện thật, 7 template)
+
+Cách kiểm: trang portal `/resident/promotions.html` ở 375 px với từng template (đo thanh, chữ ký trang, kích thước chữ, màu), cuộn thật tới cuối, và các cú bấm thật có chụp hình.
+
+| Phản ánh | Kết quả | Bằng chứng |
+|---|---|---|
+| Giữ thanh tìm kiếm chung "Search Resident pages…" | Xong | header portal cao 61 px, còn nút menu, tìm kiếm, chuông, avatar ở cả 7 template, 375, 830, 1280 px, bốn độ cuộn, sáng và tối |
+| Thanh Promotions bám khi kéo, không biến mất, chip không mất | Xong | 7 template × 375, 690, 1184 px × sáng, tối: thanh lệch 0 px ở mọi độ sâu, 5 điều khiển thấy và không bị che, chip luôn trong thanh |
+| Điện thoại: một hàng gọn, cùng kiểu nút, số đếm không sát mép | Xong | tìm kiếm, bộ lọc, Redeem, My rewards, Saved đều nút vuông 32 px, số đếm ở góc, thanh cao 78 px, luôn như nhau từ lúc chưa cuộn |
+| Saved không bị đổi chỗ (rớt hàng ở màn hình trung bình) | Xong | từ 640 px: cả 5 điều khiển trên một hàng, Saved ở cuối |
+| Saved là panel riêng, sao vàng khi đã lưu | Xong | `dlg-saved`; sao thẻ `aria-pressed=true` có màu `oklch(0.828 0.189 84)` (hổ phách) ở cả 7 template |
+| Bấm khung trắng của mục Saved thì tới sản phẩm | Xong | xem mục riêng ở trên |
+| Không trùng chip, tìm kiếm, ô lặp | Xong | mỗi template đúng 1 `#filters`, 1 ô tìm kiếm; không có ô tìm kiếm danh mục thứ hai |
+| Không vẽ ô danh mục (tiles) | Xong | `[data-block=tiles]` = 0 ở cả 7 template |
+| Hero gộp đếm ngược và mã giảm giá, một nút chính | Xong | countdown và coupon không còn thành khối riêng ở Deals và Seasonal (0 khối riêng), nằm trong hero |
+| Chữ quá lớn trên mobile và tablet | **Đã sửa lần này** | tiêu đề hero ở 375 px là 34 px ở 5 template (Store, Modern, Editorial, Seasonal, Luxury); nay giới hạn 28 px trên điện thoại và 40 px trên tablet (`tsz` trong `page.js`); Luxury ở 375 px đo 28, ở 830 và 1280 px đo 34 |
+| "Redeem a code" rõ nghĩa | Xong | nút "Redeem" kèm "a code", hộp "About Redeem a code" giải thích ngắn |
+| Theme phủ kín, không chừa kiểu cũ | Xong | `pm-theme` có ở khung nội dung và ở portal quanh nó ở cả 7 template; nền thanh và header cùng màu theme |
+| Icon (i) chỉ cho thông tin giải thích | Xong | chỉ còn "About Redeem a code" và "About My rewards"; Staff panel dùng chữ "Details" |
+| Mỗi template giữ thiết kế riêng nhưng đủ 5 điều khiển | Xong | 7 template khác nhau về hero, phông, màu, khối; 5 điều khiển luôn có |
+| My rewards: icon người-sao; tách Not approved và Cancelled | Xong | giao diện thật: "Not approved 1", "Cancelled 1" |
+| Badge Saved và My rewards là số "chưa xem" (lệnh mới) | **Làm lần này** | xem mục riêng |
+| Chuông: Mark all read (Resident, Staff, Client, Admin); mail mở khi chưa đọc, mail đóng khi đã đọc, icon tự vẽ | **Làm lần này** | xem mục riêng |
+| Header: bỏ mũi tên cạnh avatar (Resident, Staff); Resident có Status | Xong | xem mục giữa Vòng 5 |
+| Staff Resident view khớp Resident thật | Một phần | Deals đã khớp (R2-2, vòng 4); 6 template còn lại làm ở R5-2 |
+| Trang Staff Promotions khớp theme (Deals tab, Templates, builder) | Chưa | làm ở R5-3 |
+| Claim, hội thoại, quy tắc căn hộ, ticket (vòng 4) | Xong | R4-1 đến R4-9 |
+| Việc còn lại của Vòng 3 (lỗi claim chập chờn, QA lượt 3) | Chưa | làm ở R5-4 |
+
+**Badge Saved và My rewards là số "chưa xem"** (người dùng yêu cầu 16/11): khoá `eso_unseen_saved_count:<resident>` và `eso_unseen_rewards_count:<resident>` trong localStorage; lưu thêm một mục thì +1, bỏ một mục thì -1 (không âm, không hiện badge mới), mở panel thì về 0 và badge biến mất; claim mới +1 (claim lại cùng deal không cộng), huỷ claim -1; số 0 thì không có badge; tiêu đề panel nói tổng ("Saved 2", "My rewards 2"). Giao diện thật (Priya, res-2): 2 sao rồi mở Saved → badge ẩn; xoá một mục trong panel → vẫn ẩn; lưu một mục rồi tải lại trang → badge "1" còn; 2 claim → "2", claim lại cùng deal vẫn "2", mở My rewards → ẩn, huỷ trong panel không hiện badge. **Trên view của Staff** (cùng cư dân res-1): lưu sao trong Resident view của Staff → badge "2" hiện ở Resident view và ở trang Resident thật (cùng khoá, sự kiện `storage`); mở Saved ở Resident thật → badge ở Staff view tắt ngay; đặt `eso_unseen_rewards_count:res-1` = 2 từ tab khác → Staff view hiện "2", mở My rewards ở Staff view → ẩn và tab kia cũng ẩn.
+
+**Chuông: Mark all read** (`portal-frame-extras.js`, dùng chung bốn portal): nút icon bên cạnh "View all" chỉ có khi còn thông báo chưa đọc; bấm thì mọi thông báo thành đã đọc, số trên chuông biến mất, dòng đầu đổi thành "You are all caught up", nút biến mất, focus ở lại trong panel; có nhãn "Mark all read", tooltip, và dòng số đọc to khi đổi (`role="status"`). Đo ở bốn portal: Resident 32 → ẩn, Staff 13 → ẩn, Client 95 → ẩn, Admin 5 → ẩn, nút cùng hàng và bên trái "View all". **Icon phong bì tự vẽ** (không dùng bản có sẵn): phong bì mở cho "chưa đọc", phong bì đóng cho "đã đọc", phong bì mở kèm dấu tích cho "đánh dấu đã đọc tất cả" (cả nút trên trang Notifications "Mark all as read"); đo ở trang Notifications: 24 dòng chưa đọc dùng phong bì mở, dòng đã đọc dùng phong bì đóng. Dữ liệu đọc của bốn người dùng đã trả về như trước sau khi thử.
+
+Tab đang dùng cho việc kiểm (Staff, Resident) tách riêng; template trả về Deals ("In use"), brand mặc định; Resident view của Staff tắt.
+
+Test: `promotions-unseen.test.mjs` (5), `notifications-bell.test.mjs` (2), `promotions-bar.test.mjs` (8). `npm test` 556 test, 555 qua, 1 lỗi cũ.
