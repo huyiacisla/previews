@@ -45,3 +45,10 @@ test("residents see the published page, not the draft the editor autosaves", () 
   assert.ok(staff.includes("S.pubL[W.key]=JSON.parse(JSON.stringify(W.L))"), "Publish & set as current keeps the copy residents see");
   assert.ok(staff.includes("S0.pubL[key]=JSON.parse(JSON.stringify(L))"), "the live template is remembered before the first edit");
 });
+
+test("Staff's Resident view shows the page without dressing Staff's own page in the template", () => {
+  const res = readFileSync(new URL("../../src/features/promotions/resident.js", import.meta.url), "utf8");
+  assert.ok(res.includes('if (!window.parent.location.pathname.startsWith("/resident/")) return;'), "only the Resident portal around the page wears the theme");
+  const staff = readFileSync(new URL("../../src/staff/account-settings-content.html", import.meta.url), "utf8");
+  assert.ok(staff.includes("promotions-content.html"), "Staff's Resident view embeds the same page file the Resident portal does, so it cannot drift");
+});

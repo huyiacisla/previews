@@ -171,6 +171,8 @@ function wearTheme(snap) {
 function wearInFrame(css) {
   try {
     if (window.parent === window) return;
+    // only the Resident portal around this page is dressed: in Staff's "Resident view" the page around it is Staff's own, which must keep its own look
+    if (!window.parent.location.pathname.startsWith("/resident/")) return;
     const pd = window.parent.document;
     let el = pd.getElementById("pm-theme");
     if (!css) return el?.remove();

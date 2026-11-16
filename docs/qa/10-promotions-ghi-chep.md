@@ -304,7 +304,7 @@ Cả sáu phần: `npm test` 495 test, 494 qua, 1 lỗi cũ của messaging-ui (
 Vòng 1 (Phần 1 đến 6) đã kiểm template, brand kit, tạo deal, claim, vòng đời, truy cập. Chưa kiểm luồng cốt lõi của mục tiêu: **Staff tự chỉnh trang bằng trình dựng rồi Resident thấy**. Mỗi phần xong thì 5 phút sau chạy phần kế (`[ ]` đầu tiên).
 
 - [x] **R2-1: Trình dựng → Resident.** Live editor: sửa chữ hero, đổi thứ tự khối, thêm khối (Featured, Coupon, FAQ), ẩn khối trên điện thoại, xoá khối; bản nháp so với đã công bố (Resident chỉ thấy khi Publish & set as current?); "Stop using" (Resident về diện mạo portal, không còn dấu vết theme); Customize một template thành "My creations" rồi Use; Resident đổi ngay không cần tải lại.
-- [ ] **R2-2: "Resident view" của Staff giống hệt Resident thật.** Công tắc Resident view ở trang Staff (khung nhúng): so thanh trên cùng, Saved, hero gộp, theme, My rewards, History ở 375/830/1440; cuộn hết trang; không còn điều khiển cũ.
+- [x] **R2-2: "Resident view" của Staff giống hệt Resident thật.** Công tắc Resident view ở trang Staff (khung nhúng): so thanh trên cùng, Saved, hero gộp, theme, My rewards, History ở 375/830/1440; cuộn hết trang; không còn điều khiển cũ.
 - [ ] **R2-3: Quét hình ảnh bố cục mới.** Thanh trên cùng gập một hàng, hero gộp, Saved, (i), hộp thoại: 375, 830, 1440 × sáng, tối × template Deals, Store, Luxury dark, Minimal mono; cuộn hết trang, chụp hai lần.
 - [ ] **R2-4: Việc còn mở.** Canvas trình dựng Staff cho giống Resident (đếm ngược và mã giảm giá nằm trong hero), "Scheduled" chọn được ngày bắt đầu, "Price / value" đổi giá trị giảm thật, thử lại lỗi claim Phần 4.
 - [ ] **R2-5: Tổng kết vòng 2.** Dọn dữ liệu, ghi tổng kết, hỏi push.
@@ -323,3 +323,18 @@ Không làm (ghi lại): hoạt ảnh khi cuộn, neo (`adv.id`), kiểu chữ r
 Test: `promotions-blocks.test.mjs` (7 test).
 
 Dọn dữ liệu: chữ hero trả về `{{offer}}`, template Deals "In use", `ST.off` false, snapshot `deals`.
+
+### R2-2 (xong): "Resident view" của Staff giống hệt Resident thật
+
+Cách làm: Staff (tab thứ hai, 1440) bật Resident view; đọc khung nhúng; so chữ ký trang (nút thanh trên cùng, chip, trang thiết kế, số đếm, thẻ đầu, ô tìm kiếm, tên người, danh sách hộp thoại) với trang Resident thật; bấm Phone, Tablet, Desktop; chụp màn hình.
+
+Chạy đúng: khung nhúng tải đúng tệp `/resident/promotions-content.html?embed=1` mà cổng Resident dùng nên **chữ ký hai bên giống từng chữ** (cùng thanh trên cùng, chip, hero gộp, 17 deal, "Alex Rivera", năm hộp thoại). Phone 390 (thanh 110px, 1 cột), Tablet 768 (thanh một hàng 86px, 2 cột), Desktop (3 cột).
+
+Lỗi tìm thấy và đã sửa:
+1. **Resident view làm Staff bị mặc theme của template.** Trang Resident nhúng chép bảng theme `pm-theme` vào "trang bao quanh". Ở cổng Resident đó là portal (đúng ý), nhưng ở Staff trang bao quanh là chính trang Staff: màu chính, màu nền, font của template đè lên giao diện Staff (`--primary` Staff đổi thành `#e11d48`) cho tới khi tải lại. Giờ chỉ trang bao quanh có đường dẫn `/resident/` mới được mặc theme; sau sửa Staff giữ `--primary` của mình.
+
+Chưa sửa: bấm Claim trong Resident view của Staff ghi claim thật cho Alex (dùng chung localStorage). Có thể là ý muốn (Staff thử luồng); ghi lại để người dùng quyết.
+
+Test: `promotions-blocks.test.mjs` (2 khẳng định mới).
+
+Dọn dữ liệu: không có dữ liệu mới; đóng tab Staff, bỏ giả lập màn hình.
