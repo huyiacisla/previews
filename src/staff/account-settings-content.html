@@ -8016,7 +8016,7 @@ html.dark .pmvs button[aria-checked="true"].pmvs-on{background:#14532d;color:#dc
 @media(min-width:1024px){.pmx .pr.l-grid.l-grid.l-grid:has(.pmv){grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:24px}}
 @media(min-width:1160px){.pmx .pr.l-grid.l-grid.l-grid:has(.pmv){grid-template-columns:repeat(4,minmax(0,1fr))!important}}
 .pmx .pr.l-carousel:has(.pmv)>.pd{flex:0 0 min(calc(100% - 32px),300px)!important;max-width:none}
-.pmx .pd.s-card:has(.pi .pmv){border:1px solid #e2e8f0;overflow:hidden;display:flex;flex-direction:column;height:100%}
+.pmx .pd.s-card:has(.pi .pmv){border:1px solid #e2e8f0;overflow:hidden;display:flex;flex-direction:column;align-self:stretch}
 html.dark .pmx .pd.s-card:has(.pi .pmv){border-color:var(--border)}
 /* [tier 1] cover 120px (140px on desktop), 12px padding: status badge top-left, icon buttons top-right */
 .pmx .pd.s-card:has(.pi .pmv) .pi{aspect-ratio:auto!important;height:120px!important;min-height:0!important;padding:12px!important;display:flex!important;align-items:flex-start!important;justify-content:flex-start;gap:8px}
@@ -8112,6 +8112,12 @@ html body .pmx .pm-bar2>.pmt>.pmt-v{order:4;flex:none!important;margin-left:auto
 }
 /* status tabs: one row that scrolls sideways (no orphan "Storage" on a second line) */
 @media(max-width:1100px){html body .pmx .pm-bar2>.pdtabs.pmtabs{flex-wrap:nowrap!important;overflow-x:auto!important;overflow-y:hidden!important;height:auto!important;scrollbar-width:none}html body .pmx .pm-bar2>.pdtabs.pmtabs::-webkit-scrollbar{display:none}html body .pmx .pm-bar2>.pdtabs.pmtabs button{flex:none;white-space:nowrap}}
+/* dark mode: a quiet scrollbar for the sideways rows (no bright track) */
+html.dark .pmx .pr.l-carousel,html.dark .pmx .pmtbl-w{scrollbar-color:#475569 transparent}
+html.dark .pmx .pr.l-carousel::-webkit-scrollbar-track,html.dark .pmx .pmtbl-w::-webkit-scrollbar-track{background:transparent}
+html.dark .pmx .pr.l-carousel::-webkit-scrollbar-thumb,html.dark .pmx .pmtbl-w::-webkit-scrollbar-thumb{background:#475569;border-radius:8px}
+/* dark mode: the pen on a card cover is not a white square */
+html.dark .pmx .pd .pi .pme{background:#1e293b;color:#e2e8f0;box-shadow:0 1px 3px rgba(0,0,0,.5)}
 </style>
 <script id="pmv-js">(function(){
 /* The on/off switch on a deal's card (Staff only). Off makes the deal a draft: residents do not see it, and it stays in Staff's list (Drafts). On publishes it.
