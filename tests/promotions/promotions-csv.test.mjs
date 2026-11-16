@@ -156,10 +156,16 @@ test("the Staff Claims inbox holds only real claims: no demo generator, old demo
   assert.ok(staff.includes('"Who viewed is not recorded."'));
 });
 
-test("Staff see who claimed and the whole unit: the claimant's unit is never cut to its first digit in the inbox, the lists or the exports", () => {
+test("Staff see who claimed: the unit is cut to its first character until the eye beside it is pressed (inbox row, claim detail, lookup, Claimed by list), then the whole unit and the resident id show", () => {
   const staff = readFileSync(new URL("../../src/staff/account-settings-content.html", import.meta.url), "utf8").replace(/\r\n/g, "\n");
-  assert.ok(staff.includes('const mask=c=>"Unit "+c.unit;'));
-  assert.ok(!/\.pv\s*==\s*["']all["']\s*\?[^;]{0,40}\+\s*["']••["']/.test(staff), "no claimant's unit is shortened any more");
-  assert.ok(!staff.includes("units are masked"));
-  assert.ok(staff.includes('<span>${mask(c)}${c.rid?" · "+H(c.rid):""}</span>'), "the claim's detail names the resident by id too");
+  assert.ok(staff.includes('const mask=c=>U.rev.has(c.id)?"Unit "+c.unit:"Unit "+String(c.unit||"").slice(0,1)+"••";'));
+  assert.ok(staff.includes("const eyeBtn=c=>") && staff.includes('data-cleye="${c.id}" aria-pressed="${on}"'), "an eye with a name and a pressed state");
+  assert.ok(staff.includes("<span>${mask(c)}${eyeBtn(c)} · ${ago(c.t)}</span>"), "on the inbox row");
+  assert.ok(staff.includes('<span>${mask(c)}${c.rid?" · "+(U.rev.has(c.id)?H(c.rid):"•••"):""}${eyeBtn(c)}</span>'), "in the claim detail, beside the unit line, with the resident id");
+  assert.ok(staff.includes("<span>${mask(c)}${eyeBtn(c)}</span><br>"), "in the Redeem lookup");
+  assert.ok(staff.includes('data-pweye aria-pressed="false"'), "in the Claimed by list");
+  assert.ok(staff.includes('if(b=g("data-cleye")){e.stopPropagation();'), "pressing the eye does not open the claim");
+  assert.ok(staff.includes(".cl-eye::after{content:\"\";position:absolute;inset:-10px}"), "24 px icon, 44 px to press");
+  assert.ok(!staff.includes("units are masked") && !staff.includes("Unit masked by resident privacy"));
+  assert.ok(/CLAIM_CSV_COLUMNS/.test(readFileSync(new URL("../../src/features/promotions/claims-csv.js", import.meta.url), "utf8")) && collectClaimRows(memory()).length === 0, "the CSV export keeps the whole unit (it is the sync file)");
 });
