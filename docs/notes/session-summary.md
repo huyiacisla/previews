@@ -10,8 +10,8 @@ Ngày: 2026-11-10 đến 2026-11-11. Giao diện sản phẩm chỉ có tiếng 
 ## 1. Những gì đã làm cho sản phẩm
 
 ### 1.1 Khung dùng chung cho cả ba portal (#28 đến #34, #37 đến #41, #44, #48 đến #53, #58, #59, #61)
-- Staff, Client, Resident dùng **một header và một sidebar** dựng từ khung Staff (`src/portal-frame.js`), điền menu, tên, tài khoản theo từng vai trò.
-- Hành vi thêm vào khung ở `src/portal-frame-extras.js`: lọc menu, giờ địa phương, chuông có số thật, tìm kiếm Ctrl/Cmd+K, ghim yêu thích, menu hồ sơ (trạng thái, thông báo trạng thái, thời hạn tự hết).
+- Staff, Client, Resident dùng **một header và một sidebar** dựng từ khung Staff (`src/shared/js/portal-frame.js`), điền menu, tên, tài khoản theo từng vai trò.
+- Hành vi thêm vào khung ở `src/shared/js/portal-frame-extras.js`: lọc menu, giờ địa phương, chuông có số thật, tìm kiếm Ctrl/Cmd+K, ghim yêu thích, menu hồ sơ (trạng thái, thông báo trạng thái, thời hạn tự hết).
 - Messages, Ticket box, Notifications, Settings, Promotions của Resident đều nằm trong khung; Back và mọi lối thoát đưa về trang thật của portal, giữ `?as=`.
 - Mỗi trang có **địa chỉ riêng như web** (`/staff/settings/profile`, `/client/workspace/billing`, `/resident/settings/personalize`…), bảng đối chiếu duy nhất ở `staff-routes.js`; địa chỉ cũ tự chuyển.
 - Header luôn một dòng ở 640 đến 880 px; nút cảm ứng có vùng chạm 44 px mà không đổi hình dáng; ngăn menu mobile cuộn đủ dài.
@@ -23,12 +23,12 @@ Ngày: 2026-11-10 đến 2026-11-11. Giao diện sản phẩm chỉ có tiếng 
 ### 1.3 Usage > Capacity (#64, #65)
 - Sidebar Client có nhóm **Usage** (dưới Services) với mục **Capacity** (`/client/usage/capacity.html`).
 - Trang dịch vụ để thêm: Parking spaces +$5, Resident accounts +$2, Staff members +$10, Document storage +20 GB giá $15 (đã gồm 10 GB), phiếu Add another property $25; có bộ +/−, thanh dùng, **máy tính tổng kết** như Budget planner (hiện tại $50.00, từng dòng thêm, tổng mới, ngân sách tuỳ chọn), hộp "Review & confirm" ghi vào Billing & Plan.
-- Quy tắc giá nằm ở `src/capacity/store.js` (10 test). Thẻ Capacity summary ở sidebar dùng số thật và có hàng Storage.
+- Quy tắc giá nằm ở `src/features/capacity/store.js` (10 test). Thẻ Capacity summary ở sidebar dùng số thật và có hàng Storage.
 
 ### 1.4 Documents (#64, #65)
 - `/client/documents.html`: tab theo loại, lọc property (có biểu tượng phễu), tìm, tài liệu hết hạn lên đầu, tải lên có kiểm tra, xoá có Undo, mức chia sẻ.
 - **Thanh dung lượng** (10 GB gồm sẵn, gần đầy từ 90%, đầy thì chặn tải lên và dẫn sang Capacity).
-- **Business W-9** là dòng bị khóa trong danh sách (Tax forms); mở bằng **Document secret key** (tự tạo mỗi lần, dùng một lần, hiệu lực ngắn, 5 lần sai thì tạo key mới), có thêm PIN 6 số hoặc mật khẩu do doanh nghiệp đặt. Quy tắc ở `src/documents/store.js` (14 test).
+- **Business W-9** là dòng bị khóa trong danh sách (Tax forms); mở bằng **Document secret key** (tự tạo mỗi lần, dùng một lần, hiệu lực ngắn, 5 lần sai thì tạo key mới), có thêm PIN 6 số hoặc mật khẩu do doanh nghiệp đặt. Quy tắc ở `src/features/documents/store.js` (14 test).
 
 ### 1.5 Notifications, Ticket box, Messages (#19 đến #20, #42 đến #47, #49)
 - Trang **Notifications** riêng cho cả ba vai trò: tìm kiếm, tab All/Unread/Read, bộ lọc gom trong nút Filters, Mark all as read có Undo, "Showing N of M"; chuông đếm từ dữ liệu thật.
@@ -44,7 +44,7 @@ Ngày: 2026-11-10 đến 2026-11-11. Giao diện sản phẩm chỉ có tiếng 
 - `/staff/social.html`, cùng một bộ mã với Resident (`data-portal`), có ô "Start a discussion…", Needs reply, Your announcements, mute thread. Dữ liệu dùng chung với Resident, bài "Staff only" không lọt sang cư dân (có test).
 
 ### 1.8 Cá nhân hóa (#11, #26, #36)
-- `src/look-prefs.js` biến lựa chọn Text, Buttons, Cards, Gestures, Clock, Favorites thành một stylesheet nhỏ; trang chưa ai tùy chỉnh thì không đổi gì.
+- `src/shared/js/look-prefs.js` biến lựa chọn Text, Buttons, Cards, Gestures, Clock, Favorites thành một stylesheet nhỏ; trang chưa ai tùy chỉnh thì không đổi gì.
 - Resident có Higher contrast và Reduce motion.
 
 ---
@@ -89,6 +89,6 @@ Ngày: 2026-11-10 đến 2026-11-11. Giao diện sản phẩm chỉ có tiếng 
 ## 5. Ràng buộc đang áp dụng
 
 - Trả lời bằng tiếng Việt; giao diện sản phẩm chỉ tiếng Anh.
-- Mọi lỗi hoặc quyết định đều ghi vào `docs/issue-log.md`.
+- Mọi lỗi hoặc quyết định đều ghi vào `docs/qa/issue-log.md`.
 - Không commit khi chưa được yêu cầu.
 - Bạn đã từ chối truy cập `staff.easyspotops.com`; không thử lại. Không thao tác trong tab trình duyệt của bạn.

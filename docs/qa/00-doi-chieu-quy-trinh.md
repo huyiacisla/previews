@@ -10,7 +10,7 @@ Việc kiểm thử đã làm tới nay **chưa đúng quy trình này**. Đã c
 
 | Bước | Tài liệu yêu cầu | Hiện trạng | Đúng quy trình? |
 |---|---|---|---|
-| Prompt 0 — Khảo sát | Đọc toàn bộ mã và cấu trúc dữ liệu, lập bảng trang, bảng dữ liệu, luồng, CRUD, điểm mù, câu hỏi. Chủ dự án duyệt | Chưa có bản đồ nào bằng văn bản. Hiểu biết về hệ thống nằm rải trong `docs/issue-log.md` và mã | **Chưa.** Đang làm ở lượt này: `docs/qa/01-ban-do-he-thong.md` |
+| Prompt 0 — Khảo sát | Đọc toàn bộ mã và cấu trúc dữ liệu, lập bảng trang, bảng dữ liệu, luồng, CRUD, điểm mù, câu hỏi. Chủ dự án duyệt | Chưa có bản đồ nào bằng văn bản. Hiểu biết về hệ thống nằm rải trong `docs/qa/issue-log.md` và mã | **Chưa.** Đang làm ở lượt này: `docs/qa/01-ban-do-he-thong.md` |
 | Prompt 1 — Tiêu chí | Bảng tiêu chí có ID (F, D, U, X, S), trả lời được Có/Không, có cách kiểm, có mức độ | Chưa có. Có 297 test tự động nhưng chúng không được đánh số theo tiêu chí và không phủ đủ 6 nhóm cho mỗi tính năng | **Chưa** |
 | Prompt 2 — Chức năng | Mở trình duyệt thật, chạy từng tiêu chí F, thử phá (bấm 2 lần, Refresh/Back, 2 tab, 5.000 ký tự, mạng chậm) | Đã bấm thật một số luồng (Messages, Ticket box, Social, Admin, Notifications). Phần lớn còn lại kiểm bằng test ở tầng dữ liệu. Chưa thử 5.000 ký tự trên giao diện, mạng chậm, mất mạng | **Một phần**, không theo tiêu chí |
 | Prompt 3 — Database | Sáu lớp: thiết kế, CRUD, chất lượng dữ liệu, đồng thời, bền vững, sao lưu | Dữ liệu là `localStorage`, **không phải database thật** (tài liệu yêu cầu ghi rõ điều này). Có test cho quyền, trùng số ticket, hai tab ghi cùng lúc. Chưa có kiểm tra sao lưu/khôi phục, chưa có "query" chạy định kỳ | **Một phần** |

@@ -17,11 +17,11 @@ Thêm trang mới được (tạo `src/<portal>/<tên>.html`, thêm link ở `sr
 | Được | Không được |
 |---|---|
 | Sửa HTML + class Tailwind; tạo `*.v2.html` | Ghi đè trang gốc |
-| Dùng token trong `src/ui-tokens.css` (màu, cỡ chữ, spacing, radius) | Tự khai màu/cỡ chữ hex/px riêng |
+| Dùng token trong `src/shared/css/ui-tokens.css` (màu, cỡ chữ, spacing, radius) | Tự khai màu/cỡ chữ hex/px riêng |
 | Đề xuất token mới: ghi rõ lý do trong ghi chú | Thêm thư viện, framework, JS (ngoài `preview.js`) |
 | Dùng icon dạng SVG inline (bộ Lucide) | Dùng dữ liệu thật/PII, gọi API |
 
-> Ngoại lệ đã quyết (2026-11-13): dự án dùng **Alpine.js** cho phần tương tác và chuyển dần các trang sang nó. Cách viết và thứ tự ở `docs/alpine-migration.md`. Không thêm thư viện nào khác.
+> Ngoại lệ đã quyết (2026-11-13): dự án dùng **Alpine.js** cho phần tương tác và chuyển dần các trang sang nó. Cách viết và thứ tự ở `docs/design/alpine-migration.md`. Không thêm thư viện nào khác.
 
 ## Yêu cầu chất lượng
 - Có đủ **sáng + tối** (`?dark`); chữ đạt tương phản AA.

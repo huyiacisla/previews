@@ -9,7 +9,7 @@ Quyết định ngày 2026-11-13: dự án dùng **Alpine.js** (bản 3.17.5) v�
 2. **Logic test được thì ở tệp thuần** (không DOM): kho dữ liệu, phép tính, câu chữ, thứ tự, đường dẫn. Ví dụ `admin/overview.js` có `adminOverview` (số liệu) và `adminView` (những gì trang vẽ). `node --test` không cần Alpine.
 3. **Component chỉ nối hai phần**: đọc kho, giữ kết quả cho partial đọc, đọc lại khi kho đổi. Ví dụ `admin/dashboard.js`.
 4. **Kho dữ liệu để ngoài component** (biến của module), không đặt vào dữ liệu của Alpine: Alpine bọc mọi thứ trong dữ liệu bằng Proxy, làm chậm và có thể làm hỏng kho.
-5. **Một Alpine cho mỗi trang**, khởi động một lần qua `src/alpine.js` (`component(name, factory)` rồi `start()`), sau khi trang đã đăng ký component và đặt gốc vào đúng chỗ.
+5. **Một Alpine cho mỗi trang**, khởi động một lần qua `src/shared/js/alpine.js` (`component(name, factory)` rồi `start()`), sau khi trang đã đăng ký component và đặt gốc vào đúng chỗ.
 6. **`x-cloak`** trên gốc của component để không nháy khuôn rỗng (`styles.css` có quy tắc ẩn).
 7. **Ẩn hiện bằng `:hidden="!(điều kiện)"`, không dùng `x-show`.** `x-show` chờ một khung hình rồi mới ẩn hay hiện: trong tab chạy nền nó trễ, và việc chuyển tiêu điểm ngay sau khi mở (ví dụ mở bảng Filters rồi đưa con trỏ vào ô đầu tiên) rơi vào phần tử còn đang ẩn. `:hidden` đổi ngay trong cùng lượt, và preflight của Tailwind đã cho `[hidden]` thắng mọi class `flex`/`grid`.
 8. Giữ nguyên các yêu cầu cũ: token của thiết kế, `aria-*`, bàn phím, vùng chạm, "cấu hình" 375 / 830 / 1440 sáng và tối.
@@ -18,7 +18,7 @@ Quyết định ngày 2026-11-13: dự án dùng **Alpine.js** (bản 3.17.5) v�
 
 - Test logic chạy trong Node cho phần "những gì trang vẽ".
 - Mở trên trình duyệt: không lỗi console, số liệu đúng, cập nhật trực tiếp, cấu hình ba cỡ.
-- Một dòng trong `docs/issue-log.md` và cập nhật bảng dưới đây.
+- Một dòng trong `docs/qa/issue-log.md` và cập nhật bảng dưới đây.
 
 ## Thứ tự và trạng thái
 

@@ -12,7 +12,7 @@ Trang Messages riêng cho Resident, Staff, Client, Admin, dùng chung **một l�
 | Client | `/client/messages.html` |
 | Admin (Messaging & Support) | `/admin/messages.html` |
 
-- Trong sidebar của 4 dashboard, mục **Messages** (Admin: **Messaging & Support**) là link thật tới trang riêng. Dashboard là bản chụp nên **HTML gốc không bị sửa**; `src/preview.js` nối lại `href` của đúng mục đó (các mục khác vẫn là `#`).
+- Trong sidebar của 4 dashboard, mục **Messages** (Admin: **Messaging & Support**) là link thật tới trang riêng. Dashboard là bản chụp nên **HTML gốc không bị sửa**; `src/shared/js/preview.js` nối lại `href` của đúng mục đó (các mục khác vẫn là `#`).
 - **Nút Back** (đầu trang): quay về đúng dashboard bằng `history.back()` (nếu trang trước cùng origin) hoặc đi tới dashboard của portal (mở thẳng bằng URL). `preview.js` còn nhớ và khôi phục vị trí cuộn của dashboard khi quay lại.
 - Trên điện thoại (<1024px) danh sách và khung chat là hai màn, mở một cuộc dùng `history.pushState` (`#/c/<id>`): Back đi **chat → danh sách → dashboard**. Desktop hiện hai khung cùng lúc.
 - Đổi người xem trong cùng vai trò bằng `?as=<id>` (ví dụ `?as=stf-2`), chế độ tối bằng `?dark`. Hộp **Preview tools** (nút trên đầu trang) đổi người, mở portal khác, giả lập mất kết nối, đặt lại dữ liệu.
@@ -53,7 +53,7 @@ Trang Messages riêng cho Resident, Staff, Client, Admin, dùng chung **một l�
 
 - **Bấm vào tin (hoặc rê chuột trên máy tính) để hiện giờ, trạng thái và các nút hành động**; mặc định ẩn để bong bóng gọn. Thanh chỉ có **React, Reply, Forward** và nút ba chấm **More actions**; menu ba chấm có **Copy text, Edit message, Unsend for everyone, Delete for me** (Esc đóng, mũi tên chọn). Edit và Unsend chỉ trong 15 phút nhưng **luôn hiện**: quá hạn thì mờ đi (lý do "Only within 15 minutes of sending" hiện khi rê chuột, không in thành dòng chữ trong menu) để không ai tưởng là thiếu chức năng. Con số 15 phút là hằng số tuỳ chọn `editMs`/`unsendMs`, chưa được duyệt: đổi hoặc bỏ giới hạn thì sửa một dòng. **Delete for me** (`store.hideMessage`, lưu trong `prefs.hidden`) ẩn tin khỏi góc nhìn của riêng bạn, không giới hạn thời gian; người khác vẫn thấy.
 - **Forward**: gửi bản sao tin (kèm tệp) vào một cuộc trò chuyện khác mà bạn được nhắn (`store.forward`, `forwardTargets`); tin đến có nhãn "Forwarded". Resident không chuyển tiếp; thông báo chung, cuộc đã đóng, tin đã thu hồi và tin của trợ lý không chuyển tiếp được. Hiện bằng `data-reveal` trên từng tin, không dựng lại danh sách. Tin cuối của mình luôn hiện trạng thái gửi.
-- **Emoji** (bảng gọn rộng cố định 320px, 8 cột đều nhau, hàng tab danh mục có gạch chân; không giãn hết chiều ngang): bộ riêng trong `src/messaging/emoji.js` (ký tự Unicode chuẩn, không chép tài nguyên của trang nào), có tìm kiếm, nhóm theo chủ đề, mục gần đây (lưu cục bộ), 6 phản ứng nhanh. Phản ứng hiện thành chip dưới tin, bấm để thêm/bỏ.
+- **Emoji** (bảng gọn rộng cố định 320px, 8 cột đều nhau, hàng tab danh mục có gạch chân; không giãn hết chiều ngang): bộ riêng trong `src/features/messaging/emoji.js` (ký tự Unicode chuẩn, không chép tài nguyên của trang nào), có tìm kiếm, nhóm theo chủ đề, mục gần đây (lưu cục bộ), 6 phản ứng nhanh. Phản ứng hiện thành chip dưới tin, bấm để thêm/bỏ.
 - **Đính kèm**: tối đa 4 tệp/tin; ảnh được thu nhỏ trong trình duyệt (cạnh dài ≤1280px, JPEG) và tệp ≤450 KB sau xử lý; PDF/TXT/CSV nhận nguyên bản. Kéo-thả, dán ảnh và nút kẹp giấy đều dùng được; bấm ảnh mở xem lớn (lightbox). Chỉ nhận `data:` URL, ảnh phải là `data:image/`.
 - **Sửa tin** (nút bút chì, chỉ tin chữ của mình, trong 15 phút, `CONFIG.editMs`): ô soạn chuyển sang chế độ "Editing message" (nút Save, Esc hoặc dấu x để hủy và trả lại bản nháp cũ). Cả hai bên thấy nhãn **Edited**; bản cũ không được giữ. Tin của trợ lý, tin chọn nhanh, tin chỉ có tệp và tin đã thu hồi không sửa được.
 - **Ghim, đánh dấu quan trọng, tắt tiếng** (menu ba chấm ở góc phải đầu cuộc trò chuyện, và nút ba chấm hiện khi rê chuột/focus trên từng hàng danh sách; mỗi người một riêng, lưu trong `prefs`). Trạng thái hiện bằng **biểu tượng nhỏ, không chữ**, dưới tiêu đề và trên hàng danh sách: **cờ đỏ** = Important (`important`), **ghim** = Pinned, **chuông gạch chéo** = Muted. Chưa bật thì không hiện gì (không có cờ trống). Cuộc ghim nổi lên đầu danh sách; cuộc tắt tiếng không cộng vào số chưa đọc trên tab/badge nhưng vẫn hiện số trên hàng của nó.
@@ -76,12 +76,12 @@ Nút "Open navigation" của 4 dashboard mở sidebar có sẵn dưới dạng n
 
 ## Kết nối
 
-`src/messaging/transport.js`: một tài liệu trạng thái dùng chung, lưu trong `localStorage`, đồng bộ giữa các tab cùng trình duyệt bằng `BroadcastChannel` (dự phòng: sự kiện `storage`). Ghi theo **compare-and-set** trên `rev`, nên hai tab ghi cùng lúc không đè mất tin. `store.js` không biết gì về nơi lưu: muốn nối app thật, thay `transport.js` bằng bản có cùng bốn hàm (`read`, `update`, `onChange`, `info`) gọi WebSocket/API.
+`src/features/messaging/transport.js`: một tài liệu trạng thái dùng chung, lưu trong `localStorage`, đồng bộ giữa các tab cùng trình duyệt bằng `BroadcastChannel` (dự phòng: sự kiện `storage`). Ghi theo **compare-and-set** trên `rev`, nên hai tab ghi cùng lúc không đè mất tin. `store.js` không biết gì về nơi lưu: muốn nối app thật, thay `transport.js` bằng bản có cùng bốn hàm (`read`, `update`, `onChange`, `info`) gọi WebSocket/API.
 
 ## Tệp
 
 ```
-src/messaging/   store.js, transport.js, bot.js, personas.js, format.js, emoji.js (lõi, không chạm DOM)
+src/features/messaging/   store.js, transport.js, bot.js, personas.js, format.js, emoji.js (lõi, không chạm DOM)
                  app.js, boot.js, hub.js (giao diện)
 src/partials/messages-app.html   khung + mọi <template> (nơi duy nhất chứa class Tailwind)
 src/{resident,staff,client,admin}/messages.html, src/messages/index.html
@@ -99,17 +99,17 @@ tests/messaging.test.mjs         42 test cho lõi: npm test
 
 ## Ngoại lệ so với BRIEF.md
 
-BRIEF cấm thêm JS ngoài `preview.js`. Messages "hoạt động thật" cần JS, nên có hai ngoại lệ có chủ đích: thư mục `src/messaging/` (không thư viện ngoài) và đoạn nối link Messages + khôi phục cuộn trong `preview.js`. Cùng lý do với `account-settings.quality.js`.
+BRIEF cấm thêm JS ngoài `preview.js`. Messages "hoạt động thật" cần JS, nên có hai ngoại lệ có chủ đích: thư mục `src/features/messaging/` (không thư viện ngoài) và đoạn nối link Messages + khôi phục cuộn trong `preview.js`. Cùng lý do với `account-settings.quality.js`.
 
 ## Theo checklist PDF (khẩn cấp, vòng đời ticket, audit, tìm kiếm, ngoại tuyến)
 
-Bảng đối chiếu từng mục nằm ở `docs/checklist-conformance.md`. Tóm tắt các tính năng thêm từ checklist:
+Bảng đối chiếu từng mục nằm ở `docs/qa/checklist-conformance.md`. Tóm tắt các tính năng thêm từ checklist:
 
 - **Khẩn cấp**: nút cảnh báo trong ô soạn (Resident, Staff, Admin). Tin khẩn cấp có viền đỏ, nền đỏ nhạt, nhấp nháy tới khi có người xác nhận. Resident báo khẩn thì bỏ qua trợ lý và vào hàng chờ ngay, xếp đầu danh sách. Staff/Admin thấy banner đỏ trên cùng (`role="alert"`) với nút **Acknowledge**. Vượt qua Do Not Disturb, tắt tiếng và giới hạn "một ghi chú tới khi trả lời". Sau 180 giây chưa xác nhận: thẻ audit "SMS and critical alert sent (simulated)" (`CONFIG.emergencySmsMs`, xử lý trong `tick()`).
 - **Vòng đời ticket**: Open → In progress → Waiting on resident → Resolved → Closed (`ticketStage`, `setTicketState`). Resident trả lời thì tự về In progress.
 - **Thẻ audit** (`audit()` trong `store.js`): "Status: Open → In progress", người thực hiện kèm ID, giờ ISO UTC. Có cho trạng thái ticket, ưu tiên, người phụ trách, trạng thái support, xác nhận khẩn cấp, leo thang. Không hiện làm xem trước trong danh sách, không tính chưa đọc, không ẩn hay sửa được.
 - **Thông báo**: người gửi/Admin thấy "% read (x of y)" và tên người chưa đọc (`get().ack`).
-- **Tìm kiếm có cấu trúc** (`src/messaging/query.js`): `unit:`, `status:`, `priority:`, `assignee:`, `tag:`, `after:`, `before:`, cụm trong ngoặc kép; nút "+ unit"… và chip bỏ từng bộ lọc. Ctrl/Cmd+K tới ô tìm, Alt+N mở thread chưa đọc kế tiếp (khẩn cấp, quan trọng, mới nhất), Esc đóng menu.
+- **Tìm kiếm có cấu trúc** (`src/features/messaging/query.js`): `unit:`, `status:`, `priority:`, `assignee:`, `tag:`, `after:`, `before:`, cụm trong ngoặc kép; nút "+ unit"… và chip bỏ từng bộ lọc. Ctrl/Cmd+K tới ô tìm, Alt+N mở thread chưa đọc kế tiếp (khẩn cấp, quan trọng, mới nhất), Esc đóng menu.
 - **Ngoại tuyến**: tin gửi khi mất mạng nằm trong thread mờ 50% kèm đồng hồ, lưu trong `localStorage` (thay IndexedDB), tự gửi lại theo 1, 2, 4, 8, 16, 30 giây và gửi ngay khi mạng về.
 - **Panel chi tiết cột 3** (`store.contextFor`, `renderContext` trong `app.js`): Staff/Admin thấy hồ sơ resident, căn hộ, hợp đồng, công nợ, ghi chú vào nhà, 5 ticket gần nhất và hành động nhanh; cuộc khác thì hiện người tham gia. Từ 1280px là cột thứ ba (`#view-app[data-context=open]`), hẹp hơn là ngăn kéo bên phải; mặc định mở trên màn rộng, nhớ lựa chọn, Esc đóng. Dữ liệu hợp đồng/công nợ là dữ liệu mẫu trong `personas.js`.
 - **Màu vai trò** bằng token (Resident xám, Staff hổ phách, Admin xanh chàm, Client lục), **bottom sheet** cho hộp thoại dưới 640px, **chế độ tương phản cao** (Preview tools hoặc `?contrast`), ảnh nén 1920px WebP ~300KB.
@@ -118,7 +118,7 @@ Bảng đối chiếu từng mục nằm ở `docs/checklist-conformance.md`. T�
 
 Nơi lưu mọi cuộc hội thoại đã trở thành ticket, kể cả sau khi đóng, để đọc lại, tìm và xuất.
 
-- **Lối vào**: mục **Ticket box** (kèm số ticket đang mở) là mục cuối của nhóm **Services** trong sidebar 4 dashboard (`src/preview.js`). Staff đã có nhóm Services (sau Audit Log); Client, Admin và Resident chưa có nên preview **tạo nhóm Services mới** (nhân bản một nhóm sẵn có, đặt trước nhóm cuối) chỉ chứa Ticket box. Mở `/<portal>/tickets.html`. Trong Messages, cuộc đã đóng hiện dòng "Saved as T-… in the Ticket box" kèm nút mở.
+- **Lối vào**: mục **Ticket box** (kèm số ticket đang mở) là mục cuối của nhóm **Services** trong sidebar 4 dashboard (`src/shared/js/preview.js`). Staff đã có nhóm Services (sau Audit Log); Client, Admin và Resident chưa có nên preview **tạo nhóm Services mới** (nhân bản một nhóm sẵn có, đặt trước nhóm cuối) chỉ chứa Ticket box. Mở `/<portal>/tickets.html`. Trong Messages, cuộc đã đóng hiện dòng "Saved as T-… in the Ticket box" kèm nút mở.
 - **Cái gì là ticket**: chat resident đã tới đội (có `queuedAt`) và mọi thread Support. Chat chỉ do trợ lý trả lời không thành ticket. Số hiệu liên tiếp `T-1081`, `T-1082`… (`conv.ticketNo`, bộ đếm `ticketSeq`), được cấp lúc vào hàng chờ hoặc lúc tạo yêu cầu Support.
 - **Ai thấy gì** (`store._ticketAccess`, chỉ đọc): Resident thấy ticket của mình; Staff thấy mọi ticket resident và Support do mình gửi; Admin thấy mọi Support; Client thấy Support của mình. Staff đọc được ticket đã đóng của đồng nghiệp (kho lưu của đội), Admin không thấy ticket resident.
 - **Trang**: danh sách bên trái (tab Open / Closed / All có số, ô tìm hỗ trợ cú pháp `unit:`, `status:`, `priority:`, `assignee:`, `tag:`, `after:`, `before:` và tìm cả trong nội dung hội thoại), bản ghi bên phải: số ticket, trạng thái, người yêu cầu, căn hộ, người phụ trách, thời điểm mở/đóng, thời gian xử lý, đánh giá, ưu tiên, rồi toàn bộ hội thoại **chỉ đọc** theo dạng bản ghi (không phải bong bóng chat): tên, vai trò, giờ, nội dung, tệp đính kèm tải về được, ghi chú hệ thống và thẻ audit.
@@ -140,7 +140,7 @@ Nơi lưu mọi cuộc hội thoại đã trở thành ticket, kể cả sau khi
 
 ## Phạm vi demo: logic tính năng nằm ở frontend (đã chốt)
 
-Đã thống nhất: để **đủ demo**, mọi logic tính năng chạy ở FE (`src/messaging/store.js`, thuần JS, có test). Không có server. Khi port sang app thật, đây là phần phải chuyển sang backend:
+Đã thống nhất: để **đủ demo**, mọi logic tính năng chạy ở FE (`src/features/messaging/store.js`, thuần JS, có test). Không có server. Khi port sang app thật, đây là phần phải chuyển sang backend:
 
 | Việc | Hiện ở FE | App thật cần |
 |---|---|---|

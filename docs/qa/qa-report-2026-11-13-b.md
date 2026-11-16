@@ -20,7 +20,7 @@ Kết quả chung: 289 test tự động đạt (thêm 20 test trong lượt nà
 
 | # | Mục | Cách kiểm | Kết quả |
 |---|---|---|---|
-| 1 | Quy trình và cấu hình | Quét 49 trang; header Admin đo ở 375 và 600; dashboard Admin ở 360 đến 1920 (lượt trước) | Đạt. Chi tiết cấu hình ở `docs/device-sizes.md` |
+| 1 | Quy trình và cấu hình | Quét 49 trang; header Admin đo ở 375 và 600; dashboard Admin ở 360 đến 1920 (lượt trước) | Đạt. Chi tiết cấu hình ở `docs/design/device-sizes.md` |
 | 2 | Các phần đã tạo liên kết với nhau | Quét mọi thẻ `<a>` của 49 trang (trang ngoài và khung nhúng), tải thử 67 địa chỉ nội bộ | 0 liên kết hỏng, 0 trang rơi về trang mục lục, 0 lỗi script |
 | 3 | Mở link rồi Back về đúng trang | Test `back-target` (Settings, cả Admin) và test mới cho `exit-target` (Messages, Ticket box, Social, Promotions) | Đạt: về đúng trang đã đến từ; mở trực tiếp thì về trang chủ của cổng |
 | 4 | Settings đã đủ chưa | Đọc danh sách mục của từng cổng trên trang thật | Staff 10 mục, Client 9, Resident 9, Admin 9 (bảng ở mục 3) |
@@ -28,7 +28,7 @@ Kết quả chung: 289 test tự động đạt (thêm 20 test trong lượt nà
 | 6 | Tin nhắn theo cặp và lịch sử ticket | Test mới `tests/e2e-flows.test.mjs` (7 test) | Đạt, xem mục 2 |
 | 7 | Sửa lỗi | Xem mục 4 | 5 lỗi đã sửa |
 | 8 | Settings và Workspace của Staff và Client | Đọc danh sách trên trang thật | Staff Workspace 7 mục, Client Workspace 12 mục |
-| 9 | Ghi chép | Tệp này và `docs/issue-log.md` #112 | Xong |
+| 9 | Ghi chép | Tệp này và `docs/qa/issue-log.md` #112 | Xong |
 
 ## 2. Tin nhắn theo cặp và lịch sử ticket
 

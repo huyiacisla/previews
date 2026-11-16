@@ -141,7 +141,7 @@ Các app toàn màn hình (Messages, Ticket box, Social, Promotions) có header 
 9. Địa chỉ không đuôi mà không có tệp tương ứng (`/staff/settings`, `/client/usage`…) rơi về trang mục lục (suy từ cấu hình Vite, chưa chạy). Trong bản build, địa chỉ không đuôi không được xử lý.
 10. Phần tĩnh trong bản chụp không có mã nối: ô search của Admin; "Open Property Hub", "Show Switch Property" của Staff; nút nổi "AI Work Assistant", "AI Operations Assistant", "Notifications alt+T"; nút "Refresh"; nút trong thẻ Capacity của Resident.
 11. Menu của prototype có "Import Center" và "Updates & Recovery" mà sidebar chụp của Staff không có (chỉ thấy khi mở trang prototype trực tiếp).
-12. Tệp lạ: `src/resident/promotions.html` và `src/resident/settings.html` có BOM ở đầu. Ngoài `src/`: `.claude/settings.local.json.bak`, `easyspotops-2026-11-13.zip`, thư mục `_archive/`, `dist/`.
+12. Tệp lạ: `src/resident/promotions.html` và `src/resident/settings.html` có BOM ở đầu. Ngoài `src/`: `.claude/settings.local.json.bak`, `easyspotops-2026-11-13.zip`, thư mục `docs/archive/`, `dist/`.
 13. Client và Resident phụ thuộc tệp Staff lúc chạy: mọi trang khung của hai cổng fetch `/staff/dashboard.html`.
 
 ## 5. Câu hỏi của phiên khảo sát
@@ -153,4 +153,4 @@ Các app toàn màn hình (Messages, Ticket box, Social, Promotions) có header 
 5. Địa chỉ không đuôi (`/staff/workspace`) có phải lối vào chính thức?
 6. Danh sách phần (hash) của prototype chỉ suy từ `staff-routes.js`; có thể còn phần khác chưa liệt kê.
 7. `/client/tickets.html?new=1`: thấy nơi đặt tham số, chưa xác minh nơi đọc.
-8. Các tệp ngoài `src/` (`_archive/`, zip, `dist/`) có thuộc phạm vi bản đồ không?
+8. Các tệp ngoài `src/` (`docs/archive/`, zip, `dist/`) có thuộc phạm vi bản đồ không?

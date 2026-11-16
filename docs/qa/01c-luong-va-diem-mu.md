@@ -4,7 +4,7 @@ Khảo sát chỉ đọc mã, ngày 2026-11-13. Chưa chạy thử.
 ## 0. Phạm vi và cách đọc tài liệu này
 
 - Không mở trình duyệt, không chạy test, không sửa mã. Mọi nhận định lấy từ mã; chỗ nào là suy ra từ mã mà chưa kiểm trên trình duyệt thì có ghi "suy ra từ mã".
-- Messages và Ticket box: đọc trực tiếp toàn bộ `src/messaging/store.js`, `tickets.js`, `bot.js`, `query.js`, `transport.js`, `personas.js` và phần lớn `app.js`. Chưa đọc kỹ `app.js` dòng 120-230 (widget nhỏ), 1220-1336 (vẽ chữ, ảnh, reaction, trích dẫn), 1900-1985 (bảng emoji, dòng "đang gõ").
+- Messages và Ticket box: đọc trực tiếp toàn bộ `src/features/messaging/store.js`, `tickets.js`, `bot.js`, `query.js`, `transport.js`, `personas.js` và phần lớn `app.js`. Chưa đọc kỹ `app.js` dòng 120-230 (widget nhỏ), 1220-1336 (vẽ chữ, ảnh, reaction, trích dẫn), 1900-1985 (bảng emoji, dòng "đang gõ").
 - Social, Notifications, Promotions, Documents, Capacity, Admin, Settings, khung portal và điều hướng: do ba lượt khảo sát phụ đọc; số dòng trong các phần đó chưa được đối chiếu lại từng dòng.
 - `src/staff/account-settings-content.html` (1,3 MB) và các dashboard chụp chỉ được tìm kiếm và đọc theo đoạn.
 - Mọi test trong `tests/` chạy bằng `node --test` trên store và logic thuần. Không file test nào import `messaging/app.js`, `messaging/tickets.js`, `social/resident.js`, `preview.js` hay dùng DOM.
@@ -13,24 +13,24 @@ Viết tắt đường dẫn (tính từ gốc dự án):
 
 | Viết tắt | File |
 |---|---|
-| MS | `src/messaging/store.js` |
-| MA | `src/messaging/app.js` |
-| MT | `src/messaging/tickets.js` |
-| SR | `src/social/resident.js` |
-| SS | `src/social/store.js` |
-| SF | `src/social/staff-store.js` |
-| SM | `src/social/moderation.js` |
+| MS | `src/features/messaging/store.js` |
+| MA | `src/features/messaging/app.js` |
+| MT | `src/features/messaging/tickets.js` |
+| SR | `src/features/social/resident.js` |
+| SS | `src/features/social/store.js` |
+| SF | `src/features/social/staff-store.js` |
+| SM | `src/features/social/moderation.js` |
 | SH | `src/partials/social-app.html` |
 | PROTO | `src/staff/account-settings-content.html` |
 | STAFFJS | `src/staff/account-settings.staff.js` |
-| PREVIEW | `src/preview.js` |
-| FRAME | `src/portal-frame.js` |
-| EXTRAS | `src/portal-frame-extras.js` |
+| PREVIEW | `src/shared/js/preview.js` |
+| FRAME | `src/shared/js/portal-frame.js` |
+| EXTRAS | `src/shared/js/portal-frame-extras.js` |
 | CW | `src/staff/client-workspace.js` |
 | DK | `src/staff/dockey-settings.js` |
-| ROUTES | `src/staff-routes.js` |
+| ROUTES | `src/shared/js/staff-routes.js` |
 
-Persona demo (`src/messaging/personas.js:11-22`): Resident `res-1` Alex Rivera, `res-2` Priya Nair, `res-3` Morgan Ellis; Staff `stf-1` Jordan Lee, `stf-2` Sam Okafor; Client `cli-1` Dana Whitfield, `cli-2` Marcus Cole; Admin `adm-1` Taylor Brooks, `adm-2` Casey Ng. `pickPersona(role, asId)` chỉ nhận `?as=` khi id đúng vai (`personas.js:29-33`).
+Persona demo (`src/features/messaging/personas.js:11-22`): Resident `res-1` Alex Rivera, `res-2` Priya Nair, `res-3` Morgan Ellis; Staff `stf-1` Jordan Lee, `stf-2` Sam Okafor; Client `cli-1` Dana Whitfield, `cli-2` Marcus Cole; Admin `adm-1` Taylor Brooks, `adm-2` Casey Ng. `pickPersona(role, asId)` chỉ nhận `?as=` khi id đúng vai (`personas.js:29-33`).
 
 ---
 
@@ -45,9 +45,9 @@ Tổng cộng 67 luồng. Số luồng mỗi portal tham gia:
 | Client | 11 | 4 | 0 | 3 | 0 | 3 | 3 | 0 | 7 | 31 |
 | Admin | 14 | 4 | 0 | 3 | 0 | 0 | 2 | 1 | 6 | 30 |
 
-### 1.1 Messages (`/<portal>/messages.html`, `src/messaging/app.js`)
+### 1.1 Messages (`/<portal>/messages.html`, `src/features/messaging/app.js`)
 
-Dữ liệu: một tài liệu JSON ở khóa `eso-msg-v1`, đồng bộ giữa các tab bằng BroadcastChannel và sự kiện `storage`, ghi theo compare-and-set trên `rev` (`src/messaging/transport.js:30, 118-138`). Presence và typing ở khóa `eso-msg-v1:live` (`transport.js:68`).
+Dữ liệu: một tài liệu JSON ở khóa `eso-msg-v1`, đồng bộ giữa các tab bằng BroadcastChannel và sự kiện `storage`, ghi theo compare-and-set trên `rev` (`src/features/messaging/transport.js:30, 118-138`). Presence và typing ở khóa `eso-msg-v1:live` (`transport.js:68`).
 
 **M1. Resident ↔ Staff qua trợ lý (Resident, Staff)**
 1. Resident mở Messages → `boot()` gọi `store.ensureSession` (MA:2286-2289 → MS:418-427): dùng lại phiên đang mở hoặc tạo phiên `resident_support` trạng thái `bot` với hai câu chào (`newBotSession`, MS:398-405; `greeting`, `bot.js:53-58`).
@@ -115,7 +115,7 @@ Admin "New" → chọn Resident → `startDirect` (`outreach: true`). Resident k
 5. Quá 180 giây chưa xác nhận: `tick` ghi `smsAt` và audit "SMS and critical alert sent (simulated)" (MS:36, 1077-1087).
 
 **M14. Thao tác trên từng tin (mọi vai)**
-- React: 6 emoji nhanh (`src/messaging/emoji.js:4`) → `react` (MA:1343-1359 → MS:840-857).
+- React: 6 emoji nhanh (`src/features/messaging/emoji.js:4`) → `react` (MA:1343-1359 → MS:840-857).
 - Reply: `setReply` (MA:1361, 1781-1785) → gửi kèm `replyTo` (MS:467-471); bấm trích dẫn nhảy tới tin gốc (MA:1321-1338).
 - Forward (không có cho Resident): `openForward` (MA:1363, 1461-1491) → `forward` (MS:499-518); danh sách đích từ `forwardTargets` (MS:521-525).
 - Edit: menu "Edit message" → `startEdit` → `saveEdit` → `edit` (MA:1371-1374, 1676-1712 → MS:883-901); hiện "Edited".
@@ -130,7 +130,7 @@ Nút kẹp giấy, dán, hoặc kéo thả (MA:1885-1896) → `addFiles` (MA:186
 Menu ba chấm ở dòng danh sách, ở đầu thread và trong bảng chi tiết (`fillFlagMenu`, MA:695-709; MA:918-921) → `toggleFlag` (MS:993-1006) cho `pinned`, `important`, `muted`; "Hide conversation" → `hideConversation` có Undo (MA:551-556 → MS:938-948). Tab "Hidden (N)" liệt kê conversation và tin đã ẩn, nút Restore (MA:508-548 → `unhideConversation` MS:951-963, `unhideMessage`).
 
 **M17. Tìm kiếm (mọi vai)**
-Ô tìm ở danh sách (MA:629): lọc dòng và tìm trong nội dung tin (`store.search`, MS:1009-1033; `renderHits`, MA:583-604; bấm kết quả nhảy tới tin, `jumpTo` MA:606-619). Bộ lọc có cấu trúc `unit: status: priority: assignee: tag: after: before:` (`src/messaging/query.js:13`; nút "+ key" và chip, MA:559-580). Phím tắt Ctrl/⌘+K, "/", Alt+N (MA:2312-2349).
+Ô tìm ở danh sách (MA:629): lọc dòng và tìm trong nội dung tin (`store.search`, MS:1009-1033; `renderHits`, MA:583-604; bấm kết quả nhảy tới tin, `jumpTo` MA:606-619). Bộ lọc có cấu trúc `unit: status: priority: assignee: tag: after: before:` (`src/features/messaging/query.js:13`; nút "+ key" và chip, MA:559-580). Phím tắt Ctrl/⌘+K, "/", Alt+N (MA:2312-2349).
 
 **M18. Gửi khi mất mạng, nháp, đang gõ, online, đã đọc (mọi vai)**
 - Tin gửi lúc offline nằm chờ, lưu ở `eso-msg-outbox:<id>`, thử lại 1, 2, 4, 8, 16 rồi 30 giây (MA:1614-1643); tin lỗi có "Retry" / "Discard" (MA:1579-1588).
@@ -147,7 +147,7 @@ Nút (i) → `renderContext` (MA:859-922) từ `contextFor` (MS:1246-1264): vớ
 **M21. Hộp "Preview tools" (mọi vai)**
 Nút Preview → `openPreview` (MA:2170-2196): đổi persona cùng vai (tải lại với `?as=`), link sang Messages của portal khác, "simulate offline" (`sessionStorage eso-msg-offline`), high contrast (`eso-msg-contrast`), "Reset demo data" và "Start empty" (bấm hai lần; `store.reset`, MS:1098-1105).
 
-### 1.2 Ticket box (`/<portal>/tickets.html`, `src/messaging/tickets.js`)
+### 1.2 Ticket box (`/<portal>/tickets.html`, `src/features/messaging/tickets.js`)
 
 **T1. Tạo ticket (Staff, Client)**
 "Create ticket" (ẩn với Resident và Admin, MT:38, 456) → hộp thoại Subject, Category (6 loại, MS:42), Priority, Description → `startSupport` (MT:459-482 → MS:680-687) → toast "Created T-…. Support will reply in this ticket." `?new=1` mở sẵn hộp thoại (MT:505).
@@ -167,9 +167,9 @@ Chỉ với ticket loại `support` mà người xem mở được thread (`rend
 **T5. Status, assign, priority (Admin)**
 Không có điều khiển nào trong Ticket box. Admin đổi ở Messages (M8); Ticket box chỉ hiển thị kết quả (MT:308-326) và các thẻ audit (MT:348-356).
 
-### 1.3 Social (`/resident/social.html`, `/staff/social.html`, `src/social/resident.js`)
+### 1.3 Social (`/resident/social.html`, `/staff/social.html`, `src/features/social/resident.js`)
 
-Bối cảnh: một controller cho cả hai portal, khác nhau ở `data-portal` (`src/resident/social.html:7-9`, `src/staff/social.html:7-9`; SR:30, 35-42). Lần mở đầu `ensureFeed` tạo `eso-feed` với 9 bài mẫu (`src/social/seed.js:27-33`). Resident chỉ ghi `eso-res-social:<id>` (SS:100-102); Staff ghi `eso-feed` (SF:42-44) và `eso-social.muted` (SF:166, 179). `eso-mod` và `eso-social.on` chỉ được đọc ở đây (SS:55-79); nơi ghi là PROTO. Mọi persona Staff dùng chung danh tính `"me"` (SF:7); Resident thấy `"me"` là "Property team" (SS:42).
+Bối cảnh: một controller cho cả hai portal, khác nhau ở `data-portal` (`src/resident/social.html:7-9`, `src/staff/social.html:7-9`; SR:30, 35-42). Lần mở đầu `ensureFeed` tạo `eso-feed` với 9 bài mẫu (`src/features/social/seed.js:27-33`). Resident chỉ ghi `eso-res-social:<id>` (SS:100-102); Staff ghi `eso-feed` (SF:42-44) và `eso-social.muted` (SF:166, 179). `eso-mod` và `eso-social.on` chỉ được đọc ở đây (SS:55-79); nơi ghi là PROTO. Mọi persona Staff dùng chung danh tính `"me"` (SF:7); Resident thấy `"me"` là "Property team" (SS:42).
 
 **S1. Cổng Community guidelines (Resident)**
 Mở trang → `render` (SR:134) → `gated` (SR:147; `needsGuidelines`, SS:154-157) → dialog `#gate` không đóng được bằng Esc (SR:189-192, 330-331) → "Read policy" → cuộn hết (`checkEnd`, SR:1123-1126) → "Agree" (SR:1142-1146) → tick ô đồng ý (SR:1160) → "Confirm" → `acceptGuidelines` (SR:1161-1168 → SS:159-163) ghi `accepted = ver`. "Exit Social" → `exitTarget` (SR:1159). Hỏi lại khi có version mới (SR:1154) hoặc sau `resumePause` (SS:131). Staff không có cổng; có trang chỉ đọc `#/guidelines` (SR:2431-2442).
@@ -181,7 +181,7 @@ Mở trang → `render` (SR:134) → `gated` (SR:147; `needsGuidelines`, SS:154-
 Menu bài: Edit → `editPost` (SR:1634-1646 → SF:537-558); Delete → dialog `#del` → `deletePost` (SR:1678-1690 → SF:576-583); Pin/Unpin → `pinPost` (SR:990-1000 → SF:564-573).
 
 **S4. Comment và reply thread (Resident, Staff)**
-Mở thread (`openThread`, SR:874-889) → gõ, Enter gửi (SR:902-929) → Resident `addReply` (SS:331-348) ghi `eso-res-social:<id>.replies[postId]`; Staff `addReply` (SF:255-281) ghi `eso-feed`. "Reply" trên một comment đặt `thread.to` (SR:812-820). Xếp luồng bằng `nest` (`src/social/threads.js:8-32`), thụt tối đa 2 cấp (SR:767).
+Mở thread (`openThread`, SR:874-889) → gõ, Enter gửi (SR:902-929) → Resident `addReply` (SS:331-348) ghi `eso-res-social:<id>.replies[postId]`; Staff `addReply` (SF:255-281) ghi `eso-feed`. "Reply" trên một comment đặt `thread.to` (SR:812-820). Xếp luồng bằng `nest` (`src/features/social/threads.js:8-32`), thụt tối đa 2 cấp (SR:767).
 
 **S5. Sửa, xóa, ẩn comment (Resident, Staff)**
 Edit: `editReply` (SS:361-374) / `editComment` (SF:304-315). Delete sau `askConfirm`: `deleteReply` (SS:377-385) / `deleteComment` (SF:318-324). Hide comment của người khác cho riêng mình: `hideComment` (SS:388-395 / SF:327-336), "Show" để hiện lại (SR:802-807).
@@ -221,13 +221,13 @@ Violations → tab "Rules" → `rulesForm` (SR:2366-2429) → "Save rules" → `
 `#/moderation` → `pageModeration` (SR:2444-2491): "Reported posts", "Accounts waiting for you", "Muted by you". Trang Violations của Staff: `pageViolationsStaff` (SR:2228-2363), dữ liệu từ `standings` và `filterStandings` (SF:422-453).
 
 **S16. Alerts và chuông (Resident, Staff)**
-`socialAlerts` (`src/social/alerts.js:12-41`): Resident được báo announcement, reply vào comment của mình, comment viết sau khi mình đã comment; Staff được báo reply của Resident và bài của Resident. Chuông trong Social: `socialNotifs` cộng `noticeAlerts` (SR:1292-1296, 1461-1489); trạng thái đã xem ở `eso-res-social-seen:<id>` (SR:1284-1290). Ngoài Social: `socialItems` (`src/notifications/live.js:30-48`).
+`socialAlerts` (`src/features/social/alerts.js:12-41`): Resident được báo announcement, reply vào comment của mình, comment viết sau khi mình đã comment; Staff được báo reply của Resident và bài của Resident. Chuông trong Social: `socialNotifs` cộng `noticeAlerts` (SR:1292-1296, 1461-1489); trạng thái đã xem ở `eso-res-social-seen:<id>` (SR:1284-1290). Ngoài Social: `socialItems` (`src/features/notifications/live.js:30-48`).
 
 **S17. Deep link `#/post/<id>` (Resident, Staff)**
 `postRoute` (SR:28) → `openPost` (SR:1737-1745) qua double click, menu "Open post" hoặc link. Bài không tồn tại → "This post is not available" (SR:208-211). Đang pause thì hash bị xóa (SR:153). Back: `leavePost` (SR:1746-1755); `syncRoute` (SR:1768-1776).
 
 **S18. Đường dữ liệu Resident → Staff (Resident, Staff)**
-Comment của Resident nằm ở key riêng (SS:341-346) → Staff đọc qua `residentActivity` (`src/social/residents.js:13-32`; SF:62-64) → Staff trả lời vào `eso-feed` với `re` (SF:270-273) → Resident thấy lại dưới comment của mình (SS:185) và nhận alert (`alerts.js:36-38`).
+Comment của Resident nằm ở key riêng (SS:341-346) → Staff đọc qua `residentActivity` (`src/features/social/residents.js:13-32`; SF:62-64) → Staff trả lời vào `eso-feed` với `re` (SF:270-273) → Resident thấy lại dưới comment của mình (SS:185) và nhận alert (`alerts.js:36-38`).
 
 **S19. Tìm kiếm, tab, Privacy mode, Pulse (Resident, Staff)**
 Search (SR:90-101, 181), tabs (SR:175-179, 221-223), Privacy mode (SR:1180-1248), Pulse (SR:1534-1557), rail (SR:226-257). Đồng bộ giữa tab bằng `storage` và `visibilitychange` (SR:2496-2513).
@@ -235,10 +235,10 @@ Search (SR:90-101, 181), tabs (SR:175-179, 221-223), Privacy mode (SR:1180-1248)
 ### 1.4 Notifications
 
 **N1. Bảng chuông (mọi portal)**
-Nối ở `wireBell` (EXTRAS:275-352) cho Client, Resident, Staff (PREVIEW:33-44) và `addBell` cho Admin (EXTRAS:35-54; PREVIEW:220). Bấm chuông → `draw` (EXTRAS:296-341): tối đa 4 mục chưa đọc (`latestUnread`, `src/notifications/store.js:176`), "View all", "Notification settings". Bấm một mục → đi tới `DEST[r.dest]` hoặc trang Notifications (EXTRAS:319) và `setRead` ghi `eso-notif-read:<id>` (EXTRAS:323). Badge: `syncBadge` (EXTRAS:288-293). Trang Social và hai trang độc lập của Admin (Messages, Ticket box) không có chuông này (PREVIEW:21-22, 32).
+Nối ở `wireBell` (EXTRAS:275-352) cho Client, Resident, Staff (PREVIEW:33-44) và `addBell` cho Admin (EXTRAS:35-54; PREVIEW:220). Bấm chuông → `draw` (EXTRAS:296-341): tối đa 4 mục chưa đọc (`latestUnread`, `src/features/notifications/store.js:176`), "View all", "Notification settings". Bấm một mục → đi tới `DEST[r.dest]` hoặc trang Notifications (EXTRAS:319) và `setRead` ghi `eso-notif-read:<id>` (EXTRAS:323). Badge: `syncBadge` (EXTRAS:288-293). Trang Social và hai trang độc lập của Admin (Messages, Ticket box) không có chuông này (PREVIEW:21-22, 32).
 
 **N2. Trang Notifications (mọi portal)**
-`/<portal>/notifications.html` → iframe `…/notifications-content.html?embed=1` (PREVIEW:525-554) → `src/notifications/app.js`: tab All / Unread / Read (`setTab`, app.js:98-101), tìm kiếm (app.js:56-65), Filters (Category; Property chỉ với Client; Sort) (`src/partials/notifications-app.html:62-86`), bấm tiêu đề → `open` → `change` (app.js:69-86), nút đọc/chưa đọc có Undo (app.js:76-83, 150-162), "Mark all as read" (app.js:88-94), "Show N more" (app.js:136-140). Đích theo portal: bảng ở `app.js:19-24`.
+`/<portal>/notifications.html` → iframe `…/notifications-content.html?embed=1` (PREVIEW:525-554) → `src/features/notifications/app.js`: tab All / Unread / Read (`setTab`, app.js:98-101), tìm kiếm (app.js:56-65), Filters (Category; Property chỉ với Client; Sort) (`src/partials/notifications-app.html:62-86`), bấm tiêu đề → `open` → `change` (app.js:69-86), nút đọc/chưa đọc có Undo (app.js:76-83, 150-162), "Mark all as read" (app.js:88-94), "Show N more" (app.js:136-140). Đích theo portal: bảng ở `app.js:19-24`.
 
 **N3. Nguồn live (mọi portal)**
 Messenger: `messengerItems` (`live.js:22-27`) từ `store.alertsFor` (MS:1140-1164). Social (chỉ Staff, Resident): `socialItems` (`live.js:30-48`). Cập nhật qua `storage` và `live.onChange` (app.js:59-60; `live.js:68-70`). "Mark as unread" trên mục tin nhắn gọi `store.markUnread` (`live.js:76` → MS:827-837).
@@ -249,18 +249,18 @@ Messenger: `messengerItems` (`live.js:22-27`) từ `store.alertsFor` (MS:1140-11
 `/staff/promotions.html` → iframe PROTO `#/promotions` (ROUTES:14; PREVIEW:535-540) → "Create promotion" (PROTO:2175, 6216-6251): form Basics, Offer, Claiming, Schedule, Audience, Terms; nháp tự lưu `eso-pmc-draft` (PROTO:6223) → "Save draft" hoặc "Publish / Schedule / Update & publish" → `submit` (PROTO:6234-6239) ghi `eso-pmc-saved`, category mới vào `eso-pmc-cats` (PROTO:6168). Sửa: "Edit" trong hộp analytics (PROTO:6248, 6258). Hai công tắc "Show promotions to residents" và "Let residents save promotions" (STAFFJS:101-103, 178-179) lưu trong `eso-proto`.
 
 **P2. Resident xem, lưu, claim (Resident)**
-`/resident/promotions.html` → iframe `promotions-content.html` → `src/promotions/resident.js`: `render` (resident.js:65-108) gọi `listPromotions` (`src/promotions/store.js:110-119`) → tìm kiếm, chip category và "Saved" (resident.js:86-90, 253-257) → mở chi tiết (resident.js:163-212) → Save → `toggleSaved` (store.js:140-147) → Claim → `claim` (resident.js:230-239 → store.js:163-174), ghi `eso-res-promo:<id>` → "Copy" mã (resident.js:246-249). Không có bước redeem ở trang Resident.
+`/resident/promotions.html` → iframe `promotions-content.html` → `src/features/promotions/resident.js`: `render` (resident.js:65-108) gọi `listPromotions` (`src/features/promotions/store.js:110-119`) → tìm kiếm, chip category và "Saved" (resident.js:86-90, 253-257) → mở chi tiết (resident.js:163-212) → Save → `toggleSaved` (store.js:140-147) → Claim → `claim` (resident.js:230-239 → store.js:163-174), ghi `eso-res-promo:<id>` → "Copy" mã (resident.js:246-249). Không có bước redeem ở trang Resident.
 
 ### 1.6 Documents và Capacity (Client)
 
 **D1. Documents: upload, lọc, xóa**
-`/client/documents.html` → iframe → `src/documents/app.js`. Đọc `eso-docs:client` hoặc `seed()` (app.js:34). "Upload document" → `validateUpload` (`src/documents/store.js:142-166`) → lưu metadata. Tab theo category (app.js:68-82), lọc Property / Uploaded / Sort (app.js:219-241), tìm kiếm (app.js:258). Xóa có Undo 7 giây (app.js:300-306, 56-65). Băng nhắc hết hạn, nút X ghi `eso-docs-dismissed:client` (app.js:85-95, 475-484). Thanh dung lượng (app.js:179-189).
+`/client/documents.html` → iframe → `src/features/documents/app.js`. Đọc `eso-docs:client` hoặc `seed()` (app.js:34). "Upload document" → `validateUpload` (`src/features/documents/store.js:142-166`) → lưu metadata. Tab theo category (app.js:68-82), lọc Property / Uploaded / Sort (app.js:219-241), tìm kiếm (app.js:258). Xóa có Undo 7 giây (app.js:300-306, 56-65). Băng nhắc hết hạn, nút X ghi `eso-docs-dismissed:client` (app.js:85-95, 475-484). Thanh dung lượng (app.js:179-189).
 
 **D2. Business W-9 và khóa bí mật**
 "Add"/"Replace" → `openW9Form` → `validateW9` (app.js:320-342; store.js:309-331) → khóa ngay. "Unlock" → "Send key" → `sendKey` (app.js:380-394) ghi `docs-secret:issued|pending|window`; khóa hiện ngay trên màn hình → nhập khóa → `checkPending` (app.js:415-416; store.js:224-233) → mở 5 phút, ghi `docs-secret:log` (app.js:428-430) → tự khóa lại (app.js:199-204).
 
 **D3. Usage > Capacity**
-`/client/usage/capacity.html` → iframe `usage-content.html` → `src/usage/app.js`: stepper 4 tài nguyên (app.js:35-91), "Add another property" (app.js:118-135; `validateProperty`, `src/capacity/store.js:67-80`), Budget ghi `eso-capacity-budget:client` (app.js:138-146), tóm tắt (app.js:149-172), "Review & confirm" → "Confirm and add to Billing & Plan" → `applyCart` ghi `eso-capacity:client` (app.js:180-214). Đọc lại ở Documents (documents/app.js:177) và thẻ Capacity ở sidebar (FRAME:13-16, 108, 143-149).
+`/client/usage/capacity.html` → iframe `usage-content.html` → `src/features/usage/app.js`: stepper 4 tài nguyên (app.js:35-91), "Add another property" (app.js:118-135; `validateProperty`, `src/features/capacity/store.js:67-80`), Budget ghi `eso-capacity-budget:client` (app.js:138-146), tóm tắt (app.js:149-172), "Review & confirm" → "Confirm and add to Billing & Plan" → `applyCart` ghi `eso-capacity:client` (app.js:180-214). Đọc lại ở Documents (documents/app.js:177) và thẻ Capacity ở sidebar (FRAME:13-16, 108, 143-149).
 
 ### 1.7 Settings và Personalize
 
@@ -274,16 +274,16 @@ Cơ chế lưu chung: mọi công tắc lưu ngay vào `eso-proto` qua `save()` 
 
 **ST2. Client** (ROUTES:27-45)
 - Tab Profile như Staff, bỏ Social và "Sidebar icons" (STAFFJS:118-129).
-- Tab Workspace thay bằng `clientWorkspaceTree` (STAFFJS:133; CW:178-202): Company, Properties, Mallard Pointe at Riverbend, Parking and enforcement, Resident experience, Team and roles, Invoices and payment, Reports and alerts, Security, Documents, Document secret key, Data and recovery (CW:57-153). Lưu `client:eso-proto`; `mirrorPrefs` ghi thêm `docs-prefs:client` và `capacity-prefs:client` (CW:214-219), được Documents và Capacity đọc (`src/documents/app.js:37-38`; `src/usage/app.js:19-20`).
+- Tab Workspace thay bằng `clientWorkspaceTree` (STAFFJS:133; CW:178-202): Company, Properties, Mallard Pointe at Riverbend, Parking and enforcement, Resident experience, Team and roles, Invoices and payment, Reports and alerts, Security, Documents, Document secret key, Data and recovery (CW:57-153). Lưu `client:eso-proto`; `mirrorPrefs` ghi thêm `docs-prefs:client` và `capacity-prefs:client` (CW:214-219), được Documents và Capacity đọc (`src/features/documents/app.js:37-38`; `src/features/usage/app.js:19-20`).
 
 **ST3. Resident** (ROUTES:19-25)
-My profile: Phone và "Best way to reach me" có nút "Save changes", lưu `eso-res-pref:<id>` (STAFFJS:211-243; `src/settings/prefs.js:34-41`). My property: "Show Social" → `setShow` (STAFFJS:287-293, 441), PREVIEW ẩn mục Social ở sidebar (PREVIEW:623-630). Notifications (`rn*`, STAFFJS:244-249), Messages, Sign-in & security, Personalize, Language, Date and time, Accessibility. Không có Workspace, Availability.
+My profile: Phone và "Best way to reach me" có nút "Save changes", lưu `eso-res-pref:<id>` (STAFFJS:211-243; `src/features/settings/prefs.js:34-41`). My property: "Show Social" → `setShow` (STAFFJS:287-293, 441), PREVIEW ẩn mục Social ở sidebar (PREVIEW:623-630). Notifications (`rn*`, STAFFJS:244-249), Messages, Sign-in & security, Personalize, Language, Date and time, Accessibility. Không có Workspace, Availability.
 
 **ST4. Admin** (ROUTES:48-52)
 My profile (`adminProfile`, STAFFJS:251-274; cùng khóa `eso-res-pref:<adm-id>`), Availability, Notifications (`an*`, STAFFJS:275-280), Messages, Security, Personalize, Language, Date and time, Accessibility. Không có Workspace.
 
 **ST5. Personalize (mọi portal)**
-Lựa chọn: Theme, Accent, Text & headings, Sidebar, Buttons, Cards, Gestures (PROTO:545-553, 716-736). Client, Resident, Admin bị cắt bớt phần Sidebar (`trimSidebar`, STAFFJS:186-202). Áp dụng: trong iframe bằng `apply()` (PROTO:361-362); trên trang thật bằng `applyUiPrefs()` khi tải và khi nhận `message` (PREVIEW:93-156, 238); CSS sinh bởi `lookCss` (`src/look-prefs.js:16-54`), thao tác vuốt bởi `gestureConfig` (`look-prefs.js:57-69`). "Reset to defaults" (PROTO:738) và `data-act="defaults"` (PROTO:803). `ui-prefs` lưu theo portal, không theo persona.
+Lựa chọn: Theme, Accent, Text & headings, Sidebar, Buttons, Cards, Gestures (PROTO:545-553, 716-736). Client, Resident, Admin bị cắt bớt phần Sidebar (`trimSidebar`, STAFFJS:186-202). Áp dụng: trong iframe bằng `apply()` (PROTO:361-362); trên trang thật bằng `applyUiPrefs()` khi tải và khi nhận `message` (PREVIEW:93-156, 238); CSS sinh bởi `lookCss` (`src/shared/js/look-prefs.js:16-54`), thao tác vuốt bởi `gestureConfig` (`look-prefs.js:57-69`). "Reset to defaults" (PROTO:738) và `data-act="defaults"` (PROTO:803). `ui-prefs` lưu theo portal, không theo persona.
 
 **ST6. Document secret key trong Settings (Client)**
 Chọn nơi nhận khóa, "Generate key", "Lock this section" bằng PIN hoặc password, "Recent openings" (DK:53-60, 175-223, 256-313, 332). Khóa: `docs-secret:{log,issued,via,guard,tries,pending,window}` (DK:15).
@@ -293,8 +293,8 @@ Giá trị đã lưu được đọc ở đâu:
 | Khóa | Nơi đọc ngoài PROTO |
 |---|---|
 | `ui-prefs:<portal>` | PREVIEW:93-155, 268-272; EXTRAS:185, 270 |
-| `eso-proto` (Staff) | `src/promotions/store.js:13, 34` (chỉ `promoShow`, `promoSave`) |
-| `eso-res-social:<id>` | PREVIEW:624; `src/social/store.js` |
+| `eso-proto` (Staff) | `src/features/promotions/store.js:13, 34` (chỉ `promoShow`, `promoSave`) |
+| `eso-res-social:<id>` | PREVIEW:624; `src/features/social/store.js` |
 | `docs-prefs:client`, `capacity-prefs:client` | Documents, Capacity |
 | `eso-res-pref:<id>` | PREVIEW:609-622 (chỉ theme, contrast, reduceMotion kiểu cũ) |
 | `eso-status`, `eso-notif`, `eso-avatar`, `eso-mfa`, `eso-sec`, `eso-prop` | Không có |
@@ -319,16 +319,16 @@ Giá trị đã lưu được đọc ở đâu:
 ### 1.9 Điều hướng
 
 **NV1. Trang đầu và chọn persona (mọi portal)**
-`src/index.html:12-22` là 11 link tĩnh. Chọn persona ở Hub `src/messages/index.html` (`src/messaging/hub.js:22-46`, kèm "Reset demo data" và "Start empty", hub.js:51-70) hoặc hộp Preview trong Messages (M21). `?as=` được nối vào mọi link (PREVIEW:372, 390, 415, 471-474, 582; EXTRAS:21) và truyền cho iframe cùng `embed=1` (PREVIEW:586-588).
+`src/index.html:12-22` là 11 link tĩnh. Chọn persona ở Hub `src/messages/index.html` (`src/features/messaging/hub.js:22-46`, kèm "Reset demo data" và "Start empty", hub.js:51-70) hoặc hộp Preview trong Messages (M21). `?as=` được nối vào mọi link (PREVIEW:372, 390, 415, 471-474, 582; EXTRAS:21) và truyền cho iframe cùng `embed=1` (PREVIEW:586-588).
 
 **NV2. Sidebar và header trong khung (mọi portal)**
-Mọi mục sidebar của bản chụp là `href="#"`; PREVIEW nối lại một số mục (PREVIEW:459-476) và thêm "Ticket box" kèm số ticket mở (PREVIEW:341-437), "Settings" cho Resident (PREVIEW:386-397), "Usage > Capacity" cho Client (PREVIEW:403-421). Mục còn `#` → toast "That page is not part of this preview yet." (PREVIEW:227-234; EXTRAS:55, 443-446). Header của Staff, Client, Resident (`addFrameBehaviours`, EXTRAS:676-685): tìm trang (EXTRAS:384-430), chuông, Help Center (EXTRAS:433-436), lọc menu, favorites, đồng hồ, menu hồ sơ có Status cho Staff và Client (EXTRAS:487-673). Admin chỉ có menu hồ sơ và chuông (PREVIEW:219-220). Property filter của Client: `src/property-filter.js:13-95`.
+Mọi mục sidebar của bản chụp là `href="#"`; PREVIEW nối lại một số mục (PREVIEW:459-476) và thêm "Ticket box" kèm số ticket mở (PREVIEW:341-437), "Settings" cho Resident (PREVIEW:386-397), "Usage > Capacity" cho Client (PREVIEW:403-421). Mục còn `#` → toast "That page is not part of this preview yet." (PREVIEW:227-234; EXTRAS:55, 443-446). Header của Staff, Client, Resident (`addFrameBehaviours`, EXTRAS:676-685): tìm trang (EXTRAS:384-430), chuông, Help Center (EXTRAS:433-436), lọc menu, favorites, đồng hồ, menu hồ sơ có Status cho Staff và Client (EXTRAS:487-673). Admin chỉ có menu hồ sơ và chuông (PREVIEW:219-220). Property filter của Client: `src/shared/js/property-filter.js:13-95`.
 
 **NV3. Exit (mọi portal)**
-`exitTarget(own, home)` (`src/exit-target.js:11-19`): về trang đã đến từ đó nếu cùng origin và không phải chính trang này; nếu không thì về trang chủ portal, giữ `as` và `dark`, bỏ `embed`. Gọi ở MA:268, MT:97, SR:57, SR:1159, `src/promotions/resident.js:30`.
+`exitTarget(own, home)` (`src/shared/js/exit-target.js:11-19`): về trang đã đến từ đó nếu cùng origin và không phải chính trang này; nếu không thì về trang chủ portal, giữ `as` và `dark`, bỏ `embed`. Gọi ở MA:268, MT:97, SR:57, SR:1159, `src/features/promotions/resident.js:30`.
 
 **NV4. Back (mọi portal)**
-- Settings: `backTarget` (`src/back-target.js:20-27`, gọi ở STAFFJS:502-511) trả `'history'` khi chưa di chuyển trong Settings và referrer là trang cùng portal; còn lại `'crumb'`.
+- Settings: `backTarget` (`src/shared/js/back-target.js:20-27`, gọi ở STAFFJS:502-511) trả `'history'` khi chưa di chuyển trong Settings và referrer là trang cùng portal; còn lại `'crumb'`.
 - Messages và Ticket box: nút Back chỉ hiện khi có bước lùi bên trong trang (mobile từ thread về danh sách, hoặc `history.state.depth > 0`) (MA:250-267; MT:85-96).
 
 **NV5. Deep link (mọi portal)**
@@ -374,7 +374,7 @@ Tổng cộng 192 quy tắc: Messages và Ticket box 43, Social 50, Notification
 | 16 | Chấm điểm: Resident chủ, chat đã `closed`, có assignee, chưa chấm; một lần | MS:627-634 | — |
 | 17 | Giai đoạn ticket: `bot`/`queued` = Open; `active` = In progress hoặc Waiting on resident; đóng bởi Staff = Resolved, còn lại Closed. Chỉ Staff assignee đổi In progress ↔ Waiting | MS:48-53, 613-625 | — |
 | 18 | Tự đóng: chat `bot` im lặng 15 phút (`botIdleMs`), chat `active` im lặng 12 giờ (`activeIdleMs`); chat `queued` không tự đóng | MS:24-25, 1076, 1088-1093 | — |
-| 19 | Trợ lý: chỉ chuyển cho người thật khi Resident chọn "Talk to a person" hoặc "No, talk to a person"; hai lần không hiểu hoặc câu dài hơn 160 ký tự thì đề nghị | `src/messaging/bot.js:104, 124-129` | — |
+| 19 | Trợ lý: chỉ chuyển cho người thật khi Resident chọn "Talk to a person" hoặc "No, talk to a person"; hai lần không hiểu hoặc câu dài hơn 160 ký tự thì đề nghị | `src/features/messaging/bot.js:104, 124-129` | — |
 | 20 | Số ticket: support khi tạo; resident chat khi vào hàng chờ; direct Staff+Client khi resolve lần đầu; bắt đầu sau 1080 | MS:44, 357, 566, 672 | — |
 | 21 | Tạo support: chỉ Staff hoặc Client; subject bắt buộc, tối đa 120; priority `low|normal|high` (sai thì `normal`); category thuộc `TICKET_CATEGORIES` (sai thì rỗng) | MS:42, 668-687 | MT:463-471 |
 | 22 | Đổi status, priority, assignee của support: mọi Admin; assignee phải là Admin | MS:689-733 | MA:801 |
@@ -411,7 +411,7 @@ Tổng cộng 192 quy tắc: Messages và Ticket box 43, Social 50, Notification
 | 5 | Chỉ sửa, xóa, ghim bài `a === 'me'` | SF:541, 568, 580 | SR:984-991 |
 | 6 | Tối đa `MAX_PINNED = 3` bài ghim trong cả feed | SF:560, 569-570 | — |
 | 7 | Không có thời hạn sửa bài | — | — |
-| 8 | Tối đa `MAX_IMAGES = 4` ảnh | `src/social/images.js:7, 38` | SR:1597, 1624-1625 |
+| 8 | Tối đa `MAX_IMAGES = 4` ảnh | `src/features/social/images.js:7, 38` | SR:1597, 1624-1625 |
 | 9 | Mô tả ảnh tối đa `MAX_ALT = 120`, rỗng thành "Photo" | `images.js:8, 42-44` | SH:901 |
 | 10 | Ảnh lưu được: gradient hoặc data URL jpeg/png/webp, dài tối đa `MAX_DATA_CHARS + 64` | `images.js:13-14, 20-24` | — |
 | 11 | Loại file nhận: jpeg, png, webp | — | SR:1602; SH:194 |
@@ -426,7 +426,7 @@ Tổng cộng 192 quy tắc: Messages và Ticket box 43, Social 50, Notification
 | 20 | Không sửa comment đã bị Staff gỡ | SS:370; SF:311 | — |
 | 21 | Resident không xóa lần hai, không xóa comment đã bị gỡ | SS:380-382 | — |
 | 22 | Chỉ ẩn comment của người khác | — | `canHide` SS:214, SF:84 |
-| 23 | 5 reaction: Like, Love, Haha, Wow, Sad | `src/social/reactions.js:10-16` | SH:238-242 |
+| 23 | 5 reaction: Like, Love, Haha, Wow, Sad | `src/features/social/reactions.js:10-16` | SH:238-242 |
 | 24 | Mỗi người một reaction mỗi bài hoặc comment | SS:289-293; SF:223-232 | — |
 | 25 | Resident chỉ react, share bài mình thấy | SS:286, 301 | — |
 | 26 | Số đếm là số người có tên | `reactions.js:8, 65-70` | — |
@@ -459,19 +459,19 @@ Tổng cộng 192 quy tắc: Messages và Ticket box 43, Social 50, Notification
 
 | # | Quy tắc | Nơi thực thi |
 |---|---|---|
-| 1 | Danh mục theo portal `ROLE_CATEGORIES` | `src/notifications/store.js:26-32` |
+| 1 | Danh mục theo portal `ROLE_CATEGORIES` | `src/features/notifications/store.js:26-32` |
 | 2 | Chỉ Client có lọc Property | store.js:33; UI app.js:52 |
 | 3 | Số mẫu chưa đọc: Client 109, Staff 7, Resident 33, Admin 3 | store.js:40-115 |
 | 4 | Mục live thay mục mẫu (`REPLACED_BY_LIVE`) | store.js:120-129 |
 | 5 | Trạng thái đọc theo persona `eso-notif-read:<id>` | store.js:35, 149-164 |
 | 6 | Lựa chọn người dùng thắng; đọc nguồn thì mục live thành đã đọc | store.js:156 |
 | 7 | Tìm kiếm: mọi từ phải có trong title, detail, property hoặc category | store.js:181-196 |
-| 8 | Trang 25 dòng (`PAGE = 25`) | `src/notifications/view.js:5` |
+| 8 | Trang 25 dòng (`PAGE = 25`) | `src/features/notifications/view.js:5` |
 | 9 | Chuông liệt kê 4 mục | store.js:176; EXTRAS:314 |
 | 10 | Badge "99+" khi trên 99 | store.js:220 |
 | 11 | Tin nhắn: một mục mỗi conversation có tin mới hoặc có tin trong 3 ngày, tối đa 12 | MS:1140, 1153, 1163 |
 | 12 | Social: 7 ngày, tối đa 8 (`SOCIAL_LIMIT`) | `live.js:17-18, 37-38` |
-| 13 | Ai được báo gì trong Social | `src/social/alerts.js:18-38` |
+| 13 | Ai được báo gì trong Social | `src/features/social/alerts.js:18-38` |
 | 14 | Toast 7000 ms khi có Undo, 3500 ms khi không | UI app.js:154 |
 | 15 | Persona dự phòng cho chuông: `cli-1, stf-1, res-1, adm-1` | UI EXTRAS:28, 280 |
 
@@ -479,7 +479,7 @@ Tổng cộng 192 quy tắc: Messages và Ticket box 43, Social 50, Notification
 
 | # | Quy tắc | Nơi thực thi |
 |---|---|---|
-| 1 | Hiện khi không phải draft, `start <= today <= end`, kênh có "In-App" | `src/promotions/store.js:57-64` |
+| 1 | Hiện khi không phải draft, `start <= today <= end`, kênh có "In-App" | `src/features/promotions/store.js:57-64` |
 | 2 | Tắt `promoShow` thì danh sách rỗng; tắt `promoSave` thì không lưu được | store.js:32-35, 111, 141 |
 | 3 | Audience: all, buildings (`viewer.block`), segments | store.js:101-107 |
 | 4 | Mỗi Resident tối đa `limR` lần (ít nhất 1) | store.js:87, 168-170 |
@@ -498,11 +498,11 @@ Tổng cộng 192 quy tắc: Messages và Ticket box 43, Social 50, Notification
 
 | # | Quy tắc | Nơi thực thi |
 |---|---|---|
-| 1 | Loại file `pdf, doc, docx, xls, xlsx, png, jpg, jpeg` | `src/documents/store.js:34, 148` |
+| 1 | Loại file `pdf, doc, docx, xls, xlsx, png, jpg, jpeg` | `src/features/documents/store.js:34, 148` |
 | 2 | Tối đa 10 MB (`MAX_BYTES`) | store.js:35, 149 |
 | 3 | Tên bắt buộc, ≤ 120 | store.js:151-153 |
 | 4 | Category, property, share thuộc danh sách; `expires` dạng `YYYY-MM-DD` | store.js:154-157 |
-| 5 | Hết chỗ lưu thì từ chối upload | chỉ UI `src/documents/app.js:191-194, 462` |
+| 5 | Hết chỗ lưu thì từ chối upload | chỉ UI `src/features/documents/app.js:191-194, 462` |
 | 6 | "Sắp hết hạn" 30 ngày; lựa chọn 7/14/30/60/90 | store.js:36-38, 96-102 |
 | 7 | Sắp xếp mặc định: expired, soon, mới nhất | store.js:105-121 |
 | 8 | Lọc Property: tài liệu "All properties" luôn hiện | store.js:130 |
@@ -521,14 +521,14 @@ Tổng cộng 192 quy tắc: Messages và Ticket box 43, Social 50, Notification
 
 | # | Quy tắc | Nơi thực thi |
 |---|---|---|
-| 1 | Gói `Starter`, $50 định kỳ | `src/capacity/store.js:6` |
+| 1 | Gói `Starter`, $50 định kỳ | `src/features/capacity/store.js:6` |
 | 2 | Parking: $5/unit, gồm 500, đang dùng 261, tối đa 5000 | store.js:11 |
 | 3 | Residents: $2, gồm 0, tối đa 5000 | store.js:12 |
 | 4 | Staff: $10, gồm 0, tối đa 200 | store.js:13 |
 | 5 | Storage: $15 mỗi 20 GB, gồm 10 GB, đang dùng 9,4 GB, tối đa 20 block | store.js:7, 14 |
 | 6 | Property thêm: $25/tháng; unit 1–5000; tên ≤ 80; địa chỉ ≤ 120; bắt buộc authorize | store.js:16, 67-80 |
 | 7 | Làm sạch dữ liệu lưu: số nguyên `0..max`, tối đa 50 property | store.js:19-27 |
-| 8 | Budget `^\d{1,5}(\.\d{1,2})?$`; vượt thì khóa Review | UI `src/usage/app.js:142, 169` |
+| 8 | Budget `^\d{1,5}(\.\d{1,2})?$`; vượt thì khóa Review | UI `src/features/usage/app.js:142, 169` |
 | 9 | Thứ tự budget: giá trị trên trang, mặc định Workspace, không giới hạn | store.js:99-104 |
 | 10 | Authorize trong hộp Review bắt buộc khi giỏ có mục không phải property | chỉ UI usage/app.js:193, 203 |
 | 11 | Storage "near" từ 0,9; "full" khi `used >= limit` | store.js:83-88 |
@@ -554,13 +554,13 @@ Tổng cộng 192 quy tắc: Messages và Ticket box 43, Social 50, Notification
 3. Phân quyền mục Settings theo vai ở tầng UI (STAFFJS:118-180).
 4. Chặn hash theo vai: Client (STAFFJS:578); Resident, Admin (STAFFJS:590-595).
 5. Bảng địa chỉ và `pathForHash` (ROUTES:8-61).
-6. Số điện thoại: regex `^[+\d][\d\s().-]*$`, 7–15 chữ số (`src/settings/prefs.js:26-32, 39`; UI STAFFJS:239-241).
+6. Số điện thoại: regex `^[+\d][\d\s().-]*$`, 7–15 chữ số (`src/features/settings/prefs.js:26-32, 39`; UI STAFFJS:239-241).
 7. `savePrefs`: theme `light|dark|system`; contact `app|email|text` (prefs.js:6-7, 34-41).
 8. Client Workspace `FIELD_ERRORS`: email, domain, url, money; chỉ UI (CW:205-210, 282-292); `mirrorPrefs` kiểm lại budget (CW:217-218).
 9. Ảnh đại diện: JPG/PNG/WebP, tối đa 5 MB (PROTO:1227-1228).
 10. Màu chữ phải là `#rrggbb` (PROTO:744).
 11. Cỡ chữ tùy chọn 12–24 (PROTO:748-754).
-12. `lookCss` chỉ nhận giá trị hợp lệ (`src/look-prefs.js:7-13, 22-29, 50`).
+12. `lookCss` chỉ nhận giá trị hợp lệ (`src/shared/js/look-prefs.js:7-13, 22-29, 50`).
 13. Chỉ nút primary đổi theo Buttons (look-prefs.js:38).
 14. Màu sidebar cần đủ 4 hex; accent chỉ áp khi khác `#2b55f2`; theme đã lưu bị bỏ qua khi có `?dark` (PREVIEW:106, 125, 151).
 15. Resident: lựa chọn cũ trong `eso-res-pref` chỉ dùng khi `ui-prefs:resident` chưa có (PREVIEW:614-622).
@@ -571,14 +571,14 @@ Tổng cộng 192 quy tắc: Messages và Ticket box 43, Social 50, Notification
 20. Favorites lưu `<portal>:sb-pins`; ẩn khi `ui.favorites === false` (EXTRAS:183-212).
 21. Đồng hồ `<portal>:sb-clock`, vẽ lại mỗi 15 giây (EXTRAS:263-271).
 22. Chuông đếm số chưa đọc thật, đồng bộ qua `storage` (EXTRAS:284-293, 379).
-23. Quy tắc Back của Settings; hash lúc vào chốt trong 500 ms đầu (`src/back-target.js:20-27`; STAFFJS:504).
-24. Quy tắc Exit (`src/exit-target.js:11-19`).
+23. Quy tắc Back của Settings; hash lúc vào chốt trong 500 ms đầu (`src/shared/js/back-target.js:20-27`; STAFFJS:504).
+24. Quy tắc Exit (`src/shared/js/exit-target.js:11-19`).
 25. Chuyển hướng địa chỉ cũ (PREVIEW:24-29, 516-519).
 26. Mặc định Client: `showProp:false, sbClock:false, capOpen:true`, di trú một lần (STAFFJS:563-575).
 27. `S.resSocial` đồng bộ với `eso-res-social:<id>` (STAFFJS:441, 444).
 28. Ngôn ngữ chỉ English (STAFFJS:63-66).
 29. Mục Document secret key tự khóa sau 10 phút và khi rời mục (DK:28, 296).
-30. Hằng số khóa, PIN, password (`src/documents/store.js:176-178, 244-249`; DK:186).
+30. Hằng số khóa, PIN, password (`src/features/documents/store.js:176-178, 244-249`; DK:186).
 31. Một khóa sống tại một thời điểm trong Settings (DK:144-152).
 32. Màn hình chờ tối đa 3000 ms (`src/partials/head.html:20`; PREVIEW:35).
 
@@ -592,7 +592,7 @@ Tổng cộng 192 quy tắc: Messages và Ticket box 43, Social 50, Notification
 2. **Emergency của Resident không tới Admin.** Admin không thấy resident chat (MS:254), nên `emergencies(adminId)` chỉ gồm emergency trong direct mà Admin tham gia (MS:603-610). Tile "Emergencies" trên Admin dashboard dùng chính hàm này.
 3. **Tự đóng chat và leo thang emergency phụ thuộc có trang Messages đang mở.** `tick()` chỉ được gọi ở MA:2283, MA:2339 và MS:421. Ticket box, chuông, Admin dashboard không gọi.
 4. **Leo thang emergency là mô phỏng**: chỉ ghi `smsAt` và thẻ audit "SMS and critical alert sent (simulated)" (MS:1085-1086; MA:937). Không có bước nào sau đó.
-5. **"Mark as unread" không có trong Messages.** `store.markUnread` (MS:827) chỉ được gọi từ trang Notifications (`src/notifications/live.js:76`).
+5. **"Mark as unread" không có trong Messages.** `store.markUnread` (MS:827) chỉ được gọi từ trang Notifications (`src/features/notifications/live.js:76`).
 6. **Ticket box không có điều khiển Status, Assign, Priority.** Chỉ Admin đổi được, và chỉ trong Messages (MA:799-817).
 7. **Ticket box: resident ticket và ticket Staff+Client chỉ đọc.** Form trả lời chỉ hiện cho loại `support` (MT:407). Form này không có đính kèm, không kiểm offline, không truyền `clientId` (MT:427).
 8. **Client và Staff không tự đóng được support ticket của mình**; chỉ Admin (MS:690). Client không có nút Resolve trong chat với Staff (MS:563).
@@ -624,13 +624,13 @@ Tổng cộng 192 quy tắc: Messages và Ticket box 43, Social 50, Notification
 4. "Reported posts" ở Moderation luôn in "Nothing to review right now." (SR:2446-2447). Không có nút Report nào trong Social.
 5. "Share" trên comment chỉ copy link của bài (SR:823).
 6. `copyLink` luôn toast "Link copied" kể cả khi clipboard lỗi (SR:323-326, 1945). Link `#/me` mở hồ sơ của người mở link (SR:1703).
-7. Poll: bài mẫu `p2` có dữ liệu poll (`src/social/seed.js:15`) nhưng chỉ vẽ huy hiệu (SR:1033).
+7. Poll: bài mẫu `p2` có dữ liệu poll (`src/features/social/seed.js:15`) nhưng chỉ vẽ huy hiệu (SR:1033).
 8. Views: chỉ đọc `p.vw` hoặc `SAMPLE_VIEWS` (SF:28, 135); không mã nào tăng lượt xem.
 9. Privacy mode ghi log vào `eso-res-privacy-log:<id>` (SR:1194-1200) nhưng không nơi nào đọc.
 10. Tên và avatar không bấm được: không xem được hồ sơ người khác.
 11. Mute theo người và từ khóa: không có UI thêm; mặc định đã mute sẵn `people:['marcus'], kw:['parking ticket'], threads:['p7']` (SF:143). Mute không áp vào rail, chuông, Pulse (SR:162-172).
 12. Gỡ comment thường: hộp xác nhận nói "The person who wrote it is told it was removed." (SR:627) nhưng không có alert nào và không ghi lý do (SF:345).
-13. Mục Social trên trang Notifications không mở đúng bài: `post` được mang theo (`live.js:45`) nhưng href chỉ là trang Social (`src/notifications/view.js:48`).
+13. Mục Social trên trang Notifications không mở đúng bài: `post` được mang theo (`live.js:45`) nhưng href chỉ là trang Social (`src/features/notifications/view.js:48`).
 14. Trạng thái đã đọc ở chuông Social của Staff không được `live.js` dùng (`live.js:73`).
 15. Staff không có cách gỡ **bài** của Resident hay ghi violation lên bài; chỉ có cho comment.
 16. Resident không đăng được bài (SS:3) dù feed mẫu có bài của cư dân (`p5`, `p7`).
@@ -654,21 +654,21 @@ Tổng cộng 192 quy tắc: Messages và Ticket box 43, Social 50, Notification
 28. Announcement: Staff tính `ann || src === 'ann'` (SF:47), Resident chỉ `!!p.ann` (SS:259). Bài mẫu `p8` vì thế là Announcement với Staff nhưng là Discussion với Resident (`seed.js:21`).
 29. Tab "Community & Announcements" chứa khác nhau ở hai phía (SR:177-178).
 30. Xóa bài không dọn reply, reaction, share, saved của Resident ở key riêng (SF:581).
-31. Bảng tên người lặp ở ba file (SS:41-44; SF:23-26; `src/social/residents.js:46-49`). "Dana Whitfield" là Client ở `personas.js:18` nhưng là Staff trong Social (SF:24).
+31. Bảng tên người lặp ở ba file (SS:41-44; SF:23-26; `src/features/social/residents.js:46-49`). "Dana Whitfield" là Client ở `personas.js:18` nhưng là Staff trong Social (SF:24).
 
 **Test**
 32. 12 file `tests/social*.test.mjs` (113 test) đều ở mức store. Không test nào cho handler DOM của SR. Ở mức store không thấy test cho: `staffStore.share`, `staffStore.unmute`, `follow` khi đang pause, dữ liệu mồ côi sau khi xóa bài, Staff `deleteComment` lần hai, Ban tài khoản đang review, lệch `ann`/`src:'ann'`.
 
 ### 3.3 Notifications
 
-1. Mục `dest: null` không có đích: toàn bộ mục mẫu của Staff; requests, violations, parking, reports của Client; parking, billing, system của Resident; phần lớn của Admin (`src/notifications/store.js:46-113`). Trong chuông chúng dẫn về trang Notifications (EXTRAS:319).
+1. Mục `dest: null` không có đích: toàn bộ mục mẫu của Staff; requests, violations, parking, reports của Client; parking, billing, system của Resident; phần lớn của Admin (`src/features/notifications/store.js:46-113`). Trong chuông chúng dẫn về trang Notifications (EXTRAS:319).
 2. Không deep-link: mục tin nhắn có `convId`, mục Social có `post` (`live.js:25, 45`), nhưng href chỉ là trang gốc (`view.js:48`; EXTRAS:319).
 3. Chuông và trang xử lý khác nhau: bấm mục trong chuông chỉ `setRead` (EXTRAS:323); trang còn gọi `live.markRead` đánh dấu đã đọc cả cuộc chat (app.js:71).
 4. Con số 109 / 7 / 33 không phải số chuông hiện: mục mẫu `messages` (và `community`) luôn bị thay bằng dữ liệu live (store.js:120-129).
 5. `unreadCount` (store.js:173) không được import ở đâu trong `src`.
 6. Khóa đích `staff.tickets` và `admin.tickets` không mục nào dùng (app.js:21, 23; EXTRAS:24, 27).
 7. `PANEL_ICON` thiếu `promotions` và `billing` (EXTRAS:381).
-8. Số liệu mẫu lệch nhau: "Parking Spots over limit 261 / 25", "Staff over limit 18 / 3" (store.js:63-64) so với Capacity 261 / 500 và 0 / 0 (`src/capacity/store.js:11, 13`); "32 platform health warnings" (store.js:109) so với 8 mục `HEALTH` (`overview.js:147, 154`); 7 thông báo promotion mẫu của Resident không gắn promotion nào (store.js:97).
+8. Số liệu mẫu lệch nhau: "Parking Spots over limit 261 / 25", "Staff over limit 18 / 3" (store.js:63-64) so với Capacity 261 / 500 và 0 / 0 (`src/features/capacity/store.js:11, 13`); "32 platform health warnings" (store.js:109) so với 8 mục `HEALTH` (`overview.js:147, 154`); 7 thông báo promotion mẫu của Resident không gắn promotion nào (store.js:97).
 9. Không có xóa, ẩn, snooze; không có thông báo sinh từ Promotions, Documents, Capacity.
 10. Công tắc trong Notification settings (`eso-notif`, `rn*`, `an*`) không được `src/notifications` đọc.
 11. Violation và warning của Social không đi vào trang Notifications hay chuông ngoài Social.
@@ -683,7 +683,7 @@ Tổng cộng 192 quy tắc: Messages và Ticket box 43, Social 50, Notification
 5. Kênh Email, SMS không làm gì; bỏ In-App thì promotion ẩn hẳn (store.js:62).
 6. Views, Claims, CTR, Redemption của Staff (PROTO:6242-6246) không nhận dữ liệu từ Resident thật.
 7. Deal mẫu của Staff (`const DEALS`, PROTO:2090) không nằm trong `eso-pmc-saved`; trang Resident rỗng cho tới khi Staff tạo mới.
-8. Phương thức QR chỉ hiện mã chữ (`src/promotions/resident.js:199`).
+8. Phương thức QR chỉ hiện mã chữ (`src/features/promotions/resident.js:199`).
 9. Phương thức link: mỗi lần bấm "Get offer" tính một lượt claim kể cả khi cửa sổ bị chặn (store.js:171).
 10. Không có hủy claim, lịch sử claim, redeem, "My rewards" ở Resident thật. Không có "End", "Delete" ở Staff.
 11. Tắt `promoShow`: mục "Promotions" ở sidebar Resident vẫn hiện (PREVIEW:623-628).
@@ -693,12 +693,12 @@ Tổng cộng 192 quy tắc: Messages và Ticket box 43, Social 50, Notification
 
 ### 3.5 Documents và Capacity
 
-1. Download chỉ toast "Downloads are not part of this preview." (`src/documents/app.js:299`), kể cả W-9 đã mở khóa. Chỉ lưu metadata.
+1. Download chỉ toast "Downloads are not part of this preview." (`src/features/documents/app.js:299`), kể cả W-9 đã mở khóa. Chỉ lưu metadata.
 2. Không có thư mục, đổi tên, sửa metadata, thay file, link chia sẻ.
 3. "Who can see it" chỉ là nhãn; không kiểm vai trò.
 4. Người dùng gán cứng `ME = { name: 'Dana Whitfield', … }` (app.js:30); không theo `?as=`. `eso-docs:client` dùng chung.
 5. Gửi khóa là mô phỏng: khóa hiện ngay trong hộp thoại (app.js:389).
-6. 9,4 GB "đã dùng" là hằng số (`src/capacity/store.js:14`). Khi `eso-docs:client` chưa tồn tại, Usage và sidebar không cộng 7 tài liệu seed còn trang Documents có cộng (`usage/app.js:56`; FRAME:15; `documents/app.js:34, 177`).
+6. 9,4 GB "đã dùng" là hằng số (`src/features/capacity/store.js:14`). Khi `eso-docs:client` chưa tồn tại, Usage và sidebar không cộng 7 tài liệu seed còn trang Documents có cộng (`usage/app.js:56`; FRAME:15; `documents/app.js:34, 177`).
 7. `KEY_VIA`, `canMakeKey` (`documents/store.js:172, 218`) không dùng trong UI.
 8. Capacity: không tính tiền, không checkout ("Preview only…", `src/client/usage-content.html:188`); không giảm hay hủy được (`applyCart` chỉ cộng, store.js:59-64).
 9. "Added to Billing & Plan": mục "Billing & Plan" là `href="#"` (FRAME:27).
@@ -733,7 +733,7 @@ Tổng cộng 192 quy tắc: Messages và Ticket box 43, Social 50, Notification
 4. Nút trong bản chụp không tìm thấy handler: Staff "AI Work Assistant", "Open Property Hub", "Refresh"; Client "AI Operations Assistant", "Date range", "Rows per page", "Show options", "Capacity over limit – view details", "Open menu for Mallard Pointe at Riverbend", ô "Search properties by name"; Resident "Learn More", "Dismiss".
 5. Nút capacity ở sidebar Resident đổi chữ thành "Manage vehicles" (FRAME:282-284) nên không khớp `wireLinks` (EXTRAS:438): không có handler. Suy ra từ mã.
 6. Menu hồ sơ Staff: "My Social" và "Saved posts" cùng trỏ `/staff/social.html#/me` (PREVIEW:214).
-7. Property filter của Client: lựa chọn không lưu, không đổi số liệu nào (`src/property-filter.js:6, 73-80`).
+7. Property filter của Client: lựa chọn không lưu, không đổi số liệu nào (`src/shared/js/property-filter.js:6, 73-80`).
 8. Client Workspace: "Export portfolio data" chỉ toast (CW:220-222); "Single sign-on", "Recent activity", "Card on file" là dòng mẫu (CW:123, 146-148); văn bản chỉ tới "Staff & Access", "Recovery", "Billing & Plan" đều là `#`.
 9. `src/index.html` không link tới Social, Tickets, Notifications, Settings, Documents, Capacity.
 
@@ -756,13 +756,13 @@ Tổng cộng 192 quy tắc: Messages và Ticket box 43, Social 50, Notification
 23. Mặc định sáng/tối: Resident theo thiết bị (`prefs.js:16`; PREVIEW:618-621); Staff, Client, Admin luôn sáng.
 
 **Mã chết hoặc không tới được**
-24. `src/partials/settings-app.html` và `src/settings/resident.js`: không HTML nào nạp. Không còn mã sống nào ghi `theme, contrast, reduceMotion` vào `eso-res-pref`.
+24. `src/partials/settings-app.html` và `src/features/settings/resident.js`: không HTML nào nạp. Không còn mã sống nào ghi `theme, contrast, reduceMotion` vào `eso-res-pref`.
 25. `hashForPath` (ROUTES:65-69): chỉ test dùng.
 26. `src/staff/account-settings.html`, `src/client/account-settings.html`: chỉ còn là điểm chuyển hướng.
 27. Nút `account`, `about` của cây PROTO bị loại (PROTO:528, 561, 951, 971); trang `acct()` không còn đường vào.
 28. Biến không dùng trong FRAME: `icons` (FRAME:247-248, 339), `body` (FRAME:285, 292).
 29. `cleanUrls` chỉ có ở máy chủ dev (`vite.config.ts:29-39`); bản build không có quy tắc viết lại URL.
-30. Chú thích `src/back-target.js:14` ghi portal là `'staff' | 'client' | 'resident'`, thiếu admin dù admin có dùng.
+30. Chú thích `src/shared/js/back-target.js:14` ghi portal là `'staff' | 'client' | 'resident'`, thiếu admin dù admin có dùng.
 
 **Test**
 31. `prefs.test.mjs` (4), `look-prefs.test.mjs` (6), `back-target.test.mjs` (6), `html-attributes.test.mjs` (3), `e2e-flows.test.mjs:191` (`exitTarget`). Không test nào import `preview.js`, `portal-frame.js`, `portal-frame-extras.js`, `property-filter.js`, `account-settings.staff.js`, `client-workspace.js`, phần UI của `dockey-settings.js`, shim ở PROTO:3, plugin trong `vite.config.ts`, `messaging/hub.js`, hay logic trong PROTO.
@@ -903,7 +903,7 @@ Tổng cộng 192 quy tắc: Messages và Ticket box 43, Social 50, Notification
 14. Menu hồ sơ Staff: "Saved posts" cần đích riêng không?
 15. Trang đầu `index.html` có cần thành bộ chọn portal và persona đầy đủ, kèm nút reset dữ liệu demo chung không?
 16. Bản build có cần chạy được với URL không đuôi trên máy chủ thật không?
-17. `src/settings/resident.js` và `src/partials/settings-app.html` được giữ lại có chủ ý, hay đã bị thay hẳn?
+17. `src/features/settings/resident.js` và `src/partials/settings-app.html` được giữ lại có chủ ý, hay đã bị thay hẳn?
 18. Property filter của Client phải lọc những số liệu nào, và lựa chọn có cần giữ giữa các trang không?
 19. "View as Manager / Staff (read-only)" là công cụ demo hay phản ánh phân quyền thật theo persona?
 20. Các nút trong bản chụp chưa có hành vi ("AI Work Assistant", "Open Property Hub", "Refresh", "Date range", "Learn More", "Dismiss", "Request Spot"…) nên báo "chưa có trong bản xem thử" hay giữ im lặng?

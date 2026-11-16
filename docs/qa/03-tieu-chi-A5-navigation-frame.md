@@ -1,6 +1,6 @@
 # Tiêu chí A5: Điều hướng, khung dùng chung và chất lượng xuyên suốt (Prompt 1)
 
-Ngày 2026-11-14. Nguồn duy nhất: `01-quyet-dinh-chu-du-an.md` (là đặc tả), `01-ban-do-he-thong.md`, `01a`, `01b`, `01c`, `00-doi-chieu-quy-trinh.md`, và nhãn/selector đọc từ `src/preview.js`, `src/portal-frame.js`, `src/portal-frame-extras.js`, `src/exit-target.js`, `src/back-target.js`, `src/partials/head.html`. Chưa chạy thử. Mỗi tiêu chí trả lời Có/Không; "Đạt" = trả lời Có. Chỗ build hiện tại khác đặc tả ghi ở cột Ghi chú là `Khoảng cách?` (sẽ kiểm ở Prompt 2 đến 6).
+Ngày 2026-11-14. Nguồn duy nhất: `01-quyet-dinh-chu-du-an.md` (là đặc tả), `01-ban-do-he-thong.md`, `01a`, `01b`, `01c`, `00-doi-chieu-quy-trinh.md`, và nhãn/selector đọc từ `src/shared/js/preview.js`, `src/shared/js/portal-frame.js`, `src/shared/js/portal-frame-extras.js`, `src/shared/js/exit-target.js`, `src/shared/js/back-target.js`, `src/partials/head.html`. Chưa chạy thử. Mỗi tiêu chí trả lời Có/Không; "Đạt" = trả lời Có. Chỗ build hiện tại khác đặc tả ghi ở cột Ghi chú là `Khoảng cách?` (sẽ kiểm ở Prompt 2 đến 6).
 
 Địa chỉ gốc `B` = `http://localhost:3590`. Dữ liệu là `localStorage`/`sessionStorage` của trình duyệt, không phải database thật.
 

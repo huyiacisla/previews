@@ -1,7 +1,7 @@
 # EasySpotOps account settings: quality pass
 
 Nguồn: `14723420-account-settings-10.html` (prototype 1 file, ~1.3 MB). File gốc không bị sửa.
-Bản handoff cũ của trang (trước đợt gộp này) nằm ở `_archive/handoff-original/account-settings.html`.
+Bản handoff cũ của trang (trước đợt gộp này) nằm ở `docs/archive/handoff-original/account-settings.html`.
 
 ## Nằm ở đâu trong workspace Vite
 
@@ -10,7 +10,7 @@ Bản handoff cũ của trang (trước đợt gộp này) nằm ở `_archive/h
 | `src/staff/account-settings.html` | Trang prototype (đã gộp quality-pass). Link sẵn ở `src/index.html`. |
 | `src/staff/account-settings.quality.css` | Lớp CSS ghi đè, nạp bằng `<link rel="stylesheet">`. Không dùng hex thô, chỉ biến của prototype (`--primary`, `--sbfg`, `--fg`, `--bg`). |
 | `src/staff/account-settings.quality.js` | Sửa lỗi lúc chạy, nạp bằng `<script type="module">`. |
-| `docs/account-settings-quality-pass.md` | File này. |
+| `docs/notes/account-settings-quality-pass.md` | File này. |
 
 Không có phần nào của mã dựng giao diện gốc bị xóa hay viết lại. Mọi thứ là lớp phủ (override); gỡ hai thẻ `<link>`/`<script>` trong `<head>` là về nguyên trạng.
 

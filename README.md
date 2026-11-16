@@ -26,7 +26,7 @@ npm run build    # kiểm tra; ra dist/
 | Client: Usage > Capacity (nhóm Usage dưới Ticket box trong sidebar) và Management > Documents | `/client/usage/capacity.html`, `/client/documents.html` |
 | Resident: Promotions (Staff đã publish), Social (xem và tương tác, không đăng bài, có hộp hướng dẫn cộng đồng), Settings (Profile, Personalize, My property) | `/resident/promotions.html`, `/resident/social.html`, `/resident/settings.html` |
 
-Thêm `?dark` vào URL để xem chế độ tối. Trang Messages hoạt động thật trong trình duyệt (xem [docs/messaging-design.md](docs/messaging-design.md)); chạy `npm test` để kiểm lõi nghiệp vụ.
+Thêm `?dark` vào URL để xem chế độ tối. Trang Messages hoạt động thật trong trình duyệt (xem [docs/design/messaging-design.md](docs/design/messaging-design.md)); chạy `npm test` để kiểm lõi nghiệp vụ.
 
 ## Ghi chú cho AI/agent làm việc trong repo này
 - **Hạn chế subagent.** Chỉ dùng khi thật sự cần (khảo sát nhiều tệp lớn, đọc tài liệu dài). Việc nhỏ, đã biết tệp, làm trực tiếp. Không chạy nhiều subagent song song cho việc có thể làm tuần tự.
@@ -35,20 +35,21 @@ Thêm `?dark` vào URL để xem chế độ tối. Trang Messages hoạt độn
 ## Cấu trúc
 ```text
 src/
-├─ index.html          mục lục
-├─ styles.css          nạp token + font
-├─ ui-tokens.css       token/màu/cỡ chữ/theme (Tailwind 4) — NGUỒN token, không khai màu riêng ngoài file này
-├─ styles/staff.css    CSS Module trích từ app thật (không sửa tay)
-├─ preview.js          bật tối bằng ?dark, nút Theme, ngăn kéo menu mobile, nối mục Messages
-├─ messaging/          lõi và giao diện Messages (logic ở FE, đủ demo): store, transport, bot, app…
-├─ partials/head.html  <head> dùng chung, chèn bằng <!--include:partials/head.html-->
-├─ partials/messages-app.html  khung + mọi <template> của Messages (nơi duy nhất chứa class của trang này)
-└─ <portal>/*.html     các trang
-├─ promotions/ social/ settings/   lõi (chỉ đọc dữ liệu Staff) và trang của Resident
-tests/                 npm test: 82 test (Messages, ẩn/khôi phục, Promotions, Social, Settings của Resident, một test ngẫu nhiên)
-docs/                  messaging-design.md (thiết kế, phạm vi demo, hạn chế), checklist-conformance.md (đối chiếu với checklist PDF), account-settings-quality-pass.md, issue-log.md (nhật ký lỗi và góp ý, kèm quy tắc rút ra: đọc trước khi làm việc mới), ux-checklist-conformance.md (đối chiếu với ux-checklist.com cho 4 portal)
-DESIGN.md              luật thiết kế (khi xung đột, DESIGN.md thắng)
-screenshots/           ảnh tham chiếu sáng/tối của bản hiện tại
+├─ index.html              mục lục
+├─ <portal>/*.html         các trang (client, staff, admin, resident, messages) — URL giữ nguyên
+├─ partials/               head.html chung (<!--include:partials/head.html-->), khung + <template> của từng app
+├─ shared/
+│  ├─ css/                 styles.css (nạp token + font), ui-tokens.css (NGUỒN token, Tailwind 4), staff.css (trích từ app thật, không sửa tay)
+│  └─ js/                  preview.js (?dark, nút Theme, menu mobile), portal-frame*.js, access-guard, back/exit-target, *-prefs, property-*, alpine…
+└─ features/               lõi theo miền: messaging, social, notifications, promotions, documents, settings, capacity, usage, health
+tests/                     npm test (node --test "tests/**/*.test.mjs"); nhóm theo miền: social/ messaging/ notifications/ promotions/ documents/ admin/ health/ + test chéo ở gốc
+docs/
+├─ design/                 messaging-design, alpine-migration, device-sizes
+├─ qa/                     issue-log (đọc trước khi làm việc mới), qa-report-*, *-conformance, bộ khảo sát đánh số
+├─ notes/                  session-summary, account-settings-quality-pass
+└─ archive/                bản handoff cũ
+assets/screenshots/        ảnh tham chiếu sáng/tối
+DESIGN.md                  luật thiết kế (khi xung đột, DESIGN.md thắng)
 ```
 
 ## Lưu ý
