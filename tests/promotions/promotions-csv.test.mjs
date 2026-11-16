@@ -145,3 +145,13 @@ test("the Verify and Reject icon buttons of a claim row are 44 px on a phone or 
   assert.ok(staff.includes("@media(pointer:coarse),(max-width:639px){.cl-ib{width:44px;height:44px}}"));
   assert.ok(staff.includes('class="cl-ib ok" data-clv="${c.id}" aria-label="Verify" title="Verify"'), "the button has a name");
 });
+
+test("the Staff Claims inbox holds only real claims: no demo generator, old demo rows are dropped, the lists never make up names", () => {
+  const staff = readFileSync(new URL("../../src/staff/account-settings-content.html", import.meta.url), "utf8").replace(/\r\n/g, "\n");
+  assert.ok(!staff.includes("function seed(){const ids=Object.keys(META)"), "the demo generator is gone");
+  assert.ok(!staff.includes("CL=seed()"), "a missing inbox starts empty");
+  assert.ok(staff.includes("if(!Array.isArray(CL)){CL=[];sv()}") && staff.includes("CL=CL.filter(c=>c&&c.rk);"), "rows without a claim key (the old demo rows) are dropped when the inbox loads");
+  assert.ok(staff.includes("const syn=[],rows=rows0;"), "the Claimed by list adds no invented earlier claimants");
+  assert.ok(staff.includes("filter(c=>c.deal==id):[],"), "the Viewed by list adds no invented viewers");
+  assert.ok(staff.includes('"Who viewed is not recorded."'));
+});
