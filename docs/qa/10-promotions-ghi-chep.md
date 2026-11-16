@@ -305,7 +305,7 @@ Vòng 1 (Phần 1 đến 6) đã kiểm template, brand kit, tạo deal, claim, 
 
 - [x] **R2-1: Trình dựng → Resident.** Live editor: sửa chữ hero, đổi thứ tự khối, thêm khối (Featured, Coupon, FAQ), ẩn khối trên điện thoại, xoá khối; bản nháp so với đã công bố (Resident chỉ thấy khi Publish & set as current?); "Stop using" (Resident về diện mạo portal, không còn dấu vết theme); Customize một template thành "My creations" rồi Use; Resident đổi ngay không cần tải lại.
 - [x] **R2-2: "Resident view" của Staff giống hệt Resident thật.** Công tắc Resident view ở trang Staff (khung nhúng): so thanh trên cùng, Saved, hero gộp, theme, My rewards, History ở 375/830/1440; cuộn hết trang; không còn điều khiển cũ.
-- [ ] **R2-3: Quét hình ảnh bố cục mới.** Thanh trên cùng gập một hàng, hero gộp, Saved, (i), hộp thoại: 375, 830, 1440 × sáng, tối × template Deals, Store, Luxury dark, Minimal mono; cuộn hết trang, chụp hai lần.
+- [x] **R2-3: Quét hình ảnh bố cục mới.** Thanh trên cùng gập một hàng, hero gộp, Saved, (i), hộp thoại: 375, 830, 1440 × sáng, tối × template Deals, Store, Luxury dark, Minimal mono; cuộn hết trang, chụp hai lần.
 - [ ] **R2-4: Việc còn mở.** Canvas trình dựng Staff cho giống Resident (đếm ngược và mã giảm giá nằm trong hero), "Scheduled" chọn được ngày bắt đầu, "Price / value" đổi giá trị giảm thật, thử lại lỗi claim Phần 4.
 - [ ] **R2-5: Tổng kết vòng 2.** Dọn dữ liệu, ghi tổng kết, hỏi push.
 
@@ -338,3 +338,13 @@ Chưa sửa: bấm Claim trong Resident view của Staff ghi claim thật cho Al
 Test: `promotions-blocks.test.mjs` (2 khẳng định mới).
 
 Dọn dữ liệu: không có dữ liệu mới; đóng tab Staff, bỏ giả lập màn hình.
+
+### R2-3 (xong): Quét hình ảnh bố cục mới
+
+Cách làm: bốn template (Deals, Store, Luxury dark, Minimal mono) lấy từ Staff bằng "Use this template" (xong trả về Deals); ở Resident đặt từng bản công bố (đổi cả `at`) và chạy một bộ kiểm tra: tràn ngang, lỗi script, tương phản mọi chữ trong thanh trên cùng, trang thiết kế và lưới thẻ, chiều cao thanh ở đầu trang và sau khi cuộn 600px, thanh có dính dưới đầu trang không, cuộn tới cuối trang được không. Chạy ở 375 sáng và tối, 830 sáng và tối, 1440 sáng (khung Resident rộng 1184); cộng ảnh chụp thật: 375 tối (Luxury, Store, Mono), 1440 sáng (Store đầu và giữa, Luxury cuối), hộp History trong Luxury ở 1440.
+
+Kết quả: **không có lỗi mới.** 0 chữ thiếu tương phản (ngoài mức đã chấp nhận), 0 lỗi script, không tràn ngang, thanh dính đúng chỗ, cuộn tới cuối được. Thanh 150px ở đầu trang và gập còn 53px sau khi cuộn ở 375; 86px một hàng ở 830 và 1440. Ba ghi chú đúng thiết kế: ở 375 các hàng chip và băng chuyền cuộn ngang (không tính là tràn); khi hệ điều hành tối mà template sáng (Store, Mono) cả trang và thanh portal vẫn sáng; lưới 3 cột ở 1440 vì khung Resident rộng 1184 chưa tới mốc 4 cột.
+
+Chưa chạy: 1440 tối (cùng đường mã, đã chạy ở 830 tối và 1440 sáng).
+
+Dọn dữ liệu: khoá tạm `qa-snaps`, `qa-sweep-src`, snapshot về Deals, template Deals "In use", brand mặc định.
