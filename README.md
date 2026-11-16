@@ -32,6 +32,9 @@ Thêm `?dark` vào URL để xem chế độ tối. Trang Messages hoạt độn
 - **Hạn chế subagent.** Chỉ dùng khi thật sự cần (khảo sát nhiều tệp lớn, đọc tài liệu dài). Việc nhỏ, đã biết tệp, làm trực tiếp. Không chạy nhiều subagent song song cho việc có thể làm tuần tự.
 - Bộ skill thiết kế đang dùng: `/design` (gộp `ui-ux-pro-max`, `frontend-design`, `design-taste-frontend`, `web-design-guidelines`). Khi xung đột: ý bạn > `DESIGN.md` > skill.
 
+## Quy định
+- **Trang mới dùng Alpine.js** (xem `docs/design/alpine-migration.md`); trang cũ giữ nguyên, chỉ chuyển khi sửa lớn.
+
 ## Biome
 - Biome là chuẩn: `npm run lint` (lint + format + import, chỉ báo), `npm run fix` (tự sửa). Cấu hình `biome.json`; HTML không quét.
 - Test đọc mã nguồn dạng chuỗi dùng `has()` (`tests/has.mjs`), không phụ thuộc kiểu nháy/khoảng trắng; viết test mới theo cách đó.

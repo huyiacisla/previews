@@ -1,7 +1,12 @@
 # Chuyển sang Alpine.js
 
-Quyết định ngày 2026-11-13: dự án dùng **Alpine.js** (bản 3.17.5) và chuyển dần **tất cả** các trang, mỗi lần một trang.
-Đây là ngoại lệ có chủ đích với `BRIEF.md` (dòng "không thêm thư viện, framework, JS").
+## Quy định (chốt 2026-11-16)
+
+- **Trang mới: bắt buộc Alpine.js** (bản 3.17.5), viết theo mục "Cách viết" dưới đây.
+- **Trang cũ: giữ nguyên.** Chỉ chuyển sang Alpine khi phải sửa lớn trang đó; không chuyển hàng loạt (rủi ro cao, không đổi gì người dùng thấy, test đang so khớp chuỗi mã nguồn).
+- Bảng "Thứ tự và trạng thái" bên dưới là danh sách ứng viên, không phải kế hoạch bắt buộc. Promotions của Resident là ứng viên nhỏ nhất.
+
+Lịch sử: quyết định ngày 2026-11-13 dùng Alpine.js và chuyển dần các trang; hai trang đầu đã xong. Đây là ngoại lệ có chủ đích với `BRIEF.md` (dòng "không thêm thư viện, framework, JS").
 
 ## Cách viết một trang bằng Alpine
 

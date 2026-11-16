@@ -21,7 +21,7 @@ Thêm trang mới được (tạo `src/<portal>/<tên>.html`, thêm link ở `sr
 | Đề xuất token mới: ghi rõ lý do trong ghi chú | Thêm thư viện, framework, JS (ngoài `preview.js`) |
 | Dùng icon dạng SVG inline (bộ Lucide) | Dùng dữ liệu thật/PII, gọi API |
 
-> Ngoại lệ đã quyết (2026-11-13): dự án dùng **Alpine.js** cho phần tương tác và chuyển dần các trang sang nó. Cách viết và thứ tự ở `docs/design/alpine-migration.md`. Không thêm thư viện nào khác.
+> Ngoại lệ đã quyết (2026-11-13), chốt lại 2026-11-16: **trang mới BẮT BUỘC dùng Alpine.js** cho phần tương tác (không viết JS thuần dựng DOM, không thêm thư viện nào khác). **Trang cũ giữ nguyên**, chỉ chuyển sang Alpine khi phải sửa lớn; không chuyển hàng loạt. Cách viết và trạng thái ở `docs/design/alpine-migration.md`.
 
 ## Yêu cầu chất lượng
 - Có đủ **sáng + tối** (`?dark`); chữ đạt tương phản AA.
