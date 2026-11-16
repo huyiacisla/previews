@@ -446,8 +446,11 @@ Lỗ hổng thấy khi dựng ca: (1) bot trả lời câu hỏi giảm giá b�
 - [x] **R4-2: Resident "Ask about this claim".** Ở My rewards và hộp thoại deal đã claim: nút mở Messages với nội dung soạn sẵn (deal, mã, giờ claim, trạng thái), chuyển thẳng cho property team, không qua bot; ticket gắn nhãn Promotions.
 - [x] **R4-3: Bot nhận ra câu hỏi về deal, claim, giảm giá, tính tiền.** Trả lời đúng ngữ cảnh (không dùng nội dung xe lạ), đưa nút "Talk to a person" và ghi nhãn Promotions cho ticket.
 - [x] **R4-4: Staff xử lý ngay từ claim.** Ghi chú nội bộ trên claim, "Nhắn cư dân" (mở trả lời trong đúng cuộc trò chuyện), cấp bù hoặc cộng ưu đãi tay (ghi rõ lý do, ai làm, khi nào) và cư dân thấy kết quả ở My rewards và thông báo.
-- [ ] **R4-5: Ma trận trường hợp.** Claim 2 lần, huỷ rồi claim lại, hai Staff cùng xử lý một claim, Verify hai lần, deal bị Off live hoặc hết hạn khi claim đang Pending, hết suất giữa chừng, cư dân A xem claim của B, Staff property khác, cư dân đã chuyển đi, hỏi sau khi claim Redeemed. Ghi kết quả từng ca.
-- [ ] **R4-6: Tổng kết vòng 4.** Dọn dữ liệu (claim của res-1, ticket T-1086 và các ticket thử), cập nhật ghi chép, hỏi push.
+- [ ] **R4-5: Quy tắc 1 căn hộ / 1 ưu đãi thật + Jamie + panel theo căn hộ (BIZ-01).** (a) deal mẫu ghi "One per household" phải bị chặn thật theo căn hộ: tài khoản thứ hai của căn hộ thấy nút Disabled kèm lời giải thích rõ ngay từ đầu; (b) Jamie Rivera (res-4, cùng Unit 02-291 với Alex) nhắn được Staff qua Messages; (c) panel của Staff gom theo căn hộ: claim của cả căn hộ, và cảnh báo ĐỎ "Căn hộ này đã nhận ưu đãi qua tài khoản [Tên] vào ngày [Ngày]" khi người đang hỏi bị chặn vì người cùng căn hộ.
+- [ ] **R4-6: Context Card và panel tự mở (UX-01, UX-02).** "Ask about this claim" chèn sẵn một thẻ ngữ cảnh gọn (Claim ID, deal, mã, trạng thái, giờ claim, số ticket) vào tin nhắn gửi đi, cả hai bên thấy thẻ trong khung chat; Staff mở cuộc trò chuyện có thẻ thì panel bên phải tự mở và làm nổi bật claim đó (không bắt bấm icon (i)); nút mở panel có chữ "Details" thay vì icon (i) trần.
+- [ ] **R4-7: Quick Actions tại chat và dấu vết hệ thống (UX-03, Audit Trail).** Trong panel chat: "Confirm claim", "Apply by hand (Override)" (bắt buộc lý do), "Reject" (lý do) và "View unit history" xong trong tối đa 2 click, không đổi tab; mỗi Override tự chèn một System Message vào khung chat để hai bên đối soát; Claims inbox và chat luôn khớp nhau.
+- [ ] **R4-8: Ma trận trường hợp.** Claim 2 lần, huỷ rồi claim lại, hai Staff cùng xử lý một claim, Verify hai lần, deal bị Off live hoặc hết hạn khi claim đang Pending, hết suất giữa chừng, cư dân A xem claim của B, Staff property khác, cư dân đã chuyển đi, hỏi sau khi claim Redeemed, tài khoản thứ hai cùng căn hộ nhắn khiếu nại (ca Jamie), checklist UX-01, UX-02, UX-03, BIZ-01 của tài liệu hướng dẫn. Ghi kết quả từng ca.
+- [ ] **R4-9: Tổng kết vòng 4.** Dọn dữ liệu (claim của res-1, ticket T-1086 và các ticket thử), cập nhật ghi chép, hỏi push.
 
 ### R4-1 (xong): panel Promotions trong chat của Staff
 
@@ -499,3 +502,9 @@ Chưa kiểm: hộp Apply và các nút mới ở 375 và 830, chế độ tối
 Dọn dữ liệu: claim, trạng thái và ghi chú của Priya đã xoá; ca tập T-1086 và claim Pending của Alex không bị đụng.
 
 Test: `tests/promotions/promotions-handle.test.mjs` (3 test). `npm test` 514 test, 513 qua, 1 lỗi cũ.
+
+### Tài liệu hướng dẫn "Chat UI/UX & Promotion Workflow Guidelines" (người dùng gửi 16/11) và việc phải làm
+
+Điểm chính: (1) không giấu hành động hay thông tin xử lý chính (trạng thái claim, mã ticket, "Ask about this claim", cấp bù thủ công) sau icon (i); (2) cư dân bấm "Ask about this claim" thì khung chat tự chèn thẻ ngữ cảnh (Claim ID, ticket); (3) Staff mở cuộc trò chuyện có thẻ thì panel tự làm nổi bật claim, có Quick Actions (xác nhận claim, cấp bù thủ công, xem lịch sử căn hộ) xong trong 1 đến 2 click; (4) quy tắc 1 căn hộ / 1 ưu đãi kiểm theo mã căn hộ, tài khoản thứ hai bị vô hiệu hoá kèm lời giải thích, Staff có cảnh báo đỏ gắn mã căn hộ; (5) mọi cấp bù thủ công bắt buộc lý do và tự chèn System Message vào chat. Checklist: UX-01, UX-02, UX-03, BIZ-01.
+
+Đối chiếu hiện trạng: R4-1 đến R4-4 đã làm panel Promotions, nút Ask about this claim (chữ, không icon (i)), Apply by hand có lý do. Còn thiếu: BIZ-01 (deal mẫu chưa chặn theo căn hộ, Jamie không có chat), cảnh báo đỏ theo căn hộ, thẻ ngữ cảnh trong tin nhắn, panel tự mở và nút "Details" (hiện là icon), Quick Actions trong chat, System Message sau Override. Chia thành R4-5 đến R4-7, ma trận trường hợp dời sang R4-8.
