@@ -6751,7 +6751,7 @@ document.addEventListener("click",e=>{const t=e.target;if(!t.closest)return;let 
 },true);
 const stats=id=>{const a=CL.filter(c=>c.deal==id),cl=a.filter(c=>c.st!="rejected"),rd=a.filter(c=>c.st=="redeemed").length;return {n:a.length,pend:a.filter(c=>c.st=="pending").length,rd,rate:cl.length?Math.round(rd/cl.length*100)+"%":"—"}};
 const check=code=>{const c=CL.find(x=>x.code==String(code||"").trim().toUpperCase());return !c?{ok:false,s:"invalid"}:{ok:c.st=="verified",s:c.st=="verified"?"valid":c.st=="redeemed"?"used":c.st,claim:c}};
-window._pmcl={syncBtns,check,rdLook,inbox,pending,mine,openFor,claim,rewards,stats,U,get CL(){return CL},reset(){CL=seed();sv();fromRes()}};if(/^#\/promotions/.test(location.hash))setTimeout(()=>PM.upd&&PM.upd(),0);
+window._pmcl={syncBtns,check,rdLook,inbox,pending,mine,openFor,claim,rewards,stats,U,get CL(){return CL},reset(){CL=[];sv();fromRes()}};if(/^#\/promotions/.test(location.hash))setTimeout(()=>PM.upd&&PM.upd(),0);
 })();</script>
 <style id="pmlimit">
 .sp2-glr>b{min-width:0;overflow-wrap:anywhere}
