@@ -40,7 +40,7 @@ test("the page drawer sets Staff's words as text and takes only picture data URL
 
 test("going back from the details: closing them returns to My rewards or to Redeem, not out of the page", () => {
   const res = readFileSync(new URL("../../src/features/promotions/resident.js", import.meta.url), "utf8");
-  assert.ok(res.includes('openDialog(r.id, null, "rewards")'));
+  assert.ok(res.includes('openDialog(u.id, null, "rewards")'), "a unit mate's row opens the promotion and comes back");
   assert.ok(res.includes('openDialog(openId, null, "redeem")'));
   assert.ok(res.includes('if (back === "rewards")'));
 });

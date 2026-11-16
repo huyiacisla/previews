@@ -226,6 +226,63 @@ function endsAtOf(x, today) {
   return null;
 }
 
+/**
+ * Has a promotion ended? `endsAt` is its end as milliseconds (Staff's end date with its end time, or the end of that day when no time was set), `now` a Date or milliseconds.
+ * A promotion with no end (null, undefined, not a number) never expires; one whose end is exactly now has ended.
+ */
+export function isExpired(endsAt, now = Date.now()) {
+  const end = typeof endsAt === "number" ? endsAt : Number.NaN;
+  const t = now instanceof Date ? now.getTime() : Number(now);
+  return Number.isFinite(end) && Number.isFinite(t) && end <= t;
+}
+
+/** A code with all but its first four characters hidden: "SHJS****", "RES-******" (a hyphen stays where it is). */
+export function maskCode(code) {
+  return [...String(code || "")].map((ch, i) => (i < 4 || ch === "-" ? ch : "*")).join("");
+}
+
+/**
+ * The steps of one claim for the detail window, from its real timeline (claimTimeline) and its state key (pending, verified, redeemed, rejected, cancelled):
+ * [{ label, state: "done" | "current" | "todo" | "stop", at, note }]. Claim submitted, then Awaiting staff approval, then what the property team decided.
+ */
+export function claimSteps(key, timeline = []) {
+  const at = (label) => (timeline.find((e) => e && e.label === label) || {}).at || "";
+  const note = (label) => (timeline.find((e) => e && e.label === label) || {}).note || "";
+  const steps = [{ label: "Claim submitted", state: "done", at: at("Claimed"), note: "" }];
+  if (key === "cancelled") return [...steps, { label: "Cancelled by you", state: "stop", at: at("Cancelled"), note: "" }];
+  if (key === "pending") return [...steps, { label: "Awaiting staff approval", state: "current", at: "", note: "" }, { label: "Staff approval", state: "todo", at: "", note: "" }];
+  const decided = at("Verified") || at("Rejected") || at("Redeemed");
+  steps.push({ label: "Reviewed by the property team", state: "done", at: decided, note: "" });
+  if (key === "rejected") return [...steps, { label: "Not approved", state: "stop", at: at("Rejected"), note: note("Rejected") }];
+  if (key === "redeemed") return [...steps, { label: "Approved and used", state: "done", at: at("Redeemed"), note: "" }];
+  return [...steps, { label: "Approved: your code is ready", state: "done", at: at("Verified"), note: note("Verified") }];
+}
+
+/**
+ * What a claimed promotion is now, read from the real records (Staff's published deals and the running samples): its title, its terms, when it ends (milliseconds, or null) and
+ * `live`: "running", "ended" (its end time has passed), "closed" (Staff ended it) or "gone" (Staff removed it, or it is not known any more).
+ */
+export function rewardInfo(storage, promoId, now = new Date()) {
+  const rec = allRecords(storage).find((r) => r && r.x && String(r.id) === String(promoId));
+  if (!rec || rec.st === "removed") return { title: "", terms: "", endsAt: null, live: "gone" };
+  const x = rec.x;
+  const endsAt = endsAtOf(x, todayISO(now));
+  const live = rec.st === "closed" ? "closed" : isExpired(endsAt, now) ? "ended" : "running";
+  return { title: String(x.title || "Promotion").slice(0, 100), terms: String(x.terms || "").slice(0, 1000), endsAt, live };
+}
+
+/**
+ * Where a reward belongs in My rewards, by the state of its claim (key: pending, verified, redeemed, rejected, cancelled) and of its promotion (rewardInfo):
+ * "active" (Pending or Verified on a promotion that still runs) or "history" (used, not approved, cancelled, or expired before it was used), with the word for it.
+ */
+export function rewardGroup(key, info) {
+  if (key === "redeemed") return { group: "history", label: "Used" };
+  if (key === "rejected") return { group: "history", label: "Not approved" };
+  if (key === "cancelled") return { group: "history", label: "Cancelled" };
+  if (!info || info.live !== "running") return { group: "history", label: "Expired" };
+  return { group: "active", label: key === "verified" ? "Verified" : "Pending" };
+}
+
 function toPromo(rec, names, extra = 0, today = todayISO()) {
   const x = rec.x;
   const link = x.method === "link" && /^https?:\/\//i.test(x.link || "") ? x.link : "";
@@ -516,7 +573,7 @@ export function claimCheck(storage, promoId, now = new Date()) {
   if (x.start && x.start > today) return no("soon", "This promotion has not started yet.");
   if (Array.isArray(x.ch) && x.ch.length && !x.ch.includes("In-App")) return no("gone", "This promotion is no longer available.");
   const fresh = toPromo(rec, categoryNames(storage), claimedByResidents(storage, rec.id), today);
-  if (fresh.endsAt !== null && fresh.endsAt <= now.getTime()) return no("ended", "This promotion has ended.");
+  if (isExpired(fresh.endsAt, now)) return no("ended", "This promotion has ended.");
   if (fresh.full) return no("full", "This promotion has been fully claimed.");
   return { fresh };
 }

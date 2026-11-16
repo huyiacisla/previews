@@ -30,9 +30,10 @@ test("My rewards has the person-and-star icon, and each of the three buttons has
   for (const t of ['id="btn-redeem" title="Redeem a code"', 'id="btn-rewards" title="My rewards"', 'id="btn-saved" title="Saved promotions"']) assert.ok(html.includes(t), t);
 });
 
-test("My rewards separates what the resident cancelled from what the property team did not approve", () => {
-  assert.ok(res.includes('["rejected", "Not approved"],\n  ["cancelled", "Cancelled"],'));
-  assert.ok(res.includes("const tabOf = (k) => k;"));
+test("My rewards has two views, Active and Used / Expired, and each card still says Cancelled, Not approved, Used or Expired", () => {
+  assert.ok(res.includes('["active", "Active"],\n  ["history", "Used / Expired"],'));
+  assert.ok(res.includes("...rewardGroup(key, info)") && res.includes("badge.textContent = r.label;"), "the word on the card says where the reward stands");
+  assert.ok(res.includes("const shown = rows.filter((r) => r.group === rwTab);"));
 });
 
 test("the claims to decide in the chat panel scroll inside a box of their own height", () => {
@@ -49,7 +50,7 @@ test("the Resident and Staff headers have no dropdown arrow beside the avatar, a
 });
 
 test("pressing a saved promotion's card takes you to it on the page, with the panel kept as it is", () => {
-  assert.ok(res.includes("function goToCard(id) {") && res.includes("svDlg.close();"));
+  assert.ok(res.includes("function goToCard(id, from = \"saved\") {") && res.includes("svDlg.close();"));
   assert.ok(res.includes('if (ui.query || ui.category !== "all" || ui.tags.size) {'), "a search, a category or a quick filter that hid the card is cleared first");
   assert.ok(res.includes('el.scrollIntoView({ block: "start", behavior: calm ? "auto" : "smooth" });') && res.includes("el.style.scrollMarginTop = `${topBar.offsetHeight + 16}px`;"), "scrolled to it, clear of the bar that follows, calmly for people who ask for less motion");
   assert.ok(res.includes('if (!e.target.closest("button")) goToCard(p.id);'), "the Remove and View buttons keep their own work");

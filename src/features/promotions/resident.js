@@ -4,7 +4,7 @@
 
 import { initials, PORTALS, pickPersona } from "../messaging/personas.js";
 import { PAGE_KEY, readPage, renderPage, themeVars } from "./page.js";
-import { activeClaims, allRecords, cancelClaim, categoriesIn, claim, claimStatus, claimDecidedAt, claimTimeline, historyFor, householdClaims, HOUSEHOLD, KEY, listPromotions, lookupCode, readConfig, residentState, toggleSaved, unitMates } from "./store.js";
+import { activeClaims, allRecords, cancelClaim, categoriesIn, claim, claimStatus, claimDecidedAt, claimSteps, claimTimeline, historyFor, householdClaims, HOUSEHOLD, KEY, listPromotions, lookupCode, readConfig, maskCode, residentState, rewardGroup, rewardInfo, toggleSaved, unitMates } from "./store.js";
 
 const $ = (sel, root = document) => root.querySelector(sel);
 const tpl = (id) => document.getElementById(id).content.firstElementChild.cloneNode(true);
@@ -740,8 +740,12 @@ const svDlg = $("#dlg-saved");
 // a category or a quick filter was hiding it, and the page scrolls to its card, which is lit for a moment.
 let flashId = "";
 let flashUntil = 0;
-function goToCard(id) {
+function goToCard(id, from = "saved") {
   svDlg.close();
+  if (from === "rewards") {
+    rwDlg.close();
+    claimDlg.close();
+  }
   if (ui.query || ui.category !== "all" || ui.tags.size) {
     ui.query = "";
     $("#search").value = "";
@@ -751,7 +755,7 @@ function goToCard(id) {
   }
   const el = $(`#grid [data-promo="${CSS.escape(String(id))}"]`);
   if (!el) {
-    openDialog(id, null, "saved"); // not on the page (not in the list right now): its details instead
+    openDialog(id, null, from); // not on the page (not in the list right now): its details instead
     return;
   }
   const calm = matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -868,15 +872,12 @@ const STATUS = {
   rejected: ["Not approved", "no", ""],
   cancelled: ["Cancelled", "no", "You cancelled this claim."],
 };
+// Two views: the codes that can be used now, and the ones that cannot any more (used, not approved, cancelled, expired). The status word stays on every card.
 const TABS = [
-  ["all", "All"],
-  ["pending", "Pending"],
-  ["verified", "Verified"],
-  ["redeemed", "Redeemed"],
-  ["rejected", "Not approved"],
-  ["cancelled", "Cancelled"],
+  ["active", "Active"],
+  ["history", "Used / Expired"],
 ];
-let rwTab = "all";
+let rwTab = "active";
 let rwHistory = false;
 
 // The long explanations live behind an (i), in a short window (the page keeps one short line or none).
@@ -942,15 +943,26 @@ function stateOf(cs) {
   if (!cs) return "pending";
   return cs.st === "rejected" ? (cs.cancelled ? "cancelled" : "rejected") : cs.st;
 }
-const tabOf = (k) => k;
 
 function rewardRows() {
   const mine = residentState(storage, me.id);
+  const now = new Date();
   return Object.keys(mine.claims)
     .filter((id) => mine.claims[id] && mine.claims[id].code)
-    .map((id) => ({ id, code: mine.claims[id].code, at: mine.claims[id].at, key: stateOf(claimStatus(storage, me.id, id)), cs: claimStatus(storage, me.id, id) }))
+    .map((id) => {
+      const cs = claimStatus(storage, me.id, id);
+      const key = stateOf(cs);
+      const info = rewardInfo(storage, id, now); // read from the real records: does the promotion still run, when does it end, what are its terms
+      return { id, code: mine.claims[id].code, at: mine.claims[id].at, key, cs, info, ...rewardGroup(key, info) };
+    })
     .sort((x, y) => String(y.at || "").localeCompare(String(x.at || "")));
 }
+// "Expires Dec 6, 2026, 11:59 PM", "Expired Nov 20, 2026", "No end date"
+const rewardEndText = (info) => {
+  if (!info || info.endsAt === null) return "No end date";
+  const d = new Date(info.endsAt).toLocaleString("en-US", { month: "short", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit" });
+  return info.live === "running" ? `Expires ${d}` : info.live === "closed" ? "Ended by the property team" : `Expired ${d}`;
+};
 
 function paintHistory() {
   const events = historyFor(storage, me.id, (id) => {
@@ -1006,6 +1018,112 @@ function openMessages() {
   window.top.location.assign(`/resident/messages.html?${q}`);
 }
 
+// A code on a card or in the claim window. mode: "clear" (usable: shown as it is), "masked" (not usable yet: SHJS**** with an eye that shows it, never a Copy) or "none".
+function paintCode(codeEl, revealBtn, code, mode, shown) {
+  const masked = mode === "masked" && !shown;
+  codeEl.textContent = mode === "none" ? "" : masked ? maskCode(code) : code;
+  codeEl.dataset.masked = String(masked);
+  revealBtn.hidden = mode !== "masked";
+  revealBtn.setAttribute("aria-pressed", String(!!shown));
+  const label = shown ? "Hide code" : "Show code";
+  revealBtn.setAttribute("aria-label", label);
+  revealBtn.title = label;
+  revealBtn.querySelector("use").setAttribute("href", shown ? "#i-eye-off" : "#i-eye");
+}
+function bindCode(codeEl, revealBtn, code, mode) {
+  let shown = false;
+  paintCode(codeEl, revealBtn, code, mode, shown);
+  revealBtn.addEventListener("click", () => {
+    shown = !shown;
+    paintCode(codeEl, revealBtn, code, mode, shown);
+  });
+}
+async function copyText(text) {
+  try {
+    await navigator.clipboard.writeText(text);
+    toast("Code copied");
+  } catch {
+    toast("Could not copy. Select the code and copy it.");
+  }
+}
+function cancelReward(r) {
+  const res = cancelClaim(storage, me.id, r.id);
+  if (res.ok) bumpUnseen("rewards", -1);
+  toast(res.ok ? "Claim cancelled" : res.reason);
+  paintRewards();
+  render();
+  if (claimDlg.open) claimDlg.close();
+}
+
+// The steps of one claim: Claim submitted, Awaiting staff approval, what the property team decided. Opened by View on a card.
+const claimDlg = $("#dlg-steps");
+let claimId = "";
+let claimShown = false;
+function openClaim(id) {
+  claimId = id;
+  claimShown = false;
+  paintClaim();
+  if (!claimDlg.open) claimDlg.showModal();
+  $("#cl-title").focus({ preventScroll: true });
+}
+function paintClaim() {
+  const r = rewardRows().find((x) => x.id === claimId);
+  if (!r) {
+    claimDlg.close();
+    return;
+  }
+  $("#cl-title").textContent = r.info.title || "Promotion";
+  $("#cl-expiry").textContent = rewardEndText(r.info);
+  const steps = $("#cl-steps");
+  clear(steps);
+  for (const st of claimSteps(r.key, claimTimeline(storage, me.id, r.id))) {
+    const li = tpl("t-step");
+    $("[data-dot]", li).dataset.state = st.state;
+    const label = $("[data-label]", li);
+    label.textContent = st.label;
+    label.dataset.state = st.state;
+    $("[data-when]", li).textContent = st.at ? when(st.at) : st.state === "current" ? "In progress" : "";
+    $("[data-text]", li).textContent = st.note;
+    if (st.state === "current") li.setAttribute("aria-current", "step");
+    steps.appendChild(li);
+  }
+  const approved = r.key === "verified" || r.key === "redeemed";
+  const waiting = r.key === "pending" && r.group === "active";
+  $("#cl-ticket").hidden = !(approved || waiting);
+  $("#cl-pending").hidden = !waiting;
+  $("#cl-copy").hidden = !(approved && r.group === "active");
+  paintCode($("#cl-code"), $("#cl-reveal"), r.code, approved ? "clear" : waiting ? "masked" : "none", claimShown);
+  $("#cl-terms").hidden = !r.info.terms;
+  $("#cl-terms-text").textContent = r.info.terms;
+  $("#cl-cancel").hidden = !waiting;
+  $("#cl-go").hidden = !find(r.id);
+}
+$("#cl-reveal").addEventListener("click", () => {
+  claimShown = !claimShown;
+  paintClaim();
+});
+$("#cl-copy").addEventListener("click", () => {
+  const r = rewardRows().find((x) => x.id === claimId);
+  if (r) copyText(r.code);
+});
+$("#cl-cancel").addEventListener("click", () => {
+  const r = rewardRows().find((x) => x.id === claimId);
+  if (r) cancelReward(r);
+});
+$("#cl-ask").addEventListener("click", () => {
+  const r = rewardRows().find((x) => x.id === claimId);
+  if (r) askAboutClaim(r);
+});
+$("#cl-go").addEventListener("click", () => goToCard(claimId, "rewards"));
+claimDlg.addEventListener("click", (e) => {
+  if (e.target === claimDlg || e.target.closest("[data-close]")) claimDlg.close();
+});
+// what Staff decide, or another tab does, shows in the windows that are open
+function repaintOpenWindows() {
+  if (rwDlg.open) paintRewards();
+  if (claimDlg.open) paintClaim();
+}
+
 function paintRewards() {
   $("#rw-history-btn").setAttribute("aria-pressed", String(rwHistory));
   $("#rw-history-label").textContent = rwHistory ? "My rewards" : "History";
@@ -1021,7 +1139,7 @@ function paintRewards() {
     return;
   }
   const rows = rewardRows();
-  const count = (k) => (k === "all" ? rows.length : rows.filter((r) => tabOf(r.key) === k).length);
+  const count = (k) => rows.filter((r) => r.group === k).length;
   const tabs = $("#rw-tabs");
   clear(tabs);
   for (const [k, label] of TABS) {
@@ -1037,55 +1155,56 @@ function paintRewards() {
   }
   const list = $("#rw-list");
   clear(list);
-  const shown = rows.filter((r) => rwTab === "all" || tabOf(r.key) === rwTab);
+  const shown = rows.filter((r) => r.group === rwTab);
   const empty = $("#rw-empty");
   empty.hidden = shown.length > 0;
-  empty.textContent = rows.length ? "No rewards with this status." : "Nothing claimed yet. Claim an offer and its code shows up here.";
+  empty.textContent = !rows.length
+    ? "Nothing claimed yet. Claim an offer and its code shows up here."
+    : rwTab === "active"
+      ? "No active codes right now. Used and expired ones are under Used / Expired."
+      : "Nothing used or expired yet.";
   for (const r of shown) {
     const rec = allRecords(storage).find((x) => String(x.id) === r.id);
     const st = STATUS[r.key];
     const li = tpl("t-reward");
     $("[data-title]", li).textContent = rec ? rec.x.title : "Promotion";
     const badge = $("[data-status]", li);
-    badge.textContent = st[0];
-    badge.dataset.tone = st[1];
+    // the word says where the reward stands: Pending, Verified, Used, Not approved, Cancelled, Expired
+    badge.textContent = r.label;
+    badge.dataset.tone = r.label === "Expired" ? "no" : st[1];
+    // when it ends (from Staff's published record; nothing is shown that Staff did not write) and when it was claimed
+    $("[data-expiry]", li).textContent = rewardEndText(r.info);
     const activeN = activeClaims(storage, me.id, r.id).active;
     $("[data-note]", li).textContent = `${activeN > 1 ? `${activeN} claims, latest ` : "Claimed "}${ago(r.at)}${r.key === "rejected" && r.cs && r.cs.reason ? `. ${r.cs.reason}` : ""}`;
-    // the history: every step with its time
-    const tl = $("[data-timeline]", li);
-    for (const ev of claimTimeline(storage, me.id, r.id)) {
-      const e = tpl("t-rw-event");
-      $("[data-dot]", e).dataset.tone = ev.tone;
-      $("[data-label]", e).textContent = ev.label;
-      $("[data-when]", e).textContent = when(ev.at);
-      $("[data-text]", e).textContent = ev.note;
-      tl.appendChild(e);
-    }
-    $("[data-code]", li).textContent = r.code;
-    $("[data-copy]", li).addEventListener("click", async () => {
-      try {
-        await navigator.clipboard.writeText(r.code);
-        toast("Code copied");
-      } catch {
-        toast("Could not copy. Select the code and copy it.");
-      }
-    });
+    // The code is clear, and can be copied, only once the property team approved the claim (Verified, or Used). A Pending claim has no code to use yet: its code is masked (SHJS****) with an eye
+    // to look at it, no Copy, and a line that says why. A past reward (used, or expired after it was approved) keeps its code small and quiet; one that was never approved, was refused
+    // or cancelled shows no code at all.
+    const approved = r.key === "verified" || r.key === "redeemed";
+    const waiting = r.key === "pending" && r.group === "active";
+    $("[data-ticket]", li).hidden = !(approved || waiting);
+    $("[data-pending]", li).hidden = !waiting;
+    $("[data-code]", li).dataset.past = String(r.group === "history");
+    $("[data-copy]", li).hidden = !(approved && r.group === "active");
+    bindCode($("[data-code]", li), $("[data-reveal]", li), r.code, approved ? "clear" : waiting ? "masked" : "none");
+    $("[data-copy]", li).addEventListener("click", () => copyText(r.code));
     const cancel = $("[data-cancel]", li);
-    cancel.hidden = r.key !== "pending";
-    cancel.addEventListener("click", () => {
-      const res = cancelClaim(storage, me.id, r.id);
-      if (res.ok) bumpUnseen("rewards", -1);
-      toast(res.ok ? "Claim cancelled" : res.reason);
-      paintRewards();
-      render();
-    });
-    $("[data-ask]", li).addEventListener("click", () => askAboutClaim(r));
-    const view = $("[data-view]", li);
-    view.hidden = !rec || !find(r.id);
-    view.addEventListener("click", () => {
-      rwDlg.close();
-      openDialog(r.id, null, "rewards");
-    });
+    cancel.hidden = !waiting; // an expired claim has nothing left to cancel
+    cancel.addEventListener("click", () => cancelReward(r));
+    // the whole card leads back to the promotion it came from (if it still runs); View opens the steps of this claim
+    const rec2 = allRecords(storage).find((x) => String(x.id) === r.id);
+    const canGo = !!(rec2 && find(r.id));
+    li.dataset.go = String(canGo);
+    if (canGo) {
+      li.tabIndex = 0;
+      li.title = "Go to this promotion";
+      li.addEventListener("click", (e) => {
+        if (!e.target.closest("button, a, output, input, summary")) goToCard(r.id, "rewards");
+      });
+      li.addEventListener("keydown", (e) => {
+        if (e.key === "Enter" && e.target === li) goToCard(r.id, "rewards");
+      });
+    }
+    $("[data-view]", li).addEventListener("click", () => openClaim(r.id));
     list.appendChild(li);
   }
   // what the people of this unit claimed (only for a promotion limited per unit): shared with the whole unit
@@ -1109,13 +1228,13 @@ function paintRewards() {
     badge.textContent = st[0];
     badge.dataset.tone = st[1];
     $("[data-note]", li).textContent = `${u.name} · ${when(u.at)}`;
-    $("[data-timeline]", li).hidden = true;
-    $("[data-code]", li).hidden = true; // a unit mate's code stays theirs
-    $("[data-copy]", li).hidden = true;
+    $("[data-ticket]", li).hidden = true; // a unit mate's code stays theirs
+    $("[data-pending]", li).hidden = true;
+    $("[data-expiry]", li).hidden = true;
     $("[data-cancel]", li).hidden = true;
-    $("[data-ask]", li).hidden = true;
     const view = $("[data-view]", li);
     view.hidden = !find(u.id);
+    view.setAttribute("aria-label", "View this promotion");
     view.addEventListener("click", () => {
       rwDlg.close();
       openDialog(u.id, null, "rewards");
@@ -1131,7 +1250,7 @@ $("#rw-history-btn").addEventListener("click", () => {
 });
 $("#btn-rewards").addEventListener("click", () => {
   setUnseen("rewards", 0);
-  rwTab = "all";
+  rwTab = "active";
   rwHistory = false;
   paintRewards();
   rwDlg.showModal();
@@ -1165,6 +1284,7 @@ $("#search").addEventListener("input", (e) => {
 
 // A promotion published, edited or switched off in the Staff tab arrives here.
 addEventListener("storage", (e) => {
+  queueMicrotask(repaintOpenWindows); // after the page is drawn again: a claim Staff decided changes the open card or steps
   // the badges of Saved and My rewards follow what another tab (or Staff's Resident view of this person) did
   if (e.key === UNSEEN.saved || e.key === UNSEEN.rewards) {
     paintUnseen();

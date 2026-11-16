@@ -1,0 +1,127 @@
+// The Staff claims export: built from the keys the app really writes (a resident's own record, Staff's decisions, the audit log), one row per real claim, a clean standard CSV.
+// The fixtures here are small and only inside the tests; the app itself reads real storage. Run with: npm test
+
+import "./_clock.mjs";
+import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import test from "node:test";
+import { claimsCsv, CLAIM_CSV_COLUMNS, collectClaimRows, csvCell, exportClaims } from "../../src/features/promotions/claims-csv.js";
+import { decideClaim } from "../../src/features/promotions/decide.js";
+import { cancelClaim, claim, KEY, listPromotions } from "../../src/features/promotions/store.js";
+
+// a storage that can be listed, like localStorage
+const memory = () => {
+  const m = new Map();
+  return {
+    getItem: (k) => (m.has(k) ? m.get(k) : null),
+    setItem: (k, v) => void m.set(k, String(v)),
+    removeItem: (k) => void m.delete(k),
+    key: (i) => [...m.keys()][i] ?? null,
+    get length() {
+      return m.size;
+    },
+  };
+};
+const T = (min, sec = 0) => new Date(2026, 10, 16, 9, min, sec);
+const deal = (s, pick = (p) => !p.full) => listPromotions(s, { viewer: "res-1" }).find(pick);
+const parse = (text) => text.replace(/^﻿/, "").split("\r\n").filter(Boolean).map((l) => l.split(","));
+
+test("with no claims the file is the header alone, nothing is made up", () => {
+  const s = memory();
+  assert.deepEqual(collectClaimRows(s), []);
+  const r = exportClaims(s, T(1));
+  assert.equal(r.count, 0);
+  assert.equal(r.text, `﻿${CLAIM_CSV_COLUMNS.join(",")}\r\n`);
+  assert.equal(CLAIM_CSV_COLUMNS.join(","), "Claim_ID,Unique_Code,Promo_ID,Promo_Title,Resident_ID,Unit,Status,Claimed_At,Decision_By,Updated_At");
+  assert.equal(r.filename, "eso-promotions-claims-2026-11-16.csv");
+});
+
+test("a real claim is one row with the app's own values; a decision adds who and when", () => {
+  const s = memory();
+  const p = deal(s);
+  const made = claim(s, "res-1", p, T(1));
+  assert.ok(made.ok);
+  let [row] = collectClaimRows(s);
+  assert.deepEqual(
+    { ...row, Promo_Title: row.Promo_Title === p.title },
+    { Claim_ID: `res-1|${p.id}|1`, Unique_Code: made.code, Promo_ID: p.id, Promo_Title: true, Resident_ID: "res-1", Unit: "02-291", Status: "pending", Claimed_At: T(1).toISOString(), Decision_By: "", Updated_At: T(1).toISOString() },
+  );
+  assert.ok(decideClaim(s, { rid: "res-1", promoId: p.id, action: "verify", by: "Jordan Lee", now: T(5).getTime() }).ok);
+  [row] = collectClaimRows(s);
+  assert.deepEqual([row.Status, row.Decision_By, row.Claimed_At, row.Updated_At], ["verified", "Jordan Lee", T(1).toISOString(), T(5).toISOString()]);
+});
+
+test("a cancellation is the resident's own; a rejection names who rejected; each claim of a promotion is its own row with its own code", () => {
+  const s = memory();
+  const p = deal(s);
+  assert.ok(claim(s, "res-1", p, T(1)).ok);
+  assert.ok(cancelClaim(s, "res-1", p.id, T(2)).ok);
+  const second = claim(s, "res-1", p, T(10));
+  assert.ok(second.ok && !second.again);
+  assert.ok(decideClaim(s, { rid: "res-1", promoId: p.id, action: "reject", reason: "Wrong building", by: "Staff", now: T(12).getTime() }).ok);
+  const rows = collectClaimRows(s);
+  assert.equal(rows.length, 2);
+  const [newest, oldest] = rows;
+  assert.deepEqual([newest.Claim_ID, newest.Status, newest.Decision_By, newest.Claimed_At, newest.Updated_At], [`res-1|${p.id}|2`, "rejected", "Staff", T(10).toISOString(), T(12).toISOString()]);
+  assert.deepEqual([oldest.Claim_ID, oldest.Status, oldest.Decision_By, oldest.Claimed_At, oldest.Updated_At], [`res-1|${p.id}|1`, "cancelled", "resident:res-1", T(1).toISOString(), T(2).toISOString()]);
+});
+
+test("residents are found by their keys, so a person the code has never heard of is exported too; the inbox's demo rows are not", () => {
+  const s = memory();
+  s.setItem("eso-res-promo:ghost-9", JSON.stringify({ saved: [], claims: { zzz: { count: 1, code: "ZZZ-1", at: T(3).toISOString(), who: { name: "Someone", unit: "09-901" } } }, log: [] }));
+  s.setItem("eso-pmclaims", JSON.stringify([{ id: "c1001", name: "Demo Person", unit: "02-100", code: "DEMO-1", st: "pending", t: Date.now(), deal: "parking0" }]));
+  const rows = collectClaimRows(s);
+  assert.deepEqual(rows.map((r) => [r.Resident_ID, r.Claim_ID, r.Unique_Code, r.Unit, r.Promo_Title]), [["ghost-9", "ghost-9|zzz|1", "ZZZ-1", "09-901", ""]], "the unknown promotion has no title, nothing is guessed");
+  assert.ok(!claimsCsv(rows).includes("DEMO-1") && !claimsCsv(rows).includes("Demo Person"));
+});
+
+test("a record from before the per-claim codes and times existed still exports what is really there and leaves the rest blank", () => {
+  const s = memory();
+  s.setItem("eso-res-promo:res-7", JSON.stringify({ saved: [], claims: { parking0: { count: 2, code: "MALLA10", at: "2026-11-16T17:13:48.830Z" } } }));
+  const rows = collectClaimRows(s);
+  assert.deepEqual(rows.map((r) => [r.Claim_ID.split("|")[2], r.Unique_Code, r.Claimed_At, r.Unit, r.Decision_By, r.Status]), [
+    ["2", "MALLA10", "2026-11-16T17:13:48.830Z", "", "", "pending"],
+    ["1", "MALLA10", "", "", "", "pending"],
+  ]);
+});
+
+test("broken or wrong-type storage gives fewer rows, never an error", () => {
+  const s = memory();
+  for (const [k, v] of [
+    ["eso-res-promo:a", "{oops"],
+    ["eso-res-promo:b", "[]"],
+    ["eso-res-promo:c", JSON.stringify({ claims: { x: 5, y: null, z: { count: "many" } } })],
+    ["eso-res-promo:", JSON.stringify({ claims: { q: { count: 1, code: "Q" } } })],
+    [KEY.claimState, "5"],
+    ["eso-pm-audit-v1", '{"events":"x"}'],
+  ])
+    s.setItem(k, v);
+  assert.deepEqual(collectClaimRows(s), []);
+  s.setItem("eso-res-promo:d", JSON.stringify({ claims: { p: { count: 1e12, code: "BIG" } } }));
+  assert.equal(collectClaimRows(s).length, 1000, "a damaged count is capped");
+  assert.deepEqual(collectClaimRows({ getItem: () => null }), [], "a storage that cannot be listed is empty");
+});
+
+test("CSV cells: quoted when they must be, a formula is made harmless, the file has a BOM and CRLF line ends", () => {
+  assert.equal(csvCell("plain"), "plain");
+  assert.equal(csvCell(null), "");
+  assert.equal(csvCell('say "hi", ok'), '"say ""hi"", ok"');
+  assert.equal(csvCell("two\nlines"), '"two\nlines"');
+  assert.equal(csvCell(" padded"), '" padded"');
+  for (const bad of ["=SUM(A1)", "+1", "-1", "@cmd", "\tx", "\rx"]) assert.ok(csvCell(bad).replace(/^"/, "").startsWith("'"), JSON.stringify(bad));
+  assert.equal(csvCell("2026-11-16T09:01:00.000Z"), "2026-11-16T09:01:00.000Z");
+  const text = claimsCsv([{ Claim_ID: "a|b|1", Unique_Code: "=1+1", Promo_ID: "b", Promo_Title: 'The "best", deal', Resident_ID: "a", Unit: "02-291", Status: "pending", Claimed_At: "", Decision_By: "", Updated_At: "" }]);
+  assert.ok(text.startsWith("﻿Claim_ID,"));
+  const lines = text.split("\r\n");
+  assert.equal(lines.length, 3, "header, one row, the closing line end");
+  assert.equal(lines[1], `a|b|1,'=1+1,b,"The ""best"", deal",a,02-291,pending,,,`);
+  assert.equal(parse(text)[0].length, 10);
+});
+
+test("the Staff button exports what is in the storage, not what is on the screen", () => {
+  const staff = readFileSync(new URL("../../src/staff/account-settings-content.html", import.meta.url), "utf8").replace(/\r\n/g, "\n");
+  assert.ok(staff.includes('await import("/features/promotions/claims-csv.js")') && staff.includes("m.exportClaims(localStorage)"));
+  assert.ok(staff.includes('data-clcsv aria-label="Export CSV"') && staff.includes('<span class="lb">Export CSV</span>'));
+  assert.ok(staff.includes('"No claims to export yet"'), "an empty storage says so");
+  assert.ok(!staff.includes('"Claim ID","Promotion","Resident"'), "the old export of the list on screen (with names and demo rows) is gone");
+});

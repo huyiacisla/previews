@@ -745,3 +745,26 @@ Test: `promotions-unseen.test.mjs` (5), `notifications-bell.test.mjs` (2), `prom
 - Dữ liệu chung: tab đang kiểm của người dùng và hai ticket thử T-1086, T-1087 không bị đụng tới.
 
 **Ghi chú cho vòng sau.** Thanh toán (Stripe) và quét QR tại cổng cần máy chủ (webhook có chữ ký, khoá bí mật không đặt trong trang) và cấp quyền camera; bản xem trước hiện chỉ mô phỏng được ở phía trình duyệt. Báo cáo cho ban quản lý có thể xây ngay trên `eso-pm-audit-v1` và `eso-res-promo:*` (xuất CSV, in ra PDF từ trình duyệt) mà không cần máy chủ.
+
+## Vòng 6 (16/11/2026): My rewards dễ dùng và xuất CSV sạch cho hệ thống ngoài
+
+Phạm vi theo quyết định của người dùng: Promotions chỉ là kênh phát ưu đãi và nguồn claim/audit sạch; không thanh toán, không quét QR, không phân tích CRM nặng. **Nguyên tắc dữ liệu thật** (người dùng đặt ngày 16/11): không dữ liệu giả, đọc thẳng các khoá thật, trạng thái rỗng thì để rỗng, kiểm khoá với schema thật trước khi viết.
+
+**R6-1** Tổng kết điều hành Vòng 5: đã có ở cuối phần Vòng 5.
+
+**R6-2 My rewards** (`resident.js`, `promotions-app.html`, `store.js`)
+- Hai tab có số đếm: **Active** (Pending hoặc Verified, deal còn chạy) và **Used / Expired** (Used, Not approved, Cancelled, hoặc hết hạn trước khi dùng). Nhãn trên thẻ vẫn nói rõ trạng thái.
+- `isExpired(endsAt, now)` theo giờ kết thúc thật (đúng phút; không có hạn thì không hết hạn); `rewardInfo` đọc bản ghi thật; `rewardGroup` chia nhóm.
+- Mã chỉ hiện rõ và có `Copy code` (44 px) khi **Verified** và còn hiệu lực. **Pending**: mã che kiểu `MALL***`, có nút mắt để xem (không có Copy) và dòng "Code will be available after staff approval." Mã đã dùng hoặc hết hạn sau khi duyệt: nhỏ, mờ, không Copy; claim chưa từng được duyệt, bị từ chối hoặc đã huỷ: không hiện mã.
+- Bấm vào thân thẻ: đưa về thẻ deal trên trang (thẻ sáng lên một lúc); nút `View` ở góc dưới phải mở cửa sổ **các bước của claim** (Claim submitted, Awaiting staff approval, kết quả từ property team, lấy từ dòng thời gian thật), kèm mã, điều khoản, Cancel claim, Ask staff, Go to promotion. Terms và Timeline không còn nằm trên thẻ.
+- Cửa sổ mở thì tự vẽ lại khi Staff quyết định hoặc tab khác đổi. Mục tiêu bấm: 44 px trên điện thoại (đo ở 375 px: 0 phần tử nhỏ hơn).
+
+**R6-3 Export CSV** (`claims-csv.js`, nút ở tab Claims của Staff)
+- Đọc **thẳng kho**: mọi khoá `eso-res-promo:*` (tìm bằng cách quét kho, nên cả cư dân code chưa biết), ghép `eso-pm-claimstate` và `eso-pm-audit-v1`; không cần hộp Claims đã mở, **không xuất các dòng demo** do bộ sinh của hộp Claims tạo ra.
+- Cột đúng thứ tự: `Claim_ID, Unique_Code, Promo_ID, Promo_Title, Resident_ID, Unit, Status, Claimed_At, Decision_By, Updated_At`. Giờ UTC ISO 8601; ô không biết thì để trống (claim cũ không có mã theo từng lần hay người quyết định); không có claim thì tệp chỉ có tiêu đề.
+- RFC 4180: BOM UTF-8, CRLF, đóng ngoặc kép đúng chỗ; ô bắt đầu bằng `=`, `+`, `-`, `@`, tab hoặc CR được thêm dấu `'` phía trước.
+- Nút cũ "Export" (xuất danh sách đang hiện, có tên cư dân và dòng demo) được thay bằng nút này, không có hai nút.
+
+**Kiểm chứng**: `npm test` 597/597 (mới: `promotions-rewards`, `promotions-csv`; cập nhật các test của thẻ cũ); giao diện thật với dữ liệu thật của res-1 (đã trả lại sau khi thử): thẻ Pending che mã, Verified hiện Copy code, Used nhỏ và không Copy, View mở các bước, bấm thân thẻ về đúng deal, xuất CSV ra đúng 3 claim thật và không dòng demo; console sạch trên Resident và Staff.
+
+**Còn mở**: cửa sổ chi tiết deal (nút "View details" trên trang) vẫn hiện mã ngay sau khi claim kể cả khi Pending (theo thiết kế cũ "Your code is below"); cần quyết định có áp quy tắc che mã ở đó nữa không. Thử trống (kho không có claim) chỉ bằng test đơn vị, chưa bằng giao diện thật.

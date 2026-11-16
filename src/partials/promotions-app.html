@@ -7,6 +7,8 @@
     <symbol id="i-search" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21 21-4.34-4.34"/><circle cx="11" cy="11" r="8"/></symbol>
     <symbol id="i-x" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></symbol>
     <symbol id="i-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></symbol>
+    <symbol id="i-eye" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/></symbol>
+    <symbol id="i-eye-off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/><path d="m4 4 16 16"/></symbol>
     <symbol id="i-user-star" viewBox="0 0 24 24" fill="currentColor" stroke="none"><mask id="m-user-star" maskUnits="userSpaceOnUse" x="0" y="0" width="24" height="24"><rect width="24" height="24" fill="#fff"/><path d="M17.5 11.8 18.8 15 22.3 15.3 19.6 17.5 20.4 20.8 17.5 19 14.6 20.8 15.4 17.5 12.7 15.3 16.2 15Z" fill="#000" stroke="#000" stroke-width="2.6" stroke-linejoin="round"/></mask><g mask="url(#m-user-star)"><circle cx="9" cy="7.2" r="4.2"/><path d="M1.5 21.5c0-4.5 3.3-7.8 7.5-7.8s7.5 3.3 7.5 7.8z"/></g><path d="M17.5 11.8 18.8 15 22.3 15.3 19.6 17.5 20.4 20.8 17.5 19 14.6 20.8 15.4 17.5 12.7 15.3 16.2 15Z"/></symbol>
     <symbol id="i-copy" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></symbol>
     <symbol id="i-star" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l2.8 5.7 6.2.9-4.5 4.4 1 6.2L12 17.3 6.5 20.2l1-6.2L3 9.6l6.2-.9z"/></symbol>
@@ -62,8 +64,8 @@
         #toolbar[data-condensed="true"] #btn-saved { margin-right: 0.375rem; }
         #toolbar[data-condensed="true"] .lbl { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
         /* Pressing is easy on a phone: every icon button of the bar and of the windows is at least 40 px each way (the bar stays one row, the search takes what is left) */
-        #toolbar #btn-redeem, #toolbar #btn-rewards, #toolbar #btn-saved, #toolbar #btn-filter, #toolbar #search, #toolbar #sort, [data-theme-toggle], dialog button, dialog input, dialog select { min-height: 2.5rem; }
-        #toolbar #btn-filter, #toolbar #btn-saved, #toolbar #btn-redeem, #toolbar #btn-rewards, [data-theme-toggle], dialog [data-close], #dlg-close { min-width: 2.5rem; }
+        #toolbar #btn-redeem, #toolbar #btn-rewards, #toolbar #btn-saved, #toolbar #btn-filter, #toolbar #search, #toolbar #sort, [data-theme-toggle], dialog button, dialog input, dialog select { min-height: 2.75rem; }
+        #toolbar #btn-filter, #toolbar #btn-saved, #toolbar #btn-redeem, #toolbar #btn-rewards, [data-theme-toggle], dialog [data-close], #dlg-close { min-width: 2.75rem; }
       }
       /* On a touch screen with "Larger tap targets" on (the default there) the bar's controls are 44 px, like every other page's */
       html[data-big-target] #toolbar :is(#btn-redeem, #btn-rewards, #btn-saved, #btn-filter, #search, #sort) { min-height: 2.75rem; }
@@ -242,21 +244,66 @@
   </div>
 </dialog>
 
+<!-- the steps of one claim (My rewards > View) -->
+<dialog id="dlg-steps" aria-labelledby="cl-title" class="m-auto max-h-dvh w-full max-w-md overflow-y-auto rounded-xl bg-card p-0 text-foreground shadow-lift-md backdrop:bg-foreground/40">
+  <div class="flex flex-col gap-step-md p-step-lg">
+    <div class="flex items-start justify-between gap-step-md">
+      <div class="flex min-w-0 flex-col gap-step-xs">
+        <h2 id="cl-title" tabindex="-1" class="text-xl leading-7 font-semibold tracking-tight wrap-anywhere outline-none"></h2>
+        <p id="cl-expiry" class="text-sm text-muted-foreground"></p>
+      </div>
+      <button type="button" data-close aria-label="Close" class="group/button inline-flex size-8 shrink-0 touch-manipulation items-center justify-center rounded-md border border-transparent bg-foreground/8 text-secondary-foreground transition outline-none select-none hover:bg-foreground/12 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 active:translate-y-px pointer-coarse:size-11 [&_svg]:size-4"><svg aria-hidden="true"><use href="#i-x"/></svg></button>
+    </div>
+    <ol id="cl-steps" role="list" aria-label="Progress of this claim" class="flex flex-col gap-step-md"></ol>
+    <div id="cl-ticket" class="flex flex-wrap items-center gap-step-sm rounded-md border border-dashed border-primary/50 bg-muted/60 p-step-sm">
+      <output id="cl-code" aria-label="Your code" class="min-w-0 shrink-0 flex-1 text-lg font-semibold tracking-wider whitespace-nowrap tabular-nums data-[masked=true]:text-muted-foreground"></output>
+      <button type="button" id="cl-reveal" data-reveal aria-pressed="false" aria-label="Show code" title="Show code" class="group/button inline-flex size-11 shrink-0 touch-manipulation items-center justify-center rounded-md border border-input bg-card text-foreground transition outline-none select-none hover:bg-muted focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 active:translate-y-px [&_svg]:size-5"><svg aria-hidden="true" fill="none"><use href="#i-eye" data-eye-use/></svg></button>
+      <button type="button" id="cl-copy" data-copy class="group/button inline-flex h-11 min-h-11 shrink-0 touch-manipulation items-center justify-center gap-step-sm rounded-md border border-transparent bg-primary px-step-lg text-sm font-medium text-primary-foreground transition outline-none select-none hover:bg-primary/90 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 active:translate-y-px [&_svg]:size-4">Copy code</button>
+    </div>
+    <p id="cl-pending" hidden class="text-sm text-muted-foreground">Code will be available after staff approval.</p>
+    <section id="cl-terms" hidden class="flex flex-col gap-step-xs">
+      <h3 class="text-sm font-medium">Terms</h3>
+      <p id="cl-terms-text" class="text-sm text-muted-foreground wrap-anywhere whitespace-pre-line"></p>
+    </section>
+    <div class="flex flex-wrap items-center gap-step-sm">
+      <button type="button" id="cl-cancel" data-cl-cancel hidden class="group/button inline-flex h-8 max-sm:h-11 max-sm:min-h-11 max-sm:h-11 max-sm:min-h-11 shrink-0 touch-manipulation items-center justify-center gap-step-sm rounded-md border border-input bg-card px-step-md text-sm font-medium text-foreground transition outline-none select-none hover:bg-muted focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 active:translate-y-px [&_svg]:size-4">Cancel claim</button>
+      <button type="button" id="cl-ask" data-cl-ask aria-label="Ask the property team about this claim" class="group/button inline-flex h-8 max-sm:h-11 max-sm:min-h-11 max-sm:h-11 max-sm:min-h-11 shrink-0 touch-manipulation items-center justify-center gap-step-sm rounded-md border border-input bg-card px-step-md text-sm font-medium text-foreground transition outline-none select-none hover:bg-muted focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 active:translate-y-px [&_svg]:size-4">Ask staff</button>
+      <button type="button" id="cl-go" data-cl-go hidden class="ml-auto group/button inline-flex h-8 max-sm:h-11 max-sm:min-h-11 max-sm:h-11 max-sm:min-h-11 shrink-0 touch-manipulation items-center justify-center gap-step-sm rounded-md border border-input bg-card px-step-md text-sm font-medium text-foreground transition outline-none select-none hover:bg-muted focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 active:translate-y-px [&_svg]:size-4">Go to promotion</button>
+    </div>
+  </div>
+</dialog>
+
+<template id="t-step">
+  <li class="flex items-start gap-step-sm">
+    <span data-dot aria-hidden="true" class="mt-1 size-3 shrink-0 rounded-full border-2 border-border bg-card data-[state=done]:border-success-text data-[state=done]:bg-success-text data-[state=current]:border-primary data-[state=current]:bg-primary data-[state=stop]:border-danger-text data-[state=stop]:bg-danger-text"></span>
+    <div class="flex min-w-0 flex-col">
+      <p data-label class="text-sm font-medium wrap-anywhere data-[state=todo]:font-normal data-[state=todo]:text-muted-foreground"></p>
+      <p data-when class="text-xs text-muted-foreground empty:hidden"></p>
+      <p data-text class="text-xs text-muted-foreground wrap-anywhere empty:hidden"></p>
+    </div>
+  </li>
+</template>
+
 <template id="t-reward">
-  <li class="flex flex-col gap-step-xs rounded-lg bg-background p-step-md ring-1 ring-foreground/10">
+  <li class="flex flex-col gap-step-sm rounded-lg bg-background p-step-md ring-1 ring-foreground/10 data-[go=true]:cursor-pointer data-[go=true]:hover:ring-foreground/25 focus-visible:ring-3 focus-visible:ring-ring/50 outline-none">
     <div class="flex items-start justify-between gap-step-sm">
       <p data-title class="text-sm font-medium wrap-anywhere"></p>
       <span data-status data-tone="neutral" class="inline-flex h-5 shrink-0 items-center rounded-full bg-secondary px-step-sm text-xs whitespace-nowrap text-secondary-foreground data-[tone=ok]:bg-success-bg data-[tone=ok]:text-success-text data-[tone=wait]:bg-warning-bg data-[tone=wait]:text-warning-text data-[tone=no]:bg-danger-bg data-[tone=no]:text-danger-text"></span>
     </div>
-    <p data-note class="text-xs text-muted-foreground empty:hidden"></p>
-    <ol data-timeline aria-label="History" class="my-step-xs flex flex-col gap-step-sm border-l border-border pl-step-md"></ol>
-    <div class="flex flex-wrap items-center gap-step-sm">
-      <output data-code class="shrink-0 flex-1 text-base font-medium tracking-wider whitespace-nowrap tabular-nums"></output>
-      <button type="button" data-copy class="group/button inline-flex h-8 shrink-0 touch-manipulation items-center justify-center gap-step-sm rounded-md border border-input bg-card px-step-md text-sm font-medium text-foreground transition outline-none select-none hover:bg-muted focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 active:translate-y-px pointer-coarse:h-11 [&_svg]:size-4">Copy</button>
-      <button type="button" data-cancel hidden class="group/button inline-flex h-8 shrink-0 touch-manipulation items-center justify-center gap-step-sm rounded-md border border-input bg-card px-step-md text-sm font-medium text-foreground transition outline-none select-none hover:bg-muted focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 active:translate-y-px pointer-coarse:h-11 [&_svg]:size-4">Cancel claim</button>
-      <button type="button" data-view class="group/button inline-flex h-8 shrink-0 touch-manipulation items-center justify-center gap-step-sm rounded-md border border-input bg-card px-step-md text-sm font-medium text-foreground transition outline-none select-none hover:bg-muted focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 active:translate-y-px pointer-coarse:h-11 [&_svg]:size-4">View</button>
+    <div data-ticket class="flex flex-wrap items-center gap-step-sm rounded-md border border-dashed border-primary/50 bg-muted/60 p-step-sm">
+      <output data-code aria-label="Your code" class="min-w-0 shrink-0 flex-1 text-lg font-semibold tracking-wider whitespace-nowrap tabular-nums data-[past=true]:text-base data-[past=true]:font-normal data-[past=true]:text-muted-foreground data-[masked=true]:text-muted-foreground"></output>
+      <button type="button" data-reveal aria-pressed="false" aria-label="Show code" title="Show code" class="group/button inline-flex size-11 shrink-0 touch-manipulation items-center justify-center rounded-md border border-input bg-card text-foreground transition outline-none select-none hover:bg-muted focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 active:translate-y-px [&_svg]:size-5"><svg aria-hidden="true" fill="none"><use href="#i-eye" data-eye-use/></svg></button>
+      <button type="button" data-copy class="group/button inline-flex h-11 min-h-11 shrink-0 touch-manipulation items-center justify-center gap-step-sm rounded-md border border-transparent bg-primary px-step-lg text-sm font-medium text-primary-foreground transition outline-none select-none hover:bg-primary/90 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 active:translate-y-px [&_svg]:size-4">Copy code</button>
     </div>
-    <button type="button" data-ask class="self-start rounded-md px-step-xs text-sm font-medium text-primary underline underline-offset-2 transition outline-none hover:no-underline focus-visible:ring-3 focus-visible:ring-ring/50 pointer-coarse:min-h-11">Ask about this claim</button>
+    <p data-pending hidden class="text-sm text-muted-foreground">Code will be available after staff approval.</p>
+    <div class="flex flex-wrap items-baseline gap-x-step-md gap-y-0 empty:hidden">
+      <p data-expiry class="text-sm text-foreground empty:hidden"></p>
+      <p data-note class="text-xs text-muted-foreground empty:hidden"></p>
+    </div>
+    <div class="flex flex-wrap items-center gap-step-sm">
+      <button type="button" data-cancel hidden class="group/button inline-flex h-8 max-sm:h-11 max-sm:min-h-11 max-sm:h-11 max-sm:min-h-11 shrink-0 touch-manipulation items-center justify-center gap-step-sm rounded-md border border-input bg-card px-step-md text-sm font-medium text-foreground transition outline-none select-none hover:bg-muted focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 active:translate-y-px [&_svg]:size-4">Cancel claim</button>
+      <button type="button" data-view aria-label="View the steps of this claim" class="ml-auto group/button inline-flex h-8 max-sm:h-11 max-sm:min-h-11 max-sm:h-11 max-sm:min-h-11 shrink-0 touch-manipulation items-center justify-center gap-step-sm rounded-md border border-input bg-card px-step-md text-sm font-medium text-foreground transition outline-none select-none hover:bg-muted focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 active:translate-y-px [&_svg]:size-4">View</button>
+    </div>
   </li>
 </template>
 

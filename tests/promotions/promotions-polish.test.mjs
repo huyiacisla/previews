@@ -20,8 +20,8 @@ test("an open window keeps the page behind it still", () => {
 test("on a phone the icon buttons of the bar and the windows are at least 40 px", () => {
   const phone = html.slice(html.indexOf("@media (max-width: 639px)"), html.indexOf("body:has(dialog[open])"));
   assert.ok(phone.includes("#toolbar #btn-redeem, #toolbar #btn-rewards, #toolbar #btn-saved, #toolbar #btn-filter, #toolbar #search"), "bar controls");
-  assert.ok(phone.includes("dialog button, dialog input, dialog select { min-height: 2.5rem; }"), "window controls");
-  assert.ok(/#btn-filter, #toolbar #btn-saved, #toolbar #btn-redeem, #toolbar #btn-rewards, \[data-theme-toggle\], dialog \[data-close\], #dlg-close \{ min-width: 2.5rem; \}/.test(phone), "square icon buttons");
+  assert.ok(phone.includes("dialog button, dialog input, dialog select { min-height: 2.75rem; }"), "window controls");
+  assert.ok(/#btn-filter, #toolbar #btn-saved, #toolbar #btn-redeem, #toolbar #btn-rewards, \[data-theme-toggle\], dialog \[data-close\], #dlg-close \{ min-width: 2.75rem; \}/.test(phone), "square icon buttons");
   assert.ok(phone.includes("#btn-rewards { position: relative; width: 2.5rem; padding-inline: 0; }"), "Redeem and My rewards in the compact bar");
 });
 

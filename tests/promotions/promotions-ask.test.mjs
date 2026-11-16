@@ -61,11 +61,11 @@ test("the assistant understands a question about a deal that was claimed and sti
 
 test("the Resident page has Ask about this claim in My rewards and in the deal box, and Staff's preview does not leave Staff's portal", () => {
   const res = readFileSync(new URL("../../src/features/promotions/resident.js", import.meta.url), "utf8");
-  assert.ok(res.includes('$("[data-ask]", li).addEventListener("click", () => askAboutClaim(r));') && res.includes("askBtn.onclick"));
+  assert.ok(res.includes("$(\"#cl-ask\").addEventListener(\"click\", () => {") && res.includes("askAboutClaim(r)") && res.includes("askBtn.onclick"));
   assert.ok(res.includes('if (!window.parent.location.pathname.startsWith("/resident/"))'), "inside Staff's portal it only says what the button does");
-  assert.ok(res.includes('$("[data-ask]", li).hidden = true;'), "no button on what a unit mate claimed");
+  assert.ok(!res.includes("[data-ask]"), "the card has no Ask button of its own: it is in the steps window, and a unit mate's row has none");
   const html = readFileSync(new URL("../../src/partials/promotions-app.html", import.meta.url), "utf8");
-  assert.ok(html.includes("data-ask") && html.includes('id="dlg-ask"'));
+  assert.ok(html.includes('id="cl-ask"') && html.includes("data-cl-ask") && html.includes('id="dlg-ask"'));
   const app = readFileSync(new URL("../../src/features/messaging/app.js", import.meta.url), "utf8");
   assert.ok(app.includes('q.get("ask")') && app.includes("store.askAboutClaim(me.id, asked)") && app.includes('localStorage.removeItem("eso-ask-claim")'), "Messages takes the claim once");
 });
