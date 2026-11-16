@@ -7920,6 +7920,7 @@ html.dark .tpd{color:oklch(.8 .11 266)}
 /* Verify and Reject on a claim row (the two icon buttons): 44 px to press on a phone or a touch screen, and light enough on the dark card */
 @media(pointer:coarse),(max-width:639px){.cl-ib{width:44px;height:44px}}
 html.dark .cl-ib.ok{color:#4ade80}html.dark .cl-ib.no{color:#f87171}
+html.dark .cl-d .btn.danger-t,html.dark .btn.out.danger-t{color:#fca5a5!important}/* Reject in the claim detail: the page's dark red on the dark card was 2.8:1 */
 /* the eye beside a claimant's unit: a small icon with a 44 px press area */
 .cl-eye{position:relative;display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;margin-left:4px;padding:0;border:0;border-radius:6px;background:transparent;color:var(--muted);cursor:pointer;vertical-align:middle}
 .cl-eye::after{content:"";position:absolute;inset:-10px}
@@ -7933,6 +7934,9 @@ html body .cl-d .btn:not(.xs):not(.sm){position:relative;height:32px!important;m
 html body .cl-d .btn:not(.xs):not(.sm)::after{content:"";position:absolute;inset:-6px -2px}
 html body .cl-d textarea{min-height:56px!important;height:56px;font-size:13px;padding:6px 10px}
 .cl-shd .cl-d{padding:0 0 max(12px,env(safe-area-inset-bottom))}
+/* the tick boxes of the inbox: the label of "select all" and "Synced" is 44 px tall, the tick box of a row is 22 px inside a 44 px square */
+.cl-ck{min-height:44px;display:inline-flex;align-items:center}
+.cl-cb{width:22px;height:22px;margin:11px}
 }
 @media(max-width:767px){#sb .pin,#sb #sbx{min-width:36px;min-height:36px;display:inline-flex;align-items:center;justify-content:center}}
 

@@ -82,8 +82,9 @@
         #rw-list button[data-copy], #dlg-steps button[data-copy] { height: 2rem; }
         #rw-list button[data-reveal], #dlg-steps button[data-reveal] { width: 2rem; min-width: 0; padding-inline: 0; }
         #rw-list button:not([data-status])::after, #dlg-steps button:not([data-close])::after { content: ""; position: absolute; inset: -0.375rem -0.125rem; }
+        #rw-list button[data-reveal]::after, #dlg-steps button[data-reveal]::after, #dlg button#dlg-reveal::after { inset: -0.375rem; }
         #rw-list button[data-status] { position: relative; height: 1.25rem; min-height: 0; padding-inline: 0.5rem; }
-        #rw-list button[data-status]::after { content: ""; position: absolute; inset: -0.75rem -0.25rem; }
+        #rw-list button[data-status]::after { content: ""; position: absolute; inset: -1rem -0.25rem -0.25rem; }
         #dlg-steps ol { gap: 0.5rem; }
         #dlg { max-width: 24rem; }
         #dlg .aspect-video { aspect-ratio: 3 / 1; }
@@ -98,6 +99,8 @@
         #dlg button::after { content: ""; position: absolute; inset: -0.375rem -0.125rem; }
         #dlg button#dlg-close::after { inset: -0.375rem; }
       }
+      /* the "Ask about this claim" link is the template's accent mixed a little with the text colour: the accent alone was 4.49:1 on the card (just under 4.5:1) in light and dark */
+      #dlg-ask { color: color-mix(in srgb, var(--primary) 85%, var(--foreground)); }
       /* On a touch screen with "Larger tap targets" on (the default there) the bar's controls are 44 px, like every other page's */
       html[data-big-target] #toolbar :is(#btn-redeem, #btn-rewards, #btn-saved, #btn-filter, #search, #sort) { min-height: 2.75rem; }
       html[data-big-target] #toolbar :is(#btn-redeem, #btn-rewards, #btn-saved, #btn-filter) { min-width: 2.75rem; }

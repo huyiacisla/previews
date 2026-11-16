@@ -66,11 +66,19 @@ test("on a phone and a tablet the reward cards are smaller to look at and still 
   assert.ok(block.includes("#rw-list button:not([data-status])::after, #dlg-steps button:not([data-close])::after { content: \"\"; position: absolute; inset: -0.375rem -0.125rem; }"), "32 + 6 + 6 = 44 px to press");
 });
 
-test("the status word on a reward card is a small badge with a 44 px press area", () => {
+test("the status word on a reward card is a small badge with a 40 px press area that stays off its neighbours", () => {
   assert.ok(html.includes("#rw-list button[data-status] { position: relative; height: 1.25rem; min-height: 0; padding-inline: 0.5rem; }"));
-  assert.ok(html.includes('#rw-list button[data-status]::after { content: ""; position: absolute; inset: -0.75rem -0.25rem; }'), "20 + 12 + 12 = 44 px");
+  assert.ok(html.includes('#rw-list button[data-status]::after { content: ""; position: absolute; inset: -1rem -0.25rem -0.25rem; }'), "20 + 16 + 4 = 40 px: it must not reach the tabs above or the eye below, which are 44 px themselves");
 });
 
 test("the close button of the deal window stays in the corner of its picture (the compact rule made every button of the window relative)", () => {
   assert.ok(html.includes("#dlg button#dlg-close { position: absolute; width: 2rem; min-width: 0; padding-inline: 0; }"));
+});
+
+test("audit fixes: the eye has a 44 px press area, the Ask link and Staff's Reject button reach 4.5:1, the tick boxes of the inbox are 44 px", () => {
+  const staff = read("src/staff/account-settings-content.html");
+  assert.ok(html.includes("#rw-list button[data-reveal]::after, #dlg-steps button[data-reveal]::after, #dlg button#dlg-reveal::after { inset: -0.375rem; }"), "32 + 6 + 6 each way");
+  assert.ok(html.includes("#dlg-ask { color: color-mix(in srgb, var(--primary) 85%, var(--foreground)); }"));
+  assert.ok(staff.includes("html.dark .cl-d .btn.danger-t,html.dark .btn.out.danger-t{color:#fca5a5!important}"));
+  assert.ok(staff.includes(".cl-ck{min-height:44px;display:inline-flex;align-items:center}") && staff.includes(".cl-cb{width:22px;height:22px;margin:11px}"));
 });
