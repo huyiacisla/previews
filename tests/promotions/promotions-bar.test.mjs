@@ -47,3 +47,14 @@ test("the Resident and Staff headers have no dropdown arrow beside the avatar, a
   assert.ok(read("src/shared/js/preview.js").includes('hasStatus: portal === "staff" || portal === "resident"'), "the green dot on the avatar has a Status in the menu to explain it");
   assert.ok(frame.includes('trigger.setAttribute("aria-haspopup", "dialog");'), "the button still opens the profile menu and keeps its accessible name");
 });
+
+test("pressing a saved promotion's card takes you to it on the page, with the panel kept as it is", () => {
+  assert.ok(res.includes("function goToCard(id) {") && res.includes("svDlg.close();"));
+  assert.ok(res.includes('if (ui.query || ui.category !== "all" || ui.tags.size) {'), "a search, a category or a quick filter that hid the card is cleared first");
+  assert.ok(res.includes('el.scrollIntoView({ block: "start", behavior: calm ? "auto" : "smooth" });') && res.includes("el.style.scrollMarginTop = `${topBar.offsetHeight + 16}px`;"), "scrolled to it, clear of the bar that follows, calmly for people who ask for less motion");
+  assert.ok(res.includes('if (!e.target.closest("button")) goToCard(p.id);'), "the Remove and View buttons keep their own work");
+  assert.ok(res.includes('if (e.key === "Enter" && e.target === li) goToCard(p.id);') && res.includes("Show ${p.title} on the page"), "and so does the keyboard");
+  assert.ok(res.includes('if (flashId === String(p.id) && Date.now() < flashUntil) li.setAttribute("data-flash", "");'), "the card stays lit even if the page is drawn again");
+  assert.ok(html.includes("[data-promo][data-flash] > article { outline: 3px solid var(--ring);"));
+  assert.ok(html.includes('<li tabindex="0" role="group" class="flex cursor-pointer flex-col'), "the saved card looks and works as a press target; its layout is unchanged");
+});

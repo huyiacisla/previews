@@ -43,6 +43,8 @@
 
   <main id="main-content" tabindex="-1" class="min-h-0 flex-1 overflow-y-auto outline-none">
     <style>
+      /* the card a saved promotion led to is lit for a moment */
+      [data-promo][data-flash] > article { outline: 3px solid var(--ring); outline-offset: 2px; transition: outline-color 0.4s; }
       /* On a phone the bar is always the compact one: ONE row of controls (search, filter, Redeem, My rewards, Saved as the same square icon, with the count on its corner; the words stay for screen readers and as tooltips) and one slim row of category chips under it. All of it keeps following you. */
       @media (max-width: 639px) {
         #toolbar[data-condensed="true"] > div { flex-direction: row; flex-wrap: wrap; align-items: center; gap: 0.5rem; }
@@ -126,7 +128,7 @@
 </dialog>
 
 <template id="t-saved">
-  <li class="flex flex-col gap-step-xs rounded-lg bg-background p-step-md ring-1 ring-foreground/10">
+  <li tabindex="0" role="group" class="flex cursor-pointer flex-col gap-step-xs rounded-lg bg-background p-step-md ring-1 ring-foreground/10 transition hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50">
     <div class="flex items-start justify-between gap-step-sm">
       <div class="min-w-0">
         <p data-title class="text-sm font-medium wrap-anywhere"></p>

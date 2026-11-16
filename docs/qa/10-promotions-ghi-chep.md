@@ -670,3 +670,13 @@ Goal: giao diện Staff Promotions khi đặt cạnh Resident phải KHỚP (Res
 - Template trả về Deals "In use", brand mặc định.
 
 Test: `promotions-bar.test.mjs` (7 test). `npm test` 548 test, 547 qua, 1 lỗi cũ.
+
+### Saved: bấm vào thẻ trắng thì đưa tới sản phẩm đó trên trang (người dùng yêu cầu 16/11, giữ nguyên bố cục panel Saved)
+
+Người dùng thích kiểu panel Saved hiện tại (không đổi chỗ, không đổi bố cục) và muốn: **bấm vào khung trắng của một mục đã lưu thì tự điều hướng tới khu vực của sản phẩm đó trên trang**.
+
+Đã làm (`resident.js`, `promotions-app.html`): bấm vào vùng trắng của thẻ (không phải nút Remove hay View) thì panel đóng, trang cuộn tới thẻ của sản phẩm trong danh sách chính, **chừa chỗ cho thanh bám phía trên**, thẻ được **viền sáng khoảng 2 giây** (giữ nguyên nếu trang bị vẽ lại trong lúc đó); nếu một ô tìm kiếm, chip danh mục hoặc bộ lọc nhanh đang che thẻ đó thì **được bỏ trước** (về "All"); nếu sản phẩm không có trên trang lúc đó thì mở chi tiết thay. Nút Remove và View giữ việc của chúng. Bàn phím: thẻ focus được (Tab), Enter đưa tới thẻ; nhãn đọc "Show <tên> on the page"; người chọn giảm chuyển động thì cuộn không có hiệu ứng mượt. Thẻ có con trỏ bàn tay và đổi nền khi rê chuột; bố cục panel không đổi.
+
+Kiểm bằng giao diện thật (375 px): chip "Services" đang bật làm thẻ biến mất → mở Saved, bấm vùng trắng của "Mallard Pointe Valet" → panel đóng, chip về "All 17", trang cuộn tới thẻ nằm dưới thanh (thẻ cách đáy thanh 17 px), thẻ có viền; một cú bấm chuột thật (chụp hai lần) cho kết quả y hệt.
+
+Test: `promotions-bar.test.mjs` (8 test). `npm test` 549 test, 548 qua, 1 lỗi cũ. Dữ liệu: ngôi sao "Covered Spot Upgrade" thừa do kiểm thử trước đã gỡ, Saved của Alex về một mục như cũ.

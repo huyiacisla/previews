@@ -417,6 +417,7 @@ function startTicker() {
 function card(p, mine, cfg, hot = new Set()) {
   const li = tpl("t-card");
   li.dataset.promo = p.id;
+  if (flashId === String(p.id) && Date.now() < flashUntil) li.setAttribute("data-flash", "");
   setCover($("[data-cover]", li), $("[data-nocover]", li), p.cover, p.visual);
   $("[data-partner]", li).textContent = p.partner && p.partner !== p.title ? p.partner : "";
   const av = $("[data-avatar]", li);
@@ -661,6 +662,35 @@ $("#dlg-copy").addEventListener("click", async () => {
 
 // Saved is a panel of its own, like My rewards: the saved promotions with a way to view or remove each.
 const svDlg = $("#dlg-saved");
+// Pressing a saved promotion's card (the white area, not its Remove or View buttons) takes you to that promotion on the page: the panel closes, the list is shown in full if a search,
+// a category or a quick filter was hiding it, and the page scrolls to its card, which is lit for a moment.
+let flashId = "";
+let flashUntil = 0;
+function goToCard(id) {
+  svDlg.close();
+  if (ui.query || ui.category !== "all" || ui.tags.size) {
+    ui.query = "";
+    $("#search").value = "";
+    ui.category = "all";
+    ui.tags.clear();
+    render();
+  }
+  const el = $(`#grid [data-promo="${CSS.escape(String(id))}"]`);
+  if (!el) {
+    openDialog(id, null, "saved"); // not on the page (not in the list right now): its details instead
+    return;
+  }
+  const calm = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  el.style.scrollMarginTop = `${topBar.offsetHeight + 16}px`; // clear of the bar that follows
+  el.scrollIntoView({ block: "start", behavior: calm ? "auto" : "smooth" });
+  $("[data-open]", el)?.focus({ preventScroll: true });
+  // lit for a moment; a card drawn again in that moment (the page is redrawn now and then) is lit too
+  flashId = String(id);
+  flashUntil = Date.now() + 2200;
+  el.setAttribute("data-flash", "");
+  setTimeout(() => $(`#grid [data-promo="${CSS.escape(flashId)}"]`)?.removeAttribute("data-flash"), 2200);
+}
+
 function paintSaved() {
   const mine = residentState(storage, me.id);
   const rows = listPromotions(storage, { viewer }).filter((p) => mine.saved.has(p.id));
@@ -679,6 +709,13 @@ function paintSaved() {
     $("[data-view]", li).addEventListener("click", () => {
       svDlg.close();
       openDialog(p.id, null, "saved");
+    });
+    li.setAttribute("aria-label", `Show ${p.title} on the page`);
+    li.addEventListener("click", (e) => {
+      if (!e.target.closest("button")) goToCard(p.id);
+    });
+    li.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" && e.target === li) goToCard(p.id);
     });
     list.appendChild(li);
   }
