@@ -40,3 +40,9 @@ test("the claims to decide in the chat panel scroll inside a box of their own he
   assert.ok(app.includes('decideList.style.maxHeight = "320px";') && app.includes('decideList.setAttribute("aria-label", "Claims to decide");'));
   assert.ok(app.includes("decideList.tabIndex = 0;"), "the box can be scrolled with the keyboard");
 });
+
+test("the Resident header has no dropdown arrow beside the avatar: pressing the avatar is enough", () => {
+  const frame = read("src/shared/js/portal-frame-extras.js");
+  assert.ok(frame.includes('if (portal === "resident") trigger.querySelector(":scope > svg.lucide-chevron-down")?.remove();'));
+  assert.ok(frame.includes('trigger.setAttribute("aria-haspopup", "dialog");'), "the button still opens the profile menu and keeps its accessible name");
+});
