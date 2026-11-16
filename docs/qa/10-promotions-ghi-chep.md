@@ -83,3 +83,22 @@ Bài học thêm:
 - Test hình ảnh tiếp ở 1440 và 375 thật (khung trình duyệt đổi chiều rộng thì kích cỡ giả lập bị xoá): trang đã có theme tối (nền #0b1020) trên Resident, hộp My rewards và History ở chế độ tối.
 - Test lặp: tạo deal bằng form New promotion, claim bằng Alex (res-1) và Jamie (`?as=res-4`) cùng unit để xem History có dòng "Could not claim"; đóng, gia hạn, xuất CSV.
 - Hỏi người dùng: có push các commit trong máy lên `origin/main` chưa.
+
+## Đợt 5 (xong): sửa lỗi thiết kế của theme, thử vòng Staff → Resident thật
+
+Người dùng hỏi "theme này có vấn đề thiết kế không?" sau khi thấy ảnh. Lỗi thật tôi thấy và đã sửa:
+
+1. **Hai ô tìm kiếm chồng nhau** ("Search Resident pages…" của portal trên "Search promotions…"). Trang Promotions giờ ẩn ô tìm kiếm trang của portal (`pm-shell`, chỉ trong tài liệu portal đang mở, sang trang khác thì mất).
+2. **Khung portal bên ngoài còn màu cũ** (huy hiệu 34 màu xanh, nút). Cùng một stylesheet theme `pm-theme` giờ cũng được đặt vào tài liệu portal bao ngoài (cùng origin), kèm `--sidebar-primary` nên mục đang chọn của sidebar theo màu nhấn. Sidebar vẫn giữ nền tối của portal.
+3. **Hai nút Redeem**: nút ở khối mã giảm giá đổi thành "Use code" (điền sẵn mã vào hộp Redeem).
+4. **Hero lệch nền, như một hộp trong trang**: các dải của trang Staff chạy hết chiều ngang (`padding-inline:max(16px, calc((100% - 72rem)/2 + 24px))`), nội dung nằm giữa như thanh công cụ và danh sách. `#page-top` nằm ngoài khung `max-w-6xl`.
+5. **Ô danh mục (tile) và chip lọc nói hai điều khác nhau**: tile của danh mục đang xem được đánh dấu (`aria-pressed`, viền màu nhấn), bấm lại để bỏ lọc.
+6. Font tiêu đề của template áp cho mọi h1/h2/h3 của app và portal; font nội dung áp cho phần còn lại.
+
+Test vòng thật: mở Staff ở tab khác, bấm "Use this template" (Minimal mono, Luxury dark, Deals) và lưu Brand kit (màu #1f5d4c) bằng giao diện; trang Resident đang mở đổi ngay không cần tải lại (đen/vuông/mono, tối/vàng/serif, xanh). Đã trả brand và template về mặc định sau khi test (`eso-brand` primary/btn rỗng, template Deals).
+
+Bẫy gặp lần này:
+- Ghi thẳng `eso-brand` vào localStorage không đổi trang: publisher đọc `P.BK` trong bộ nhớ của trang Staff, chỉ giao diện Brand kit mới cập nhật nó. Test bằng giao diện thật.
+- Màu brand luôn thắng màu template: dữ liệu test của tôi (primary xanh lá) làm cả app xanh sau khi đổi template. Phải trả lại sau khi test.
+- Cuộn trong tab giả lập: đổi độ rộng khung trình duyệt làm mất kích cỡ giả lập, đặt lại trước mỗi ảnh.
+- `z-raised` (60) của đồng hồ trên thẻ cao hơn thanh dính; giải bằng `isolate` ở lưới, không dùng `z-[N]`.

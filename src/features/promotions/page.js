@@ -7,6 +7,8 @@ export const PAGE_KEY = "eso-pm-page";
 
 const SP = { s: 14, m: 24, l: 44 };
 const TS = { s: 18, m: 24, l: 34, xl: 44 };
+// every band spans the whole width; its content stays within 72rem in the middle, like the toolbar and the list below
+const GUTTER = "max(16px, calc((100% - 72rem) / 2 + 24px))";
 const HEX = /^#[0-9a-f]{3,8}$/i;
 const FONT = /^[\w\s,'"-]+$/;
 
@@ -79,6 +81,9 @@ export function themeVars(snap) {
       "--primary": accent,
       "--primary-foreground": ink(accent),
       "--ring": accent,
+      "--sidebar-primary": accent,
+      "--sidebar-primary-foreground": ink(accent),
+      "--sidebar-ring": accent,
       "--radius": `${Math.round(num(th.radius, 0, 32, 14) * 0.8)}px`,
     },
     scheme: ink(bg) === "#ffffff" ? "dark" : "light",
@@ -91,6 +96,7 @@ export function themeVars(snap) {
  * Draw the page. ctx:
  *  promos        the live promotions, in the order the app lists them
  *  cats          [{ key, name, count }]
+ *  category      the category the list is showing now ("all" for none)
  *  makeCard(p)   one of the app's own cards (a <li>)
  *  toCatalog()   scroll to the full list
  *  pickCategory(key | null)
@@ -124,7 +130,7 @@ export function renderPage(snap, ctx) {
   const sub = (s) => text(s).replace(/\{\{(\w+)\}\}/g, (_, k) => TOK[k] ?? "");
   const mobile = typeof matchMedia === "function" && matchMedia("(max-width: 639px)").matches;
 
-  const root = h("div", `background:${T.bg};color:${T.fg};font-family:${T.bf};border-radius:${T.radius + 4}px;overflow:hidden`);
+  const root = h("div", `background:${T.bg};color:${T.fg};font-family:${T.bf};overflow:hidden`);
   root.dataset.pagePublished = String(snap.at || 0);
 
   const bgOf = (s) => (s.bg === "alt" ? T.alt : s.bg === "accent" ? T.accent : color(s.bg, T.bg));
@@ -174,7 +180,7 @@ export function renderPage(snap, ctx) {
     const bg = bgOf(s);
     const fg = bg === T.accent ? ink(T.accent) : bg === T.bg || bg === T.alt ? T.fg : ink(bg);
     const sec = (type, ...kids) => {
-      const e = h("section", `background:${bg};color:${fg};padding:${mobile ? Math.round((SP[s.pad] || SP.m) * 0.75) : SP[s.pad] || SP.m}px ${mobile ? 16 : SP.m}px;text-align:${["left", "center", "right"].includes(s.align) ? s.align : "left"}`);
+      const e = h("section", `background:${bg};color:${fg};padding:${mobile ? Math.round((SP[s.pad] || SP.m) * 0.75) : SP[s.pad] || SP.m}px 0;padding-inline:${GUTTER};text-align:${["left", "center", "right"].includes(s.align) ? s.align : "left"}`);
       e.dataset.block = type;
       e.append(...kids.filter(Boolean));
       return e;
@@ -183,7 +189,7 @@ export function renderPage(snap, ctx) {
 
     if (b.type === "annbar") {
       node = sec("annbar", h("p", "margin:0;font-size:14px;font-weight:600", sub(p.text)));
-      node.style.padding = "10px 24px";
+      node.style.paddingTop = node.style.paddingBottom = "10px";
       node.style.textAlign = "center";
     } else if (b.type === "navbar") {
       const row = h("div", "display:flex;flex-wrap:wrap;align-items:center;gap:12px 20px;justify-content:space-between");
@@ -206,7 +212,7 @@ export function renderPage(snap, ctx) {
       }
       row.append(brand, links);
       node = sec("navbar", row);
-      node.style.padding = "14px 24px";
+      node.style.paddingTop = node.style.paddingBottom = "14px";
     } else if (b.type === "hero") {
       const light = p.tone === "light";
       const hb = light ? T.alt : `linear-gradient(135deg,${T.accent},${color(snap.brand && snap.brand.secondary, T.accent)})`;
@@ -241,7 +247,12 @@ export function renderPage(snap, ctx) {
         if (!c) continue;
         const t = h("button", `font:inherit;text-align:left;cursor:pointer;padding:16px;border:1px solid rgba(100,116,139,.35);border-radius:${T.radius}px;background:${T.bg === bg ? T.alt : T.bg};color:${T.fg}`, h("strong", "display:block;font-size:15px", c.name), h("span", "font-size:13px;opacity:.7", `${c.count} ${c.count === 1 ? "offer" : "offers"}`));
         t.type = "button";
-        t.addEventListener("click", () => ctx.pickCategory(c.key));
+        if (ctx.category === c.key) {
+          t.setAttribute("aria-pressed", "true");
+          t.style.borderColor = T.accent;
+          t.style.boxShadow = `inset 0 0 0 1px ${T.accent}`;
+        } else t.setAttribute("aria-pressed", "false");
+        t.addEventListener("click", () => ctx.pickCategory(ctx.category === c.key ? "all" : c.key));
         grid.append(t);
       }
       node = sec("tiles", title(sub(p.title), s), grid);
@@ -291,7 +302,7 @@ export function renderPage(snap, ctx) {
       if (!code) continue;
       const box = h("div", `display:inline-flex;flex-wrap:wrap;align-items:center;gap:12px;padding:12px 16px;border:2px dashed ${bg === T.accent ? "currentColor" : T.accent};border-radius:${T.radius}px`);
       box.append(h("strong", "font-family:ui-monospace,Menlo,Consolas,monospace;font-size:22px;letter-spacing:.08em", code));
-      box.append(btn("Copy", () => ctx.copy(code)), btn("Redeem", () => ctx.redeem(code)));
+      box.append(btn("Copy", () => ctx.copy(code)), btn("Use code", () => ctx.redeem(code)));
       node = sec("coupon", title(sub(p.title), s), box, p.note ? h("p", "margin:10px 0 0;font-size:13px;opacity:.75", sub(p.note)) : null);
     } else if (b.type === "quotes") {
       const grid = h("div", "display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px");

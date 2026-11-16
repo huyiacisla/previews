@@ -146,6 +146,7 @@ function wearTheme(snap) {
   $("[data-theme-toggle]")?.toggleAttribute("hidden", !!t);
   if (!t) {
     el?.remove();
+    wearInFrame("");
     return;
   }
   if (!el) {
@@ -154,7 +155,35 @@ function wearTheme(snap) {
     document.head.append(el);
   }
   const decl = Object.entries(t.vars).map(([k, v]) => k + ":" + v + " !important").join(";");
-  el.textContent = ":root,:root.dark,:root.light{" + decl + ";color-scheme:" + t.scheme + (t.font ? ";font-family:" + t.font : "") + "}";
+  // the template's heading font goes to every heading of the app, its body font to everything else
+  const css = ":root,:root.dark,:root.light{" + decl + ";color-scheme:" + t.scheme + (t.font ? ";font-family:" + t.font : "") + "}" + (t.heading ? "h1,h2,h3{font-family:" + t.heading + "}" : "");
+  el.textContent = css;
+  wearInFrame(css);
+}
+// The portal around this page is another document of the same origin. Its own page search would sit above this page's search: it steps aside while Promotions is open.
+// A new page loads a new portal document, so nothing here outlives the page.
+function wearInFrame(css) {
+  try {
+    if (window.parent === window) return;
+    const pd = window.parent.document;
+    let hide = pd.getElementById("pm-shell");
+    if (!hide) {
+      hide = pd.createElement("style");
+      hide.id = "pm-shell";
+      hide.textContent = '[class*="desktopSearch"]{display:none!important}';
+      pd.head.append(hide);
+    }
+    let el = pd.getElementById("pm-theme");
+    if (!css) return el?.remove();
+    if (!el) {
+      el = pd.createElement("style");
+      el.id = "pm-theme";
+      pd.head.append(el);
+    }
+    el.textContent = css;
+  } catch {
+    /* a portal of another origin: left alone */
+  }
 }
 function scrollToCatalog() {
   $("#filters").scrollIntoView({ block: "start", behavior: "smooth" });
@@ -177,6 +206,7 @@ function paintPage(all, mine, cfg, hot, cats) {
     ? renderPage(snap, {
         promos: all,
         cats,
+        category: ui.category,
         makeCard: (p) => card(p, mine, cfg, hot),
         toCatalog: scrollToCatalog,
         pickCategory,

@@ -102,3 +102,20 @@ test("the template's colours, corners and fonts replace the portal's tokens, so 
   const js = readFileSync(new URL("../../src/features/promotions/resident.js", import.meta.url), "utf8");
   assert.ok(js.includes("!important") && js.includes('"pm-theme"'));
 });
+
+test("the design of the page holds together: bands edge to edge, one search, one Redeem, the portal around it dressed too", () => {
+  const html = readFileSync(new URL("../../src/partials/promotions-app.html", import.meta.url), "utf8");
+  const pageAt = html.indexOf('id="page-top"');
+  const listAt = html.indexOf('id="filters"');
+  assert.ok(html.slice(html.indexOf('id="toolbar"'), pageAt).includes("max-w-6xl"), "the bar keeps its width in the middle");
+  assert.ok(!html.slice(html.lastIndexOf("<main"), pageAt).includes("max-w-6xl\" id=\"page-top\""), "the designed page is not boxed in");
+  assert.ok(pageAt < listAt, "the designed page comes before the list");
+  const page = readFileSync(new URL("../../src/features/promotions/page.js", import.meta.url), "utf8");
+  assert.ok(page.includes("padding-inline:${GUTTER}"), "bands run to the edges, their words stay in the middle");
+  assert.ok(page.includes('btn("Use code"') && !page.includes('btn("Redeem"'), "the coupon says Use code, so there are not two Redeem buttons");
+  assert.ok(page.includes('aria-pressed') && page.includes("ctx.category === c.key"), "the tile of the category on show is marked");
+  const js = readFileSync(new URL("../../src/features/promotions/resident.js", import.meta.url), "utf8");
+  assert.ok(js.includes("window.parent.document") && js.includes("desktopSearch"), "the portal around the page wears the theme and its own page search steps aside");
+  assert.ok(js.includes("h1,h2,h3{font-family:"), "the heading font reaches every heading");
+  assert.ok(themeVars({ theme: { accent: "#123456" } }).vars["--sidebar-primary"] === "#123456", "the portal's selected item follows the accent");
+});
