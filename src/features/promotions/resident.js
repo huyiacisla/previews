@@ -126,14 +126,46 @@ function setCover(img, none, cover, visual) {
 
 // The filter button, its count and the panel (chips for New, Hot, Limited, Ending soon, Free, Still available).
 // The Saved icon next to Redeem and My rewards: how many promotions are saved (it grows with every star, like a cart), and a press opens them.
+// The red badges on Saved and My rewards count what is NEW since the resident last opened that panel, not how many there are in all (the panel's own heading says that).
+// Each is kept for the resident (so a reload, another tab or Staff's Resident view of the same person shows the same number) and goes away when the panel is opened.
+const UNSEEN = { saved: `eso_unseen_saved_count:${me.id}`, rewards: `eso_unseen_rewards_count:${me.id}` };
+function readUnseen(kind) {
+  let v = 0;
+  try {
+    v = Number(storage.getItem(UNSEEN[kind]));
+  } catch {
+    /* not remembered */
+  }
+  return Number.isFinite(v) && v > 0 ? Math.floor(v) : 0;
+}
+function setUnseen(kind, n) {
+  try {
+    storage.setItem(UNSEEN[kind], String(Math.max(0, Math.floor(n))));
+  } catch {
+    /* not remembered */
+  }
+  paintUnseen();
+}
+// +1 for something new; -1 (never below 0, and never a new badge) when it is taken away
+const bumpUnseen = (kind, d) => setUnseen(kind, readUnseen(kind) + d);
+function paintUnseen() {
+  for (const [kind, id] of [
+    ["saved", "#saved-count"],
+    ["rewards", "#rewards-count"],
+  ]) {
+    const n = readUnseen(kind);
+    const c = $(id);
+    c.hidden = n === 0;
+    c.textContent = String(n);
+  }
+}
+
 function paintSavedButton(n, on) {
   const b = $("#btn-saved");
   b.hidden = !on;
   b.setAttribute("aria-haspopup", "dialog");
   b.setAttribute("aria-label", `Saved promotions, ${n}`);
-  const c = $("#saved-count");
-  c.hidden = n === 0;
-  c.textContent = String(n);
+  paintUnseen();
 }
 
 // The page Staff designed (Templates & brand), drawn above the list. It is drawn again only when what it shows changed.
@@ -258,10 +290,7 @@ function paintPage(all, mine, cfg, hot, cats) {
 }
 
 function paintRewardsBadge() {
-  const n = rewardRows().filter((r) => ["pending", "verified", "redeemed"].includes(r.key)).length;
-  const c = $("#rewards-count");
-  c.hidden = n === 0;
-  c.textContent = String(n);
+  paintUnseen();
 }
 
 function paintFilterPanel(counts) {
@@ -482,6 +511,7 @@ function onSave(p) {
   const on = toggleSaved(storage, me.id, p.id);
   if (on === null) return toast("Saving is turned off.");
   toast(on ? "Saved" : "Removed from saved");
+  bumpUnseen("saved", on ? 1 : -1);
   render();
   // render() rebuilt the cards; put keyboard focus back on the star that was used (unless the dialog has focus).
   if (!dlg.open) for (const b of document.querySelectorAll("[data-save]")) if (b.dataset.id === p.id) b.focus({ preventScroll: true });
@@ -640,6 +670,7 @@ $("#dlg-claim-btn").addEventListener("click", () => {
   if (!r.ok) return;
   if (p.method === "link" && r.link) window.open(r.link, "_blank", "noopener,noreferrer");
   else toast(r.again ? "You already claimed this" : "Claimed. Your code is below.");
+  if (!r.again) bumpUnseen("rewards", 1);
   render();
 });
 
@@ -721,6 +752,7 @@ function paintSaved() {
   }
 }
 $("#btn-saved").addEventListener("click", () => {
+  setUnseen("saved", 0);
   paintSaved();
   svDlg.showModal();
   $("#sv-title").focus({ preventScroll: true });
@@ -935,6 +967,7 @@ function paintRewards() {
   $("#rw-history-btn").setAttribute("aria-pressed", String(rwHistory));
   $("#rw-history-label").textContent = rwHistory ? "My rewards" : "History";
   $("#rw-title").textContent = rwHistory ? "History" : "My rewards";
+  $("#rw-count").textContent = rwHistory || !rewardRows().length ? "" : String(rewardRows().length);
   $("#rw-history").hidden = !rwHistory;
   $("#rw-tabs").hidden = rwHistory;
   $("#rw-list").hidden = rwHistory;
@@ -998,6 +1031,7 @@ function paintRewards() {
     cancel.hidden = r.key !== "pending";
     cancel.addEventListener("click", () => {
       const res = cancelClaim(storage, me.id, r.id);
+      if (res.ok) bumpUnseen("rewards", -1);
       toast(res.ok ? "Claim cancelled" : res.reason);
       paintRewards();
       render();
@@ -1045,10 +1079,7 @@ function paintRewards() {
     });
     ul.appendChild(li);
   }
-  const n = rows.filter((r) => ["pending", "verified", "redeemed"].includes(r.key)).length;
-  const c = $("#rewards-count");
-  c.hidden = n === 0;
-  c.textContent = String(n);
+  paintUnseen();
 }
 $("#rw-history-btn").addEventListener("click", () => {
   rwHistory = !rwHistory;
@@ -1056,6 +1087,7 @@ $("#rw-history-btn").addEventListener("click", () => {
   $("#rw-title").focus({ preventScroll: true });
 });
 $("#btn-rewards").addEventListener("click", () => {
+  setUnseen("rewards", 0);
   rwTab = "all";
   rwHistory = false;
   paintRewards();
@@ -1090,6 +1122,11 @@ $("#search").addEventListener("input", (e) => {
 
 // A promotion published, edited or switched off in the Staff tab arrives here.
 addEventListener("storage", (e) => {
+  // the badges of Saved and My rewards follow what another tab (or Staff's Resident view of this person) did
+  if (e.key === UNSEEN.saved || e.key === UNSEEN.rewards) {
+    paintUnseen();
+    return;
+  }
   // (STATUS_KEY: what Staff turned on or off on a sample deal)
   if (e.key === KEY.claimState) {
     render();

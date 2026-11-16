@@ -302,6 +302,11 @@ export function renderPage(snap, ctx) {
   };
   const sub = (s) => text(s).replace(/\{\{(\w+)\}\}/g, (_, k) => TOK[k] ?? "");
   const mobile = typeof matchMedia === "function" && matchMedia("(max-width: 639px)").matches;
+  // the sizes Staff chose for titles are for a laptop: on a phone no title is larger than 28px, on a tablet none larger than 40px
+  const tsz = (k, d) => {
+    const v = TS[k] || TS[d];
+    return mobile ? Math.min(v, 28) : device === "tablet" ? Math.min(v, 40) : v;
+  };
   const device = mobile ? "mobile" : typeof matchMedia === "function" && matchMedia("(max-width: 1023px)").matches ? "tablet" : "desktop";
 
   const root = h("div", `background:${T.bg};color:${T.fg};font-family:${T.bf};overflow:hidden`);
@@ -344,7 +349,7 @@ export function renderPage(snap, ctx) {
     b.addEventListener("click", on);
     return b;
   };
-  const title = (t, s, color2) => (t ? h("h2", `margin:0 0 ${SP.s}px;font-family:${T.hf};font-size:${TS[s.ts] || TS.m}px;line-height:1.2;font-weight:700;${color2 ? `color:${color2}` : ""}`, text(t)) : null);
+  const title = (t, s, color2) => (t ? h("h2", `margin:0 0 ${SP.s}px;font-family:${T.hf};font-size:${tsz(s.ts, "m")}px;line-height:1.2;font-weight:700;${color2 ? `color:${color2}` : ""}`, text(t)) : null);
   const photo = (img, shape, ratio = "4/3") => {
     const src = safeImg(img);
     const box = h("div", `flex:1 1 260px;min-height:180px;aspect-ratio:${shape === "circle" ? "1/1" : ratio};max-height:340px;max-width:${shape === "circle" ? "340px" : "100%"};border-radius:${shape === "circle" ? "50%" : T.radius}px;overflow:hidden;background:linear-gradient(135deg,${T.accent},${T.alt});margin:0 auto${imgShadow}`);
@@ -445,7 +450,7 @@ export function renderPage(snap, ctx) {
       node = sec(
         "hero",
         p.kicker || badge ? head : null,
-        h("h2", `margin:0 0 10px;font-family:${T.hf};font-size:${TS[s.ts] || TS.l}px;line-height:1.1;font-weight:800`, sub(p.title)),
+        h("h2", `margin:0 0 10px;font-family:${T.hf};font-size:${tsz(s.ts, "l")}px;line-height:1.1;font-weight:800`, sub(p.title)),
         p.sub ? h("p", `margin:${s.align === "center" ? "0 auto 18px" : s.align === "right" ? "0 0 18px auto" : "0 0 18px"};max-width:46ch;font-size:16px;line-height:1.5;opacity:.92`, sub(p.sub)) : null,
         strip,
         !strip && p.btn ? btn(p.btn, go(p.lk, open), !light) : null,
