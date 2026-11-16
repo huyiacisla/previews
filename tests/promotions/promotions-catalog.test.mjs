@@ -153,6 +153,11 @@ test('Staff\'s switch is a Staff-only button at the top of the card, with words,
   assert.ok(staff.includes('<span class="pexp${e.x?" x":""}">${H(e.t)}</span>'), "expiry in the footer");
   assert.ok(staff.includes(".stf .pexp{margin-left:auto;"), "expiry is pushed to the right");
   assert.ok(staff.includes('!res&&PF.view=="list"?listTable(R,ks):'), "the table is for Staff; the Resident view keeps its own list");
+  // partner logo and name: the card avatar shows them; Edit details can change them; a deal made with "New promotion" keeps them in its own record
+  assert.ok(staff.includes('const pmAv=(m,br,cls)=>{'), "one helper draws the avatar for the card and the table");
+  assert.ok(staff.includes('${res||!m.id?"":pmAv(m,br,"pav")}'), "avatar on the card cover (Staff only)");
+  assert.ok(staff.includes('data-q22="lpick">Choose logo</button>'), "Edit details has a partner logo field");
+  assert.ok(staff.includes('if(m.partner!==undefined)r.x.partner=m.partner;if(m.__plogo!==undefined){r.x.plogo=m.__plogo;delete m.__plogo}'), "a deal made by Staff keeps the edited partner and logo in its record (the Resident app reads them)");
   assert.ok(staff.includes('aria-label="${H(word+". "+say+". Open to change")}'), "the full status is still the accessible name");
   // 1,000 deals: off-screen cards are skipped, and the follow looks again until a long list is drawn (and scrolls at once before it focuses)
   assert.ok(staff.includes(".pd{content-visibility:auto;contain-intrinsic-size:auto 260px 400px}"));
