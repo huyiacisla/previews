@@ -606,6 +606,39 @@ export function createStore({ transport, now = Date.now, config = {} } = {}) {
       });
     },
 
+    /**
+     * The resident asks about one of their promotion claims ("Ask about this claim"): no assistant, straight to the property team, with the claim in the first message.
+     * Idempotent: a chat already with the team gets the claim added once (not a second ticket); the same claim is never added twice in a row.
+     */
+    askAboutClaim(userId, claim = {}) {
+      const u = user(userId);
+      if (!u || u.role !== "resident") return { ok: false, reason: "not_allowed" };
+      const clean = (v, n) => String(v ?? "").replace(/[\r\n\t]+/g, " ").trim().slice(0, n);
+      const title = clean(claim.title, 80) || "Promotion";
+      const code = clean(claim.code, 40);
+      const status = clean(claim.status, 30);
+      const when = claim.at && Number.isFinite(Date.parse(claim.at)) ? new Date(claim.at).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }) : "";
+      const text = ["I have a question about my promotion claim.", `Promotion: ${title}`, code && `Code: ${code}`, when && `Claimed: ${when}`, status && `Status: ${status}`].filter(Boolean).join("\n");
+      api.tick();
+      return act((d) => {
+        let conv = Object.values(d.convs).find((c) => c.kind === "resident_support" && c.residentId === userId && OPEN_RESIDENT.includes(c.status));
+        if (!conv) conv = newBotSession(d, userId);
+        const seen = msgsOf(d, conv.id).slice(-30).some((m) => m.from === userId && m.kind === "text" && m.text === text);
+        if (conv.status === "bot") {
+          if (seen) return { ok: true, convId: conv.id, noop: true };
+          push(d, conv, userId, "text", text);
+          conv.bot.topic = "promo";
+          conv.bot.route = "property";
+          conv.topic = "Promotions";
+          queue(d, conv);
+          return { ok: true, convId: conv.id };
+        }
+        if (seen) return { ok: true, convId: conv.id, noop: true };
+        push(d, conv, userId, "text", text);
+        return { ok: true, convId: conv.id };
+      });
+    },
+
     /** Resident taps a quick reply offered by the assistant. */
     choose(convId, userId, choiceId) {
       return act((d) => {

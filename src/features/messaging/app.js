@@ -3257,6 +3257,19 @@ export function mount({ portal }) {
     if (mail) mail.href = `mailto:support@easyspotops.example?subject=${encodeURIComponent("Messages could not load")}&body=${encodeURIComponent(`Reference: ${ref}\nWhat I was doing: `)}`;
   }
 
+  // "Ask about this claim" in Promotions leaves the claim here for one visit: it opens a chat with the property team that already says which claim it is about.
+  function takeAskedClaim() {
+    try {
+      const raw = localStorage.getItem("eso-ask-claim");
+      localStorage.removeItem("eso-ask-claim");
+      const a = JSON.parse(raw || "null");
+      if (!a || a.rid !== me.id || typeof a.title !== "string") return null;
+      return { title: a.title, code: a.code, at: a.at, status: a.status };
+    } catch {
+      return null;
+    }
+  }
+
   function boot() {
     try {
       const bootList = $("#boot-list");
@@ -3267,6 +3280,11 @@ export function mount({ portal }) {
       ui.lastBadge = store.badgeCount(me.id); // what is already unread when the page opens is not "new"
       let conv = routeConv();
       if (conv && !store.get(conv, me.id).ok) conv = null;
+      if (me.role === "resident" && q.get("ask")) {
+        const asked = takeAskedClaim();
+        const r = asked ? store.askAboutClaim(me.id, asked) : null;
+        if (r && r.ok) conv = r.convId;
+      }
       if (me.role === "resident" && !conv) {
         const r = store.ensureSession(me.id);
         if (!r.ok) throw new Error(r.reason);

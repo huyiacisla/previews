@@ -567,6 +567,10 @@ function refreshDialog() {
     };
     const line = $("#dlg-claim-status");
     line.textContent = mate ? `One claim per unit: ${mate.name} already claimed this${mate.at ? ` on ${new Date(mate.at).toLocaleDateString("en-US", { month: "short", day: "numeric" })}` : ""}.` : cs ? say[cs.st] : "";
+    const askBtn = $("#dlg-ask");
+    const ownRow = mate ? null : rewardRows().find((x) => x.id === String(p.id));
+    askBtn.hidden = !ownRow;
+    askBtn.onclick = () => ownRow && askAboutClaim(ownRow);
     line.dataset.tone = cs && (cs.st === "verified" || cs.st === "redeemed") ? "ok" : cs && cs.st === "rejected" ? "no" : "";
   }
   const btn = $("#dlg-claim-btn");
@@ -859,6 +863,23 @@ function paintHistory() {
   }
 }
 
+// "Ask about this claim": Messages opens on a chat with the property team that says which claim it is about. Staff's own preview of this page sits inside Staff's portal:
+// it must not take Staff away to the resident's Messages, so it only says what the button does.
+function askAboutClaim(row) {
+  if (!window.parent.location.pathname.startsWith("/resident/")) {
+    toast("In the resident's app this opens Messages with this claim attached.");
+    return;
+  }
+  const rec = allRecords(storage).find((x) => String(x.id) === String(row.id));
+  try {
+    storage.setItem("eso-ask-claim", JSON.stringify({ rid: me.id, promoId: row.id, title: rec ? rec.x.title : "Promotion", code: row.code, at: row.at, status: `${STATUS[row.key][0]}: ${STATUS[row.key][2]}` }));
+  } catch {}
+  const q = new URLSearchParams(location.search);
+  q.delete("embed");
+  q.set("ask", "1");
+  window.top.location.assign(`/resident/messages.html?${q}`);
+}
+
 function paintRewards() {
   $("#rw-history-btn").setAttribute("aria-pressed", String(rwHistory));
   $("#rw-history-label").textContent = rwHistory ? "My rewards" : "History";
@@ -930,6 +951,7 @@ function paintRewards() {
       paintRewards();
       render();
     });
+    $("[data-ask]", li).addEventListener("click", () => askAboutClaim(r));
     const view = $("[data-view]", li);
     view.hidden = !rec || !find(r.id);
     view.addEventListener("click", () => {
@@ -963,6 +985,7 @@ function paintRewards() {
     $("[data-code]", li).textContent = u.code;
     $("[data-copy]", li).hidden = true;
     $("[data-cancel]", li).hidden = true;
+    $("[data-ask]", li).hidden = true;
     const view = $("[data-view]", li);
     view.hidden = !find(u.id);
     view.addEventListener("click", () => {

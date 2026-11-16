@@ -145,6 +145,41 @@ export const TOPICS = [
       },
     ],
   },
+  {
+    id: "promo",
+    label: "Promotions",
+    route: "property",
+    faq: [
+      {
+        id: "charged",
+        q: "I claimed a deal but was still charged",
+        keys: ["charged", "charge", "billed", "refund", "full amount", "full price", "discount", "invoice", "overcharged", "paid full", "took the discount"],
+        a: "A deal is applied by the property team after they confirm your claim, and it does not change a payment that was already taken. Send the promotion name and your code and the team will check your claim and put right any difference.",
+        handoff: true,
+      },
+      {
+        id: "waiting",
+        q: "My claim is still waiting",
+        keys: ["claim", "waiting", "pending", "not confirmed", "still waiting", "not approved", "not verified"],
+        a: "Claims are confirmed by the property team, usually within one business day. You can follow the status under Promotions, My rewards.",
+        handoff: true,
+      },
+      {
+        id: "code",
+        q: "My code does not work",
+        keys: ["promo code", "code does not", "code doesn t", "code not working", "invalid code", "expired code", "redeem"],
+        a: "A code works while the promotion is running, once per claim. Check it under Promotions, My rewards. If it still fails, the team can look at your claim.",
+        handoff: true,
+      },
+      {
+        id: "find",
+        q: "I cannot find my deal or code",
+        keys: ["cannot find", "can t find", "wallet", "not see my", "where is my deal", "disappeared", "missing deal"],
+        a: "Every deal you claimed is under Promotions, My rewards, with its code and status. If it is not there, tell us which deal and the team will check.",
+        handoff: true,
+      },
+    ],
+  },
   { id: "other", label: "Something else", route: null, faq: [] },
 ];
 
@@ -176,7 +211,7 @@ const EMERGENCY =
 const PLATFORM =
   /\b(app|application|website|crash\w*|freez\w*|frozen|bug|glitch\w*|error|log ?in|sign ?in|password|verification code|blank|not loading|notification\w*|can t send|cant send|cannot send|not sending)\b/;
 const PROPERTY =
-  /\b(park\w*|space|spot|car|truck|motorcycle|vehicle|plate|permit|pass|guest|visitor|tow\w*|gate|garage|violation|neighbou?r|noise|lease|rent|office|maintenance|fire lane|blocked|blocking|building|unit)\b/;
+  /\b(park\w*|claim\w*|deals?|promo\w*|discount\w*|refund\w*|perk\w*|offers?|space|spot|car|truck|motorcycle|vehicle|plate|permit|pass|guest|visitor|tow\w*|gate|garage|violation|neighbou?r|noise|lease|rent|office|maintenance|fire lane|blocked|blocking|building|unit)\b/;
 export function classify(text) {
   const t = words(text);
   if (EMERGENCY.test(t)) return "emergency";
@@ -235,7 +270,8 @@ function answer(topic, faq) {
       bot(faq.a),
       bot(faq.handoff ? (route === "platform" ? "Would you like EasySpotOps Support to follow up?" : "Would you like the team to follow up?") : "Did that answer your question?", choices),
     ],
-    patch: { lastFaq: `${topic.id}:${faq.id}`, route },
+    // a promotion question is labelled Promotions for the team that receives it
+    patch: { lastFaq: `${topic.id}:${faq.id}`, route, ...(topic.id === "promo" ? { topic: "promo" } : {}) },
     answered: `${topic.id}:${faq.id}`,
   };
 }

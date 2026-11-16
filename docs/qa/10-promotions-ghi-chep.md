@@ -443,8 +443,8 @@ Ca thật dùng để tập: Alex Rivera (res-1) claim Mallard Pointe Valet (MAL
 Lỗ hổng thấy khi dựng ca: (1) bot trả lời câu hỏi giảm giá bằng nội dung xe lạ ("do not confront the driver") và xếp "General question"; (2) panel "Resident and unit" của Staff không có claim; (3) không có đường từ claim sang chat hay ngược lại; (4) Claims inbox chỉ có Verify, Reject, Redeem: không có ghi chú nội bộ hay cấp bù.
 
 - [x] **R4-1: Panel Promotions trong chat của Staff.** Trong panel "Resident and unit": danh sách claim của cư dân đó (deal, mã, trạng thái, thời điểm, lý do nếu bị từ chối), nút "Open in Claims inbox" mở đúng claim. Chỉ hiện claim của cư dân trong cuộc trò chuyện (phân quyền). Thử với T-1086 và nhiều cư dân, 375/830/1440, sáng và tối.
-- [ ] **R4-2: Resident "Ask about this claim".** Ở My rewards và hộp thoại deal đã claim: nút mở Messages với nội dung soạn sẵn (deal, mã, giờ claim, trạng thái), chuyển thẳng cho property team, không qua bot; ticket gắn nhãn Promotions.
-- [ ] **R4-3: Bot nhận ra câu hỏi về deal, claim, giảm giá, tính tiền.** Trả lời đúng ngữ cảnh (không dùng nội dung xe lạ), đưa nút "Talk to a person" và ghi nhãn Promotions cho ticket.
+- [x] **R4-2: Resident "Ask about this claim".** Ở My rewards và hộp thoại deal đã claim: nút mở Messages với nội dung soạn sẵn (deal, mã, giờ claim, trạng thái), chuyển thẳng cho property team, không qua bot; ticket gắn nhãn Promotions.
+- [x] **R4-3: Bot nhận ra câu hỏi về deal, claim, giảm giá, tính tiền.** Trả lời đúng ngữ cảnh (không dùng nội dung xe lạ), đưa nút "Talk to a person" và ghi nhãn Promotions cho ticket.
 - [ ] **R4-4: Staff xử lý ngay từ claim.** Ghi chú nội bộ trên claim, "Nhắn cư dân" (mở trả lời trong đúng cuộc trò chuyện), cấp bù hoặc cộng ưu đãi tay (ghi rõ lý do, ai làm, khi nào) và cư dân thấy kết quả ở My rewards và thông báo.
 - [ ] **R4-5: Ma trận trường hợp.** Claim 2 lần, huỷ rồi claim lại, hai Staff cùng xử lý một claim, Verify hai lần, deal bị Off live hoặc hết hạn khi claim đang Pending, hết suất giữa chừng, cư dân A xem claim của B, Staff property khác, cư dân đã chuyển đi, hỏi sau khi claim Redeemed. Ghi kết quả từng ca.
 - [ ] **R4-6: Tổng kết vòng 4.** Dọn dữ liệu (claim của res-1, ticket T-1086 và các ticket thử), cập nhật ghi chép, hỏi push.
@@ -462,3 +462,22 @@ Chưa kiểm bằng hình: 375 và 830 (phiên chụp ở chế độ giả lậ
 Dữ liệu ca tập: sau khi thử, trạng thái claim của res-1 đã trả về chỉ còn claim Pending Mallard Pointe Valet (MALLA10) và ticket T-1086. Khi mở Claims inbox của Staff, claim này được nhập vào hộp thư như một claim Pending.
 
 Test: `tests/promotions/promotions-chat.test.mjs` (2 test). `npm test` 505 test, 504 qua, 1 lỗi cũ.
+
+### R4-2 và R4-3 (xong): Resident hỏi về claim, bot hiểu câu hỏi về deal
+
+Yêu cầu người dùng (16/11): thêm panel Promotions cho Staff và nút "Ask about this claim" cho Resident để test từ đầu; giữ nguyên ca T-1086. Về icon (i): chỉ dùng cho thông tin giải thích, không đặt trong hội thoại; thông tin về claim phải hiện thẳng bằng chữ.
+
+Đã làm:
+- **Nút "Ask about this claim"** (chữ có gạch chân, không icon (i)): ở từng dòng của My rewards (không có ở dòng của người cùng căn hộ) và trong hộp chi tiết deal khi đã claim. Bấm thì ghi claim vào `eso-ask-claim` rồi mở `/resident/messages.html?ask=1`. Trong Resident view của Staff nút chỉ báo "In the resident's app this opens Messages with this claim attached" (không đưa Staff sang Messages của cư dân).
+- **`askAboutClaim` trong `store.js`**: không qua bot; nếu cư dân chỉ có chat với bot thì tạo ticket gửi thẳng property team, nhãn **Promotions**, tin đầu nói rõ deal, mã, giờ claim, trạng thái; nếu cư dân đã có chat với team thì thêm một tin về claim vào chat đó (không tạo ticket thứ hai); hỏi lại cùng claim không thêm gì (chống trùng); chỉ cư dân dùng được; xuống dòng trong tên deal không giả được dòng "Status:".
+- **Bot hiểu deal** (`bot.js`): chủ đề "Promotions" với 4 câu hỏi (đã claim vẫn bị tính tiền, claim đang chờ, mã không dùng được, không thấy deal) kèm nút "Talk to a person"; từ về deal, claim, giảm giá, hoàn tiền được tính là chuyện của property team (không còn bị xếp là lỗi ứng dụng); câu hỏi chuyển qua bot cũng thành ticket nhãn Promotions.
+
+Lỗi tìm thấy và đã sửa: câu "đã claim deal nhưng vẫn bị tính tiền" bị bot trả lời "Please do not confront the driver" (trùng từ "someone") và xếp "General question".
+
+Kiểm bằng giao diện thật: Resident res-3 (Morgan Ellis) claim Covered Spot Upgrade, bấm "Ask about this claim" trong hộp deal (nút hiện đúng chỗ, chụp hình); Messages mở ra và chat có tin "I have a question about my promotion claim. Promotion, Code, Claimed, Status". Vì res-3 đã có chat đang mở với Staff về xe lạ, tin được thêm vào chat đó (luật một chat mở cho mỗi cư dân). Đường "tạo ticket mới" kiểm bằng test (store), chưa bằng giao diện vì cả ba cư dân mẫu đều đang có chat với team. Câu hỏi qua bot cũng kiểm bằng test, chưa bằng giao diện.
+
+Chưa kiểm: nút ở 375 và 830, chế độ tối.
+
+Dọn dữ liệu: đã khôi phục tin nhắn và claim của res-3 về như trước; ca tập T-1086 (claim Pending của Alex) không bị đụng.
+
+Test: `tests/promotions/promotions-ask.test.mjs` (6 test). `npm test` 511 test, 510 qua, 1 lỗi cũ.
