@@ -14,29 +14,40 @@
 //    Another property cannot be started over: its place is taken by a new property with a new id (the Capacity flow).
 //  - hasLostAccess() is what the Resident and Staff pages ask.
 
-import { normalizePurchased } from '../../features/capacity/store.js';
-import { propertyName } from './property-name.js';
+import { normalizePurchased } from "../../features/capacity/store.js";
+import { propertyName } from "./property-name.js";
 
-export const LIFE_KEY = 'eso-property-lifecycle';
-export const NO_ACCESS = 'Sorry, you no longer have access.';
-export const MAIN = 'main';
-const CAPACITY_KEYS = ['eso-capacity:client', 'capacity-state:client'];
+export const LIFE_KEY = "eso-property-lifecycle";
+export const NO_ACCESS = "Sorry, you no longer have access.";
+export const MAIN = "main";
+const CAPACITY_KEYS = ["eso-capacity:client", "capacity-state:client"];
 
-const read = (storage, key) => { try { return JSON.parse(storage.getItem(key)); } catch { return null; } };
-const readLife = (storage) => { const v = read(storage, LIFE_KEY); return v && typeof v === 'object' && v.ended && typeof v.ended === 'object' ? v : { ended: {} }; };
+const read = (storage, key) => {
+  try {
+    return JSON.parse(storage.getItem(key));
+  } catch {
+    return null;
+  }
+};
+const readLife = (storage) => {
+  const v = read(storage, LIFE_KEY);
+  return v && typeof v === "object" && v.ended && typeof v.ended === "object" ? v : { ended: {} };
+};
 
 /** Every key of a storage (the preview's storages list their own; the browser's is walked). */
 export function allKeys(storage) {
   try {
-    if (typeof storage.keys === 'function') return [...storage.keys()];
-    return Array.from({ length: storage.length }, (_, i) => storage.key(i)).filter((k) => typeof k === 'string');
-  } catch { return []; }
+    if (typeof storage.keys === "function") return [...storage.keys()];
+    return Array.from({ length: storage.length }, (_, i) => storage.key(i)).filter((k) => typeof k === "string");
+  } catch {
+    return [];
+  }
 }
 
 /** The Social keys of one property: the first property's are the plain ones, another's carry its id (social/scope.js). */
 export function socialKeysOf(storage, id) {
   const keys = allKeys(storage);
-  if (id === MAIN) return keys.filter((k) => k === 'eso-feed' || k === 'eso-social' || /^eso-res-social:[^:]+$/.test(k));
+  if (id === MAIN) return keys.filter((k) => k === "eso-feed" || k === "eso-social" || /^eso-res-social:[^:]+$/.test(k));
   return keys.filter((k) => k === `eso-feed:${id}` || k === `eso-social:${id}` || k.startsWith(`eso-res-social:${id}:`));
 }
 
@@ -64,16 +75,27 @@ function markInCapacity(storage, id, now, { ended = true } = {}) {
     const raw = read(storage, key);
     if (!raw && id !== MAIN) continue;
     const p = normalizePurchased(raw);
-    if (id === MAIN) { if (ended) p.primaryEnded = true; else delete p.primaryEnded; }
-    else { const hit = p.properties.find((x) => x.id === id); if (!hit) continue; hit.status = 'ended'; hit.endedAt = now; }
-    try { storage.setItem(key, JSON.stringify(p)); } catch { /* storage full: the Admin list still says it ended */ }
+    if (id === MAIN) {
+      if (ended) p.primaryEnded = true;
+      else delete p.primaryEnded;
+    } else {
+      const hit = p.properties.find((x) => x.id === id);
+      if (!hit) continue;
+      hit.status = "ended";
+      hit.endedAt = now;
+    }
+    try {
+      storage.setItem(key, JSON.stringify(p));
+    } catch {
+      /* storage full: the Admin list still says it ended */
+    }
   }
 }
 
 /** End a property: seal its Social data, record it, and take it out of the account. Returns { ok, sealed } or { ok: false, reason }. */
-export function endProperty(storage, id, { by = 'Admin', name = '', now = Date.now() } = {}) {
-  if (!id) return { ok: false, reason: 'no_property' };
-  if (isEnded(storage, id)) return { ok: false, reason: 'already_ended' };
+export function endProperty(storage, id, { by = "Admin", name = "", now = Date.now() } = {}) {
+  if (!id) return { ok: false, reason: "no_property" };
+  if (isEnded(storage, id)) return { ok: false, reason: "already_ended" };
   const keys = propertyKeysOf(storage, id);
   try {
     for (const k of keys) {
@@ -85,7 +107,7 @@ export function endProperty(storage, id, { by = 'Admin', name = '', now = Date.n
     life.ended[id] = { at: now, by, name };
     storage.setItem(LIFE_KEY, JSON.stringify(life));
   } catch {
-    return { ok: false, reason: 'storage' };
+    return { ok: false, reason: "storage" };
   }
   markInCapacity(storage, id, now);
   return { ok: true, sealed: keys.length };
@@ -93,12 +115,14 @@ export function endProperty(storage, id, { by = 'Admin', name = '', now = Date.n
 
 /** The client's portfolio as the Capacity page shows it: the properties still in it, and the ones removed (newest first). */
 export function portfolio(storage) {
-  const p = normalizePurchased(read(storage, 'eso-capacity:client') || read(storage, 'capacity-state:client'));
+  const p = normalizePurchased(read(storage, "eso-capacity:client") || read(storage, "capacity-state:client"));
   const life = readLife(storage).ended;
   const active = [];
   if (!life[MAIN] && !p.primaryEnded) active.push({ id: MAIN, name: propertyName(storage), main: true });
-  for (const x of p.properties) if (x.status !== 'ended' && !life[x.id]) active.push({ id: x.id, name: x.name, units: x.units, address: x.address, main: false });
-  const removed = Object.entries(life).map(([id, r]) => ({ id, name: r.name || (id === MAIN ? propertyName(storage) : (p.properties.find((x) => x.id === id) || {}).name) || 'Property', at: r.at, by: r.by })).sort((a, b) => b.at - a.at);
+  for (const x of p.properties) if (x.status !== "ended" && !life[x.id]) active.push({ id: x.id, name: x.name, units: x.units, address: x.address, main: false });
+  const removed = Object.entries(life)
+    .map(([id, r]) => ({ id, name: r.name || (id === MAIN ? propertyName(storage) : (p.properties.find((x) => x.id === id) || {}).name) || "Property", at: r.at, by: r.by }))
+    .sort((a, b) => b.at - a.at);
   return { active, removed };
 }
 
@@ -106,24 +130,26 @@ export function portfolio(storage) {
  * The client takes a property out of its portfolio. It is the same end as Admin's: the people of the property are signed out and its Social is cut off.
  * The last property cannot be removed: that would close the account, which is a different thing (a conversation with Support).
  */
-export function removeFromPortfolio(storage, id, { by = 'Client', now = Date.now() } = {}) {
+export function removeFromPortfolio(storage, id, { by = "Client", now = Date.now() } = {}) {
   const { active } = portfolio(storage);
   const target = active.find((x) => x.id === id);
-  if (!target) return { ok: false, reason: 'not_in_portfolio' };
-  if (active.length <= 1) return { ok: false, reason: 'last_property' };
+  if (!target) return { ok: false, reason: "not_in_portfolio" };
+  if (active.length <= 1) return { ok: false, reason: "last_property" };
   return endProperty(storage, id, { by, name: target.name, now });
 }
 
 /** A new owner takes the first property over: it is open again and its Social starts empty. The old data stays sealed and is never read again. */
 export function startOver(storage, id = MAIN, { now = Date.now() } = {}) {
-  if (id !== MAIN) return { ok: false, reason: 'new_property' }; // another property is replaced by a new one (Capacity), with a new id and a new feed
-  if (!isEnded(storage, id)) return { ok: false, reason: 'not_ended' };
+  if (id !== MAIN) return { ok: false, reason: "new_property" }; // another property is replaced by a new one (Capacity), with a new id and a new feed
+  if (!isEnded(storage, id)) return { ok: false, reason: "not_ended" };
   try {
     const life = readLife(storage);
     life.history = [...(Array.isArray(life.history) ? life.history : []), { id, ...life.ended[id], reopenedAt: now }];
     delete life.ended[id];
     storage.setItem(LIFE_KEY, JSON.stringify(life));
-  } catch { return { ok: false, reason: 'storage' }; }
+  } catch {
+    return { ok: false, reason: "storage" };
+  }
   markInCapacity(storage, id, now, { ended: false });
   return { ok: true };
 }

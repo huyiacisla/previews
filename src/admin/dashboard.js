@@ -3,25 +3,26 @@
 // the result where the partial can see it, and reads it again whenever the store changes.
 // NOTE: BRIEF.md allows no JS besides preview.js; like the Messages and Notifications pages this is a deliberate exception.
 // The captured file is not edited: its sidebar and header stay, only what <main> shows is replaced when the page opens.
-import { component, start } from '../shared/js/alpine.js';
-import { createStore } from '../features/messaging/store.js';
-import { createTransport } from '../features/messaging/transport.js';
-import { pickPersona } from '../features/messaging/personas.js';
-import { listTime } from '../features/messaging/format.js';
-import { adminOverview, adminView, PLATFORM, HEALTH, ACTIVITY } from './overview.js';
 
-const root = document.getElementById('adm-root');
-const main = document.getElementById('main-content');
+import { listTime } from "../features/messaging/format.js";
+import { pickPersona } from "../features/messaging/personas.js";
+import { createStore } from "../features/messaging/store.js";
+import { createTransport } from "../features/messaging/transport.js";
+import { component, start } from "../shared/js/alpine.js";
+import { ACTIVITY, adminOverview, adminView, HEALTH, PLATFORM } from "./overview.js";
+
+const root = document.getElementById("adm-root");
+const main = document.getElementById("main-content");
 // Only on the dashboard itself: Notifications and Settings include the same captured page for its frame, and preview.js puts their own content in <main>.
 if (root && main && /^\/admin\/dashboard(\.html)?$/.test(location.pathname)) {
   const search = location.search; // ?as=… picks the person, ?dark the theme: every link keeps it
-  const me = pickPersona('admin', new URLSearchParams(search).get('as'));
+  const me = pickPersona("admin", new URLSearchParams(search).get("as"));
   const store = createStore({ transport: createTransport() }); // kept outside the component: Alpine must not wrap the store in its reactivity
   const links = { tickets: `/admin/tickets.html${search}`, messages: `/admin/messages.html${search}` };
 
-  component('adminDashboard', () => ({
+  component("adminDashboard", () => ({
     links,
-    date: new Intl.DateTimeFormat('en-US', { weekday: 'long', month: 'long', day: 'numeric' }).format(Date.now()),
+    date: new Intl.DateTimeFormat("en-US", { weekday: "long", month: "long", day: "numeric" }).format(Date.now()),
     // sample sections: they do not change while the page is open
     platform: PLATFORM,
     health: HEALTH,
@@ -29,9 +30,20 @@ if (root && main && /^\/admin\/dashboard(\.html)?$/.test(location.pathname)) {
     expanded: {}, // health groups showing all their items
     // live sections: replaced by refresh()
     o: null,
-    tiles: [], stages: [], queueRows: [], queueSub: '', queueMore: '', msgRows: [], msgSub: '', emergencyHref: '', emergencyTitle: '', emergencyText: '',
+    tiles: [],
+    stages: [],
+    queueRows: [],
+    queueSub: "",
+    queueMore: "",
+    msgRows: [],
+    msgSub: "",
+    emergencyHref: "",
+    emergencyTitle: "",
+    emergencyText: "",
 
-    get q() { return this.o.queue; },
+    get q() {
+      return this.o.queue;
+    },
 
     init() {
       this.refresh();
@@ -48,8 +60,8 @@ if (root && main && /^\/admin\/dashboard(\.html)?$/.test(location.pathname)) {
     /** The Platform alerts tile points inside this page: scroll there and move the focus, so a keyboard user lands on it too. */
     toHealth(e) {
       e.preventDefault();
-      const h = document.getElementById('adm-health-h');
-      h.scrollIntoView({ block: 'start', behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
+      const h = document.getElementById("adm-health-h");
+      h.scrollIntoView({ block: "start", behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
       h.focus({ preventScroll: true });
     },
   }));
@@ -57,6 +69,6 @@ if (root && main && /^\/admin\/dashboard(\.html)?$/.test(location.pathname)) {
   // The root goes where it belongs before Alpine draws it, so nothing is drawn twice.
   main.replaceChildren(root);
   root.hidden = false;
-  document.documentElement.removeAttribute('data-eso-wait');
+  document.documentElement.removeAttribute("data-eso-wait");
   start();
 }

@@ -11,7 +11,10 @@ export function nest(nodes) {
   const top = [];
   for (const n of nodes) {
     const parent = n.parent != null && String(n.parent) !== String(n.id) && byId.has(String(n.parent)) ? String(n.parent) : null;
-    if (parent) { if (!kids.has(parent)) kids.set(parent, []); kids.get(parent).push(n); } else top.push(n);
+    if (parent) {
+      if (!kids.has(parent)) kids.set(parent, []);
+      kids.get(parent).push(n);
+    } else top.push(n);
   }
   const byTime = (a, b) => (Number(a.t) || 0) - (Number(b.t) || 0);
   const out = [];

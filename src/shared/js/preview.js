@@ -1,11 +1,13 @@
-import { lookCss, gestureConfig, onAccent, accentText, PAGE_LIGHT, PAGE_DARK } from "./look-prefs.js";
 import { savePrefs } from "../../features/settings/prefs.js";
-import { pathForHash, STAFF_ROUTES, RESIDENT_ROUTES, CLIENT_ROUTES, ADMIN_ROUTES } from "./staff-routes.js";
 import { guardAccess } from "./access-guard.js";
+import { accentText, gestureConfig, lookCss, onAccent, PAGE_DARK, PAGE_LIGHT } from "./look-prefs.js";
+import { ADMIN_ROUTES, CLIENT_ROUTES, pathForHash, RESIDENT_ROUTES, STAFF_ROUTES } from "./staff-routes.js";
+
 // A property that has ended takes its Staff and Residents' access with it: their pages show one message and stop here (access-guard.js).
 if (guardAccess()) throw new Error("This property has ended: the page shows the sign-out message and builds nothing else.");
 // An address typed without the ending (/staff/workspace, /staff/settings/profile) is the page with the ending, so every check below sees one form.
-if (/^\/(staff|client|resident|admin|messages)\//.test(location.pathname) && !/\.[a-z0-9]+$/i.test(location.pathname)) history.replaceState(null, "", `${location.pathname.replace(/\/$/, "")}.html${location.search}${location.hash}`);
+if (/^\/(staff|client|resident|admin|messages)\//.test(location.pathname) && !/\.[a-z0-9]+$/i.test(location.pathname))
+  history.replaceState(null, "", `${location.pathname.replace(/\/$/, "")}.html${location.search}${location.hash}`);
 // Chỉ đổi giao diện: bật/tắt dark qua ?dark (app thật dùng next-themes: class `light`/`dark` trên <html>).
 const root = document.documentElement;
 // Các dashboard chụp từ app thật ghi lang="vi" nhưng nội dung là tiếng Anh: trình đọc màn hình sẽ đọc sai giọng. Đặt lại đúng ngôn ngữ của nội dung.
@@ -19,7 +21,9 @@ if (new URLSearchParams(location.search).has("dark")) setDark(true);
 // Header và sidebar của mọi trang Client (dashboard, Settings) lấy đúng thiết kế của Staff (xem portal-frame.js), nên một vai trò chỉ có một kiểu.
 // Phải chạy trước mọi đoạn bên dưới vì chúng tìm phần tử trong header và sidebar. Ẩn trang một lúc để không thấy khung cũ nháy lên.
 // Pages of the Client that are "frame + content in an iframe" (see EMBED below); the content pages are the *-content.html files.
-const isClientFrame = /^\/client\/(dashboard|account-settings|notifications|messages|tickets|workspace|support|documents)\.html$|^\/client\/(settings|workspace|usage)\/[a-z]+\.html$/.test(location.pathname);
+const isClientFrame = /^\/client\/(dashboard|account-settings|notifications|messages|tickets|workspace|support|documents)\.html$|^\/client\/(settings|workspace|usage)\/[a-z]+\.html$/.test(
+  location.pathname,
+);
 // Resident pages that take the same frame (header and sidebar from the Staff design, filled with the Resident's own menu), and the
 // Staff pages that already have that header but need its behaviours (filter, clock, bell, search, favourites).
 const isResidentFrame = /^\/resident\/(home|notifications|messages|tickets|settings|promotions)\.html$|^\/resident\/settings\/[a-z]+\.html$/.test(location.pathname);
@@ -38,25 +42,37 @@ if (!document.querySelector('link[rel~="icon"]')) {
   const ico = document.createElement("link");
   ico.rel = "icon";
   ico.type = "image/svg+xml";
-  ico.href = "data:image/svg+xml," + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><rect width="32" height="32" rx="8" fill="#2563eb"/><path d="M10 23V9h7a4.5 4.5 0 0 1 0 9h-4" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>');
+  ico.href =
+    "data:image/svg+xml," +
+    encodeURIComponent(
+      '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><rect width="32" height="32" rx="8" fill="#2563eb"/><path d="M10 23V9h7a4.5 4.5 0 0 1 0 9h-4" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+    );
   document.head.append(ico);
 }
 const standaloneApp = /\/(messages|tickets)(-content)?\.html$/.test(location.pathname) && !/^\/(client|staff|resident|admin)\/(messages|tickets)\.html$/.test(location.pathname);
 if (isClientFrame || isResidentFrame || isStaffFrame) {
   root.style.visibility = "hidden";
-  const reveal = setTimeout(() => { root.style.visibility = ""; }, 3000); // an toàn: không bao giờ để trang trống
+  const reveal = setTimeout(() => {
+    root.style.visibility = "";
+  }, 3000); // an toàn: không bao giờ để trang trống
   try {
     const frameOf = location.pathname.split("/")[1]; // client | resident | staff
     const [{ adoptStaffFrame }, { pickPersona, initials }] = await Promise.all([import("./portal-frame.js"), import("../../features/messaging/personas.js")]);
     const me = pickPersona(frameOf, new URLSearchParams(location.search).get("as"));
     // Staff already has the design: its header only needs the sizing mark. Client and Resident are rebuilt from it.
     let adopted;
-    if (frameOf === "staff") { document.querySelector("header")?.setAttribute("data-eso-frame", ""); adopted = true; }
-    else adopted = await adoptStaffFrame({ me, initials, portal: frameOf });
+    if (frameOf === "staff") {
+      document.querySelector("header")?.setAttribute("data-eso-frame", "");
+      adopted = true;
+    } else adopted = await adoptStaffFrame({ me, initials, portal: frameOf });
     if (adopted) (await import("./portal-frame-extras.js")).addFrameBehaviours({ me, portal: frameOf }); // filter, local time, notifications, search, help: the frame was a static snapshot
     // The rebuilt Resident menu comes after the links above were set: its "Dashboard" gets its page too.
-    if (adopted && frameOf === "resident") for (const a of document.querySelectorAll('a[data-slot="sidebar-menu-button"]')) if (a.querySelector("span.truncate")?.textContent.trim() === "Dashboard" && a.getAttribute("href") === "#") a.setAttribute("href", `/resident/home.html${location.search}`);
-  } catch { /* trang giữ nguyên khung cũ */ }
+    if (adopted && frameOf === "resident")
+      for (const a of document.querySelectorAll('a[data-slot="sidebar-menu-button"]'))
+        if (a.querySelector("span.truncate")?.textContent.trim() === "Dashboard" && a.getAttribute("href") === "#") a.setAttribute("href", `/resident/home.html${location.search}`);
+  } catch {
+    /* trang giữ nguyên khung cũ */
+  }
   clearTimeout(reveal);
   root.style.visibility = "";
 }
@@ -71,8 +87,14 @@ const toggleTheme = () => {
   if (!portal) return;
   try {
     if (portal === "resident") savePrefs(localStorage, new URLSearchParams(location.search).get("as") || "res-1", { theme });
-    else { const k = `ui-prefs:${portal}`; const cur = JSON.parse(localStorage.getItem(k) || "null"); localStorage.setItem(k, JSON.stringify({ ...(cur && typeof cur === "object" ? cur : {}), theme })); }
-  } catch { /* private window: the choice lasts until reload */ }
+    else {
+      const k = `ui-prefs:${portal}`;
+      const cur = JSON.parse(localStorage.getItem(k) || "null");
+      localStorage.setItem(k, JSON.stringify({ ...(cur && typeof cur === "object" ? cur : {}), theme }));
+    }
+  } catch {
+    /* private window: the choice lasts until reload */
+  }
 };
 document.addEventListener("click", (e) => {
   if (e.target.closest("[data-theme-toggle]")) toggleTheme();
@@ -105,16 +127,28 @@ if (embedded) {
       p.classList.toggle("light", root.classList.contains("light"));
       for (const a of ["data-contrast", "data-reduce-motion", "data-big-target", "data-strong-focus"]) p.toggleAttribute(a, root.hasAttribute(a));
     }).observe(root, { attributes: true, attributeFilter: ["class", "data-contrast", "data-reduce-motion", "data-big-target", "data-strong-focus"] });
-  } catch { /* no usable parent */ }
+  } catch {
+    /* no usable parent */
+  }
   document.addEventListener("click", (e) => {
     const a = e.target.closest("a[href]");
     if (!a || e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || a.target || a.hasAttribute("download")) return;
     const u = new URL(a.href, location.href);
     if (u.origin !== location.origin || u.pathname === location.pathname) return;
     e.preventDefault();
-    try { parent.location.href = u.href; } catch { location.href = u.href; }
+    try {
+      parent.location.href = u.href;
+    } catch {
+      location.href = u.href;
+    }
   });
-  addEventListener("hashchange", () => { try { if (parent.location.hash !== location.hash) parent.history.replaceState(null, "", parent.location.pathname + parent.location.search + location.hash); } catch { /* no parent */ } });
+  addEventListener("hashchange", () => {
+    try {
+      if (parent.location.hash !== location.hash) parent.history.replaceState(null, "", parent.location.pathname + parent.location.search + location.hash);
+    } catch {
+      /* no parent */
+    }
+  });
 }
 
 const applyUiPrefs = () => {
@@ -130,7 +164,8 @@ const applyUiPrefs = () => {
         // Chọn lại "Default" (không có màu) thì bỏ màu đã đặt trước đó, không cần tải lại trang.
         const box = document.querySelector('[data-slot="sidebar-container"]');
         const names = ["--surface-inverted", "--surface-inverted-foreground", "--surface-inverted-subtle", "--surface-inverted-accent"];
-        if (Array.isArray(ui.sb) && ui.sb.length === 4 && ui.sb.every(hex)) { // exactly four colours: background, text, accent, highlight; anything else keeps the default
+        if (Array.isArray(ui.sb) && ui.sb.length === 4 && ui.sb.every(hex)) {
+          // exactly four colours: background, text, accent, highlight; anything else keeps the default
           const [bg, fg, acc, accent] = ui.sb;
           s.setProperty("--sidebar", bg);
           s.setProperty("--sidebar-foreground", fg);
@@ -169,7 +204,11 @@ const applyUiPrefs = () => {
         if (card && top) card.hidden = ui.cap === false;
         // Text, buttons, cards, density: one small stylesheet that stays empty until a choice differs from the default (see look-prefs.js).
         let look = document.getElementById("eso-look");
-        if (!look) { look = document.createElement("style"); look.id = "eso-look"; document.head.append(look); }
+        if (!look) {
+          look = document.createElement("style");
+          look.id = "eso-look";
+          document.head.append(look);
+        }
         look.textContent = lookCss(ui);
         root.setAttribute("data-nav-side", ui.gestures && ui.gestures.side === "right" ? "right" : "left");
         // Accessibility (Settings > Accessibility): all four reach every page (styles.css): higher contrast, reduced motion, larger tap targets, a stronger focus ring.
@@ -191,7 +230,9 @@ const applyUiPrefs = () => {
           for (const v of ["--primary-foreground", "--primary-text-l", "--primary-text-d"]) root.style.removeProperty(v);
         }
       }
-    } catch { /* trang vẫn dùng diện mạo gốc */ }
+    } catch {
+      /* trang vẫn dùng diện mạo gốc */
+    }
   }
 };
 applyUiPrefs();
@@ -203,7 +244,9 @@ try {
   const saved = JSON.parse(localStorage.getItem(`ui-prefs:${portal}`) || "null");
   const chosen = saved && saved.a11y && typeof saved.a11y.target === "boolean" ? saved.a11y.target : null;
   if (matchMedia("(pointer: coarse)").matches && chosen !== false) root.setAttribute("data-big-target", "");
-} catch { /* the page keeps its normal size */ }
+} catch {
+  /* the page keeps its normal size */
+}
 
 // Thu gọn sidebar thành thanh biểu tượng (desktop, khi đã bật trong Settings): nút ở mép sidebar hoặc Ctrl/⌘+B. Nhớ trạng thái giữa các trang.
 {
@@ -217,22 +260,47 @@ try {
       const w = wrap();
       if (!w) return;
       w.setAttribute("data-state", on ? "collapsed" : "expanded");
-      if (on) w.setAttribute("data-collapsible", "icon"); else w.removeAttribute("data-collapsible");
+      if (on) w.setAttribute("data-collapsible", "icon");
+      else w.removeAttribute("data-collapsible");
       toggle()?.setAttribute("aria-label", on ? "Expand sidebar" : "Collapse sidebar");
-      if (remember) { try { localStorage.setItem(key, on ? "1" : "0"); } catch { /* storage blocked */ } }
+      if (remember) {
+        try {
+          localStorage.setItem(key, on ? "1" : "0");
+        } catch {
+          /* storage blocked */
+        }
+      }
     };
     // Personalize > Sidebar > Layout "Rail": on a desktop the sidebar is an icon rail all the time (the person's own collapse choice is left as it was).
-    const rail = () => { try { return JSON.parse(localStorage.getItem(`ui-prefs:${p}`) || "null")?.layout === "B" && matchMedia("(min-width: 1024px)").matches; } catch { return false; } };
-    const sync = () => { try { if (rail()) set(true, false); else set(usable() && localStorage.getItem(key) === "1", false); } catch { /* storage blocked */ } };
+    const rail = () => {
+      try {
+        return JSON.parse(localStorage.getItem(`ui-prefs:${p}`) || "null")?.layout === "B" && matchMedia("(min-width: 1024px)").matches;
+      } catch {
+        return false;
+      }
+    };
+    const sync = () => {
+      try {
+        if (rail()) set(true, false);
+        else set(usable() && localStorage.getItem(key) === "1", false);
+      } catch {
+        /* storage blocked */
+      }
+    };
     document.addEventListener("click", (e) => {
       const b = e.target.closest('button[aria-label="Collapse sidebar"], button[aria-label="Expand sidebar"]');
       if (b && usable()) set(b.getAttribute("aria-label") === "Collapse sidebar");
     });
     document.addEventListener("keydown", (e) => {
-      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "b" && usable()) { e.preventDefault(); set(wrap()?.getAttribute("data-state") !== "collapsed"); }
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "b" && usable()) {
+        e.preventDefault();
+        set(wrap()?.getAttribute("data-state") !== "collapsed");
+      }
     });
     matchMedia("(min-width: 1024px)").addEventListener("change", sync);
-    addEventListener("message", (e) => { if (e.origin === location.origin && e.data && e.data.type === "eso-ui-prefs") sync(); });
+    addEventListener("message", (e) => {
+      if (e.origin === location.origin && e.data && e.data.type === "eso-ui-prefs") sync();
+    });
     sync();
   }
 }
@@ -252,7 +320,10 @@ if (/\/(staff|client|resident|admin)\/(messages|tickets)\.html$/.test(location.p
         const olds = [...new Set([DEFAULT_PROPERTY, shown])].filter((s) => s !== name);
         if (!olds.length && shown === name) return;
         const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, {
-          acceptNode: (n) => (n.parentElement && !n.parentElement.closest('[data-slot="sidebar-container"], script, style, textarea, #frame-say') && olds.some((o) => n.nodeValue.includes(o)) ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT),
+          acceptNode: (n) =>
+            n.parentElement && !n.parentElement.closest('[data-slot="sidebar-container"], script, style, textarea, #frame-say') && olds.some((o) => n.nodeValue.includes(o))
+              ? NodeFilter.FILTER_ACCEPT
+              : NodeFilter.FILTER_REJECT,
         });
         const nodes = [];
         while (walker.nextNode()) nodes.push(walker.currentNode);
@@ -260,9 +331,14 @@ if (/\/(staff|client|resident|admin)\/(messages|tickets)\.html$/.test(location.p
         shown = name;
       };
       let timer;
-      const later = () => { clearTimeout(timer); timer = setTimeout(run, 150); };
+      const later = () => {
+        clearTimeout(timer);
+        timer = setTimeout(run, 150);
+      };
       new MutationObserver(later).observe(document.body, { childList: true, subtree: true });
-      addEventListener("storage", (e) => { if (e.key === "eso-prop") later(); });
+      addEventListener("storage", (e) => {
+        if (e.key === "eso-prop") later();
+      });
       later();
     });
   }
@@ -279,21 +355,29 @@ if (!isPrototypePage) {
       d.documentElement.classList.toggle("dark", dark);
       d.documentElement.classList.toggle("light", !dark);
       const accent = root.style.getPropertyValue("--primary");
-      if (accent) d.documentElement.style.setProperty("--primary", accent); else d.documentElement.style.removeProperty("--primary");
+      if (accent) d.documentElement.style.setProperty("--primary", accent);
+      else d.documentElement.style.removeProperty("--primary");
       // the text on the accent follows it into the frame, so a light accent does not leave white text on a light button there
       for (const v of ["--primary-foreground", "--primary-text-l", "--primary-text-d"]) {
         const val = root.style.getPropertyValue(v);
-        if (val) d.documentElement.style.setProperty(v, val); else d.documentElement.style.removeProperty(v);
+        if (val) d.documentElement.style.setProperty(v, val);
+        else d.documentElement.style.removeProperty(v);
       }
-    } catch { /* a frame of another origin: left alone */ }
+    } catch {
+      /* a frame of another origin: left alone */
+    }
   };
   const syncAll = () => document.querySelectorAll("iframe").forEach(syncEmbed);
-  document.addEventListener("load", (e) => {
-    if (!e.target || e.target.tagName !== "IFRAME") return;
-    syncEmbed(e.target);
-    setTimeout(() => syncEmbed(e.target), 500); // the page inside may set its own look a moment after it loads
-    setTimeout(() => syncEmbed(e.target), 1500);
-  }, true);
+  document.addEventListener(
+    "load",
+    (e) => {
+      if (!e.target || e.target.tagName !== "IFRAME") return;
+      syncEmbed(e.target);
+      setTimeout(() => syncEmbed(e.target), 500); // the page inside may set its own look a moment after it loads
+      setTimeout(() => syncEmbed(e.target), 1500);
+    },
+    true,
+  );
   new MutationObserver(syncAll).observe(root, { attributes: true, attributeFilter: ["class", "style"] });
 }
 
@@ -320,17 +404,38 @@ if ((portalNow === "staff" || portalNow === "resident" || portalNow === "admin")
         }
         trigger.setAttribute("aria-label", `Open profile menu for ${me.name}`);
         // The Resident greeting of the capture says "Welcome back, QA": greet the person by name.
-        if (portal === "resident") for (const h of document.querySelectorAll("main h1, main h2, main p")) if (!h.children.length && /^Welcome back, QA\b/.test(h.textContent.trim())) h.textContent = `Welcome back, ${me.name.split(" ")[0]}`;
+        if (portal === "resident")
+          for (const h of document.querySelectorAll("main h1, main h2, main p"))
+            if (!h.children.length && /^Welcome back, QA\b/.test(h.textContent.trim())) h.textContent = `Welcome back, ${me.name.split(" ")[0]}`;
         const q = location.search;
-        const account = portal === "staff"
-          ? [["user", "View profile", `/staff/settings/profile.html${q}`], ["chat", "Messenger & availability", `/staff/settings/availability.html${q}`], ["key", "My permissions", `/staff/workspace/access.html${q}`], ["bell", "Notification preferences", `/staff/settings/notifications.html${q}`], ["user", "My Social", `/staff/social.html${q}#/me`], ["user", "Saved posts", `/staff/social.html${q}#/me`]]
-          : portal === "admin"
-            ? [["user", "Settings", `/admin/settings.html${q}`], ["chat", "Messaging & Support", `/admin/messages.html${q}`], ["clipboard", "Ticket box", `/admin/tickets.html${q}`], ["bell", "Notifications", `/admin/notifications.html${q}`]]
-            : [["user", "Settings", `/resident/settings.html${q}`], ["chat", "Messages", `/resident/messages.html${q}`], ["clipboard", "Ticket box", `/resident/tickets.html${q}`]]; // (a person opens the avatar for their own settings first: Staff's menu has "View profile" too)
+        const account =
+          portal === "staff"
+            ? [
+                ["user", "View profile", `/staff/settings/profile.html${q}`],
+                ["chat", "Messenger & availability", `/staff/settings/availability.html${q}`],
+                ["key", "My permissions", `/staff/workspace/access.html${q}`],
+                ["bell", "Notification preferences", `/staff/settings/notifications.html${q}`],
+                ["user", "My Social", `/staff/social.html${q}#/me`],
+                ["user", "Saved posts", `/staff/social.html${q}#/me`],
+              ]
+            : portal === "admin"
+              ? [
+                  ["user", "Settings", `/admin/settings.html${q}`],
+                  ["chat", "Messaging & Support", `/admin/messages.html${q}`],
+                  ["clipboard", "Ticket box", `/admin/tickets.html${q}`],
+                  ["bell", "Notifications", `/admin/notifications.html${q}`],
+                ]
+              : [
+                  ["user", "Settings", `/resident/settings.html${q}`],
+                  ["chat", "Messages", `/resident/messages.html${q}`],
+                  ["clipboard", "Ticket box", `/resident/tickets.html${q}`],
+                ]; // (a person opens the avatar for their own settings first: Staff's menu has "View profile" too)
         const extras = await import("./portal-frame-extras.js");
         extras.addProfileMenu({ me, initials, portal, account, hasStatus: portal === "staff" });
         if (portal === "admin") extras.addBell({ me, portal }); // the captured Admin bell opened nothing and showed no count
-      } catch { /* the header stays as captured */ }
+      } catch {
+        /* the header stays as captured */
+      }
     })();
   }
 }
@@ -387,7 +492,9 @@ if (["staff", "admin", "resident"].includes(portalNow) && !isPrototypePage) {
 
 // Settings của Client nằm trong khung dashboard thật (xem mountSettingsShell bên dưới): khi người dùng đổi màu sidebar, theme hoặc màu nhấn
 // trong nội dung nhúng, sidebar thật đổi theo ngay.
-addEventListener("message", (e) => { if (e.origin === location.origin && e.data && e.data.type === "eso-ui-prefs") applyUiPrefs(); });
+addEventListener("message", (e) => {
+  if (e.origin === location.origin && e.data && e.data.type === "eso-ui-prefs") applyUiPrefs();
+});
 
 // Ngăn kéo điều hướng (mobile/tablet): nút "Open navigation" mở sidebar có sẵn trong HTML dưới dạng off-canvas.
 // Đóng bằng: bấm nền mờ, Esc, chọn một mục, hoặc khi màn hình rộng ra >= 1024px. Trả focus về nút đã mở.
@@ -405,14 +512,21 @@ addEventListener("message", (e) => { if (e.origin === location.origin && e.data 
     root.toggleAttribute("data-nav-open", open);
     scrim.hidden = !open;
     toggle.setAttribute("aria-expanded", String(open));
-    if (open) { if (focus) sidebar.querySelector("a,button,input")?.focus({ preventScroll: true }); }
-    else if (restore) toggle.focus({ preventScroll: true });
+    if (open) {
+      if (focus) sidebar.querySelector("a,button,input")?.focus({ preventScroll: true });
+    } else if (restore) toggle.focus({ preventScroll: true });
   };
   toggle.addEventListener("click", () => setOpen(!root.hasAttribute("data-nav-open")));
   scrim.addEventListener("click", () => setOpen(false));
-  document.addEventListener("keydown", (e) => { if (e.key === "Escape" && root.hasAttribute("data-nav-open")) setOpen(false); });
-  sidebar.addEventListener("click", (e) => { if (e.target.closest("a[href]") && !wide.matches) setOpen(false, { restore: false }); });
-  wide.addEventListener("change", () => { if (wide.matches) setOpen(false, { restore: false }); });
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && root.hasAttribute("data-nav-open")) setOpen(false);
+  });
+  sidebar.addEventListener("click", (e) => {
+    if (e.target.closest("a[href]") && !wide.matches) setOpen(false, { restore: false });
+  });
+  wide.addEventListener("change", () => {
+    if (wide.matches) setOpen(false, { restore: false });
+  });
 
   // Swipe to open and close the menu (Settings > Personalize > Gestures & navigation). Only for Staff and Client pages whose person has
   // saved a Personalize choice; every other page has no swipe, as before. Vertical scrolling never starts a gesture.
@@ -420,10 +534,18 @@ addEventListener("message", (e) => { if (e.origin === location.origin && e.data 
   const config = () => {
     // (The Resident's Settings has the same Gestures page, so the choices there must do something too: they used to be saved and ignored.)
     if (pp !== "staff" && pp !== "client" && pp !== "resident" && pp !== "admin") return null;
-    try { const ui = JSON.parse(localStorage.getItem(`ui-prefs:${pp}`) || "null"); return ui ? gestureConfig(ui) : null; } catch { return null; }
+    try {
+      const ui = JSON.parse(localStorage.getItem(`ui-prefs:${pp}`) || "null");
+      return ui ? gestureConfig(ui) : null;
+    } catch {
+      return null;
+    }
   };
   let drag = null;
-  const place = (x) => { sidebar.style.animation = "none"; sidebar.style.transform = `translateX(${Math.round(x)}px)`; };
+  const place = (x) => {
+    sidebar.style.animation = "none";
+    sidebar.style.transform = `translateX(${Math.round(x)}px)`;
+  };
   const finish = (commit) => {
     const d = drag;
     drag = null;
@@ -432,36 +554,50 @@ addEventListener("message", (e) => { if (e.origin === location.origin && e.data 
     sidebar.style.transform = "";
     setOpen(d.open ? !commit : commit, { restore: false, focus: false });
   };
-  document.addEventListener("touchstart", (e) => {
-    const cfg = config();
-    if (!cfg || !cfg.on || wide.matches || e.touches.length !== 1) return;
-    const t = e.touches[0];
-    const open = root.hasAttribute("data-nav-open");
-    if (open && !cfg.close) return;
-    if (!open && (cfg.side === "right" ? innerWidth - t.clientX : t.clientX) > (cfg.zone === "any" ? innerWidth * 0.5 : 24)) return;
-    drag = { x: t.clientX, y: t.clientY, at: Date.now(), open, cfg, engaged: false, dx: 0 };
-  }, { passive: true });
-  document.addEventListener("touchmove", (e) => {
-    if (!drag) return;
-    const t = e.touches[0];
-    const dx = t.clientX - drag.x;
-    const dy = t.clientY - drag.y;
-    const towardOpen = drag.cfg.side === "right" ? -dx : dx; // positive moves the menu further in
-    if (!drag.engaged) {
-      if (Math.abs(dy) > 10 && Math.abs(dy) > Math.abs(dx)) { drag = null; return; } // a scroll, not a swipe
-      if (Math.abs(dx) < 10 || Math.abs(dx) < Math.abs(dy) * 1.5) return;
-      if (drag.open ? towardOpen > 0 : towardOpen < 0) { drag = null; return; } // wrong way
-      drag.engaged = true;
-      if (!drag.open) setOpen(true, { restore: false, focus: false });
-    }
-    drag.dx = towardOpen;
-    if (drag.cfg.follow) {
-      const w = sidebar.offsetWidth || 320;
-      const sign = drag.cfg.side === "right" ? 1 : -1; // the closed position is -w on the left, +w on the right
-      const shown = Math.min(w, Math.max(0, (drag.open ? w : 0) + towardOpen)); // how much of the menu is in view
-      place(sign * (w - shown));
-    }
-  }, { passive: true });
+  document.addEventListener(
+    "touchstart",
+    (e) => {
+      const cfg = config();
+      if (!cfg || !cfg.on || wide.matches || e.touches.length !== 1) return;
+      const t = e.touches[0];
+      const open = root.hasAttribute("data-nav-open");
+      if (open && !cfg.close) return;
+      if (!open && (cfg.side === "right" ? innerWidth - t.clientX : t.clientX) > (cfg.zone === "any" ? innerWidth * 0.5 : 24)) return;
+      drag = { x: t.clientX, y: t.clientY, at: Date.now(), open, cfg, engaged: false, dx: 0 };
+    },
+    { passive: true },
+  );
+  document.addEventListener(
+    "touchmove",
+    (e) => {
+      if (!drag) return;
+      const t = e.touches[0];
+      const dx = t.clientX - drag.x;
+      const dy = t.clientY - drag.y;
+      const towardOpen = drag.cfg.side === "right" ? -dx : dx; // positive moves the menu further in
+      if (!drag.engaged) {
+        if (Math.abs(dy) > 10 && Math.abs(dy) > Math.abs(dx)) {
+          drag = null;
+          return;
+        } // a scroll, not a swipe
+        if (Math.abs(dx) < 10 || Math.abs(dx) < Math.abs(dy) * 1.5) return;
+        if (drag.open ? towardOpen > 0 : towardOpen < 0) {
+          drag = null;
+          return;
+        } // wrong way
+        drag.engaged = true;
+        if (!drag.open) setOpen(true, { restore: false, focus: false });
+      }
+      drag.dx = towardOpen;
+      if (drag.cfg.follow) {
+        const w = sidebar.offsetWidth || 320;
+        const sign = drag.cfg.side === "right" ? 1 : -1; // the closed position is -w on the left, +w on the right
+        const shown = Math.min(w, Math.max(0, (drag.open ? w : 0) + towardOpen)); // how much of the menu is in view
+        place(sign * (w - shown));
+      }
+    },
+    { passive: true },
+  );
   document.addEventListener("touchend", () => {
     if (!drag) return;
     const w = sidebar.offsetWidth || 320;
@@ -573,7 +709,9 @@ document.addEventListener("click", (e) => {
   }
   try {
     const [{ createStore }, { createTransport }, { pickPersona }] = await Promise.all([
-      import("../../features/messaging/store.js"), import("../../features/messaging/transport.js"), import("../../features/messaging/personas.js"),
+      import("../../features/messaging/store.js"),
+      import("../../features/messaging/transport.js"),
+      import("../../features/messaging/personas.js"),
     ]);
     const me = pickPersona(portalName, new URLSearchParams(location.search).get("as"));
     const store = createStore({ transport: createTransport() });
@@ -585,7 +723,9 @@ document.addEventListener("click", (e) => {
     };
     refresh();
     store.subscribe(refresh);
-  } catch { /* the link still works without the count */ }
+  } catch {
+    /* the link still works without the count */
+  }
 })();
 
 // Messages (ngoại lệ có chủ đích so với BRIEF, xem docs/design/messaging-design.md):
@@ -605,7 +745,14 @@ if (["staff", "admin", "client", "resident"].includes(portal) && !standaloneApp)
   const nav = performance.getEntriesByType("navigation")[0];
   // Back/Forward, or "Exit" from a page of its own (Messages, Social, Ticket box…) to the dashboard it was opened from: the dashboard comes back where it was left.
   let fromOwnPage = false;
-  try { fromOwnPage = /\/(dashboard|home)\.html$/.test(location.pathname) && new URL(document.referrer).origin === location.origin && /\/(messages|social|tickets|support|notifications|promotions)\.html$/.test(new URL(document.referrer).pathname); } catch { /* no referrer */ }
+  try {
+    fromOwnPage =
+      /\/(dashboard|home)\.html$/.test(location.pathname) &&
+      new URL(document.referrer).origin === location.origin &&
+      /\/(messages|social|tickets|support|notifications|promotions)\.html$/.test(new URL(document.referrer).pathname);
+  } catch {
+    /* no referrer */
+  }
   // The page fills in after it loads (charts, cards), and the frame may replace the scrolling area while it builds: keep putting the position back
   // for up to 3 seconds (not stopping at the first success), and stop as soon as the person scrolls.
   const restore = () => {
@@ -613,7 +760,9 @@ if (["staff", "admin", "client", "resident"].includes(portal) && !standaloneApp)
     if (!top) return;
     let tries = 0;
     let touched = false;
-    const stop = () => { touched = true; };
+    const stop = () => {
+      touched = true;
+    };
     for (const ev of ["wheel", "touchstart", "keydown", "pointerdown"]) addEventListener(ev, stop, { once: true, passive: true });
     const put = () => {
       if (touched) return;
@@ -624,19 +773,22 @@ if (["staff", "admin", "client", "resident"].includes(portal) && !standaloneApp)
     setTimeout(put, 0); // not requestAnimationFrame: a page in a hidden tab never gets one
   };
   if (nav && (nav.type === "back_forward" || (nav.type === "navigate" && fromOwnPage))) restore();
-  addEventListener("pageshow", (e) => { if (e.persisted) restore(); }); // coming back from the browser's page cache runs no script again
+  addEventListener("pageshow", (e) => {
+    if (e.persisted) restore();
+  }); // coming back from the browser's page cache runs no script again
 }
 if (["staff", "admin", "client", "resident"].includes(portal) && !standaloneApp) {
   const labels = new Set(["Messages", "Messaging & Support"]);
   // Other items that have a real page: Staff Settings and Promotions open the account-settings page (Promotions is a section of it);
   // the Resident Promotions item opens the page that lists what Staff published.
-  const pages = {
-    // "Dashboard" is the page's own home: on the dashboard itself it used to be a dead "#" that answered "not part of this preview yet".
-    staff: { Dashboard: "/staff/dashboard.html", Settings: "/staff/workspace.html", Promotions: "/staff/promotions.html", Social: "/staff/social.html" },
-    client: { Dashboard: "/client/dashboard.html", "Workspace Settings": "/client/workspace.html", Support: "/client/support.html", Documents: "/client/documents.html" },
-    resident: { Dashboard: "/resident/home.html", Promotions: "/resident/promotions.html", Social: "/resident/social.html" },
-    admin: { Dashboard: "/admin/dashboard.html", Support: "/admin/tickets.html", Settings: "/admin/settings.html", Profile: "/admin/settings/profile.html" }, // the Support inbox of the Admin portal is the Ticket box
-  }[portal] || {};
+  const pages =
+    {
+      // "Dashboard" is the page's own home: on the dashboard itself it used to be a dead "#" that answered "not part of this preview yet".
+      staff: { Dashboard: "/staff/dashboard.html", Settings: "/staff/workspace.html", Promotions: "/staff/promotions.html", Social: "/staff/social.html" },
+      client: { Dashboard: "/client/dashboard.html", "Workspace Settings": "/client/workspace.html", Support: "/client/support.html", Documents: "/client/documents.html" },
+      resident: { Dashboard: "/resident/home.html", Promotions: "/resident/promotions.html", Social: "/resident/social.html" },
+      admin: { Dashboard: "/admin/dashboard.html", Support: "/admin/tickets.html", Settings: "/admin/settings.html", Profile: "/admin/settings/profile.html" }, // the Support inbox of the Admin portal is the Ticket box
+    }[portal] || {};
   for (const a of document.querySelectorAll('a[data-slot="sidebar-menu-button"]')) {
     const label = a.querySelector("span.truncate")?.textContent.trim();
     if (label && labels.has(label)) a.setAttribute("href", `/${portal}/messages.html${location.search}`);
@@ -676,7 +828,9 @@ if (portal === "client") {
         trigger.setAttribute("aria-label", `Open profile menu for ${me.name}`);
         // The menu is the one from the account-settings design (name card, Status, Account, Sign out); see portal-frame-extras.js.
         (await import("./portal-frame-extras.js")).addProfileMenu({ me, initials });
-      } catch { /* the header stays as captured */ }
+      } catch {
+        /* the header stays as captured */
+      }
     })();
   }
 }
@@ -703,19 +857,29 @@ const EMBED = {
   "/staff/messages.html": { title: "Messages", src: "/staff/messages-content.html", active: "Messages" },
   "/staff/tickets.html": { title: "Ticket box", src: "/staff/tickets-content.html", active: "Ticket box" },
   // Staff Settings, Workspace, Promotions and Help Center: each has an address of its own (see staff-routes.js) and shows the settings page inside the frame.
-  ...Object.fromEntries(STAFF_ROUTES.map(([hash, path]) => [path, {
-    title: hash === "#/promotions" ? "Promotions" : hash === "#/support" ? "Help Center" : "Settings",
-    src: "/staff/account-settings-content.html",
-    hash,
-    active: hash === "#/promotions" ? "Promotions" : hash === "#/support" ? null : "Settings",
-  }])),
+  ...Object.fromEntries(
+    STAFF_ROUTES.map(([hash, path]) => [
+      path,
+      {
+        title: hash === "#/promotions" ? "Promotions" : hash === "#/support" ? "Help Center" : "Settings",
+        src: "/staff/account-settings-content.html",
+        hash,
+        active: hash === "#/promotions" ? "Promotions" : hash === "#/support" ? null : "Settings",
+      },
+    ]),
+  ),
   // Client Settings, Workspace and Support.
-  ...Object.fromEntries(CLIENT_ROUTES.map(([hash, path]) => [path, {
-    title: hash === "#/support" ? "Support" : "Workspace settings",
-    src: "/client/account-settings-content.html",
-    hash,
-    active: hash === "#/support" ? "Support" : "Workspace Settings",
-  }])),
+  ...Object.fromEntries(
+    CLIENT_ROUTES.map(([hash, path]) => [
+      path,
+      {
+        title: hash === "#/support" ? "Support" : "Workspace settings",
+        src: "/client/account-settings-content.html",
+        hash,
+        active: hash === "#/support" ? "Support" : "Workspace Settings",
+      },
+    ]),
+  ),
   // Resident Settings: the same page as Staff's, without Workspace. Its sections have addresses like /resident/settings/personalize.
   ...Object.fromEntries(RESIDENT_ROUTES.map(([hash, path]) => [path, { title: "Settings", src: "/resident/settings-content.html", hash, active: "Settings" }])),
   "/resident/promotions.html": { title: "Promotions", src: "/resident/promotions-content.html", active: "Promotions" },
@@ -746,15 +910,24 @@ if (EMBED[location.pathname]) {
     const spare = target || links.find((a) => a !== current && !a.hasAttribute("aria-current") && a.querySelector(":scope > span.grid"));
     if (current && spare && current !== spare) {
       const other = target ? spare : spare.cloneNode(true);
-      const swap = (x, y) => { if (!x || !y) return; const t = x.getAttribute("class"); x.setAttribute("class", y.getAttribute("class") || ""); y.setAttribute("class", t || ""); };
+      const swap = (x, y) => {
+        if (!x || !y) return;
+        const t = x.getAttribute("class");
+        x.setAttribute("class", y.getAttribute("class") || "");
+        y.setAttribute("class", t || "");
+      };
       swap(current, other);
       swap(current.querySelector(":scope > span.grid"), other.querySelector(":scope > span.grid"));
       swap(current.querySelector(":scope > span.truncate"), other.querySelector(":scope > span.truncate"));
       const bar = current.querySelector(':scope > span[aria-hidden="true"]:not(.grid)');
-      if (target && bar) other.prepend(bar); else bar?.remove();
+      if (target && bar) other.prepend(bar);
+      else bar?.remove();
       current.removeAttribute("aria-current");
       current.removeAttribute("data-active");
-      if (target) { other.setAttribute("aria-current", "page"); other.setAttribute("data-active", ""); }
+      if (target) {
+        other.setAttribute("aria-current", "page");
+        other.setAttribute("data-active", "");
+      }
       current.setAttribute("href", `/${portal}/${portal === "resident" ? "home" : "dashboard"}.html${location.search}`);
     }
     const frame = document.createElement("iframe");
@@ -767,7 +940,9 @@ if (EMBED[location.pathname]) {
     frame.addEventListener("load", () => root.removeAttribute("data-eso-wait")); // (partials/head.html keeps the middle of the page empty until now)
     main.style.cssText = "padding:0;max-width:none;overflow:hidden";
     if (page.hash) root.setAttribute("data-eso-settings", ""); // styles.css lifts the floating assistant above the Settings search bar on small screens
-    const fit = () => { frame.style.height = `${Math.max(320, innerHeight - (header ? header.offsetHeight : 0))}px`; };
+    const fit = () => {
+      frame.style.height = `${Math.max(320, innerHeight - (header ? header.offsetHeight : 0))}px`;
+    };
     fit();
     addEventListener("resize", fit);
   }
@@ -779,14 +954,20 @@ if (portal === "resident" && !isPrototypePage) {
   (async () => {
     try {
       const [{ pickPersona }, prefs, social] = await Promise.all([
-        import("../../features/messaging/personas.js"), import("../../features/settings/prefs.js"), import("../../features/social/store.js"),
+        import("../../features/messaging/personas.js"),
+        import("../../features/settings/prefs.js"),
+        import("../../features/social/store.js"),
       ]);
       const me = pickPersona("resident", new URLSearchParams(location.search).get("as"));
       const saved = prefs.readPrefs(localStorage, me.id);
       // The Settings page (Personalize, Accessibility) writes "ui-prefs:resident" and applyUiPrefs() applies it; the older per-resident choices
       // only count until that page has been used.
       let ui = null;
-      try { ui = JSON.parse(localStorage.getItem("ui-prefs:resident") || "null"); } catch { /* none */ }
+      try {
+        ui = JSON.parse(localStorage.getItem("ui-prefs:resident") || "null");
+      } catch {
+        /* none */
+      }
       if (!ui || !ui.a11y) {
         root.toggleAttribute("data-contrast", saved.contrast);
         root.toggleAttribute("data-reduce-motion", saved.reduceMotion);
@@ -804,6 +985,8 @@ if (portal === "resident" && !isPrototypePage) {
       };
       sync();
       addEventListener("storage", sync);
-    } catch { /* the sidebar still works without these */ }
+    } catch {
+      /* the sidebar still works without these */
+    }
   })();
 }

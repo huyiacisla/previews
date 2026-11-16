@@ -8,7 +8,7 @@ export const MAX_IMAGES = 4;
 export const MAX_ALT = 120;
 export const MAX_SIDE = 1280; // a photo is shrunk to at most this many pixels on its long side
 export const MAX_DATA_CHARS = 420000; // of its data URL (about 310 KB of picture): the preview keeps everything in the browser's small storage
-export const TYPES = ['image/jpeg', 'image/png', 'image/webp'];
+export const TYPES = ["image/jpeg", "image/png", "image/webp"];
 
 const GRADIENT = /^linear-gradient\([#0-9a-z%,.() -]+\)$/i;
 const PHOTO = /^url\("data:image\/(?:jpeg|png|webp);base64,[A-Za-z0-9+/]+={0,2}"\) center\/cover no-repeat$/;
@@ -18,9 +18,9 @@ export const photoBg = (dataUrl) => `url("${dataUrl}") center/cover no-repeat`;
 
 /** A background that may be shown: a gradient, or a photo of the kind and size allowed. Anything else is ''. */
 export function safeBg(v) {
-  if (typeof v !== 'string') return '';
+  if (typeof v !== "string") return "";
   if (GRADIENT.test(v)) return v;
-  return v.length <= MAX_DATA_CHARS + 64 && PHOTO.test(v) ? v : '';
+  return v.length <= MAX_DATA_CHARS + 64 && PHOTO.test(v) ? v : "";
 }
 
 /** The size a picture of w × h is shrunk to: its long side at most `max`, the shape kept, never larger than it was. */
@@ -38,10 +38,10 @@ export function checkImages(list) {
   const images = [];
   for (const it of items) {
     const bg = safeBg(it && it[0]);
-    if (!bg) return { ok: false, reason: 'One of the photos cannot be used. Remove it and add it again.' };
-    const alt = String((it && it[1]) || '').trim();
+    if (!bg) return { ok: false, reason: "One of the photos cannot be used. Remove it and add it again." };
+    const alt = String((it && it[1]) || "").trim();
     if (alt.length > MAX_ALT) return { ok: false, reason: `Keep a photo’s description under ${MAX_ALT} characters.` };
-    images.push([bg, alt || 'Photo']);
+    images.push([bg, alt || "Photo"]);
   }
   return { ok: true, images };
 }

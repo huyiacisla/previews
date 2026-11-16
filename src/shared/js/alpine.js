@@ -6,7 +6,7 @@
 //  - Logic that can be tested without a browser stays in plain modules (store.js, overview.js…): a component only calls them and
 //    keeps what the page shows. node --test never needs Alpine.
 //  - One Alpine per document, started once, after the page has registered its components (and moved its root where it belongs).
-import Alpine from 'alpinejs';
+import Alpine from "alpinejs";
 
 let started = false;
 

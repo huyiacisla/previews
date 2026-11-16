@@ -7,7 +7,7 @@
 // scoped(storage, id) is a storage that says "eso-feed" and means the key of that property. Everything that reads Social through a storage
 // (staff-store.js, diagnose.js…) then works for any property without being changed.
 
-export const MAIN = 'main';
+export const MAIN = "main";
 
 const SOCIAL_KEYS = /^(eso-feed|eso-social|eso-res-social)(:|$)/;
 
@@ -32,5 +32,9 @@ export function scoped(storage, id) {
 
 /** Does this property have a feed yet? (No means it has not started Social; that is not an error.) */
 export function hasFeed(storage, id) {
-  try { return scoped(storage, id).getItem('eso-feed') != null; } catch { return false; }
+  try {
+    return scoped(storage, id).getItem("eso-feed") != null;
+  } catch {
+    return false;
+  }
 }

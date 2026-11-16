@@ -7,7 +7,7 @@
 // To go real, replace this file with one that has the same four methods
 // (read, update, onChange, info) but talks to a WebSocket / HTTP API. store.js does not change.
 
-const clone = (v) => (typeof structuredClone === 'function' ? structuredClone(v) : JSON.parse(JSON.stringify(v)));
+const clone = (v) => (typeof structuredClone === "function" ? structuredClone(v) : JSON.parse(JSON.stringify(v)));
 
 function memoryStorage() {
   const m = new Map();
@@ -17,8 +17,8 @@ function memoryStorage() {
 function safeLocalStorage() {
   try {
     const s = globalThis.localStorage;
-    const probe = '__eso_probe__';
-    s.setItem(probe, '1');
+    const probe = "__eso_probe__";
+    s.setItem(probe, "1");
     s.removeItem(probe);
     return s;
   } catch {
@@ -36,35 +36,51 @@ export function clearSideData(storage = globalThis.localStorage) {
     const keys = [];
     for (let i = 0; i < storage.length; i += 1) keys.push(storage.key(i)); // collected first: removing while counting would skip keys
     for (const k of keys) {
-      if (/^eso-msg-(draft|outbox):|^eso-notif-read:/.test(k)) { storage.removeItem(k); n += 1; }
+      if (/^eso-msg-(draft|outbox):|^eso-notif-read:/.test(k)) {
+        storage.removeItem(k);
+        n += 1;
+      }
     }
-  } catch { /* storage blocked: nothing was kept */ }
+  } catch {
+    /* storage blocked: nothing was kept */
+  }
   return n;
 }
 
 export function createTransport(opts = {}) {
-  const key = opts.key || 'eso-msg-v1';
+  const key = opts.key || "eso-msg-v1";
   let storage = opts.storage || safeLocalStorage();
-  let mode = 'storage';
+  let mode = "storage";
   if (!storage) {
     storage = memoryStorage();
-    mode = 'memory';
+    mode = "memory";
   }
   const listeners = new Set();
-  const emit = () => listeners.forEach((fn) => { try { fn(); } catch (e) { console.error(e); } });
+  const emit = () =>
+    listeners.forEach((fn) => {
+      try {
+        fn();
+      } catch (e) {
+        console.error(e);
+      }
+    });
 
   let channel = null;
   const Channel = opts.Channel || globalThis.BroadcastChannel;
   if (Channel) {
     try {
-      channel = new Channel(opts.channel || 'eso-msg');
+      channel = new Channel(opts.channel || "eso-msg");
       channel.onmessage = emit;
-      if (mode === 'storage') mode = 'broadcast';
-    } catch { /* fall through to storage events */ }
+      if (mode === "storage") mode = "broadcast";
+    } catch {
+      /* fall through to storage events */
+    }
   }
   const win = opts.win || globalThis.window;
-  if (win && typeof win.addEventListener === 'function') {
-    win.addEventListener('storage', (e) => { if (e.key === key || e.key === null) emit(); });
+  if (win && typeof win.addEventListener === "function") {
+    win.addEventListener("storage", (e) => {
+      if (e.key === key || e.key === null) emit();
+    });
   }
 
   const read = () => {
@@ -72,7 +88,7 @@ export function createTransport(opts = {}) {
       const raw = storage.getItem(key);
       const doc = raw ? JSON.parse(raw) : null;
       // A document that is not a conversation document (hand-edited, damaged, "{}") is the same as none: the samples load again.
-      const isObj = (v) => v && typeof v === 'object' && !Array.isArray(v);
+      const isObj = (v) => v && typeof v === "object" && !Array.isArray(v);
       return isObj(doc) && isObj(doc.convs) && isObj(doc.msgs) && Number.isFinite(doc.rev) ? doc : null;
     } catch {
       return null;
@@ -88,12 +104,23 @@ export function createTransport(opts = {}) {
   let liveChannel = null;
   if (Channel) {
     try {
-      liveChannel = new Channel(`${opts.channel || 'eso-msg'}:live`);
-      liveChannel.onmessage = () => liveListeners.forEach((fn) => { try { fn(); } catch (e) { console.error(e); } });
-    } catch { /* storage event fallback below */ }
+      liveChannel = new Channel(`${opts.channel || "eso-msg"}:live`);
+      liveChannel.onmessage = () =>
+        liveListeners.forEach((fn) => {
+          try {
+            fn();
+          } catch (e) {
+            console.error(e);
+          }
+        });
+    } catch {
+      /* storage event fallback below */
+    }
   }
-  if (win && typeof win.addEventListener === 'function') {
-    win.addEventListener('storage', (e) => { if (e.key === liveKey) liveListeners.forEach((fn) => fn()); });
+  if (win && typeof win.addEventListener === "function") {
+    win.addEventListener("storage", (e) => {
+      if (e.key === liveKey) liveListeners.forEach((fn) => fn());
+    });
   }
   const live = {
     read() {
@@ -115,7 +142,11 @@ export function createTransport(opts = {}) {
         for (const [u, ts] of Object.entries(m)) if (t - ts > 15000) delete m[u];
         if (!Object.keys(m).length) delete d.typing[c];
       }
-      try { storage.setItem(liveKey, JSON.stringify(d)); } catch { /* best effort */ }
+      try {
+        storage.setItem(liveKey, JSON.stringify(d));
+      } catch {
+        /* best effort */
+      }
       if (liveChannel) liveChannel.postMessage(1);
     },
     onChange(fn) {
@@ -147,7 +178,7 @@ export function createTransport(opts = {}) {
       if (channel) channel.postMessage({ rev: next.rev });
       return { changed: true, state: next };
     }
-    return { changed: false, error: new Error('Write conflict, please retry.'), state: read() };
+    return { changed: false, error: new Error("Write conflict, please retry."), state: read() };
   }
 
   return {
@@ -180,7 +211,9 @@ export function createMemoryBus() {
     postMessage(data) {
       for (const p of peers) if (p !== this && p.name === this.name && p.onmessage) queueMicrotask(() => p.onmessage({ data }));
     }
-    close() { peers.delete(this); }
+    close() {
+      peers.delete(this);
+    }
   }
   return { connect: () => createTransport({ storage, Channel: BusChannel, win: null }) };
 }

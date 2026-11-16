@@ -16,12 +16,16 @@
  * @returns {'history'|'crumb'}
  */
 export function backTarget({ referrer, origin, pathname, portal, entryHash, hash }) {
-  if (hash !== entryHash) return 'crumb'; // they moved inside settings: Back goes up one level
+  if (hash !== entryHash) return "crumb"; // they moved inside settings: Back goes up one level
   let ref;
-  try { ref = new URL(referrer || 'about:blank'); } catch { return 'crumb'; }
-  if (ref.origin !== origin) return 'crumb';
-  if (!ref.pathname.startsWith(`/${portal}/`)) return 'crumb'; // another portal, or the site's start page
-  if (ref.pathname === pathname) return 'crumb'; // a reload of this very page
-  if (/\/account-settings(\.html)?$/.test(ref.pathname)) return 'crumb'; // the prototype's own page, not a place to return to
-  return 'history';
+  try {
+    ref = new URL(referrer || "about:blank");
+  } catch {
+    return "crumb";
+  }
+  if (ref.origin !== origin) return "crumb";
+  if (!ref.pathname.startsWith(`/${portal}/`)) return "crumb"; // another portal, or the site's start page
+  if (ref.pathname === pathname) return "crumb"; // a reload of this very page
+  if (/\/account-settings(\.html)?$/.test(ref.pathname)) return "crumb"; // the prototype's own page, not a place to return to
+  return "history";
 }

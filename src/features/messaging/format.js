@@ -3,34 +3,47 @@
 
 // What the person chose in Settings > Date and time (24-hour clock, a time zone) is published by Settings as `ui-prefs:<portal>`.time = { h24, tz }.
 // Every time shown here follows it, unless a caller passes its own `tz` (the tests do, so they stay the same on every machine).
-let seen = { raw: undefined, prefs: { h24: false, tz: '' } };
+let seen = { raw: undefined, prefs: { h24: false, tz: "" } };
 export function timePrefs(storage = globalThis.localStorage, path = globalThis.location && globalThis.location.pathname) {
   try {
-    const portal = String(path || '').split('/')[1];
-    if (!storage || !/^(staff|client|resident|admin)$/.test(portal)) return { h24: false, tz: '' };
+    const portal = String(path || "").split("/")[1];
+    if (!storage || !/^(staff|client|resident|admin)$/.test(portal)) return { h24: false, tz: "" };
     const raw = storage.getItem(`ui-prefs:${portal}`);
     if (raw === seen.raw) return seen.prefs;
-    const t = (JSON.parse(raw || 'null') || {}).time || {};
-    let tz = typeof t.tz === 'string' ? t.tz : '';
-    try { if (tz) new Intl.DateTimeFormat('en-US', { timeZone: tz }); } catch { tz = ''; } // a time zone that does not exist is ignored
+    const t = (JSON.parse(raw || "null") || {}).time || {};
+    let tz = typeof t.tz === "string" ? t.tz : "";
+    try {
+      if (tz) new Intl.DateTimeFormat("en-US", { timeZone: tz });
+    } catch {
+      tz = "";
+    } // a time zone that does not exist is ignored
     seen = { raw, prefs: { h24: t.h24 === true, tz } };
     return seen.prefs;
-  } catch { return { h24: false, tz: '' }; }
+  } catch {
+    return { h24: false, tz: "" };
+  }
 }
 
 const fmt = (opts, tz) => {
-  const p = tz ? { h24: false, tz: '' } : timePrefs();
+  const p = tz ? { h24: false, tz: "" } : timePrefs();
   const o = { ...opts };
-  if (p.h24 && o.hour) { o.hour = '2-digit'; o.hourCycle = 'h23'; }
+  if (p.h24 && o.hour) {
+    o.hour = "2-digit";
+    o.hourCycle = "h23";
+  }
   const zone = tz || p.tz;
-  return new Intl.DateTimeFormat('en-US', zone ? { ...o, timeZone: zone } : o);
+  return new Intl.DateTimeFormat("en-US", zone ? { ...o, timeZone: zone } : o);
 };
 
-export const formatTime = (ts, tz) => fmt({ hour: 'numeric', minute: '2-digit' }, tz).format(ts);
-export const formatFull = (ts, tz) => fmt({ weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }, tz).format(ts);
+export const formatTime = (ts, tz) => fmt({ hour: "numeric", minute: "2-digit" }, tz).format(ts);
+export const formatFull = (ts, tz) => fmt({ weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }, tz).format(ts);
 
 export function dayKey(ts, tz) {
-  const p = Object.fromEntries(fmt({ year: 'numeric', month: '2-digit', day: '2-digit' }, tz).formatToParts(ts).map((x) => [x.type, x.value]));
+  const p = Object.fromEntries(
+    fmt({ year: "numeric", month: "2-digit", day: "2-digit" }, tz)
+      .formatToParts(ts)
+      .map((x) => [x.type, x.value]),
+  );
   return `${p.year}-${p.month}-${p.day}`;
 }
 
@@ -38,24 +51,24 @@ const dayNumber = (ts, tz) => Math.round(Date.parse(`${dayKey(ts, tz)}T00:00:00Z
 
 export function dayLabel(ts, now, tz) {
   const diff = dayNumber(now, tz) - dayNumber(ts, tz);
-  if (diff === 0) return 'Today';
-  if (diff === 1) return 'Yesterday';
-  const sameYear = fmt({ year: 'numeric' }, tz).format(ts) === fmt({ year: 'numeric' }, tz).format(now);
-  return fmt(sameYear ? { weekday: 'short', month: 'short', day: 'numeric' } : { month: 'short', day: 'numeric', year: 'numeric' }, tz).format(ts);
+  if (diff === 0) return "Today";
+  if (diff === 1) return "Yesterday";
+  const sameYear = fmt({ year: "numeric" }, tz).format(ts) === fmt({ year: "numeric" }, tz).format(now);
+  return fmt(sameYear ? { weekday: "short", month: "short", day: "numeric" } : { month: "short", day: "numeric", year: "numeric" }, tz).format(ts);
 }
 
 /** Short label for a conversation row: time today, Yesterday, weekday this week, else date. */
 export function listTime(ts, now, tz) {
   const diff = dayNumber(now, tz) - dayNumber(ts, tz);
   if (diff <= 0) return formatTime(ts, tz);
-  if (diff === 1) return 'Yesterday';
-  if (diff < 7) return fmt({ weekday: 'short' }, tz).format(ts);
-  return fmt({ month: 'short', day: 'numeric' }, tz).format(ts);
+  if (diff === 1) return "Yesterday";
+  if (diff < 7) return fmt({ weekday: "short" }, tz).format(ts);
+  return fmt({ month: "short", day: "numeric" }, tz).format(ts);
 }
 
 /** "3 min", "2 h 10 min", "1 d". For queue waiting times. */
 export function duration(ms) {
-  if (ms < 60000) return 'under 1 min';
+  if (ms < 60000) return "under 1 min";
   const m = Math.round(ms / 60000);
   if (m < 60) return `${m} min`;
   const h = Math.floor(m / 60);

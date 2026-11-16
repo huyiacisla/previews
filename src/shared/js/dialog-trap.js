@@ -7,16 +7,25 @@
  */
 export function restoreFocus(opener, fallback = []) {
   for (const o of [opener, ...fallback]) {
-    const el = typeof o === 'string' ? document.getElementById(o) : o;
-    if (el && el.isConnected && !el.hidden && !el.disabled && el.getClientRects().length) { el.focus(); return true; }
+    const el = typeof o === "string" ? document.getElementById(o) : o;
+    if (el && el.isConnected && !el.hidden && !el.disabled && el.getClientRects().length) {
+      el.focus();
+      return true;
+    }
   }
   return false;
 }
 
 export function trapTab(dlg, e) {
-  if (e.key !== 'Tab') return;
-  const f = [...dlg.querySelectorAll('a[href],button,input,select,textarea,pre[tabindex]')].filter((x) => !x.disabled && !x.hidden && x.getClientRects().length);
+  if (e.key !== "Tab") return;
+  const f = [...dlg.querySelectorAll("a[href],button,input,select,textarea,pre[tabindex]")].filter((x) => !x.disabled && !x.hidden && x.getClientRects().length);
   if (!f.length) return;
   const at = document.activeElement;
-  if (e.shiftKey && at === f[0]) { e.preventDefault(); f[f.length - 1].focus(); } else if (!e.shiftKey && at === f[f.length - 1]) { e.preventDefault(); f[0].focus(); }
+  if (e.shiftKey && at === f[0]) {
+    e.preventDefault();
+    f[f.length - 1].focus();
+  } else if (!e.shiftKey && at === f[f.length - 1]) {
+    e.preventDefault();
+    f[0].focus();
+  }
 }

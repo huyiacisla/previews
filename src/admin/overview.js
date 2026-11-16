@@ -30,9 +30,9 @@ export function supportQueue(store, me, now = Date.now()) {
     byStage,
     unassigned: open.filter((t) => !t.assignee).length,
     mine: open.filter((t) => t.assignee === me.name).length,
-    high: open.filter((t) => t.priority === 'high' || t.priority === 'emergency').length,
-    fromStaff: open.filter((t) => t.requester.role === 'staff').length,
-    fromClients: open.filter((t) => t.requester.role === 'client').length,
+    high: open.filter((t) => t.priority === "high" || t.priority === "emergency").length,
+    fromStaff: open.filter((t) => t.requester.role === "staff").length,
+    fromClients: open.filter((t) => t.requester.role === "client").length,
     oldestMs: open.length ? Math.max(0, now - oldest) : 0,
     // Resolved in the last 7 days: how much the team closed recently.
     resolvedThisWeek: all.filter((t) => !t.isOpen && t.closedAt && now - t.closedAt < 7 * 24 * HOUR).length,
@@ -57,18 +57,18 @@ export function adminOverview(store, me, now = Date.now()) {
     emergencies,
     // One line that says how things stand, worst first.
     headline: emergencies.length
-      ? `${emergencies.length} ${emergencies.length === 1 ? 'emergency needs' : 'emergencies need'} an answer`
+      ? `${emergencies.length} ${emergencies.length === 1 ? "emergency needs" : "emergencies need"} an answer`
       : queue.unassigned
-        ? `${queue.unassigned} ${queue.unassigned === 1 ? 'ticket has' : 'tickets have'} no owner yet`
+        ? `${queue.unassigned} ${queue.unassigned === 1 ? "ticket has" : "tickets have"} no owner yet`
         : queue.open
-          ? `${queue.open} open ${queue.open === 1 ? 'ticket' : 'tickets'}, all with an owner`
-          : 'The Support queue is clear',
+          ? `${queue.open} open ${queue.open === 1 ? "ticket" : "tickets"}, all with an owner`
+          : "The Support queue is clear",
   };
 }
 
 /** "5 min", "3 h", "2 d": how long something has waited. */
 export function waited(ms) {
-  if (ms < 60000) return 'just now';
+  if (ms < 60000) return "just now";
   if (ms < HOUR) return `${Math.round(ms / 60000)} min`;
   if (ms < 48 * HOUR) return `${Math.round(ms / HOUR)} h`;
   return `${Math.round(ms / (24 * HOUR))} d`;
@@ -93,39 +93,73 @@ export function adminView(o, now, links, timeOf = (ts) => new Date(ts).toISOStri
   const alerts = HEALTH.critical + HEALTH.warning;
   const tiles = [
     {
-      label: 'Open tickets', value: String(q.open), icon: 'ad-ticket', href: links.tickets,
-      tone: q.unassigned ? 'warning' : q.open ? 'info' : 'success',
-      note: !q.open ? 'Nothing is waiting' : q.unassigned ? `${q.unassigned} without an owner · oldest ${waited(q.oldestMs)}` : `All have an owner · oldest ${waited(q.oldestMs)}`,
+      label: "Open tickets",
+      value: String(q.open),
+      icon: "ad-ticket",
+      href: links.tickets,
+      tone: q.unassigned ? "warning" : q.open ? "info" : "success",
+      note: !q.open ? "Nothing is waiting" : q.unassigned ? `${q.unassigned} without an owner · oldest ${waited(q.oldestMs)}` : `All have an owner · oldest ${waited(q.oldestMs)}`,
     },
-    { label: 'Unread messages', value: String(m.unread), icon: 'ad-message', href: links.messages, tone: m.unread ? 'info' : 'success', note: m.unread ? `In ${plural(m.conversations, 'conversation')}` : 'Everything is read' },
-    { label: 'Emergencies', value: String(em.length), icon: 'ad-siren', href: em.length ? `${links.messages}#/c/${em[0].convId}` : links.messages, tone: em.length ? 'danger' : 'success', note: em.length ? 'Not acknowledged yet' : 'None open' },
-    { label: 'Platform alerts', value: String(alerts), icon: 'ad-alert', href: '#adm-health-h', scroll: true, tone: HEALTH.critical ? 'danger' : HEALTH.warning ? 'warning' : 'success', note: `${HEALTH.critical} critical · ${HEALTH.warning} warnings` },
+    {
+      label: "Unread messages",
+      value: String(m.unread),
+      icon: "ad-message",
+      href: links.messages,
+      tone: m.unread ? "info" : "success",
+      note: m.unread ? `In ${plural(m.conversations, "conversation")}` : "Everything is read",
+    },
+    {
+      label: "Emergencies",
+      value: String(em.length),
+      icon: "ad-siren",
+      href: em.length ? `${links.messages}#/c/${em[0].convId}` : links.messages,
+      tone: em.length ? "danger" : "success",
+      note: em.length ? "Not acknowledged yet" : "None open",
+    },
+    {
+      label: "Platform alerts",
+      value: String(alerts),
+      icon: "ad-alert",
+      href: "#adm-health-h",
+      scroll: true,
+      tone: HEALTH.critical ? "danger" : HEALTH.warning ? "warning" : "success",
+      note: `${HEALTH.critical} critical · ${HEALTH.warning} warnings`,
+    },
   ];
   const queueRows = q.rows.slice(0, QUEUE_ROWS).map((t) => {
     const badges = [];
-    if (t.priority === 'emergency') badges.push({ text: 'Emergency', tone: 'danger' });
-    else if (t.priority === 'high') badges.push({ text: 'High', tone: 'danger' });
-    else if (t.priority === 'low') badges.push({ text: 'Low', tone: 'neutral' });
-    badges.push({ text: t.stageLabel, tone: t.stage === 'pending' ? 'warning' : 'info' });
-    badges.push({ text: t.assignee || 'Unassigned', tone: t.assignee ? 'neutral' : 'warning' });
+    if (t.priority === "emergency") badges.push({ text: "Emergency", tone: "danger" });
+    else if (t.priority === "high") badges.push({ text: "High", tone: "danger" });
+    else if (t.priority === "low") badges.push({ text: "Low", tone: "neutral" });
+    badges.push({ text: t.stageLabel, tone: t.stage === "pending" ? "warning" : "info" });
+    badges.push({ text: t.assignee || "Unassigned", tone: t.assignee ? "neutral" : "warning" });
     const wait = waited(now - t.openedAt);
     return {
-      id: t.id, no: t.no, subject: t.subject, href: `${links.tickets}#/t/${t.id}`, badges, wait,
-      who: [t.requester.name, t.requester.role === 'client' ? 'Client' : 'Staff', t.category].filter(Boolean).join(' · '),
-      aria: `${t.no}, ${t.subject}, from ${t.requester.name}. ${t.stageLabel}, ${t.assignee ? `owner ${t.assignee}` : 'no owner'}, waiting ${wait}.`,
+      id: t.id,
+      no: t.no,
+      subject: t.subject,
+      href: `${links.tickets}#/t/${t.id}`,
+      badges,
+      wait,
+      who: [t.requester.name, t.requester.role === "client" ? "Client" : "Staff", t.category].filter(Boolean).join(" · "),
+      aria: `${t.no}, ${t.subject}, from ${t.requester.name}. ${t.stageLabel}, ${t.assignee ? `owner ${t.assignee}` : "no owner"}, waiting ${wait}.`,
     };
   });
   return {
     tiles,
-    stages: [{ label: 'Open', n: q.byStage.open }, { label: 'Pending', n: q.byStage.pending }, { label: 'Resolved', n: q.byStage.resolved }],
+    stages: [
+      { label: "Open", n: q.byStage.open },
+      { label: "Pending", n: q.byStage.pending },
+      { label: "Resolved", n: q.byStage.resolved },
+    ],
     queueRows,
     queueSub: q.open ? `${q.fromClients} from Clients · ${q.fromStaff} from Staff · ${q.resolvedThisWeek} resolved this week` : `${q.resolvedThisWeek} resolved this week`,
-    queueMore: q.open > QUEUE_ROWS ? `Showing ${QUEUE_ROWS} of ${q.open} open, most urgent first` : q.open ? 'Most urgent first, then longest waiting' : '',
+    queueMore: q.open > QUEUE_ROWS ? `Showing ${QUEUE_ROWS} of ${q.open} open, most urgent first` : q.open ? "Most urgent first, then longest waiting" : "",
     msgRows: m.items.slice(0, MSG_ROWS).map((x) => ({ id: x.id, title: x.title, detail: x.detail, time: timeOf(x.ts, now), href: `${links.messages}#/c/${x.convId}` })),
-    msgSub: m.unread ? `${plural(m.unread, 'message')} in ${plural(m.conversations, 'conversation')}` : 'You are all caught up',
+    msgSub: m.unread ? `${plural(m.unread, "message")} in ${plural(m.conversations, "conversation")}` : "You are all caught up",
     emergencyHref: em.length ? `${links.messages}#/c/${em[0].convId}` : links.messages,
-    emergencyTitle: em.length === 1 ? 'An emergency is waiting for an answer' : `${em.length} emergencies are waiting for an answer`,
-    emergencyText: em.length ? `${em[0].title} · raised ${waited(now - em[0].at)} ago` : '',
+    emergencyTitle: em.length === 1 ? "An emergency is waiting for an answer" : `${em.length} emergencies are waiting for an answer`,
+    emergencyText: em.length ? `${em[0].title} · raised ${waited(now - em[0].at)} ago` : "",
   };
 }
 
@@ -133,13 +167,13 @@ export function adminView(o, now, links, timeOf = (ts) => new Date(ts).toISOStri
 
 /** Platform numbers of the captured dashboard. `to` is a page of this preview, or null when that page is not part of it. */
 export const PLATFORM = [
-  { key: 'clients', label: 'Client accounts', value: '2', note: '0 pending setup · 0 archived' },
-  { key: 'properties', label: 'Properties', value: '2', note: '2 active locations' },
-  { key: 'people', label: 'People', value: '43', note: 'Profiles with platform access' },
-  { key: 'spaces', label: 'Active spaces', value: '261', note: 'Across both properties' },
-  { key: 'requests', label: 'Open requests', value: '0', note: 'Review queues are clear' },
-  { key: 'billing', label: 'Billing issues', value: '0', note: 'No account waits on payment' },
-  { key: 'revenue', label: 'Monthly revenue', value: '$19', note: 'From active plans' },
+  { key: "clients", label: "Client accounts", value: "2", note: "0 pending setup · 0 archived" },
+  { key: "properties", label: "Properties", value: "2", note: "2 active locations" },
+  { key: "people", label: "People", value: "43", note: "Profiles with platform access" },
+  { key: "spaces", label: "Active spaces", value: "261", note: "Across both properties" },
+  { key: "requests", label: "Open requests", value: "0", note: "Review queues are clear" },
+  { key: "billing", label: "Billing issues", value: "0", note: "No account waits on payment" },
+  { key: "revenue", label: "Monthly revenue", value: "$19", note: "From active plans" },
 ];
 
 export const HEALTH = {
@@ -148,19 +182,19 @@ export const HEALTH = {
   info: 0,
   groups: [
     {
-      title: 'People needing space assignment',
-      what: 'Approved parker has no assigned space',
-      next: 'Assign a space only after the client approves it.',
-      items: ['Morgan Ellis', 'Priya Nair', 'Casey Nguyen', 'Alex Rivera', 'Jordan Lee', 'Riley Chen', 'Sam Okafor', 'Dana Whitfield'].map((who) => ({ who, where: 'Mallard Pointe at Riverbend' })),
+      title: "People needing space assignment",
+      what: "Approved parker has no assigned space",
+      next: "Assign a space only after the client approves it.",
+      items: ["Morgan Ellis", "Priya Nair", "Casey Nguyen", "Alex Rivera", "Jordan Lee", "Riley Chen", "Sam Okafor", "Dana Whitfield"].map((who) => ({ who, where: "Mallard Pointe at Riverbend" })),
     },
   ],
 };
 
 export const ACTIVITY = [
-  { what: 'User login', who: 'user@example.com', when: 'Nov 9, 3:55 PM' },
-  { what: 'User login', who: 'user@example.com', when: 'Nov 9, 3:55 PM' },
-  { what: 'User login', who: 'user@example.com', when: 'Nov 9, 3:55 PM' },
-  { what: 'User login', who: 'user@example.com', when: 'Nov 9, 3:55 PM' },
-  { what: 'User login', who: 'user@example.com', when: 'Nov 8, 4:08 PM' },
-  { what: 'User login', who: 'user@example.com', when: 'Nov 8, 3:56 PM' },
+  { what: "User login", who: "user@example.com", when: "Nov 9, 3:55 PM" },
+  { what: "User login", who: "user@example.com", when: "Nov 9, 3:55 PM" },
+  { what: "User login", who: "user@example.com", when: "Nov 9, 3:55 PM" },
+  { what: "User login", who: "user@example.com", when: "Nov 9, 3:55 PM" },
+  { what: "User login", who: "user@example.com", when: "Nov 8, 4:08 PM" },
+  { what: "User login", who: "user@example.com", when: "Nov 8, 3:56 PM" },
 ];

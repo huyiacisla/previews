@@ -16,8 +16,10 @@ export function exitTarget(own, home) {
   try {
     const ref = new URL(document.referrer);
     if (ref.origin === location.origin && !ref.pathname.endsWith(own) && !FULL_PAGE_APP.test(ref.pathname)) return `${ref.pathname}${ref.search}`;
-  } catch { /* no referrer: home */ }
+  } catch {
+    /* no referrer: home */
+  }
   const q = new URLSearchParams(location.search);
-  q.delete('embed');
+  q.delete("embed");
   return q.toString() ? `${home}?${q}` : home;
 }

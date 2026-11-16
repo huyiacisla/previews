@@ -8,17 +8,21 @@
 // from the Client dashboard itself (16 unread on Communication, Parking Spots 261 / 25 and Staff 18 / 3 over limit,
 // 109 need attention, the menu). Panels draw with the page's own tokens, so light and dark follow the theme.
 
-import { buildAll, readMap, setRead, isRead, counts, latestUnread, badgeText } from "../../features/notifications/store.js";
+import { ITEMS, limitFor, normalizePurchased } from "../../features/capacity/store.js";
+import { pickPersona } from "../../features/messaging/personas.js";
 import { browserLive } from "../../features/notifications/live.js";
+import { badgeText, buildAll, counts, isRead, latestUnread, readMap, setRead } from "../../features/notifications/store.js";
 import { linkFor } from "../../features/notifications/view.js";
 import { companyPrefs } from "./company-prefs.js";
-import { pickPersona } from "../../features/messaging/personas.js";
-import { ITEMS, normalizePurchased, limitFor } from "../../features/capacity/store.js";
 
 /** The Staff sidebar's capacity card says what the plan really covers (Residents 800, Staff 10, Parking 300 or more), the same figures as every other place. */
 function staffCapacityCard(sc) {
   let purchased;
-  try { purchased = normalizePurchased(JSON.parse(localStorage.getItem("eso-capacity:client"))); } catch { purchased = normalizePurchased(null); }
+  try {
+    purchased = normalizePurchased(JSON.parse(localStorage.getItem("eso-capacity:client")));
+  } catch {
+    purchased = normalizePurchased(null);
+  }
   const rows = { Residents: "residents", "Staff Users": "staff", "Parking Spaces": "parking" };
   for (const [label, id] of Object.entries(rows)) {
     const lab = [...sc.querySelectorAll("p")].find((p) => p.textContent.trim() === label);
@@ -33,7 +37,10 @@ function staffCapacityCard(sc) {
       bar.setAttribute("aria-valuenow", String(pct));
       bar.setAttribute("aria-valuetext", `${pct}%`);
       bar.style.setProperty("--progress-scale", String(pct / 100));
-      for (const e of [bar, ...bar.querySelectorAll("[data-complete]")]) { if (pct >= 100) e.setAttribute("data-complete", ""); else e.removeAttribute("data-complete"); }
+      for (const e of [bar, ...bar.querySelectorAll("[data-complete]")]) {
+        if (pct >= 100) e.setAttribute("data-complete", "");
+        else e.removeAttribute("data-complete");
+      }
     }
   }
 }
@@ -44,13 +51,30 @@ const liveMe = (me) => (me && me.id && me.name ? me : pickPersona(CFG.portal, ne
 // Links keep the address's query (?as=… picks the person, ?dark the theme), so a click never changes who is using the preview.
 // The frame is the same for every portal; only these few facts differ (which pages exist, where help and notification settings live).
 const CFG = { portal: "client", support: "", notifSettings: "", notifPage: "", dest: {}, pages: [] };
-const withQuery = (href) => { if (!href.startsWith(`/${CFG.portal}/`)) return href; const [path, hash = ""] = href.split("#"); if (path.includes("?")) return href; return `${path}${location.search}${hash ? "#" + hash : ""}`; };
-const PORTAL_FACTS = {
-  client: { help: "/client/support.html", notifSettings: "/client/settings/notifications.html", dest: { messages: "/client/messages.html", plan: "/client/workspace.html", dashboard: "/client/dashboard.html", support: "/client/support.html" } },
-  staff: { help: "/staff/support.html", notifSettings: "/staff/settings/notifications.html", dest: { messages: "/staff/messages.html", tickets: "/staff/tickets.html", social: "/staff/social.html" } },
-  resident: { help: "/resident/tickets.html", notifSettings: "/resident/settings/notifications.html", dest: { messages: "/resident/messages.html", tickets: "/resident/tickets.html", promotions: "/resident/promotions.html", social: "/resident/social.html" } },
+const withQuery = (href) => {
+  if (!href.startsWith(`/${CFG.portal}/`)) return href;
+  const [path, hash = ""] = href.split("#");
+  if (path.includes("?")) return href;
+  return `${path}${location.search}${hash ? "#" + hash : ""}`;
 };
-PORTAL_FACTS.admin = { help: "/admin/tickets.html", notifSettings: "/admin/settings.html#/settings/notifications", dest: { messages: "/admin/messages.html", tickets: "/admin/tickets.html", dashboard: "/admin/dashboard.html" } };
+const PORTAL_FACTS = {
+  client: {
+    help: "/client/support.html",
+    notifSettings: "/client/settings/notifications.html",
+    dest: { messages: "/client/messages.html", plan: "/client/workspace.html", dashboard: "/client/dashboard.html", support: "/client/support.html" },
+  },
+  staff: { help: "/staff/support.html", notifSettings: "/staff/settings/notifications.html", dest: { messages: "/staff/messages.html", tickets: "/staff/tickets.html", social: "/staff/social.html" } },
+  resident: {
+    help: "/resident/tickets.html",
+    notifSettings: "/resident/settings/notifications.html",
+    dest: { messages: "/resident/messages.html", tickets: "/resident/tickets.html", promotions: "/resident/promotions.html", social: "/resident/social.html" },
+  },
+};
+PORTAL_FACTS.admin = {
+  help: "/admin/tickets.html",
+  notifSettings: "/admin/settings.html#/settings/notifications",
+  dest: { messages: "/admin/messages.html", tickets: "/admin/tickets.html", dashboard: "/admin/dashboard.html" },
+};
 const FALLBACK_ID = { client: "cli-1", staff: "stf-1", resident: "res-1", admin: "adm-1" };
 
 /**
@@ -64,14 +88,20 @@ export function addBell({ me, portal }) {
   if (!header || !f) return;
   // The facts of the portal, and its pages read from the sidebar it has (so the search below lists the Admin's own menu).
   const sc = document.querySelector('[data-slot="sidebar-container"]');
-  if (sc) { configure(portal, sc); try { wireNavBadge(sc, me); } catch (err) { console.warn("menu badge skipped:", err); }
+  if (sc) {
+    configure(portal, sc);
+    try {
+      wireNavBadge(sc, me);
+    } catch (err) {
+      console.warn("menu badge skipped:", err);
+    }
     markComingSoon(sc);
-    document.addEventListener("click", (e) => { // the item of the page you are on goes nowhere (the other portals do the same in wireLinks)
+    document.addEventListener("click", (e) => {
+      // the item of the page you are on goes nowhere (the other portals do the same in wireLinks)
       const cur = e.target.closest('nav a[aria-current="page"]');
       if (cur && !e.metaKey && !e.ctrlKey && !e.shiftKey && cur.pathname === location.pathname && !cur.hash) e.preventDefault();
     });
-  }
-  else {
+  } else {
     CFG.portal = portal;
     CFG.support = withQuery(f.help);
     CFG.notifSettings = withQuery(f.notifSettings);
@@ -82,14 +112,23 @@ export function addBell({ me, portal }) {
   if (bell && !bell.querySelector('[data-slot="badge"]')) {
     const b = document.createElement("span");
     b.setAttribute("data-slot", "badge");
-    b.className = "absolute -top-1.5 -right-1.5 grid h-4 w-fit min-w-4 shrink-0 place-items-center overflow-hidden rounded-full bg-primary px-step-sm py-0 text-xs leading-none font-normal whitespace-nowrap text-primary-foreground";
+    b.className =
+      "absolute -top-1.5 -right-1.5 grid h-4 w-fit min-w-4 shrink-0 place-items-center overflow-hidden rounded-full bg-primary px-step-sm py-0 text-xs leading-none font-normal whitespace-nowrap text-primary-foreground";
     b.hidden = true;
     bell.append(b);
   }
   listenForNotifChanges();
-  try { wireBell(header, me); } catch (err) { console.warn("bell skipped:", err); }
+  try {
+    wireBell(header, me);
+  } catch (err) {
+    console.warn("bell skipped:", err);
+  }
   // The search box of the captured Admin header was a picture: it opened nothing. Same search as the other portals (Ctrl/Cmd+K, "/").
-  try { wireSearch(header); } catch (err) { console.warn("search skipped:", err); }
+  try {
+    wireSearch(header);
+  } catch (err) {
+    console.warn("search skipped:", err);
+  }
 }
 const NOT_YET = "Coming soon: this feature is in development and is not available in the preview yet.";
 
@@ -111,23 +150,62 @@ function configure(portal, sc) {
   pages.push({ label: "Notifications", href: CFG.notifPage, group: "Communication" });
   if (!pages.some((p) => p.label === "Support")) pages.push({ label: "Support", href: CFG.support, group: "Help" });
   CFG.pages = pages;
-  if (portal === "staff") { try { staffCapacityCard(sc); } catch (err) { console.warn("capacity card skipped:", err); } }
+  if (portal === "staff") {
+    try {
+      staffCapacityCard(sc);
+    } catch (err) {
+      console.warn("capacity card skipped:", err);
+    }
+  }
 }
 
 const store = {
-  get(k) { try { return localStorage.getItem(k); } catch { return null; } },
-  set(k, v) { try { localStorage.setItem(k, v); } catch { /* private window: the choice lasts until reload */ } },
+  get(k) {
+    try {
+      return localStorage.getItem(k);
+    } catch {
+      return null;
+    }
+  },
+  set(k, v) {
+    try {
+      localStorage.setItem(k, v);
+    } catch {
+      /* private window: the choice lasts until reload */
+    }
+  },
 };
 
-function css(node, styles) { Object.assign(node.style, styles); return node; }
-function make(tag, styles, text) { const n = document.createElement(tag); if (styles) css(n, styles); if (text != null) n.textContent = text; return n; }
+function css(node, styles) {
+  Object.assign(node.style, styles);
+  return node;
+}
+function make(tag, styles, text) {
+  const n = document.createElement(tag);
+  if (styles) css(n, styles);
+  if (text != null) n.textContent = text;
+  return n;
+}
 
 // A short message that screen readers announce too. One at a time.
 let sayTimer;
 export function say(text) {
   let box = document.getElementById("frame-say");
   if (!box) {
-    box = make("div", { position: "fixed", left: "50%", bottom: "1.5rem", transform: "translateX(-50%)", zIndex: "80", maxWidth: "calc(100vw - 2rem)", padding: "0.625rem 1rem", borderRadius: "0.75rem", background: "var(--foreground)", color: "var(--background)", fontSize: "0.875rem", boxShadow: "0 12px 32px rgb(0 0 0 / 0.2)" });
+    box = make("div", {
+      position: "fixed",
+      left: "50%",
+      bottom: "1.5rem",
+      transform: "translateX(-50%)",
+      zIndex: "80",
+      maxWidth: "calc(100vw - 2rem)",
+      padding: "0.625rem 1rem",
+      borderRadius: "0.75rem",
+      background: "var(--foreground)",
+      color: "var(--background)",
+      fontSize: "0.875rem",
+      boxShadow: "0 12px 32px rgb(0 0 0 / 0.2)",
+    });
     box.id = "frame-say";
     box.setAttribute("role", "status");
     document.body.append(box);
@@ -135,7 +213,9 @@ export function say(text) {
   box.textContent = text;
   box.hidden = false;
   clearTimeout(sayTimer);
-  sayTimer = setTimeout(() => { box.hidden = true; }, 2600);
+  sayTimer = setTimeout(() => {
+    box.hidden = true;
+  }, 2600);
 }
 
 // ---- One floating panel at a time (notifications, search results) ----
@@ -158,7 +238,19 @@ function place(node, anchor, align) {
 }
 function panel(anchor, { label, width = "22rem", align = "end", onClose }) {
   closePanel(false);
-  const node = make("div", { position: "fixed", zIndex: "70", width: `min(${width}, calc(100vw - 1.5rem))`, maxHeight: "min(70vh, 32rem)", overflowY: "auto", background: "var(--popover)", color: "var(--foreground)", border: "1px solid var(--border)", borderRadius: "0.75rem", boxShadow: "0 12px 32px rgb(0 0 0 / 0.18)", fontSize: "0.875rem" });
+  const node = make("div", {
+    position: "fixed",
+    zIndex: "70",
+    width: `min(${width}, calc(100vw - 1.5rem))`,
+    maxHeight: "min(70vh, 32rem)",
+    overflowY: "auto",
+    background: "var(--popover)",
+    color: "var(--foreground)",
+    border: "1px solid var(--border)",
+    borderRadius: "0.75rem",
+    boxShadow: "0 12px 32px rgb(0 0 0 / 0.18)",
+    fontSize: "0.875rem",
+  });
   node.setAttribute("aria-label", label);
   node.setAttribute("role", "dialog");
   document.body.append(node);
@@ -166,9 +258,19 @@ function panel(anchor, { label, width = "22rem", align = "end", onClose }) {
   anchor.setAttribute("aria-expanded", "true");
   return node;
 }
-document.addEventListener("keydown", (e) => { if (e.key === "Escape" && openPanel && e.target !== openPanel.anchor) closePanel(); });
-document.addEventListener("pointerdown", (e) => { if (openPanel && !openPanel.node.contains(e.target) && !openPanel.anchor?.contains(e.target) && e.target !== openPanel.anchor) closePanel(false); }, true);
-addEventListener("resize", () => { if (openPanel) place(openPanel.node, openPanel.anchor, openPanel.align); });
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape" && openPanel && e.target !== openPanel.anchor) closePanel();
+});
+document.addEventListener(
+  "pointerdown",
+  (e) => {
+    if (openPanel && !openPanel.node.contains(e.target) && !openPanel.anchor?.contains(e.target) && e.target !== openPanel.anchor) closePanel(false);
+  },
+  true,
+);
+addEventListener("resize", () => {
+  if (openPanel) place(openPanel.node, openPanel.anchor, openPanel.align);
+});
 
 function row(tag, title, detail, href) {
   const r = make(tag, { display: "block", minHeight: "2.75rem", padding: "0.625rem 0.75rem", borderRadius: "0.5rem", color: "inherit", textDecoration: "none", cursor: "pointer" });
@@ -205,13 +307,24 @@ function wireFilter(sc) {
       // While filtering, groups open so matches are visible; closed groups close again when the filter is cleared.
       const body = g.querySelector('[data-slot="collapsible-content"]');
       if (!body) continue;
-      if (q) { if (!wasHidden.has(body)) wasHidden.set(body, body.hidden); body.hidden = false; }
-      else if (wasHidden.has(body)) { body.hidden = wasHidden.get(body); wasHidden.delete(body); }
+      if (q) {
+        if (!wasHidden.has(body)) wasHidden.set(body, body.hidden);
+        body.hidden = false;
+      } else if (wasHidden.has(body)) {
+        body.hidden = wasHidden.get(body);
+        wasHidden.delete(body);
+      }
     }
     none.hidden = !(q && total === 0);
   };
   input.addEventListener("input", run);
-  input.addEventListener("keydown", (e) => { if (e.key === "Escape" && input.value) { input.value = ""; run(); e.stopPropagation(); } });
+  input.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && input.value) {
+      input.value = "";
+      run();
+      e.stopPropagation();
+    }
+  });
 }
 
 // ---- Sidebar: favorites (pin a page with its star; pinned pages also list under "Favorites") ----
@@ -220,10 +333,24 @@ function wireFavorites(sc) {
   const template = nav?.querySelector('[data-slot="collapsible"][data-sidebar="group"]');
   if (!nav || !template) return;
   const labelOf = (li) => li.querySelector("a span.truncate")?.textContent.trim() || "";
-  const read = () => { try { const v = JSON.parse(store.get(`${CFG.portal}:sb-pins`) || "[]"); return Array.isArray(v) ? v.filter((x) => typeof x === "string") : []; } catch { return []; } };
+  const read = () => {
+    try {
+      const v = JSON.parse(store.get(`${CFG.portal}:sb-pins`) || "[]");
+      return Array.isArray(v) ? v.filter((x) => typeof x === "string") : [];
+    } catch {
+      return [];
+    }
+  };
   let pins = read();
-  const enabled = () => { try { return JSON.parse(store.get(`ui-prefs:${CFG.portal}`) || "null")?.favorites !== false; } catch { return true; } };
-  const star = (on) => `<svg width="14" height="14" viewBox="0 0 24 24" fill="${on ? "currentColor" : "none"}" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 3 2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z"/></svg>`;
+  const enabled = () => {
+    try {
+      return JSON.parse(store.get(`ui-prefs:${CFG.portal}`) || "null")?.favorites !== false;
+    } catch {
+      return true;
+    }
+  };
+  const star = (on) =>
+    `<svg width="14" height="14" viewBox="0 0 24 24" fill="${on ? "currentColor" : "none"}" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 3 2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z"/></svg>`;
   const decorate = (li) => {
     const label = labelOf(li);
     li.querySelector(".eso-pin")?.remove();
@@ -237,7 +364,8 @@ function wireFavorites(sc) {
     b.setAttribute("aria-label", on ? `Unpin ${label} from favorites` : `Pin ${label} to favorites`);
     b.innerHTML = star(on);
     b.addEventListener("click", (e) => {
-      e.preventDefault(); e.stopPropagation();
+      e.preventDefault();
+      e.stopPropagation();
       pins = on ? pins.filter((x) => x !== label) : [...pins, label];
       store.set(`${CFG.portal}:sb-pins`, JSON.stringify(pins));
       render();
@@ -264,15 +392,31 @@ function wireFavorites(sc) {
     body.toggleAttribute("data-open", true);
     body.hidden = false;
     const ul = g.querySelector('ul[data-slot="sidebar-menu"]');
-    ul.replaceChildren(...chosen.map((li) => { const c = li.cloneNode(true); c.hidden = false; c.querySelector("a")?.removeAttribute("aria-current"); decorate(c); return c; }));
+    ul.replaceChildren(
+      ...chosen.map((li) => {
+        const c = li.cloneNode(true);
+        c.hidden = false;
+        c.querySelector("a")?.removeAttribute("aria-current");
+        decorate(c);
+        return c;
+      }),
+    );
     const top = nav.querySelector('[data-slot="sidebar-group"]');
     top.after(g);
   };
   render();
-  addEventListener("message", (e) => { if (e.origin === location.origin && e.data && e.data.type === "eso-ui-prefs") render(); });
+  addEventListener("message", (e) => {
+    if (e.origin === location.origin && e.data && e.data.type === "eso-ui-prefs") render();
+  });
   // Items added after this ran (the Ticket box link is added a moment later) get their star too. The changes render() itself makes are discarded.
   let later;
-  const watch = new MutationObserver(() => { clearTimeout(later); later = setTimeout(() => { render(); watch.takeRecords(); }, 60); });
+  const watch = new MutationObserver(() => {
+    clearTimeout(later);
+    later = setTimeout(() => {
+      render();
+      watch.takeRecords();
+    }, 60);
+  });
   watch.observe(nav, { childList: true, subtree: true });
   watch.takeRecords();
 }
@@ -289,8 +433,23 @@ function wireClock(sc) {
   body.append(time, date);
   sec.append(body);
   // Date and time (Settings): 12 or 24 hours, and the time zone the person chose (a damaged zone is ignored).
-  const prefs = () => { try { return JSON.parse(store.get(`ui-prefs:${CFG.portal}`) || "null")?.time || {}; } catch { return {}; } };
-  const tzOpt = () => { const z = prefs().tz; if (!z) return {}; try { new Intl.DateTimeFormat("en-US", { timeZone: z }); return { timeZone: z }; } catch { return {}; } };
+  const prefs = () => {
+    try {
+      return JSON.parse(store.get(`ui-prefs:${CFG.portal}`) || "null")?.time || {};
+    } catch {
+      return {};
+    }
+  };
+  const tzOpt = () => {
+    const z = prefs().tz;
+    if (!z) return {};
+    try {
+      new Intl.DateTimeFormat("en-US", { timeZone: z });
+      return { timeZone: z };
+    } catch {
+      return {};
+    }
+  };
   const zone = () => new Intl.DateTimeFormat("en-US", { ...tzOpt(), timeZoneName: "short" }).formatToParts(new Date()).find((p) => p.type === "timeZoneName")?.value || "";
   const draw = () => {
     const d = new Date();
@@ -298,7 +457,9 @@ function wireClock(sc) {
     time.textContent = d.toLocaleTimeString("en-US", { ...o, hour: prefs().h24 ? "2-digit" : "numeric", minute: "2-digit", hourCycle: prefs().h24 ? "h23" : "h12" });
     date.textContent = `${d.toLocaleDateString("en-US", { ...o, weekday: "short", month: "short", day: "numeric" })} · ${zone()}`;
   };
-  addEventListener("message", (e) => { if (e.origin === location.origin && e.data && e.data.type === "eso-ui-prefs") draw(); });
+  addEventListener("message", (e) => {
+    if (e.origin === location.origin && e.data && e.data.type === "eso-ui-prefs") draw();
+  });
   let timer;
   const set = (open, remember = true) => {
     btn.setAttribute("aria-expanded", String(open));
@@ -306,14 +467,21 @@ function wireClock(sc) {
     sec.toggleAttribute("data-closed", !open);
     body.hidden = !open;
     clearInterval(timer);
-    if (open) { draw(); timer = setInterval(draw, 15000); }
+    if (open) {
+      draw();
+      timer = setInterval(draw, 15000);
+    }
     if (remember) store.set(`${CFG.portal}:sb-clock`, open ? "1" : "0");
   };
   btn.addEventListener("click", () => set(btn.getAttribute("aria-expanded") !== "true"));
   // Until the person has used the button here, the clock starts as chosen in Settings > Personalize > Sidebar.
   const own = store.get(`${CFG.portal}:sb-clock`);
   let chosen = false;
-  try { chosen = JSON.parse(store.get(`ui-prefs:${CFG.portal}`) || "null")?.clock === true; } catch { /* default: hidden */ }
+  try {
+    chosen = JSON.parse(store.get(`ui-prefs:${CFG.portal}`) || "null")?.clock === true;
+  } catch {
+    /* default: hidden */
+  }
   set(own === null ? chosen : own === "1", false);
 }
 
@@ -337,7 +505,10 @@ function wireBell(header, me) {
     const n = unread();
     bell.setAttribute("aria-label", n > 0 ? `Open notifications. ${n} need attention.` : "Open notifications. You are all caught up.");
     const badge = bell.querySelector('[data-slot="badge"]');
-    if (badge) { badge.textContent = badgeText(n); badge.hidden = n <= 0; }
+    if (badge) {
+      badge.textContent = badgeText(n);
+      badge.hidden = n <= 0;
+    }
   };
   const DEST = CFG.dest;
   const PAGE = CFG.notifPage;
@@ -368,7 +539,10 @@ function wireBell(header, me) {
       a.innerHTML = `<span class="eso-pm-pi">${ICON[PANEL_ICON[r.cat]] || ICON.bell}</span><span class="eso-np-tx"><b></b><small></small></span>`;
       a.querySelector("b").textContent = r.title;
       a.querySelector("small").textContent = r.detail;
-      a.addEventListener("click", () => { setRead(localStorage, personId, [r.id], true); emitNotif(); });
+      a.addEventListener("click", () => {
+        setRead(localStorage, personId, [r.id], true);
+        emitNotif();
+      });
       rows.append(a);
     }
     if (!latest.length) {
@@ -388,14 +562,20 @@ function wireBell(header, me) {
     p.append(head, rows, foot);
   };
   bell.addEventListener("click", () => {
-    if (openPanel?.anchor === bell) { closePanel(); return; }
+    if (openPanel?.anchor === bell) {
+      closePanel();
+      return;
+    }
     const p = panel(bell, { label: "Notifications" });
     draw(p);
     place(p, bell, "end");
     p.querySelector(".eso-np-row")?.focus();
   });
   // whenever what is read changes (here, on the Notifications page, or in another tab): the number, and the panel if it is open
-  onNotif(() => { syncBadge(); if (openPanel?.anchor === bell) draw(openPanel.node); });
+  onNotif(() => {
+    syncBadge();
+    if (openPanel?.anchor === bell) draw(openPanel.node);
+  });
   syncBadge();
 }
 
@@ -410,11 +590,13 @@ function wireCompanyItems(sc) {
       if (!(label in off)) continue;
       const li = a.closest("li") || a;
       li.dataset.company = off[label] ? "off" : "";
-      li.style.display = off[label] ? "none" : (li.dataset.socialOff === "1" ? "none" : "");
+      li.style.display = off[label] ? "none" : li.dataset.socialOff === "1" ? "none" : "";
     }
   };
   sync();
-  addEventListener("storage", (e) => { if (!e.key || e.key === "client:eso-proto") sync(); });
+  addEventListener("storage", (e) => {
+    if (!e.key || e.key === "client:eso-proto") sync();
+  });
   new MutationObserver(sync).observe(sc.querySelector("nav") || sc, { childList: true, subtree: true });
 }
 
@@ -423,7 +605,11 @@ function wireSocialItem(sc) {
   if (CFG.portal !== "staff") return;
   const sync = () => {
     let s = {};
-    try { s = JSON.parse(localStorage.getItem("eso-social") || "{}") || {}; } catch { /* unreadable: show it */ }
+    try {
+      s = JSON.parse(localStorage.getItem("eso-social") || "{}") || {};
+    } catch {
+      /* unreadable: show it */
+    }
     const hide = s.on === false || s.sidebar === false;
     for (const a of sc.querySelectorAll('nav a[data-slot="sidebar-menu-button"]')) {
       if (a.querySelector("span.truncate")?.textContent.trim() !== "Social") continue;
@@ -433,7 +619,9 @@ function wireSocialItem(sc) {
     }
   };
   sync();
-  addEventListener("storage", (e) => { if (!e.key || e.key === "eso-social") sync(); });
+  addEventListener("storage", (e) => {
+    if (!e.key || e.key === "eso-social") sync();
+  });
 }
 
 // ---- Communication group in the sidebar: its badge is the number of unread messages in Notifications ----
@@ -462,7 +650,10 @@ function wireNavBadge(sc, me) {
       b.hidden = n === 0;
       b.setAttribute("aria-label", `${n} unread`);
     }
-    if (msgLink) { const nm = msgLink.querySelector("span.truncate")?.textContent.trim(); if (nm) msgLink.setAttribute("aria-label", n ? `${nm}, ${n} unread` : nm); }
+    if (msgLink) {
+      const nm = msgLink.querySelector("span.truncate")?.textContent.trim();
+      if (nm) msgLink.setAttribute("aria-label", n ? `${nm}, ${n} unread` : nm);
+    }
   };
   onNotif(sync);
   sync();
@@ -471,15 +662,35 @@ function wireNavBadge(sc, me) {
 // One place that hears about "read" changes, so the bell and the sidebar always agree.
 const notifSubs = [];
 const onNotif = (fn) => notifSubs.push(fn);
-const emitNotif = () => notifSubs.forEach((fn) => { try { fn(); } catch { /* one listener failing must not stop the others */ } });
+const emitNotif = () =>
+  notifSubs.forEach((fn) => {
+    try {
+      fn();
+    } catch {
+      /* one listener failing must not stop the others */
+    }
+  });
 let notifListening = false;
 function listenForNotifChanges() {
   if (notifListening) return;
   notifListening = true;
   // The Notifications page is another document of this window (or another tab): the browser tells us when it writes.
-  addEventListener("storage", (e) => { if (e.key && e.key.startsWith("eso-notif-read:")) emitNotif(); });
+  addEventListener("storage", (e) => {
+    if (e.key && e.key.startsWith("eso-notif-read:")) emitNotif();
+  });
 }
-const PANEL_ICON = { messages: "chat", requests: "clipboard", violations: "alert", parking: "parking", plan: "gauge", properties: "building", reports: "chart", system: "shield", residents: "user", community: "chat" };
+const PANEL_ICON = {
+  messages: "chat",
+  requests: "clipboard",
+  violations: "alert",
+  parking: "parking",
+  plan: "gauge",
+  properties: "building",
+  reports: "chart",
+  system: "shield",
+  residents: "user",
+  community: "chat",
+};
 
 // ---- Header: page search (Cmd/Ctrl+K and "/") ----
 function wireSearch(header) {
@@ -490,22 +701,40 @@ function wireSearch(header) {
   const draw = () => {
     const q = input.value.trim().toLowerCase();
     // The menu gets its addresses after the page list was read, so each result takes the link the menu has NOW.
-    const links = new Map([...document.querySelectorAll('[data-slot="sidebar-container"] nav a[data-slot="sidebar-menu-button"]')].map((a) => [a.querySelector("span.truncate")?.textContent.trim(), a.getAttribute("href")]));
+    const links = new Map(
+      [...document.querySelectorAll('[data-slot="sidebar-container"] nav a[data-slot="sidebar-menu-button"]')].map((a) => [
+        a.querySelector("span.truncate")?.textContent.trim(),
+        a.getAttribute("href"),
+      ]),
+    );
     // (each address keeps ?as=… and the theme, like every other link)
-    results = CFG.pages.map((p) => ({ ...p, href: withQuery(links.get(p.label) || p.href) }))
+    results = CFG.pages
+      .map((p) => ({ ...p, href: withQuery(links.get(p.label) || p.href) }))
       .filter((p) => !q || p.label.toLowerCase().includes(q) || p.group.toLowerCase().includes(q))
       .slice(0, 8);
-    if (openPanel?.anchor !== input) { const p = panel(input, { label: "Search results", width: "26rem", align: "start" }); p.id = "frame-search-results"; p.setAttribute("role", "listbox"); }
+    if (openPanel?.anchor !== input) {
+      const p = panel(input, { label: "Search results", width: "26rem", align: "start" });
+      p.id = "frame-search-results";
+      p.setAttribute("role", "listbox");
+    }
     const p = openPanel.node;
     p.replaceChildren();
     at = results.length ? 0 : -1;
-    if (!results.length) { p.append(make("p", { padding: "0.75rem" }, "No pages match.")); }
+    if (!results.length) {
+      p.append(make("p", { padding: "0.75rem" }, "No pages match."));
+    }
     for (const [i, r] of results.entries()) {
       const a = row("a", r.label, r.group, r.href.startsWith("#") ? null : r.href);
       a.setAttribute("role", "option");
       a.id = `frame-search-${i}`;
       a.setAttribute("aria-selected", String(i === at));
-      a.addEventListener("click", (e) => { if (r.href.startsWith("#")) { e.preventDefault(); closePanel(false); say(NOT_YET); } });
+      a.addEventListener("click", (e) => {
+        if (r.href.startsWith("#")) {
+          e.preventDefault();
+          closePanel(false);
+          say(NOT_YET);
+        }
+      });
       a.addEventListener("pointermove", () => mark(i));
       p.append(a);
     }
@@ -524,15 +753,30 @@ function wireSearch(header) {
   input.addEventListener("input", draw);
   input.addEventListener("focus", draw);
   input.addEventListener("keydown", (e) => {
-    if (e.key === "ArrowDown" || e.key === "ArrowUp") { e.preventDefault(); if (!openPanel) draw(); if (results.length) mark((at + (e.key === "ArrowDown" ? 1 : results.length - 1)) % results.length); }
-    else if (e.key === "Enter" && at >= 0 && results[at]) {
+    if (e.key === "ArrowDown" || e.key === "ArrowUp") {
       e.preventDefault();
-      if (results[at].href.startsWith("#")) { closePanel(false); say(NOT_YET); } else location.href = results[at].href;
-    } else if (e.key === "Escape") { closePanel(false); input.blur(); }
+      if (!openPanel) draw();
+      if (results.length) mark((at + (e.key === "ArrowDown" ? 1 : results.length - 1)) % results.length);
+    } else if (e.key === "Enter" && at >= 0 && results[at]) {
+      e.preventDefault();
+      if (results[at].href.startsWith("#")) {
+        closePanel(false);
+        say(NOT_YET);
+      } else location.href = results[at].href;
+    } else if (e.key === "Escape") {
+      closePanel(false);
+      input.blur();
+    }
   });
   document.addEventListener("keydown", (e) => {
     const typing = /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName) || e.target.isContentEditable;
-    if (((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") || (e.key === "/" && !typing && !e.metaKey && !e.ctrlKey && !e.altKey)) { e.preventDefault(); document.body.dispatchEvent(new Event("pointerdown", { bubbles: true })); /* one panel at a time: closes an open profile menu */ input.focus(); input.select(); if (openPanel?.anchor !== input) draw(); }
+    if (((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") || (e.key === "/" && !typing && !e.metaKey && !e.ctrlKey && !e.altKey)) {
+      e.preventDefault();
+      document.body.dispatchEvent(new Event("pointerdown", { bubbles: true })); /* one panel at a time: closes an open profile menu */
+      input.focus();
+      input.select();
+      if (openPanel?.anchor !== input) draw();
+    }
   });
 }
 
@@ -569,24 +813,34 @@ function markComingSoon(sc) {
 
 // Everything that goes to the Support page, and every "#" link that has no page yet.
 function wireLinks(header, sc) {
-  const go = (e) => { e.preventDefault(); location.href = CFG.support; };
+  const go = (e) => {
+    e.preventDefault();
+    location.href = CFG.support;
+  };
   const helpBtn = header.querySelector('button[aria-label="Open EasySpotOps Help Center"]');
   helpBtn?.addEventListener("click", go);
   // The Support page has no menu item of its own: the Help button is where it lives, so it says it is the current page (the bell does the same for Notifications).
-  if (helpBtn && /\/(support|tickets)\.html$/.test(location.pathname) && location.pathname === new URL(CFG.support, location.origin).pathname && !document.querySelector('nav a[aria-current="page"]')) helpBtn.setAttribute("aria-current", "page"); // only one current page: skip it when a menu item already says so
+  if (helpBtn && /\/(support|tickets)\.html$/.test(location.pathname) && location.pathname === new URL(CFG.support, location.origin).pathname && !document.querySelector('nav a[aria-current="page"]'))
+    helpBtn.setAttribute("aria-current", "page"); // only one current page: skip it when a menu item already says so
   for (const b of sc.querySelectorAll("button")) if (/EasySpotOps Help Center/.test(b.textContent)) b.addEventListener("click", go);
   // The Client's "Capacity summary" card (properties, parking spots, staff seats) opens its own place in the sidebar, Usage > Capacity (not Billing & Plan, and not Workspace Settings).
-  for (const b of sc.querySelectorAll("button")) if (/Manage Capacity/.test(b.textContent)) b.addEventListener("click", () => {
-    if (location.pathname.startsWith("/client/")) location.href = `/client/usage/capacity.html${location.search}`;
-    else say("Plan management is not part of this preview yet.");
-  });
+  for (const b of sc.querySelectorAll("button"))
+    if (/Manage Capacity/.test(b.textContent))
+      b.addEventListener("click", () => {
+        if (location.pathname.startsWith("/client/")) location.href = `/client/usage/capacity.html${location.search}`;
+        else say("Plan management is not part of this preview yet.");
+      });
   // A menu item with no page yet is marked as unavailable (not an error): screen readers hear "Coming soon", the pointer says so, and pressing it explains.
   // Kept in step with the link's CURRENT address: a link that gets its page later (the menu is wired after this runs) must not stay dimmed and untouchable.
   markComingSoon(sc);
   // Any link that has no page yet, in the menu or in the page itself (View, property names, …), says so instead of doing nothing.
   document.addEventListener("click", (e) => {
     const a = e.target.closest('a[href="#"]');
-    if (a && !a.closest(".eso-pm")) { e.preventDefault(); say(NOT_YET); return; }
+    if (a && !a.closest(".eso-pm")) {
+      e.preventDefault();
+      say(NOT_YET);
+      return;
+    }
     // The menu item of the page you are on goes nowhere: it must not reload the page (and lose what you typed).
     const cur = e.target.closest('nav a[data-slot="sidebar-menu-button"][aria-current="page"]');
     if (cur && !e.metaKey && !e.ctrlKey && !e.shiftKey && cur.pathname === location.pathname && !cur.hash) e.preventDefault();
@@ -594,7 +848,8 @@ function wireLinks(header, sc) {
 }
 
 // ---- Header: profile menu, built like the account-settings prototype's (name card, Status, Account, Sign out) ----
-const svg = (d, size = 14, extra = "") => `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" ${extra}>${d}</svg>`;
+const svg = (d, size = 14, extra = "") =>
+  `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" ${extra}>${d}</svg>`;
 const ICON = {
   edit: svg('<path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/>'),
   clock: svg('<circle cx="12" cy="13" r="8"/><path d="M12 9v4l2 2M10 2h4"/>'),
@@ -625,7 +880,10 @@ const STATUS = {
 };
 const dot = (key, size = 18) => {
   const s = STATUS[key];
-  const ring = key === "offline" ? '<circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2"/><path d="m9 9 6 6M15 9l-6 6" stroke="currentColor" stroke-width="2"/>' : `<circle cx="12" cy="12" r="10" fill="currentColor" stroke="none"/>${s.glyph}`;
+  const ring =
+    key === "offline"
+      ? '<circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2"/><path d="m9 9 6 6M15 9l-6 6" stroke="currentColor" stroke-width="2"/>'
+      : `<circle cx="12" cy="12" r="10" fill="currentColor" stroke="none"/>${s.glyph}`;
   return `<span class="eso-pm-st eso-pm-st-${s.tone}">${svg(ring, size)}</span>`;
 };
 // The same durations, with the same ids, as Settings > Messenger & availability, so a status set in one place is the status in the other.
@@ -646,7 +904,8 @@ export function addProfileMenu({ me, initials, portal = "client", account = null
     trigger.classList.remove("sm:w-48"); // the button is as wide as the avatar, like the buttons beside it; styles.css widens its tappable area on touch screens
   }
   // The captured Staff header says "Property Manager" for everybody; each staff person's own job title is the one that shows.
-  if (portal === "staff" && me && me.title) for (const s of document.querySelectorAll('header span, .eso-pm span')) if (!s.children.length && s.textContent.trim() === "Property Manager") s.textContent = me.title;
+  if (portal === "staff" && me && me.title)
+    for (const s of document.querySelectorAll("header span, .eso-pm span")) if (!s.children.length && s.textContent.trim() === "Property Manager") s.textContent = me.title;
   const baseLabel = trigger.getAttribute("aria-label") || "Open profile menu";
   trigger.setAttribute("aria-haspopup", "dialog");
   trigger.setAttribute("aria-expanded", "false");
@@ -663,15 +922,29 @@ export function addProfileMenu({ me, initials, portal = "client", account = null
     for (const s of av.querySelectorAll("span")) s.style.visibility = ok ? "hidden" : "";
   };
   paintAvatar();
-  window.addEventListener("storage", (e) => { if (e.key === AVATAR_KEY || e.key === null) paintAvatar(); });
+  window.addEventListener("storage", (e) => {
+    if (e.key === AVATAR_KEY || e.key === null) paintAvatar();
+  });
   const P = `${portal}:`; // what the person chose is kept per portal
   const q = location.search;
   // Account links: [icon name, label, address]. Each portal passes its own; the Client's are the default.
-  const links = account || [["user", "View profile", `/client/settings/profile.html${q}`], ["chat", "Messenger & availability", `/client/settings/availability.html${q}`], ["key", "My permissions", `/client/workspace/access.html${q}`], ["bell", "Notification preferences", `/client/settings/notifications.html${q}`]];
+  const links = account || [
+    ["user", "View profile", `/client/settings/profile.html${q}`],
+    ["chat", "Messenger & availability", `/client/settings/availability.html${q}`],
+    ["key", "My permissions", `/client/workspace/access.html${q}`],
+    ["bell", "Notification preferences", `/client/settings/notifications.html${q}`],
+  ];
   // ONE record of the person's status, shared with Settings > Messenger & availability (the prototype keeps it as JSON: { s, msg, dur, until, ... } under "eso-status";
   // the Client's copy is prefixed like every other Client setting). Resident and Admin have no such page, so theirs is kept under their own name.
   const STATUS_KEY = portal === "staff" ? "eso-status" : portal === "client" ? "client:eso-status" : `${portal}:eso-status`;
-  const state = () => { try { const v = JSON.parse(store.get(STATUS_KEY)); return v && typeof v === "object" ? v : {}; } catch { return {}; } };
+  const state = () => {
+    try {
+      const v = JSON.parse(store.get(STATUS_KEY));
+      return v && typeof v === "object" ? v : {};
+    } catch {
+      return {};
+    }
+  };
   const put = (patch) => store.set(STATUS_KEY, JSON.stringify({ ...state(), ...patch }));
   const saved = state();
   let status = saved.s;
@@ -679,23 +952,38 @@ export function addProfileMenu({ me, initials, portal = "client", account = null
   let message = typeof saved.msg === "string" ? saved.msg.slice(0, 100) : "";
   let duration = durLabel(saved.dur);
   // "Reset after": a status other than Available, or a message, ends at the moment the chosen duration runs out and goes back to Available.
-  const untilOf = (v) => { const n = Number(v || 0); return Number.isFinite(n) ? n : 1; }; // a time that is not a number counts as already over
+  const untilOf = (v) => {
+    const n = Number(v || 0);
+    return Number.isFinite(n) ? n : 1;
+  }; // a time that is not a number counts as already over
   let until = untilOf(saved.until);
   let endTimer;
   const endAt = () => {
     if (status === "available" && !message) return 0;
     const n = new Date();
     switch (DUR_ID[duration]) {
-      case "30m": return +n + 30 * 60000;
-      case "1h": return +n + 3600000;
-      case "2h": return +n + 2 * 3600000;
-      case "today": n.setHours(23, 59, 59, 0); return +n;
-      case "week": n.setDate(n.getDate() + (7 - n.getDay()) % 7); n.setHours(23, 59, 59, 0); return +n;
-      default: return 0;
+      case "30m":
+        return +n + 30 * 60000;
+      case "1h":
+        return +n + 3600000;
+      case "2h":
+        return +n + 2 * 3600000;
+      case "today":
+        n.setHours(23, 59, 59, 0);
+        return +n;
+      case "week":
+        n.setDate(n.getDate() + ((7 - n.getDay()) % 7));
+        n.setHours(23, 59, 59, 0);
+        return +n;
+      default:
+        return 0;
     }
   };
   const expire = () => {
-    status = "available"; message = ""; duration = DURATIONS[0]; until = 0;
+    status = "available";
+    message = "";
+    duration = DURATIONS[0];
+    until = 0;
     put({ s: status, msg: "", dur: "never", until: 0, back: "" });
     syncHeader();
     if (!menu.hidden) draw();
@@ -704,14 +992,22 @@ export function addProfileMenu({ me, initials, portal = "client", account = null
     clearTimeout(endTimer);
     if (!until) return;
     const left = until - Date.now();
-    if (left <= 0) expire(); else endTimer = setTimeout(expire, Math.min(left, 2 ** 31 - 1));
+    if (left <= 0) expire();
+    else endTimer = setTimeout(expire, Math.min(left, 2 ** 31 - 1));
   };
-  const setEnd = () => { until = endAt(); put({ until }); arm(); };
+  const setEnd = () => {
+    until = endAt();
+    put({ until });
+    arm();
+  };
   // Settings can change the status while this header is open (it sits in a frame of this page): take the new record in as soon as it is written.
   window.addEventListener("storage", (e) => {
     if (e.key !== STATUS_KEY) return;
     const s = state();
-    status = STATUS[s.s] ? s.s : "available"; message = typeof s.msg === "string" ? s.msg.slice(0, 100) : ""; duration = durLabel(s.dur); until = untilOf(s.until);
+    status = STATUS[s.s] ? s.s : "available";
+    message = typeof s.msg === "string" ? s.msg.slice(0, 100) : "";
+    duration = durLabel(s.dur);
+    until = untilOf(s.until);
     syncHeader();
     if (!menu.hidden) draw();
   });
@@ -745,7 +1041,9 @@ export function addProfileMenu({ me, initials, portal = "client", account = null
     card.querySelector(".eso-pm-av").append(document.createTextNode(initials(me.name)));
     if (hasStatus) card.querySelector(".eso-pm-av").insertAdjacentHTML("beforeend", `<span class="eso-pm-avdot">${dot(status)}</span>`);
     const [n, t, o] = card.querySelectorAll(".eso-pm-who > *");
-    n.textContent = me.name; t.textContent = me.title; o.textContent = me.org;
+    n.textContent = me.name;
+    t.textContent = me.title;
+    o.textContent = me.org;
     menu.append(card);
     if (hasStatus) menu.append(heading("Status"));
 
@@ -759,7 +1057,8 @@ export function addProfileMenu({ me, initials, portal = "client", account = null
     row.innerHTML = `${dot(status)}<span class="eso-pm-lb"><b></b><small></small></span><span class="eso-pm-cv">${ICON.chevron}</span>`;
     row.querySelector("b").textContent = STATUS[status].label;
     const sm = row.querySelector("small");
-    if (message) sm.textContent = message; else sm.remove();
+    if (message) sm.textContent = message;
+    else sm.remove();
     const list = document.createElement("div");
     list.className = "eso-pm-stdd";
     list.hidden = true;
@@ -781,10 +1080,19 @@ export function addProfileMenu({ me, initials, portal = "client", account = null
     const reset = document.createElement("button");
     reset.type = "button";
     reset.innerHTML = `${ICON.reset}<span>Reset status</span>`;
-    reset.addEventListener("click", () => { message = ""; duration = DURATIONS[0]; put({ msg: "", dur: "never" }); setStatus("available"); });
+    reset.addEventListener("click", () => {
+      message = "";
+      duration = DURATIONS[0];
+      put({ msg: "", dur: "never" });
+      setStatus("available");
+    });
     // (setStatus, below, also stores the moment the status ends)
     list.append(reset);
-    row.addEventListener("click", () => { const open = list.hidden; list.hidden = !open; row.setAttribute("aria-expanded", String(open)); });
+    row.addEventListener("click", () => {
+      const open = list.hidden;
+      list.hidden = !open;
+      row.setAttribute("aria-expanded", String(open));
+    });
     wrap.append(row, list);
     if (hasStatus) menu.append(wrap);
 
@@ -796,12 +1104,27 @@ export function addProfileMenu({ me, initials, portal = "client", account = null
     field.innerHTML = '<input type="text" maxlength="100" aria-label="Status message" placeholder="What are you working on?"><button type="submit">Save</button>';
     const input = field.querySelector("input");
     input.value = message;
-    msg.addEventListener("click", () => { field.hidden = !field.hidden; if (!field.hidden) input.focus(); });
-    field.addEventListener("submit", (e) => { e.preventDefault(); message = input.value.trim().slice(0, 100); put({ msg: message }); setEnd(); draw(); menu.querySelector(".eso-pm-strow")?.focus(); });
+    msg.addEventListener("click", () => {
+      field.hidden = !field.hidden;
+      if (!field.hidden) input.focus();
+    });
+    field.addEventListener("submit", (e) => {
+      e.preventDefault();
+      message = input.value.trim().slice(0, 100);
+      put({ msg: message });
+      setEnd();
+      draw();
+      menu.querySelector(".eso-pm-strow")?.focus();
+    });
     field.addEventListener("keydown", (e) => e.stopPropagation());
 
     const dur = item(ICON.clock, "Duration", `Reset after: ${duration}`, {});
-    dur.addEventListener("click", () => { duration = DURATIONS[(DURATIONS.indexOf(duration) + 1) % DURATIONS.length]; put({ dur: DUR_ID[duration] }); setEnd(); dur.querySelector("small").textContent = `Reset after: ${duration}`; });
+    dur.addEventListener("click", () => {
+      duration = DURATIONS[(DURATIONS.indexOf(duration) + 1) % DURATIONS.length];
+      put({ dur: DUR_ID[duration] });
+      setEnd();
+      dur.querySelector("small").textContent = `Reset after: ${duration}`;
+    });
     if (hasStatus) menu.append(msg, field, dur);
     menu.append(heading("Account"));
     for (const [icon, text, href] of links) {
@@ -816,23 +1139,39 @@ export function addProfileMenu({ me, initials, portal = "client", account = null
     menu.append(help);
     menu.append(document.createElement("hr"));
     const out = item(ICON.out, "Sign out", "", { danger: true });
-    out.addEventListener("click", () => { close(false); say("Signing out is not part of this preview."); });
+    out.addEventListener("click", () => {
+      close(false);
+      say("Signing out is not part of this preview.");
+    });
     menu.append(out);
   };
   const syncHeader = () => {
     // The status dot on the header avatar follows the chosen status.
-    const holder = trigger.querySelector("[data-eso-dot]") || (() => {
-      const avatar = trigger.querySelector('[data-slot="avatar"]');
-      const d = avatar && [...avatar.parentElement.children].find((c) => c !== avatar && c.querySelector?.("svg, [class*='bg-']") || c !== avatar && c.className?.includes?.("rounded-full"));
-      if (d) d.setAttribute("data-eso-dot", "");
-      return d;
-    })();
+    const holder =
+      trigger.querySelector("[data-eso-dot]") ||
+      (() => {
+        const avatar = trigger.querySelector('[data-slot="avatar"]');
+        const d = avatar && [...avatar.parentElement.children].find((c) => (c !== avatar && c.querySelector?.("svg, [class*='bg-']")) || (c !== avatar && c.className?.includes?.("rounded-full")));
+        if (d) d.setAttribute("data-eso-dot", "");
+        return d;
+      })();
     if (holder) holder.innerHTML = dot(status, 14);
     // The dot is a picture; the button's name says the status too, so it is not carried by colour or shape alone.
     trigger.setAttribute("aria-label", `${baseLabel}, ${STATUS[status].label}`);
   };
-  const setStatus = (key) => { status = key; put({ s: key }); setEnd(); draw(); syncHeader(); menu.querySelector(".eso-pm-strow")?.focus(); };
-  const close = (focusBack = true) => { menu.hidden = true; trigger.setAttribute("aria-expanded", "false"); if (focusBack) trigger.focus(); };
+  const setStatus = (key) => {
+    status = key;
+    put({ s: key });
+    setEnd();
+    draw();
+    syncHeader();
+    menu.querySelector(".eso-pm-strow")?.focus();
+  };
+  const close = (focusBack = true) => {
+    menu.hidden = true;
+    trigger.setAttribute("aria-expanded", "false");
+    if (focusBack) trigger.focus();
+  };
   const open = () => {
     closePanel(false);
     draw();
@@ -844,24 +1183,48 @@ export function addProfileMenu({ me, initials, portal = "client", account = null
     trigger.setAttribute("aria-expanded", "true");
     menu.querySelector(".eso-pm-strow, .eso-pm-item")?.focus();
   };
-  trigger.addEventListener("click", (e) => { e.stopPropagation(); if (menu.hidden) open(); else close(); });
-  document.addEventListener("pointerdown", (e) => { if (!menu.hidden && !menu.contains(e.target) && !trigger.contains(e.target)) close(false); });
-  document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !menu.hidden) close(true); });
+  trigger.addEventListener("click", (e) => {
+    e.stopPropagation();
+    if (menu.hidden) open();
+    else close();
+  });
+  document.addEventListener("pointerdown", (e) => {
+    if (!menu.hidden && !menu.contains(e.target) && !trigger.contains(e.target)) close(false);
+  });
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && !menu.hidden) close(true);
+  });
   menu.addEventListener("keydown", (e) => {
-    if (e.key === "Escape") { e.preventDefault(); e.stopPropagation(); const dd = menu.querySelector(".eso-pm-stdd:not([hidden])"); if (dd) { dd.hidden = true; menu.querySelector(".eso-pm-strow").setAttribute("aria-expanded", "false"); menu.querySelector(".eso-pm-strow").focus(); } else close(true); return; }
+    if (e.key === "Escape") {
+      e.preventDefault();
+      e.stopPropagation();
+      const dd = menu.querySelector(".eso-pm-stdd:not([hidden])");
+      if (dd) {
+        dd.hidden = true;
+        menu.querySelector(".eso-pm-strow").setAttribute("aria-expanded", "false");
+        menu.querySelector(".eso-pm-strow").focus();
+      } else close(true);
+      return;
+    }
     if (e.key === "Tab") {
       // The panel sits at the end of the page, so Tab out of it would land somewhere unrelated: it closes and the focus goes back to the button.
       const all = [...menu.querySelectorAll("a, button, input")].filter((x) => x.offsetParent !== null);
-      if (e.shiftKey ? document.activeElement === all[0] : document.activeElement === all[all.length - 1]) { e.preventDefault(); close(true); }
+      if (e.shiftKey ? document.activeElement === all[0] : document.activeElement === all[all.length - 1]) {
+        e.preventDefault();
+        close(true);
+      }
       return;
     }
     if (e.key !== "ArrowDown" && e.key !== "ArrowUp") return;
-    const list = [...menu.querySelectorAll('.eso-pm-card ~ * a, .eso-pm-card ~ * button, .eso-pm-card ~ a, .eso-pm-card ~ button')].filter((x) => x.offsetParent !== null && x.tagName !== "INPUT");
+    const list = [...menu.querySelectorAll(".eso-pm-card ~ * a, .eso-pm-card ~ * button, .eso-pm-card ~ a, .eso-pm-card ~ button")].filter((x) => x.offsetParent !== null && x.tagName !== "INPUT");
     const i = list.indexOf(document.activeElement);
     e.preventDefault();
     list[(i + (e.key === "ArrowDown" ? 1 : -1) + list.length) % list.length]?.focus();
   });
-  if (hasStatus) { syncHeader(); arm(); } // an ended status goes back to Available now; a running one is set to end on time
+  if (hasStatus) {
+    syncHeader();
+    arm();
+  } // an ended status goes back to Available now; a running one is set to end on time
 }
 
 /** Add the missing behaviours to the Client header and sidebar. Safe to call once, after adoptStaffFrame(). */
@@ -871,7 +1234,21 @@ export function addFrameBehaviours({ me, portal = "client" } = {}) {
   if (!header || !sc) return;
   configure(portal, sc);
   listenForNotifChanges();
-  for (const fn of [() => wireNavBadge(sc, me), () => wireSocialItem(sc), () => wireCompanyItems(sc), () => wireFavorites(sc), () => wireFilter(sc), () => wireClock(sc), () => wireBell(header, me), () => wireSearch(header), () => wireLinks(header, sc)]) {
-    try { fn(); } catch (err) { console.warn("frame behaviour skipped:", err); } // one failing piece must not stop the others
+  for (const fn of [
+    () => wireNavBadge(sc, me),
+    () => wireSocialItem(sc),
+    () => wireCompanyItems(sc),
+    () => wireFavorites(sc),
+    () => wireFilter(sc),
+    () => wireClock(sc),
+    () => wireBell(header, me),
+    () => wireSearch(header),
+    () => wireLinks(header, sc),
+  ]) {
+    try {
+      fn();
+    } catch (err) {
+      console.warn("frame behaviour skipped:", err);
+    } // one failing piece must not stop the others
   }
 }
