@@ -154,7 +154,7 @@ function wearTheme(snap) {
     el.id = "pm-theme";
     document.head.append(el);
   }
-  const decl = Object.entries(t.vars).map(([k, v]) => k + ":" + v + " !important").join(";");
+  const decl = Object.entries({ ...t.vars, ...t.status }).map(([k, v]) => k + ":" + v + " !important").join(";");
   // the template's heading font goes to every heading of the app, its body font to everything else
   const css = ":root,:root.dark,:root.light{" + decl + ";color-scheme:" + t.scheme + (t.font ? ";font-family:" + t.font : "") + "}" + (t.heading ? "h1,h2,h3{font-family:" + t.heading + "}" : "");
   el.textContent = css;

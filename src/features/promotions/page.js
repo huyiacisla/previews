@@ -9,8 +9,30 @@ const SP = { s: 14, m: 24, l: 44 };
 const TS = { s: 18, m: 24, l: 34, xl: 44 };
 // every band spans the whole width; its content stays within 72rem in the middle, like the toolbar and the list below
 const GUTTER = "max(16px, calc((100% - 72rem) / 2 + 24px))";
-const HEX = /^#[0-9a-f]{3,8}$/i;
+const HEX = /^(#[0-9a-f]{3,8}|rgba?\(\s*\d{1,3}\s*,\s*\d{1,3}\s*,\s*\d{1,3}\s*(,\s*(0|1|0?\.\d{1,3})\s*)?\))$/i;
 const FONT = /^[\w\s,'"-]+$/;
+
+// The portal's status colours (ui-tokens.css, :root and .dark), for a template whose canvas is not the same as the system's light or dark.
+const STATUS_LIGHT = {
+  "--success-text": "oklch(0.48 0.125 155.44)",
+  "--success-bg": "oklch(0.971 0.0165 156.92)",
+  "--warning-text": "oklch(0.5 0.12 64.52)",
+  "--warning-bg": "oklch(0.9761 0.022 80.69)",
+  "--info-text": "oklch(0.4882 0.125 258)",
+  "--info-bg": "oklch(0.9319 0.026 256)",
+  "--danger-text": "oklch(0.52 0.16 30.57)",
+  "--danger-bg": "oklch(0.9683 0.0157 32.01)",
+};
+const STATUS_DARK = {
+  "--success-text": "oklch(0.85 0.12 157)",
+  "--success-bg": "oklch(0.28 0.065 157)",
+  "--warning-text": "oklch(0.87 0.12 82)",
+  "--warning-bg": "oklch(0.29 0.065 72)",
+  "--info-text": "oklch(0.82 0.075 258)",
+  "--info-bg": "oklch(0.28 0.06 258)",
+  "--danger-text": "oklch(0.82 0.1 28)",
+  "--danger-bg": "oklch(0.27 0.09 27)",
+};
 
 /** The published snapshot, checked. Returns null when there is none, it is switched off, or it is not a page this app understands. */
 export function readPage(storage) {
@@ -110,7 +132,8 @@ export function themeVars(snap) {
   const alt = color(th.alt, "#f4f4f5");
   const accent = color(th.accent, "#1f2937");
   const mix = (a, pct, b) => `color-mix(in srgb, ${a} ${pct}%, ${b})`;
-  const card = alt.toLowerCase() === bg.toLowerCase() ? mix(fg, 5, bg) : alt;
+  // a card and a box that opens over the page must not be see-through: a translucent "alt" (glass) becomes the solid colour it looks like on the canvas
+  const card = /^rgba/i.test(alt) || alt.toLowerCase() === bg.toLowerCase() ? mix(fg, 7, bg) : alt;
   const muted = mix(fg, 8, bg);
   const font = (v) => (FONT.test(text(v)) ? v : "");
   return {
@@ -122,7 +145,7 @@ export function themeVars(snap) {
       "--popover": bg,
       "--popover-foreground": fg,
       "--muted": muted,
-      "--muted-foreground": mix(fg, 62, bg),
+      "--muted-foreground": mix(fg, 70, bg),
       "--secondary": muted,
       "--secondary-foreground": fg,
       "--accent": mix(accent, 14, bg),
@@ -138,6 +161,7 @@ export function themeVars(snap) {
       "--radius": `${Math.round(num(th.radius, 0, 32, 14) * 0.8)}px`,
     },
     scheme: ink(bg) === "#ffffff" ? "dark" : "light",
+    status: ink(bg) === "#ffffff" ? STATUS_DARK : STATUS_LIGHT,
     font: font(th.font && th.font.b),
     heading: font(th.font && th.font.h),
   };
@@ -274,13 +298,14 @@ export function renderPage(snap, ctx) {
       const hb = light ? T.alt : `linear-gradient(135deg,${T.accent},${color(snap.brand && snap.brand.secondary, T.accent)})`;
       const hc = light ? T.fg : ink(T.accent);
       const code = cpBlock ? sub((cpBlock.props || {}).code) : "";
-      const codeDeal = code ? ctx.promos.find((x) => x.code === code) || spot : spot;
+      // a code is shown only when a live deal takes it (a sample code nobody accepts would be copied and then refused in Redeem)
+      const codeDeal = code ? ctx.promos.find((x) => String(x.code || "").toLowerCase() === code.toLowerCase()) : null;
       const open = () => (codeDeal || spot ? ctx.openDeal(codeDeal || spot) : ctx.toCatalog());
       const badge = cdBlock ? endsBadge(cdBlock, spot, light) : null;
       const head = h("div", "display:flex;flex-wrap:wrap;align-items:flex-start;justify-content:space-between;gap:8px 12px");
       head.append(p.kicker ? h("p", `margin:0 0 8px;font-size:12px;letter-spacing:.12em;text-transform:uppercase;font-weight:700;opacity:.85`, sub(p.kicker)) : h("span"));
       if (badge) head.append(badge);
-      const strip = code ? promoCode(code, light, T.accent, hc, () => ctx.copy(code), open) : null;
+      const strip = code && codeDeal ? promoCode(code, light, T.accent, hc, () => ctx.copy(code), open) : null;
       node = sec(
         "hero",
         p.kicker || badge ? head : null,

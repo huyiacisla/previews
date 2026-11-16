@@ -153,7 +153,7 @@ Người dùng: khối "Offer ends in" / "Use this code at checkout" / `MALLA10`
 
 Đánh dấu `[x]` khi xong. Mỗi phần: cuộn hết trang, nhìn ảnh thật (chụp lại lần hai vì ảnh có thể cũ), Staff ở tab thứ hai, dọn dữ liệu test sau khi xong.
 
-- [ ] **Phần 1: Template.** Deals, Store, Minimal mono, Luxury dark, rồi các template còn lại, mỗi cái ở 375/830/1440, sáng/tối: thanh trên cùng, hero gộp (badge, mã, nút), lưới thẻ, My rewards, History, (i), Redeem, chi tiết deal. Đổi template ở Staff, Resident đổi ngay.
+- [x] **Phần 1: Template.** Deals, Store, Minimal mono, Luxury dark, rồi các template còn lại, mỗi cái ở 375/830/1440, sáng/tối: thanh trên cùng, hero gộp (badge, mã, nút), lưới thẻ, My rewards, History, (i), Redeem, chi tiết deal. Đổi template ở Staff, Resident đổi ngay.
 - [ ] **Phần 2: Brand kit.** Màu chính, màu phụ, font, kiểu nút, logo; xem Resident đổi cả thanh portal, huy hiệu, hộp thoại; trả về mặc định.
 - [ ] **Phần 3: Tạo và sửa deal.** Form New promotion (ảnh bìa, logo đối tác, mã tĩnh/duy nhất/QR/link, giới hạn tổng/mỗi người/mỗi unit, hẹn lịch, nháp); Edit details (đổi tiêu đề, giá, mã, danh mục) hiện đúng ở Resident.
 - [ ] **Phần 4: Claim.** Alex và Jamie cùng unit, giới hạn theo unit/theo người, hết suất, đã claim, Cancel, claim lại, History; Staff xác nhận/đổi/từ chối ở Claims và Resident thấy đúng trạng thái và giờ.
@@ -176,3 +176,20 @@ Người dùng chụp ảnh: bấm sao Saved thì không ra chỗ Saved riêng m
 3. **Saved lần đầu là bộ lọc trong trang, lần hai là màn thay thế trang**; người dùng muốn "khu save riêng". Giờ là một hộp thoại riêng như My rewards: tiêu đề "Saved" kèm số đếm, mỗi deal một hàng (tên, đối tác, danh mục, giá, hạn) với nút Remove (sao vàng) và View (mở chi tiết, đóng thì quay về Saved). Quy tắc: "khu riêng" là panel riêng theo mẫu My rewards/Redeem.
 
 Cách bắt lỗi thứ hai: chỉ lộ ra khi cuộn thật sâu và nhìn lại; test cuộn ngắn không thấy. Đã đo thêm: vị trí `page-top` sau khi gấp đúng bằng vị trí dự kiến (không dịch).
+
+## Phần 1 (xong): Template
+
+Cách làm: Staff ở tab thứ hai bấm "Use this template" cho cả 7 template (Deals marketplace, Store, Modern, Editorial, Minimal mono, Seasonal / Holiday, Luxury dark) và chép ảnh chụp `eso-pm-page` của từng cái; ở Resident đặt từng ảnh chụp vào `eso-pm-page` (trang đang mở nhận qua sự kiện storage) rồi chạy một bộ kiểm tra tự viết: tràn ngang, lỗi script, và độ tương phản (canvas) của mọi chữ trong thanh trên cùng, trang thiết kế và lưới thẻ. Chạy ở 375 sáng, 830 sáng, 1440 sáng và 1440 tối, cộng ảnh chụp thật 375 (6 template, phần đầu), 830 (Seasonal, Editorial giữa trang, Luxury cuối trang), 1440 tối (Luxury), hộp My rewards và chi tiết deal trong Modern.
+
+Lỗi tìm thấy và đã sửa:
+1. **Modern: chữ gần như vô hình trong hero** (tương phản 1.1). Template dùng `alt: rgba(255,255,255,.06)`, bộ kiểm tra màu chỉ nhận `#hex` nên rơi về xám nhạt `#f4f4f5`, mà chữ hero lại là trắng. Giờ nhận `rgb()`/`rgba()` chỉ gồm số; và vì hộp thoại và thẻ không được trong suốt, `alt` trong suốt đổi thành màu đặc tương đương trên nền (`--card`).
+2. **Màu trạng thái** ("Sold out", "Only 3 left", "Ends soon", "Claimed") tương phản 4.2–4.4 trên thẻ nhạt và 3.6–3.7 trên template tối khi hệ điều hành đang sáng, vì portal chỉ có hai bộ màu theo `.dark` của hệ thống. Giờ bộ màu trạng thái do **nền của template** quyết định (sáng/tối), kèm chữ nhỏ xám đậm hơn (62% → 70%) và ba màu chữ sáng tối hơn một chút.
+3. **Seasonal / Holiday: mã `HOLIDAY26` không thuộc deal nào.** Resident sẽ sao chép rồi bị Redeem báo "could not find that code". Giờ mã chỉ hiện khi có deal đang bán nhận mã đó (không phân biệt hoa thường); không thì hero giữ nút "Claim offer".
+
+Không sửa (ghi lại):
+- Chữ trắng trên màu nhấn indigo `#6366f1` (nút "Claim offer" của Modern, số đếm trên nút) đạt 4.47:1, thiếu 0.03 so với 4.5. Chấp nhận, chữ đậm.
+- Trình dựng của Staff chưa cảnh báo khi một khối Coupon có mã không khớp deal nào: đưa vào **Phần 3**.
+
+Kết quả sau sửa: 0 chữ thiếu tương phản trên 6 template ở cả bốn cấu hình, trừ hai mục trên Modern ở 4.5 (đã chấp nhận); không có lỗi script; không tràn ngang; thanh trên cùng 150px (375) và 86px (830/1440). Đã trả template về Deals và xoá khoá tạm.
+
+Test: `promotions-history.test.mjs` (màu trong suốt, bộ màu trạng thái, mã chỉ hiện khi có deal).

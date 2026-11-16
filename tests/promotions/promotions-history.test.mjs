@@ -170,3 +170,18 @@ test("Saved is a panel of its own, like My rewards, and a saved star is filled g
   assert.ok(!js.includes("savedOnly"), "no in-page Saved mode is left");
   assert.ok(html.includes("top-auto bottom-step-lg"), "messages appear at the bottom, not over the bar");
 });
+
+test("every template is readable: a translucent 'alt' is understood, boxes are solid, status colours follow the canvas, a code nobody takes is not shown", () => {
+  const glass = themeVars({ theme: { accent: "#6366f1", bg: "#0b1020", fg: "#f8fafc", alt: "rgba(255,255,255,.06)" } });
+  assert.match(glass.vars["--card"], /^color-mix\(/, "a translucent alt becomes a solid card colour: a box that opens over the page is not see-through");
+  assert.equal(glass.scheme, "dark");
+  assert.equal(glass.status["--danger-text"], "oklch(0.82 0.1 28)", "a dark canvas gets the dark status colours, even when the system is light");
+  const light = themeVars({ theme: { accent: "#111111", bg: "#ffffff", fg: "#111827", alt: "#f4f4f5" } });
+  assert.equal(light.status["--warning-bg"], "oklch(0.9761 0.022 80.69)");
+  assert.equal(light.vars["--card"], "#f4f4f5");
+  assert.match(light.vars["--muted-foreground"], /70%/, "small grey text keeps enough contrast on a tinted card");
+  const bad = themeVars({ theme: { accent: "rgb(1,2,3);}x{", bg: "rgba(0,0,0,9)", alt: "rgba(0,0,0,.5);color:red" } });
+  assert.equal(bad.vars["--primary"], "#1f2937", "only plain numbers inside rgb() and rgba() pass the colour check");
+  const page = readFileSync(new URL("../../src/features/promotions/page.js", import.meta.url), "utf8");
+  assert.ok(page.includes("code && codeDeal ? promoCode("), "the promo code is shown only when a live deal takes it");
+});
