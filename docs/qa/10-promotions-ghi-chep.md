@@ -307,7 +307,7 @@ Vòng 1 (Phần 1 đến 6) đã kiểm template, brand kit, tạo deal, claim, 
 - [x] **R2-2: "Resident view" của Staff giống hệt Resident thật.** Công tắc Resident view ở trang Staff (khung nhúng): so thanh trên cùng, Saved, hero gộp, theme, My rewards, History ở 375/830/1440; cuộn hết trang; không còn điều khiển cũ.
 - [x] **R2-3: Quét hình ảnh bố cục mới.** Thanh trên cùng gập một hàng, hero gộp, Saved, (i), hộp thoại: 375, 830, 1440 × sáng, tối × template Deals, Store, Luxury dark, Minimal mono; cuộn hết trang, chụp hai lần.
 - [x] **R2-4: Việc còn mở.** Canvas trình dựng Staff cho giống Resident (đếm ngược và mã giảm giá nằm trong hero), "Scheduled" chọn được ngày bắt đầu, "Price / value" đổi giá trị giảm thật, thử lại lỗi claim Phần 4.
-- [ ] **R2-5: Tổng kết vòng 2.** Dọn dữ liệu, ghi tổng kết, hỏi push.
+- [x] **R2-5: Tổng kết vòng 2.** Dọn dữ liệu, ghi tổng kết, hỏi push.
 
 ### R2-1 (xong): Trình dựng → Resident
 
@@ -364,3 +364,24 @@ Còn mở (ghi lại): thiết lập khối Resident chưa hỗ trợ (hoạt �
 Dọn dữ liệu: xoá bản ghi deal QA khỏi `eso-pmc-saved`, trình dựng đóng không để lại `tpl:seasonal`, template Deals "In use".
 
 Test: `promotions-blocks.test.mjs` (thêm 2 test).
+
+### R2-5 (xong): tổng kết vòng 2
+
+Mục tiêu "Staff tự làm trang promotion riêng, Resident dùng được" đã đạt cho luồng chính: Staff chỉnh trình dựng và Publish thì Resident đổi ngay; bản nháp không lộ; Customize → My creations → Use chạy đủ; Resident view của Staff dùng đúng tệp trang của Resident; thiết lập từng khối (ẩn theo màn hình, đối tượng, ngày, nền, màu chữ, đệm, bo góc, link nút) được áp dụng; Staff đặt được ngày bắt đầu cho deal Scheduled.
+
+| Phần | Lỗi chính tìm thấy và đã sửa |
+|---|---|
+| R2-1 Trình dựng → Resident | bản nháp lộ ra cho Resident (nay có `ST.pubL`); Resident bỏ qua gần hết thiết lập khối (nay áp dụng, kể cả "Staff only") |
+| R2-2 Resident view | theme của Resident rò vào trang Staff (nay chỉ áp khi cha là `/resident/`) |
+| R2-3 Quét hình ảnh | chữ nút viền/chữ theo màu brand thiếu tương phản (`accentOn`) |
+| R2-4 Việc còn mở | chọn ngày bắt đầu; nhãn "Price shown on the card"; chú thích Countdown/Coupon trong trình dựng |
+
+Kiểm cuối: `npm test` 502 test, 501 qua, 1 lỗi cũ của messaging-ui (không thuộc Promotions). Dữ liệu sạch: không khoá `qa-*`, không deal Staff làm, brand mặc định, template Deals "In use" (`def` deals, `eso-pm-page` key deals, hero `{{offer}}`), không tab Staff mở. Resident ở 375: thanh trên cùng đủ Redeem, My rewards, Saved, tìm kiếm, chip; hero gộp đếm ngược và mã.
+
+Còn mở (chưa sửa):
+- Lỗi claim Phần 4 chưa tái hiện (hơn 15 lần thử).
+- Thiết lập khối Resident chưa hỗ trợ: hoạt ảnh khi cuộn, neo (`adv.id`), kiểu chữ riêng (`tx`), biến thể và cỡ nút (`bv`, `bs`, `bi`), thẻ kiểu (`sx.card`). Trình dựng chưa ghi chú điều này.
+- Canvas trình dựng vẫn vẽ Countdown và Coupon riêng (đã có chú thích; chưa gộp).
+- "Price shown on the card" chỉ đổi chữ hiển thị, không đổi mức giảm thật.
+- Chữ trắng trên indigo 4.47:1 (đã chấp nhận).
+- Chưa push: local đang đi trước origin/main.
