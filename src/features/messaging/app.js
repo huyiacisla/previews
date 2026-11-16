@@ -8,7 +8,7 @@ import { EMOJI_CATEGORIES, QUICK_REACTIONS, searchEmoji } from "./emoji.js";
 import { duration, formatBytes, formatFull, formatTime, groupByDay, listTime } from "./format.js";
 import { initials, PERSONAS, PORTALS, pickPersona } from "./personas.js";
 import { describeFilters, FILTER_KEYS, isEmptyQuery, matchFilters, matchText, parseQuery, withoutFilter } from "./query.js";
-import { allRecords, historyFor } from "../promotions/store.js";
+import { allRecords, historyFor, unitBlocks, unitHistory } from "../promotions/store.js";
 import { createStore, notifies, STAGE_LABEL, STAGES, ticketNo } from "./store.js";
 import { clearSideData, createTransport } from "./transport.js";
 
@@ -1279,6 +1279,19 @@ export function mount({ portal }) {
     }
   }
 
+  // The same unit: what a housemate claimed, and the claims of the unit that block this resident (the one-per-unit rule), for Staff to refuse a second claim and not pay twice
+  function unitPromo(residentId) {
+    try {
+      const title = (id) => {
+        const r = allRecords(localStorage).find((x) => String(x.id) === String(id));
+        return r ? r.x.title : "";
+      };
+      return { blocks: unitBlocks(localStorage, residentId, title), mates: unitHistory(localStorage, residentId, title).slice(0, 4) };
+    } catch {
+      return { blocks: [], mates: [] };
+    }
+  }
+
   function hideContext() {
     $("#context-pane").hidden = true;
     $("#view-app").dataset.context = "closed";
@@ -1291,7 +1304,8 @@ export function mount({ portal }) {
     $("#context-pane").hidden = false;
     $("#view-app").dataset.context = "open";
     const promoEv = data && data.kind === "resident" && data.person ? promoEvents(data.person.id) : [];
-    const sig = JSON.stringify([t.conv.id, data, promoEv, t.actions, t.row.pinned, t.row.important, t.row.muted, Math.floor(Date.now() / 3600000)]);
+    const unitEv = data && data.kind === "resident" && data.person ? unitPromo(data.person.id) : { blocks: [], mates: [] };
+    const sig = JSON.stringify([t.conv.id, data, promoEv, unitEv, t.actions, t.row.pinned, t.row.important, t.row.muted, Math.floor(Date.now() / 3600000)]);
     if (sig === ui.sigCtx) return;
     ui.sigCtx = sig;
     clear($("#context-body"));
@@ -1340,6 +1354,15 @@ export function mount({ portal }) {
         }
       }
       const promo = ctxSection("Promotions");
+      // the one-per-unit rule: said first and in red, with whose account and when
+      for (const b of unitEv.blocks) {
+        const al = document.createElement("p");
+        al.setAttribute("role", "alert");
+        al.className = "rounded-md border border-danger-text bg-danger-bg p-step-sm text-sm font-medium text-danger-text";
+        const when = b.at ? new Date(b.at).toLocaleDateString("en-US", { month: "short", day: "numeric" }) : "";
+        al.textContent = `This unit already got "${b.title}" through ${b.by}'s account${when ? ` on ${when}` : ""}. One per unit: a second claim is blocked. Do not pay it twice.`;
+        promo.appendChild(al);
+      }
       if (!promoEv.length) {
         const none = document.createElement("p");
         none.className = "text-sm text-muted-foreground";
@@ -1366,6 +1389,31 @@ export function mount({ portal }) {
           li.append(head, meta);
           ul.appendChild(li);
         }
+      }
+      if (unitEv.mates.length) {
+        const sub = document.createElement("p");
+        sub.className = "mt-step-sm text-xs font-medium text-muted-foreground";
+        sub.textContent = `Same unit (${u.number})`;
+        promo.appendChild(sub);
+        const ul2 = document.createElement("ul");
+        ul2.setAttribute("role", "list");
+        ul2.className = "flex flex-col gap-step-sm";
+        for (const e of unitEv.mates) {
+          const li = document.createElement("li");
+          li.className = "flex flex-col gap-step-xs";
+          const head = document.createElement("div");
+          head.className = "flex items-center justify-between gap-step-sm";
+          const name = document.createElement("span");
+          name.className = "text-sm text-foreground";
+          name.textContent = `${e.name}: ${e.title}`;
+          head.append(name, badge(e.label, { Claimed: "warning", Verified: "info", Redeemed: "success", Rejected: "danger", "Could not claim": "danger", Cancelled: "neutral" }[e.label] || "neutral"));
+          const meta = document.createElement("span");
+          meta.className = "text-xs text-muted-foreground";
+          meta.textContent = listTime(Date.parse(e.at) || 0, Date.now());
+          li.append(head, meta);
+          ul2.appendChild(li);
+        }
+        promo.appendChild(ul2);
       }
       if (portal === "staff") promo.appendChild(button("Open Claims inbox", { variant: "outline", icon: "forward", onClick: () => goPage("/staff/promotions.html", "#/promotions/claims") }));
     } else {

@@ -14,7 +14,7 @@ const memory = (seed = {}) => {
   return { getItem: (k) => (m.has(k) ? m.get(k) : null), setItem: (k, v) => void m.set(k, String(v)), raw: m };
 };
 const ME = "res-1";
-const pick = (s) => listPromotions(s, { viewer: ME }).find((p) => !p.full && p.scope !== "unit");
+const pick = (s) => listPromotions(s, { viewer: ME }).find((p) => !p.full);
 const T = (n) => new Date(2026, 10, 16, 9, n);
 
 test("a claim, its cancellation and the next claim are all in the history, newest first, each with its time", () => {

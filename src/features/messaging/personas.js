@@ -44,15 +44,27 @@ export const PERSONAS = [
   { id: "adm-2", role: "admin", name: "Casey Ng", title: "Support Agent", org: "EasySpotOps Support" },
 ];
 
+// People who live with a resident (the same unit). They claim promotions and write to the property team like any resident, but are not in the demo switcher; ?as=<id> opens a page as them.
+export const HOUSEHOLD = [
+  {
+    id: "res-4",
+    role: "resident",
+    name: "Jamie Rivera",
+    title: "Unit 02-291",
+    org: "Mallard Pointe at Riverbend",
+    unit: { number: "02-291", building: "Building 2", leaseStart: "2026-03-01", leaseEnd: "2027-02-28", block: "Building A", segments: ["pet"], entry: "Dog in unit. Call first." },
+  },
+];
+
 // The property's own name (the Display name saved in its profile) stands wherever a person is shown with their property.
 {
   const shown = propertyName();
-  if (shown !== DEFAULT_PROPERTY) for (const p of PERSONAS) if (p.org === DEFAULT_PROPERTY) p.org = shown;
+  if (shown !== DEFAULT_PROPERTY) for (const p of [...PERSONAS, ...HOUSEHOLD]) if (p.org === DEFAULT_PROPERTY) p.org = shown;
 }
 
 export const BOT = { id: "bot", role: "bot", name: "EasySpotOps Assistant", title: "Automated help", org: "" };
 
-export const byId = Object.fromEntries([...PERSONAS, BOT].map((p) => [p.id, p]));
+export const byId = Object.fromEntries([...PERSONAS, ...HOUSEHOLD, BOT].map((p) => [p.id, p]));
 
 /** First persona of a role, or the one named by ?as=<id> if it matches that role. */
 export function pickPersona(role, asId) {

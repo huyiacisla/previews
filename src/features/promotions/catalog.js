@@ -256,6 +256,7 @@
             prefix: "RES",
             limT: lim[m.id] || 0,
             limR: 1,
+            limS: "unit", // "One per household" is the unit's limit, not each person's
             au: "all",
             terms: "Sample offer. One per household.",
             visual: { gradient: m.d[4], emoji: m.d[5] },

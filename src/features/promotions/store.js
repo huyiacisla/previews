@@ -11,19 +11,10 @@
 // "eso-res-promo:<residentId>" and is never written into Staff's records.
 
 import { companyPrefs } from "../../shared/js/company-prefs.js";
-import { PERSONAS } from "../messaging/personas.js";
+import { HOUSEHOLD, PERSONAS } from "../messaging/personas.js";
 
-// People who live with a resident, for Promotions only (the rest of the prototype keeps its own list). Jamie shares Alex's unit, so a promotion limited per unit counts them once.
-export const HOUSEHOLD = [
-  {
-    id: "res-4",
-    role: "resident",
-    name: "Jamie Rivera",
-    title: "Unit 02-291",
-    org: "Mallard Pointe at Riverbend",
-    unit: { number: "02-291", building: "Building 2", leaseStart: "2026-03-01", leaseEnd: "2027-02-28", block: "Building A", segments: ["pet"], entry: "Dog in unit. Call first." },
-  },
-];
+// People who live with a resident (Jamie shares Alex's unit, so a promotion limited per unit counts them once): kept with the other people, in messaging/personas.js
+export { HOUSEHOLD };
 const PEOPLE = [...PERSONAS, ...HOUSEHOLD];
 import "./catalog.js"; // defines globalThis.PM_CATALOG: the sample deals Staff's page shows too (the Resident sees the running ones)
 
@@ -179,6 +170,28 @@ export function householdClaims(storage, residentId, promoId) {
     if (c && a.active > 0) out.push({ id: m.id, name: m.name, code: c.code || "", at: c.at || "", count: a.active });
   }
   return out;
+}
+
+/**
+ * For Staff: what this resident's unit already holds that blocks them. A promotion limited per unit that someone in the unit claimed (and Staff did not reject),
+ * while this resident has no claim of it: [{ promoId, title, by, at, code }]. Staff use it to refuse a second claim by the rule and not pay twice.
+ */
+export function unitBlocks(storage, residentId, titleOf = () => "") {
+  const out = [];
+  for (const rec of allRecords(storage)) {
+    if (!rec.x || rec.x.limS !== "unit") continue;
+    if (activeClaims(storage, residentId, rec.id).active > 0) continue;
+    const by = householdClaims(storage, residentId, rec.id)[0];
+    if (by) out.push({ promoId: String(rec.id), title: titleOf(rec.id) || (rec.x && rec.x.title) || "Promotion", by: by.name, at: by.at, code: by.code });
+  }
+  return out;
+}
+
+/** For Staff: what the other people of this resident's unit did about promotions, newest first: [{ name, at, promoId, title, label, note, tone }]. */
+export function unitHistory(storage, residentId, titleOf = () => "") {
+  const out = [];
+  for (const m of unitMates(residentId)) for (const e of historyFor(storage, m.id, titleOf)) out.push({ ...e, name: m.name });
+  return out.sort((a, b) => (Date.parse(b.at) || 0) - (Date.parse(a.at) || 0));
 }
 
 /** How many times residents claimed this promotion in this app: every resident's own claims that Staff did not reject. */

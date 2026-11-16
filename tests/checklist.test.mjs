@@ -236,11 +236,11 @@ test("broadcast reach: the author sees how many of the audience have read it", (
   const { store } = setup();
   const b = store.broadcast("adm-1", { title: "Water off", text: "Water is off 2 to 4 PM.", audience: ["resident"] });
   let a = store.get(b.convId, "adm-1").ack;
-  assert.deepEqual([a.read, a.total, a.pct], [0, 3, 0]);
+  assert.deepEqual([a.read, a.total, a.pct], [0, 4, 0], "the four residents, Jamie (Alex's unit) included");
   store.markRead(b.convId, "res-1");
   a = store.get(b.convId, "adm-1").ack;
-  assert.deepEqual([a.read, a.pct], [1, 33]);
-  assert.deepEqual(a.unread.sort(), ["Morgan Ellis", "Priya Nair"]);
+  assert.deepEqual([a.read, a.pct], [1, 25]);
+  assert.deepEqual(a.unread.sort(), ["Jamie Rivera", "Morgan Ellis", "Priya Nair"]);
   assert.equal(store.get(b.convId, "res-1").ack, null, "readers do not see the stats");
 });
 
