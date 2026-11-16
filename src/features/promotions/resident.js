@@ -156,7 +156,7 @@ function wearTheme(snap) {
   }
   const decl = Object.entries({ ...t.vars, ...t.status }).map(([k, v]) => k + ":" + v + " !important").join(";");
   // the template's heading font goes to every heading of the app, its body font to everything else
-  const css = ":root,:root.dark,:root.light{" + decl + ";color-scheme:" + t.scheme + (t.font ? ";font-family:" + t.font : "") + "}" + (t.heading ? "h1,h2,h3{font-family:" + t.heading + "}" : "");
+  const css = ":root,:root.dark,:root.light{" + decl + ";color-scheme:" + t.scheme + (t.font ? ";font-family:" + t.font : "") + "}" + (t.heading ? "h1,h2,h3{font-family:" + t.heading + "}" : "") + t.extra;
   el.textContent = css;
   wearInFrame(css);
 }

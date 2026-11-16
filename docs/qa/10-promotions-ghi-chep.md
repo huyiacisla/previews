@@ -154,7 +154,7 @@ Người dùng: khối "Offer ends in" / "Use this code at checkout" / `MALLA10`
 Đánh dấu `[x]` khi xong. Mỗi phần: cuộn hết trang, nhìn ảnh thật (chụp lại lần hai vì ảnh có thể cũ), Staff ở tab thứ hai, dọn dữ liệu test sau khi xong.
 
 - [x] **Phần 1: Template.** Deals, Store, Minimal mono, Luxury dark, rồi các template còn lại, mỗi cái ở 375/830/1440, sáng/tối: thanh trên cùng, hero gộp (badge, mã, nút), lưới thẻ, My rewards, History, (i), Redeem, chi tiết deal. Đổi template ở Staff, Resident đổi ngay.
-- [ ] **Phần 2: Brand kit.** Màu chính, màu phụ, font, kiểu nút, logo; xem Resident đổi cả thanh portal, huy hiệu, hộp thoại; trả về mặc định.
+- [x] **Phần 2: Brand kit.** Màu chính, màu phụ, font, kiểu nút, logo; xem Resident đổi cả thanh portal, huy hiệu, hộp thoại; trả về mặc định.
 - [ ] **Phần 3: Tạo và sửa deal.** Form New promotion (ảnh bìa, logo đối tác, mã tĩnh/duy nhất/QR/link, giới hạn tổng/mỗi người/mỗi unit, hẹn lịch, nháp); Edit details (đổi tiêu đề, giá, mã, danh mục) hiện đúng ở Resident.
 - [ ] **Phần 4: Claim.** Alex và Jamie cùng unit, giới hạn theo unit/theo người, hết suất, đã claim, Cancel, claim lại, History; Staff xác nhận/đổi/từ chối ở Claims và Resident thấy đúng trạng thái và giờ.
 - [ ] **Phần 5: Vòng đời.** Đóng, gia hạn, tạm tắt/Off live, hẹn lịch, xoá, xuất CSV; ngày thật 16/11/2026, đồng hồ, "Expired on" đúng; sample deal và deal do Staff tạo.
@@ -193,3 +193,20 @@ Không sửa (ghi lại):
 Kết quả sau sửa: 0 chữ thiếu tương phản trên 6 template ở cả bốn cấu hình, trừ hai mục trên Modern ở 4.5 (đã chấp nhận); không có lỗi script; không tràn ngang; thanh trên cùng 150px (375) và 86px (830/1440). Đã trả template về Deals và xoá khoá tạm.
 
 Test: `promotions-history.test.mjs` (màu trong suốt, bộ màu trạng thái, mã chỉ hiện khi có deal).
+
+## Phần 2 (xong): Brand kit
+
+Cách làm: Staff (tab thứ hai) mở "Edit brand kit" và đặt từng mục bằng giao diện thật: màu chính (ô màu có sẵn và ô màu tuỳ chọn), màu phụ, font, kiểu nút (Template, Fill, Pill, Outline), kiểu ảnh (Rounded, Square, Soft shadow), logo (tải ảnh PNG tạo bằng canvas), "Template default" để trả về, Cancel (không lưu), Save. Mỗi lần xem ảnh chụp `eso-pm-page` Staff công bố, rồi Resident (375 sáng, 830 tối, 1440) có đổi theo không. Thêm một ma trận 6 template × 3 nền (sáng, tối, kính) × 3 màu chính × 4 màu phụ = 216 tổ hợp, đo tương phản mọi chữ trong trang thiết kế.
+
+Chạy đúng: màu chính (cả màu tuỳ chọn #0e7490) tới nút, huy hiệu, thanh portal, hộp thoại; font tiêu đề serif tới mọi tiêu đề; kiểu nút; logo hiện trong khối navbar của Store; Cancel không công bố gì; "Template default" trả về màu của template.
+
+Lỗi tìm thấy và đã sửa:
+1. **Màu phụ ("Section backgrounds") không tác dụng gì ngoài đầu gradient của hero.** Staff đổi mà các khối của Resident không đổi. Giờ màu phụ là nền các khối (và nền hero kiểu sáng), chữ trên đó tự chọn trắng hoặc đen xám theo độ sáng; gradient hero chỉ dùng sắc đậm hoặc nhạt hơn của màu chính nên chữ luôn đọc được (trước đây gradient chạy sang màu phụ, có thể là kem với chữ trắng).
+2. **Kiểu ảnh (Rounded, Square, Soft shadow) được công bố nhưng Resident bỏ qua.** Square đưa `--radius` về 0 cho cả app và khối; Soft shadow thêm bóng cho thẻ và ảnh trong khối.
+3. **Nút chữ/viền (kiểu "Text" hoặc "Outline") dùng màu chính ngay cả khi không đọc được trên nền khối**: Editorial với màu chính vàng trên nền kem chỉ đạt 2.1:1, xanh lá trên gần đen 2.3:1. Giờ rơi về mực đọc được khi tỉ lệ dưới 4.5:1.
+
+Bài học về cách test: khi đổi `eso-pm-page` bằng tay phải đổi cả `at`, vì Resident chỉ vẽ lại khi `at` hoặc dữ liệu thay đổi; lần chạy ma trận đầu chỉ đo đúng lần đầu của mỗi nền và báo "0 lỗi" sai. Bản chạy lại với `at` tăng dần tìm ra lỗi 3.
+
+Kết quả sau sửa: 0 chữ thiếu tương phản trên 216 tổ hợp, trừ nút trên màu indigo `#6366f1` ở 4.47:1 (đã chấp nhận ở Phần 1). Không sửa: màu chính tuỳ chọn quá nhạt hay quá sáng vẫn được nhận (nút chữ rơi về mực nhưng nút đặc dùng chữ trắng/đen theo độ sáng). Đã trả brand kit về mặc định (primary, secondary, font, button style rỗng; image Rounded; logo rỗng), trả template về Deals, xoá khoá tạm, đóng tab Staff.
+
+Test: `promotions-history.test.mjs` (kiểu ảnh, màu phụ, nút).

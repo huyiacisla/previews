@@ -158,12 +158,13 @@ export function themeVars(snap) {
       "--sidebar-primary": accent,
       "--sidebar-primary-foreground": ink(accent),
       "--sidebar-ring": accent,
-      "--radius": `${Math.round(num(th.radius, 0, 32, 14) * 0.8)}px`,
+      "--radius": `${snap.brand && snap.brand.img === "square" ? 0 : Math.round(num(th.radius, 0, 32, 14) * 0.8)}px`,
     },
     scheme: ink(bg) === "#ffffff" ? "dark" : "light",
     status: ink(bg) === "#ffffff" ? STATUS_DARK : STATUS_LIGHT,
     font: font(th.font && th.font.b),
     heading: font(th.font && th.font.h),
+    extra: snap.brand && snap.brand.img === "shadow" ? "#grid article{box-shadow:0 10px 28px rgba(0,0,0,.22)}" : "",
   };
 }
 
@@ -185,8 +186,9 @@ export function renderPage(snap, ctx) {
     accent: color(th.accent, "#1f2937"),
     bg: color(th.bg, "#ffffff"),
     fg: color(th.fg, "#111827"),
-    alt: color(th.alt, "#f4f4f5"),
-    radius: num(th.radius, 0, 32, 14),
+    alt: color(snap.brand && snap.brand.secondary, "") || color(th.alt, "#f4f4f5"),
+    img: snap.brand && ["rounded", "square", "shadow"].includes(snap.brand.img) ? snap.brand.img : "rounded",
+    radius: (snap.brand && snap.brand.img === "square") ? 0 : num(th.radius, 0, 32, 14),
     btn: ["pill", "rect", "fill", "outline", "text"].includes(th.btn) ? th.btn : "pill",
     hf: FONT.test(text(th.font && th.font.h)) ? th.font.h : "inherit",
     bf: FONT.test(text(th.font && th.font.b)) ? th.font.b : "inherit",
@@ -208,15 +210,32 @@ export function renderPage(snap, ctx) {
   const root = h("div", `background:${T.bg};color:${T.fg};font-family:${T.bf};overflow:hidden`);
   root.dataset.pagePublished = String(snap.at || 0);
 
+  // text on a section background of the brand's choosing: the page's own text colour, or white or near-black when the background is a plain colour
+  T.onAlt = /^#[0-9a-f]{6}$/i.test(T.alt) ? ink(T.alt) : T.fg;
+  const imgShadow = T.img === "shadow" ? ";box-shadow:0 12px 32px rgba(0,0,0,.28)" : "";
   const bgOf = (s) => (s.bg === "alt" ? T.alt : s.bg === "accent" ? T.accent : color(s.bg, T.bg));
+  // A text or outline button is drawn in the brand colour. When that colour does not read on the section it sits on (gold on cream, green on near-black), the page's own readable ink is used instead.
+  const hex6 = (v) => /^#[0-9a-f]{6}$/i.test(v);
+  const rl = (v) => {
+    const n = parseInt(v.slice(1), 16);
+    const g = (x) => ((x /= 255) <= 0.03928 ? x / 12.92 : ((x + 0.055) / 1.055) ** 2.4);
+    return 0.2126 * g((n >> 16) & 255) + 0.7152 * g((n >> 8) & 255) + 0.0722 * g(n & 255);
+  };
+  const cr = (a, b) => (Math.max(rl(a), rl(b)) + 0.05) / (Math.min(rl(a), rl(b)) + 0.05);
+  let curBg = T.bg;
+  const accentOn = () => {
+    const b = hex6(curBg) ? curBg : hex6(T.bg) ? T.bg : null;
+    return !b || !hex6(T.accent) || cr(T.accent, b) >= 4.5 ? T.accent : ink(b);
+  };
   const btn = (label, on, onAccent) => {
     const c = onAccent ? ink(T.accent) : "#fff";
+    const ac = accentOn();
     const base = "font:inherit;font-weight:600;cursor:pointer;padding:10px 20px;min-height:40px;";
     const css =
       T.btn === "outline"
-        ? `${base}background:transparent;border:2px solid ${onAccent ? c : T.accent};color:${onAccent ? c : T.accent};border-radius:${T.radius}px`
+        ? `${base}background:transparent;border:2px solid ${onAccent ? c : ac};color:${onAccent ? c : ac};border-radius:${T.radius}px`
         : T.btn === "text"
-          ? `${base}background:none;border:0;color:${onAccent ? c : T.accent};text-decoration:underline;padding-left:0;padding-right:0`
+          ? `${base}background:none;border:0;color:${onAccent ? c : ac};text-decoration:underline;padding-left:0;padding-right:0`
           : `${base}background:${onAccent ? c : T.accent};border:0;color:${onAccent ? T.accent : ink(T.accent)};border-radius:${T.btn === "pill" ? 999 : Math.round(T.radius / 2)}px`;
     const b = h("button", css, text(label));
     b.type = "button";
@@ -226,7 +245,7 @@ export function renderPage(snap, ctx) {
   const title = (t, s, color2) => (t ? h("h2", `margin:0 0 ${SP.s}px;font-family:${T.hf};font-size:${TS[s.ts] || TS.m}px;line-height:1.2;font-weight:700;${color2 ? `color:${color2}` : ""}`, text(t)) : null);
   const photo = (img, shape, ratio = "4/3") => {
     const src = safeImg(img);
-    const box = h("div", `flex:1 1 260px;min-height:180px;aspect-ratio:${shape === "circle" ? "1/1" : ratio};max-height:340px;max-width:${shape === "circle" ? "340px" : "100%"};border-radius:${shape === "circle" ? "50%" : T.radius}px;overflow:hidden;background:linear-gradient(135deg,${T.accent},${T.alt});margin:0 auto`);
+    const box = h("div", `flex:1 1 260px;min-height:180px;aspect-ratio:${shape === "circle" ? "1/1" : ratio};max-height:340px;max-width:${shape === "circle" ? "340px" : "100%"};border-radius:${shape === "circle" ? "50%" : T.radius}px;overflow:hidden;background:linear-gradient(135deg,${T.accent},${T.alt});margin:0 auto${imgShadow}`);
     if (src) {
       const i = h("img", "width:100%;height:100%;object-fit:cover");
       i.src = src;
@@ -258,7 +277,8 @@ export function renderPage(snap, ctx) {
     if (b.hideMobile && mobile) continue;
     if (b === cdBlock || b === cpBlock) continue; // drawn inside the hero
     const bg = bgOf(s);
-    const fg = bg === T.accent ? ink(T.accent) : bg === T.bg || bg === T.alt ? T.fg : ink(bg);
+    curBg = bg;
+    const fg = bg === T.accent ? ink(T.accent) : bg === T.bg ? T.fg : bg === T.alt ? T.onAlt : ink(bg);
     const sec = (type, ...kids) => {
       const e = h("section", `background:${bg};color:${fg};padding:${mobile ? Math.round((SP[s.pad] || SP.m) * 0.75) : SP[s.pad] || SP.m}px 0;padding-inline:${GUTTER};text-align:${["left", "center", "right"].includes(s.align) ? s.align : "left"}`);
       e.dataset.block = type;
@@ -295,8 +315,10 @@ export function renderPage(snap, ctx) {
       node.style.paddingTop = node.style.paddingBottom = "14px";
     } else if (b.type === "hero") {
       const light = p.tone === "light";
-      const hb = light ? T.alt : `linear-gradient(135deg,${T.accent},${color(snap.brand && snap.brand.secondary, T.accent)})`;
-      const hc = light ? T.fg : ink(T.accent);
+      curBg = light ? T.alt : T.accent; // the hero paints its own background
+      // the gradient stays within the accent (a darker or lighter shade of it) so the text on it always reads
+      const hb = light ? T.alt : `linear-gradient(135deg,${T.accent},color-mix(in srgb, ${T.accent} 72%, ${ink(T.accent) === "#ffffff" ? "#000" : "#fff"}))`;
+      const hc = light ? T.onAlt : ink(T.accent);
       const code = cpBlock ? sub((cpBlock.props || {}).code) : "";
       // a code is shown only when a live deal takes it (a sample code nobody accepts would be copied and then refused in Redeem)
       const codeDeal = code ? ctx.promos.find((x) => String(x.code || "").toLowerCase() === code.toLowerCase()) : null;
@@ -384,7 +406,7 @@ export function renderPage(snap, ctx) {
       const grid = h("div", "display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px");
       for (const l of lines(p.items)) {
         const [q, who] = l.split("|");
-        grid.append(h("figure", `margin:0;padding:16px;border-radius:${T.radius}px;background:${bg === T.alt ? T.bg : T.alt};color:${T.fg}`, h("blockquote", "margin:0 0 8px;font-size:15px;line-height:1.5", `“${text(q).trim()}”`), who ? h("figcaption", "font-size:13px;opacity:.7", text(who).trim()) : null));
+        grid.append(h("figure", `margin:0;padding:16px;border-radius:${T.radius}px;background:${bg === T.alt ? T.bg : T.alt};color:${bg === T.alt ? T.fg : T.onAlt}`, h("blockquote", "margin:0 0 8px;font-size:15px;line-height:1.5", `“${text(q).trim()}”`), who ? h("figcaption", "font-size:13px;opacity:.7", text(who).trim()) : null));
       }
       node = sec("quotes", title(sub(p.title), s), grid);
     } else if (b.type === "faq") {

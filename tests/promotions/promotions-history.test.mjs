@@ -185,3 +185,23 @@ test("every template is readable: a translucent 'alt' is understood, boxes are s
   const page = readFileSync(new URL("../../src/features/promotions/page.js", import.meta.url), "utf8");
   assert.ok(page.includes("code && codeDeal ? promoCode("), "the promo code is shown only when a live deal takes it");
 });
+
+test("the brand kit reaches the Resident: Secondary is the section background, Image style shapes corners and shadows, text always reads", () => {
+  const base = { theme: { accent: "#c9a45c", bg: "#ffffff", fg: "#111827", alt: "#f4f4f5", radius: 20 } };
+  assert.equal(themeVars({ ...base, brand: { img: "square" } }).vars["--radius"], "0px", "Square takes the corners off the whole app");
+  assert.equal(themeVars({ ...base, brand: { img: "rounded" } }).vars["--radius"], "16px");
+  assert.match(themeVars({ ...base, brand: { img: "shadow" } }).extra, /#grid article\{box-shadow/, "Soft shadow lifts the cards");
+  assert.equal(themeVars({ ...base, brand: { img: "rounded" } }).extra, "");
+  const page = readFileSync(new URL("../../src/features/promotions/page.js", import.meta.url), "utf8");
+  assert.ok(page.includes('alt: color(snap.brand && snap.brand.secondary, "") || color(th.alt'), "the Secondary colour is the blocks' background");
+  assert.ok(page.includes("T.onAlt") && page.includes("bg === T.alt ? T.onAlt"), "the text on it is chosen to read on that colour");
+  assert.ok(!page.includes("snap.brand && snap.brand.secondary, T.accent"), "the hero gradient stays within the accent: the text on it reads");
+  assert.ok(page.includes("imgShadow"), "block images follow the image style");
+});
+
+test("a text or outline button in the brand colour falls back to readable ink when the brand colour does not read on its section", () => {
+  const page = readFileSync(new URL("../../src/features/promotions/page.js", import.meta.url), "utf8");
+  assert.ok(page.includes("const accentOn = () =>") && page.includes("cr(T.accent, b) >= 4.5"), "gold on cream or green on near-black is not used for text");
+  assert.ok(page.includes("curBg = bg;") && page.includes("curBg = light ? T.alt : T.accent;"), "the section the button sits on is known, the hero's own background included");
+  assert.ok(page.includes("border:2px solid ${onAccent ? c : ac};color:${onAccent ? c : ac}") && page.includes("color:${onAccent ? c : ac};text-decoration:underline"));
+});
