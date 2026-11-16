@@ -1047,11 +1047,12 @@ export function mount({ portal }) {
     clear(box);
     const { conv, actions } = t;
     closeThreadMenu();
+    autoContext(t);
     // (A resident used to have a separate "Conversations" icon here because there was no Back; the Back arrow at the top is now the one way to the list.)
     $("#btn-context")?.remove();
     if (["staff", "admin"].includes(me.role) && store.contextFor(conv.id, me.id)) {
       const on = contextOpen();
-      const cb = button("", { variant: on ? "soft" : "ghost", icon: "info", ariaLabel: on ? "Hide details" : "Show details", onClick: () => setContext(!contextOpen()) });
+      const cb = button(on ? "Hide details" : "Details", { variant: on ? "soft" : "outline", ariaLabel: on ? "Hide details" : "Show details", onClick: () => setContext(!contextOpen()) });
       cb.id = "btn-context";
       cb.title = on ? "Hide details" : "Show details";
       cb.setAttribute("aria-pressed", String(on));
@@ -1229,8 +1230,9 @@ export function mount({ portal }) {
     }
   };
   ui.contextPref = readCtxPref();
-  const contextOpen = () => (ui.contextPref === null ? matchMedia("(min-width: 1280px)").matches : ui.contextPref);
+  const contextOpen = () => (ui.ctxForce && ui.ctxForce === ui.convId ? true : ui.contextPref === null ? matchMedia("(min-width: 1280px)").matches : ui.contextPref);
   function setContext(on) {
+    ui.ctxForce = null;
     ui.contextPref = on;
     try {
       localStorage.setItem(CTX_KEY, on ? "1" : "0");
@@ -1305,7 +1307,8 @@ export function mount({ portal }) {
     $("#view-app").dataset.context = "open";
     const promoEv = data && data.kind === "resident" && data.person ? promoEvents(data.person.id) : [];
     const unitEv = data && data.kind === "resident" && data.person ? unitPromo(data.person.id) : { blocks: [], mates: [] };
-    const sig = JSON.stringify([t.conv.id, data, promoEv, unitEv, t.actions, t.row.pinned, t.row.important, t.row.muted, Math.floor(Date.now() / 3600000)]);
+    const asked = askedCard(t);
+    const sig = JSON.stringify([t.conv.id, data, promoEv, unitEv, asked && asked.promoId, t.actions, t.row.pinned, t.row.important, t.row.muted, Math.floor(Date.now() / 3600000)]);
     if (sig === ui.sigCtx) return;
     ui.sigCtx = sig;
     clear($("#context-body"));
@@ -1376,7 +1379,9 @@ export function mount({ portal }) {
         const TONE = { Claimed: "warning", Verified: "info", Redeemed: "success", Rejected: "danger", "Could not claim": "danger", Cancelled: "neutral" };
         for (const e of promoEv) {
           const li = document.createElement("li");
-          li.className = "flex flex-col gap-step-xs";
+          const lit = !!asked && !!asked.promoId && e.promoId === asked.promoId;
+          li.className = `flex flex-col gap-step-xs${lit ? " rounded-md bg-info-bg p-step-sm ring-1 ring-info-text" : ""}`;
+          if (lit) li.dataset.asked = "true";
           const head = document.createElement("div");
           head.className = "flex items-center justify-between gap-step-sm";
           const name = document.createElement("span");
@@ -1385,7 +1390,7 @@ export function mount({ portal }) {
           head.append(name, badge(e.label, TONE[e.label] || "neutral"));
           const meta = document.createElement("span");
           meta.className = "text-xs text-muted-foreground";
-          meta.textContent = [listTime(Date.parse(e.at) || 0, Date.now()), e.note].filter(Boolean).join(" · ");
+          meta.textContent = [lit ? "Asked about" : "", listTime(Date.parse(e.at) || 0, Date.now()), e.note].filter(Boolean).join(" · ");
           li.append(head, meta);
           ul.appendChild(li);
         }
@@ -1483,10 +1488,19 @@ export function mount({ portal }) {
     });
   }
 
+  // The details panel opens by itself, once, for a conversation that carries a promotion claim; the person can still close it.
+  // A screen with room for it (the strip at the top of the chat and the Details button serve the narrower ones).
+  function autoContext(t) {
+    if (!["staff", "admin"].includes(me.role) || ui.ctxSeen === t.conv.id || !askedCard(t)) return;
+    ui.ctxSeen = t.conv.id;
+    if (matchMedia("(min-width: 1024px)").matches) ui.ctxForce = t.conv.id;
+  }
+
   function threadBanner(t) {
     const box = $("#thread-banner");
     clear(box);
     const { conv } = t;
+    autoContext(t);
     if (t.emergency && me.role === "resident") box.appendChild(banner("warning", "Your emergency report was sent. The property team has been alerted and will respond as soon as they see it."));
     // A closed ticket is kept in the Ticket box with its whole conversation.
     const closedTicket = (conv.kind === "resident_support" && conv.status === "closed" && conv.queuedAt) || (conv.kind === "support" && conv.status === "resolved");
@@ -1500,6 +1514,8 @@ export function mount({ portal }) {
       const names = t.ack.unread.length ? ` Not yet read: ${t.ack.unread.join(", ")}.` : " Everyone has read it.";
       box.appendChild(banner("info", `${t.ack.pct}% read (${t.ack.read} of ${t.ack.total}).${names}`));
     }
+    const asked = ["staff", "admin"].includes(me.role) ? askedCard(t) : null;
+    if (asked) box.appendChild(banner("info", `Asked about: ${asked.title}${asked.code ? ` · ${asked.code}` : ""}`, contextOpen() ? [] : [button("Details", { variant: "outline", onClick: () => setContext(true) })]));
     if (offline()) box.appendChild(banner("warning", "You are offline. Messages will not send until the connection is back."));
     if (conv.kind === "resident_support" && me.role === "resident") {
       if (conv.status === "bot") box.appendChild(banner("neutral", "You are chatting with an automated assistant. The property team is only contacted if you ask for a person."));
@@ -2195,6 +2211,44 @@ export function mount({ portal }) {
   }
   $("#forward-search").addEventListener("input", renderForwardList);
 
+  // The Context Card of a message about a promotion claim: the claim's identity, in the chat, for both sides (no icon to open it)
+  function claimCard(card, conv) {
+    const el = document.createElement("section");
+    el.setAttribute("aria-label", "Promotion claim");
+    el.className = "mt-step-sm flex flex-col gap-step-xs rounded-lg border border-border bg-background p-step-sm text-sm text-foreground";
+    const h = document.createElement("p");
+    h.className = "text-xs font-medium tracking-wide text-muted-foreground uppercase";
+    h.textContent = "Promotion claim";
+    el.appendChild(h);
+    const dl = document.createElement("div");
+    dl.className = "flex flex-col gap-step-xs";
+    const row = (k, v) => {
+      if (!v) return;
+      const line = document.createElement("p");
+      line.className = "flex flex-wrap gap-x-step-sm";
+      const dt = document.createElement("span");
+      dt.className = "w-20 shrink-0 text-muted-foreground";
+      dt.textContent = k;
+      const dd = document.createElement("span");
+      dd.className = "min-w-0 flex-1 font-medium wrap-anywhere";
+      dd.textContent = v;
+      line.append(dt, dd);
+      dl.appendChild(line);
+    };
+    row("Promotion", card.title);
+    row("Code", card.code);
+    row("Claim ID", card.claimId);
+    row("Status", card.status);
+    row("Claimed", card.at && Number.isFinite(Date.parse(card.at)) ? formatFull(Date.parse(card.at)) : "");
+    row("Ticket", conv && conv.ticketNo ? ticketNo(conv) : "");
+    el.appendChild(dl);
+    return el;
+  }
+  const askedCard = (t) => {
+    const m = [...t.messages].reverse().find((x) => x.card && x.card.type === "claim" && !x.deleted);
+    return m ? m.card : null;
+  };
+
   function bubble(m, ctx) {
     const { first, last, isLastOut, offerChoices, t } = ctx;
     const when = formatTime(m.at);
@@ -2206,8 +2260,9 @@ export function mount({ portal }) {
       if (m.deleted) {
         body.textContent = "You removed a message";
         body.dataset.state = "deleted";
-      } else if (m.text) renderText(body, m.text);
+      } else if (m.text) renderText(body, m.card ? m.text.split("\n")[0] : m.text);
       else body.hidden = true;
+      if (m.card && !m.deleted) body.after(claimCard(m.card, t.conv));
       const tm = $("[data-time]", el);
       tm.textContent = when;
       tm.dateTime = iso;
@@ -2238,8 +2293,9 @@ export function mount({ portal }) {
     if (m.deleted) {
       body.textContent = "This message was removed";
       body.dataset.state = "deleted";
-    } else if (m.text) renderText(body, m.text);
+    } else if (m.text) renderText(body, m.card ? m.text.split("\n")[0] : m.text);
     else body.hidden = true;
+    if (m.card && !m.deleted) body.after(claimCard(m.card, t.conv));
     const a = m.author || { name: "Assistant", role: "bot" };
     const who = m.kind === "bot" ? "EasySpotOps Assistant" : `${a.name}${a.role && a.role !== "bot" && !(me.role === "resident" && a.role === "admin") ? ` · ${ROLE_LABEL[a.role]}` : ""}`; // (a resident reads "EasySpotOps Support", not "… · Admin")
     if (first) $("[data-author]", el).textContent = who;
@@ -3312,7 +3368,7 @@ export function mount({ portal }) {
       localStorage.removeItem("eso-ask-claim");
       const a = JSON.parse(raw || "null");
       if (!a || a.rid !== me.id || typeof a.title !== "string") return null;
-      return { title: a.title, code: a.code, at: a.at, status: a.status };
+      return { title: a.title, code: a.code, at: a.at, status: a.status, claimId: a.claimId, promoId: a.promoId };
     } catch {
       return null;
     }

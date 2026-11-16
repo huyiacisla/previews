@@ -487,6 +487,7 @@ export function createStore({ transport, now = Date.now, config = {} } = {}) {
     conv.status = "queued";
     conv.queuedAt = now();
     conv.summary = assistant.summarize(conv.bot, msgsOf(d, conv.id));
+    if (!conv.topic && conv.summary.topic === "Promotions") conv.topic = "Promotions";
     retireChoices(d, conv);
     sys(d, conv, `Your request was sent to ${teamName(conv)}. You will be notified when someone replies.`);
   }
@@ -617,8 +618,12 @@ export function createStore({ transport, now = Date.now, config = {} } = {}) {
       const title = clean(claim.title, 80) || "Promotion";
       const code = clean(claim.code, 40);
       const status = clean(claim.status, 30);
+      const claimId = clean(claim.claimId, 80);
+      const promoId = clean(claim.promoId, 60);
       const when = claim.at && Number.isFinite(Date.parse(claim.at)) ? new Date(claim.at).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }) : "";
       const text = ["I have a question about my promotion claim.", `Promotion: ${title}`, code && `Code: ${code}`, when && `Claimed: ${when}`, status && `Status: ${status}`].filter(Boolean).join("\n");
+      // the card: what the team needs to find the claim, shown in the chat to both sides
+      const card = { type: "claim", claimId, promoId, title, code, status, at: when ? String(claim.at) : "" };
       api.tick();
       return act((d) => {
         let conv = Object.values(d.convs).find((c) => c.kind === "resident_support" && c.residentId === userId && OPEN_RESIDENT.includes(c.status));
@@ -626,7 +631,7 @@ export function createStore({ transport, now = Date.now, config = {} } = {}) {
         const seen = msgsOf(d, conv.id).slice(-30).some((m) => m.from === userId && m.kind === "text" && m.text === text);
         if (conv.status === "bot") {
           if (seen) return { ok: true, convId: conv.id, noop: true };
-          push(d, conv, userId, "text", text);
+          push(d, conv, userId, "text", text, { card });
           conv.bot.topic = "promo";
           conv.bot.route = "property";
           conv.topic = "Promotions";
@@ -634,7 +639,7 @@ export function createStore({ transport, now = Date.now, config = {} } = {}) {
           return { ok: true, convId: conv.id };
         }
         if (seen) return { ok: true, convId: conv.id, noop: true };
-        push(d, conv, userId, "text", text);
+        push(d, conv, userId, "text", text, { card });
         return { ok: true, convId: conv.id };
       });
     },

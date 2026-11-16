@@ -447,7 +447,7 @@ Lỗ hổng thấy khi dựng ca: (1) bot trả lời câu hỏi giảm giá b�
 - [x] **R4-3: Bot nhận ra câu hỏi về deal, claim, giảm giá, tính tiền.** Trả lời đúng ngữ cảnh (không dùng nội dung xe lạ), đưa nút "Talk to a person" và ghi nhãn Promotions cho ticket.
 - [x] **R4-4: Staff xử lý ngay từ claim.** Ghi chú nội bộ trên claim, "Nhắn cư dân" (mở trả lời trong đúng cuộc trò chuyện), cấp bù hoặc cộng ưu đãi tay (ghi rõ lý do, ai làm, khi nào) và cư dân thấy kết quả ở My rewards và thông báo.
 - [x] **R4-5: Quy tắc 1 căn hộ / 1 ưu đãi thật + Jamie + panel theo căn hộ (BIZ-01).** (a) deal mẫu ghi "One per household" phải bị chặn thật theo căn hộ: tài khoản thứ hai của căn hộ thấy nút Disabled kèm lời giải thích rõ ngay từ đầu; (b) Jamie Rivera (res-4, cùng Unit 02-291 với Alex) nhắn được Staff qua Messages; (c) panel của Staff gom theo căn hộ: claim của cả căn hộ, và cảnh báo ĐỎ "Căn hộ này đã nhận ưu đãi qua tài khoản [Tên] vào ngày [Ngày]" khi người đang hỏi bị chặn vì người cùng căn hộ.
-- [ ] **R4-6: Context Card và panel tự mở (UX-01, UX-02).** "Ask about this claim" chèn sẵn một thẻ ngữ cảnh gọn (Claim ID, deal, mã, trạng thái, giờ claim, số ticket) vào tin nhắn gửi đi, cả hai bên thấy thẻ trong khung chat; Staff mở cuộc trò chuyện có thẻ thì panel bên phải tự mở và làm nổi bật claim đó (không bắt bấm icon (i)); nút mở panel có chữ "Details" thay vì icon (i) trần.
+- [x] **R4-6: Context Card và panel tự mở (UX-01, UX-02).** "Ask about this claim" chèn sẵn một thẻ ngữ cảnh gọn (Claim ID, deal, mã, trạng thái, giờ claim, số ticket) vào tin nhắn gửi đi, cả hai bên thấy thẻ trong khung chat; Staff mở cuộc trò chuyện có thẻ thì panel bên phải tự mở và làm nổi bật claim đó (không bắt bấm icon (i)); nút mở panel có chữ "Details" thay vì icon (i) trần.
 - [ ] **R4-7: Quick Actions tại chat và dấu vết hệ thống (UX-03, Audit Trail).** Trong panel chat: "Confirm claim", "Apply by hand (Override)" (bắt buộc lý do), "Reject" (lý do) và "View unit history" xong trong tối đa 2 click, không đổi tab; mỗi Override tự chèn một System Message vào khung chat để hai bên đối soát; Claims inbox và chat luôn khớp nhau.
 - [ ] **R4-8: Ma trận trường hợp.** Claim 2 lần, huỷ rồi claim lại, hai Staff cùng xử lý một claim, Verify hai lần, deal bị Off live hoặc hết hạn khi claim đang Pending, hết suất giữa chừng, cư dân A xem claim của B, Staff property khác, cư dân đã chuyển đi, hỏi sau khi claim Redeemed, tài khoản thứ hai cùng căn hộ nhắn khiếu nại (ca Jamie), checklist UX-01, UX-02, UX-03, BIZ-01 của tài liệu hướng dẫn. Ghi kết quả từng ca.
 - [ ] **R4-9: Tổng kết vòng 4.** Dọn dữ liệu (claim của res-1, ticket T-1086 và các ticket thử), cập nhật ghi chép, hỏi push.
@@ -524,3 +524,21 @@ Ghi lại để quyết định: hộp deal của người bị chặn hiện c�
 Chưa làm (để R4-6): bot gán nhãn Promotions cho ticket T-1087 (hiện "General question" vì câu mở đầu có chữ "office" nên bot hỏi chuyển cho ai trước).
 
 Test: `tests/promotions/promotions-unit.test.mjs` (5 test). `npm test` kết quả ở cuối phần này.
+
+### R4-6 (xong): Context Card trong tin nhắn, panel tự mở, nút Details bằng chữ (UX-01, UX-02)
+
+Đã làm:
+- **Context Card (UX-02).** "Ask about this claim" gửi kèm thẻ "Promotion claim": Promotion, Code, **Claim ID** (đúng id Staff thấy trong Claims inbox, dạng `r_res_3_parking1_1`, tìm được ở ô Redeem của inbox), Status, Claimed, **Ticket**. Cả Resident và Staff thấy thẻ ngay trong tin nhắn (bong bóng chỉ còn câu "I have a question about my promotion claim." và thẻ), không cần mở gì.
+- **Staff mở cuộc trò chuyện có thẻ (UX-01).** Một thanh ở đầu khung chat "Asked about: Covered Spot Upgrade · RES-9GD5M" (có nút "Details" khi panel đang đóng); panel "Resident and unit" **tự mở** một lần cho cuộc đó trên màn hình từ 1024 px (người dùng vẫn đóng được và lựa chọn của họ được nhớ); trong mục Promotions, claim được hỏi được **tô nổi** kèm chữ "Asked about".
+- **Nút mở panel có chữ**: "Details" / "Hide details" thay icon (i) trần.
+- **Nhãn Promotions cho ticket**: câu hỏi có chữ deal, claim, discount, refund, perk gửi cho team dù bot chỉ hỏi "chuyển cho ai" cũng thành ticket Promotions (trước đó "General question", như T-1087; ticket đã tạo sẵn giữ nguyên).
+
+Kiểm bằng giao diện thật (ca mới: Morgan Ellis, res-3, claim Covered Spot Upgrade): Resident bấm Ask, Messages mở với thẻ (chụp hình bên Resident); Staff mở cuộc đó thấy thanh đầu chat, panel tự mở dù lựa chọn đã lưu là đóng, claim tô nổi, nút "Hide details", đóng được bằng nút (chụp hình bên Staff 1440, hai lần).
+
+Lỗi tìm thấy và đã sửa khi thử: thẻ xếp từng dòng quá dài và Status bị cắt ("Pending: Waiting for the prope") → thẻ gọn một dòng mỗi mục, Status chỉ là "Pending"; panel không tự mở vì khung nội dung của Staff (1184 px) hẹp hơn ngưỡng 1280 → ngưỡng 1024; nút Details trên thanh đầu chat ra sau khi panel đã tính mở (thứ tự vẽ) → tính tự mở trước khi vẽ nút.
+
+Còn lại: thanh đầu chat vẫn có nút "Details" cả khi panel đang mở (không hại, bấm không đổi gì); chưa xem 375, 830 và chế độ tối bằng hình (panel dưới 1024 px chỉ có thanh và nút Details).
+
+Dọn dữ liệu: tin nhắn và claim của Morgan trả về như trước; T-1086 và T-1087 không bị đụng.
+
+Test: `promotions-ask.test.mjs` (thêm 3 test). `npm test` 522 test, 521 qua, 1 lỗi cũ.

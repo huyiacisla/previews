@@ -872,7 +872,10 @@ function askAboutClaim(row) {
   }
   const rec = allRecords(storage).find((x) => String(x.id) === String(row.id));
   try {
-    storage.setItem("eso-ask-claim", JSON.stringify({ rid: me.id, promoId: row.id, title: rec ? rec.x.title : "Promotion", code: row.code, at: row.at, status: `${STATUS[row.key][0]}: ${STATUS[row.key][2]}` }));
+    const n = Number(residentState(storage, me.id).claims[row.id]?.count) || 1;
+    // the id Staff see in their Claims inbox: the same claim is found by it on both sides
+    const claimId = `r_${me.id}|${row.id}|${n}`.replace(/[^a-zA-Z0-9]/g, "_");
+    storage.setItem("eso-ask-claim", JSON.stringify({ rid: me.id, promoId: row.id, claimId, title: rec ? rec.x.title : "Promotion", code: row.code, at: row.at, status: STATUS[row.key][0] }));
   } catch {}
   const q = new URLSearchParams(location.search);
   q.delete("embed");

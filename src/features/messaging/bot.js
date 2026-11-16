@@ -358,8 +358,10 @@ export function summarize(state, transcript) {
     })
     .filter(Boolean);
   const typed = transcript.filter((m) => m.kind === "text" && !m.viaChoice).map((m) => m.text);
+  // a question that talks about a deal, a claim, a discount or a refund is a Promotions question, whichever topic was tapped
+  const promoWords = !topic && /\b(claim\w*|deals?|promo\w*|discount\w*|refund\w*|perks?)\b/i.test(typed.join(" "));
   return {
-    topic: topic ? topic.label : "General question",
+    topic: topic ? topic.label : promoWords ? "Promotions" : "General question",
     route: state.route || "property",
     asked,
     details: typed.slice(-3),

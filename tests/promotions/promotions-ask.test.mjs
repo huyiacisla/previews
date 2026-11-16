@@ -82,3 +82,35 @@ test("a question about a deal that goes to the team through the assistant is a P
   assert.equal(t.conv.topic, "Promotions");
   assert.equal(t.conv.summary.topic, "Promotions");
 });
+
+test("the question carries a Context Card with the claim's identity, and the ticket is labelled Promotions", () => {
+  const store = mk();
+  store.reset({ empty: true });
+  const r = store.askAboutClaim("res-1", { ...claim, claimId: "r_res_1_parking0_1", promoId: "parking0" });
+  const t = store.get(r.convId, "res-1");
+  const m = t.messages.find((x) => x.mine && x.card);
+  assert.deepEqual([m.card.type, m.card.claimId, m.card.promoId, m.card.code, m.card.title], ["claim", "r_res_1_parking0_1", "parking0", "MALLA10", "Mallard Pointe Valet"]);
+  assert.ok(t.conv.ticketNo, "the card shows this ticket number");
+  assert.equal(t.conv.topic, "Promotions");
+});
+
+test("a ticket whose question talks about a deal is Promotions even when the assistant only asked where to send it", () => {
+  const store = mk();
+  store.reset({ empty: true });
+  const id = store.ensureSession("res-1").convId;
+  store.send(id, "res-1", "My unit got blocked from the valet discount, I want to talk to the office about a refund");
+  store.choose(id, "res-1", "route:property");
+  assert.equal(store.get(id, "res-1").conv.topic, "Promotions");
+});
+
+test("Messages shows the card to both sides, a strip and the claim lit for Staff, opens the panel by itself once, and the Details button has a word", () => {
+  const app = readFileSync(new URL("../../src/features/messaging/app.js", import.meta.url), "utf8");
+  assert.ok(app.includes("function claimCard(card, conv)") && app.includes('row("Claim ID", card.claimId);') && app.includes('row("Ticket"'));
+  assert.ok(app.includes("body.after(claimCard(m.card, t.conv))"), "in the sent and the received bubble");
+  assert.ok(app.includes("`Asked about: ${asked.title}"), "the strip at the top of the chat");
+  assert.ok(app.includes("function autoContext(t)") && app.includes("ui.ctxSeen === t.conv.id"), "the panel opens by itself, once per conversation");
+  assert.ok(app.includes('button(on ? "Hide details" : "Details"'), "a word, not an icon");
+  assert.ok(app.includes('li.dataset.asked = "true"') && app.includes('"Asked about"'), "the claim asked about is lit in the panel");
+  const res = readFileSync(new URL("../../src/features/promotions/resident.js", import.meta.url), "utf8");
+  assert.ok(res.includes("const claimId = `r_${me.id}|${row.id}|${n}`"), "the Claim ID is the one Staff see in their Claims inbox");
+});
