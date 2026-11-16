@@ -48,14 +48,16 @@ test("Claims inbox: a claim shows the people of the same unit who also claimed t
   assert.ok(staff.includes('<div class="cl-same" role="note"><b>Same unit</b>'));
   assert.ok(staff.includes("One per unit: check before you verify, so the unit is not paid twice."));
   assert.ok(staff.includes('data-clopen2="'));
-  assert.ok(staff.includes('(same unit)</span>'));
+  // the list row stays plain: the link shows only inside the claim detail, and only when another claim of the unit exists
+  assert.ok(!staff.includes('(same unit)'));
+  assert.ok(!staff.includes('cl-sameu'));
+  assert.ok(staff.includes('return m.length?`<div class="cl-same"') || staff.includes('return m.length?\`<div class="cl-same"'));
 });
 
 test("Claims inbox: the link to the other claim is a real button, readable in light and dark", () => {
   assert.ok(staff.includes('<button type="button" class="lk" data-clopen2='));
   assert.ok(staff.includes(".cl-same .lk:focus-visible{outline:2px solid var(--ring,#2563eb)}"));
   assert.ok(staff.includes("html.dark .cl-samew{color:#fbbf24}"));
-  assert.ok(staff.includes("html.dark .cl-sameu{color:#93c5fd}"));
 });
 
 test("Resident: a Pending claim says how long it has been waiting (a fact, not a promised time)", () => {
