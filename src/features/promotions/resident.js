@@ -1215,14 +1215,16 @@ function paintRewards() {
         if (e.key === "Enter" && e.target === li) goToCard(r.id, "rewards");
       });
     }
-    // View: a claim that is still waiting shows its steps (where it stands); every other reward shows the promotion itself, with its code (the steps when the promotion is not on the page any more)
+    // View shows the promotion itself, with its code as far as it is usable (the steps when the promotion is not on the page any more); the status word (Pending, Verified...) shows the steps of the claim
     $("[data-view]", li).addEventListener("click", () => {
-      if (waiting || !canGo) openClaim(r.id);
+      if (!canGo) openClaim(r.id);
       else {
         rwDlg.close();
         openDialog(r.id, null, "rewards");
       }
     });
+    badge.setAttribute("aria-label", `${r.label}. See the steps of this claim`);
+    badge.addEventListener("click", () => openClaim(r.id));
     list.appendChild(li);
   }
   // what the people of this unit claimed (only for a promotion limited per unit): shared with the whole unit
@@ -1245,6 +1247,7 @@ function paintRewards() {
     const st = STATUS[stateOf(u.cs)];
     badge.textContent = st[0];
     badge.dataset.tone = st[1];
+    badge.disabled = true; // a unit mate's claim has no steps to show here
     $("[data-note]", li).textContent = `${u.name} · ${when(u.at)}`;
     $("[data-ticket]", li).hidden = true; // a unit mate's code stays theirs
     $("[data-pending]", li).hidden = true;

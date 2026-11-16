@@ -63,5 +63,10 @@ test("on a phone and a tablet the reward cards are smaller to look at and still 
   assert.ok(block.includes("#rw-list > li { padding: 0.5rem 0.625rem; gap: 0.25rem; font-size: 0.8125rem; }"), "less padding");
   assert.ok(block.includes("#rw-list [data-code], #cl-code { font-size: 0.9375rem; line-height: 1.25rem; letter-spacing: 0.04em; }"), "a smaller code");
   assert.ok(block.includes("height: 2rem; min-height: 0;"), "buttons 36 px tall");
-  assert.ok(block.includes("#rw-list button::after, #dlg-steps button:not([data-close])::after { content: \"\"; position: absolute; inset: -0.375rem -0.125rem; }"), "32 + 6 + 6 = 44 px to press");
+  assert.ok(block.includes("#rw-list button:not([data-status])::after, #dlg-steps button:not([data-close])::after { content: \"\"; position: absolute; inset: -0.375rem -0.125rem; }"), "32 + 6 + 6 = 44 px to press");
+});
+
+test("the status word on a reward card is a small badge with a 44 px press area", () => {
+  assert.ok(html.includes("#rw-list button[data-status] { position: relative; height: 1.25rem; min-height: 0; padding-inline: 0.5rem; }"));
+  assert.ok(html.includes('#rw-list button[data-status]::after { content: ""; position: absolute; inset: -0.75rem -0.25rem; }'), "20 + 12 + 12 = 44 px");
 });

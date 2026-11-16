@@ -104,7 +104,8 @@ test("the card: a Pending code is masked with an eye and no Copy, the card leads
   assert.ok(res.includes('$("[data-copy]", li).hidden = !(approved && r.group === "active");'));
   assert.ok(res.includes('goToCard(r.id, "rewards")') && res.includes("li.dataset.go = String(canGo);"), "the whole card leads to its promotion");
   assert.ok(res.includes('if (!e.target.closest("button, a, output, input, summary")) goToCard'), "its own buttons do not");
-  assert.ok(res.includes("if (waiting || !canGo) openClaim(r.id);") && res.includes('openDialog(r.id, null, "rewards");'), "View: the steps while it waits, the promotion itself otherwise");
+  assert.ok(res.includes("if (!canGo) openClaim(r.id);") && res.includes('openDialog(r.id, null, "rewards");'), "View shows the promotion itself, the steps only when it is not on the page");
+  assert.ok(res.includes('badge.addEventListener("click", () => openClaim(r.id));') && card.includes("<button type=\"button\" data-status"), "the status word (Pending...) shows the steps of the claim");
   assert.ok(html.includes('<dialog id="dlg-steps"') && html.includes('id="cl-steps"'));
 });
 
