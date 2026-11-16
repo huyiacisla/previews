@@ -2121,7 +2121,7 @@ async function svIds(){const A=window.ESO_SAVE_API;if(SVR||!A)return;const R={};
 async function svApi(id,put){const A=window.ESO_SAVE_API;if(!A)return true;try{await svIds();const u=svUid(id);if(!u)return true;const r=await fetch(A.replace(/\/$/,"")+"/"+encodeURIComponent(u)+"/save",{method:put?"PUT":"DELETE",credentials:"include",headers:svH()});return r.ok}catch(e){return false}}
 let svHy=0;async function svHydrate(){const A=window.ESO_SAVE_API;if(svHy||!A)return;svHy=1;try{await svIds();const r=await fetch(A.replace(/\/$/,"")+"?view=SAVED&pageSize=50",{credentials:"include",headers:svH()});if(!r.ok)return;const j=await r.json(),d=j.data||j,ids=new Set((d.promotions||[]).map(p=>p.id)),n=new Set;Object.values(META).forEach(m=>{if(m.id&&ids.has(svUid(m.id)))n.add(m.id)});SV=n;svPut();render()}catch(e){}}
 const PF0={sv:false,q:"",st:[],ty:[],au:[],en:[],bl:[],pb:[],code:false,sort:"new",view:"grid",cat:"all",tab:"all"};
-let PF=Object.assign({},PF0,JSON.parse(localStorage.getItem("eso-pmf")||"{}"));
+let PF=Object.assign({},PF0,JSON.parse(localStorage.getItem("eso-pmf")||"{}"));if(PF.tab=="saved")PF.tab="sch";
 function pfFromHash(){const m=location.hash.match(/^#\/promotions\?(.*)$/);if(!m)return;const u=new URLSearchParams(m[1]);const n=Object.assign({},PF0);n.q=u.get("q")||"";Object.keys(FL).forEach(k=>{const v=u.get(k);n[k]=v?v.split(","):[]});n.code=u.get("code")=="1";n.sort=u.get("sort")||"new";n.view=u.get("view")||"grid";n.cat=u.get("cat")||"all";PF=n}
 function pfHash(){const u=new URLSearchParams();if(PF.q)u.set("q",PF.q);Object.keys(FL).forEach(k=>{if(PF[k].length)u.set(k,PF[k].join(","))});if(PF.code)u.set("code","1");if(PF.sort!="new")u.set("sort",PF.sort);if(PF.view!="grid")u.set("view",PF.view);if(PF.cat!="all")u.set("cat",PF.cat);const q=u.toString();return "#/promotions"+(q?"?"+q:"")}
 function pfSave(){localStorage.setItem("eso-pmf",JSON.stringify(PF));if(/^#\/promotions(\?|$)/.test(location.hash)){const h=pfHash();if(h!=location.hash)history.replaceState(null,"",h)}}
@@ -2135,11 +2135,11 @@ function match(m){const d=m.d,q=PF.q.trim().toLowerCase();if(window._pmst&&(_pms
 const PMV_ICON={on:'<path d="M2.06 12.35a1 1 0 0 1 0-.7 10.75 10.75 0 0 1 19.88 0 1 1 0 0 1 0 .7 10.75 10.75 0 0 1-19.88 0"/><circle cx="12" cy="12" r="3"/>',wait:'<circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>',off:'<path d="M10.733 5.076a10.744 10.744 0 0 1 11.205 6.575 1 1 0 0 1 0 .696 10.747 10.747 0 0 1-1.444 2.49"/><path d="M14.084 14.158a3 3 0 0 1-4.242-4.242"/><path d="M17.479 17.499a10.75 10.75 0 0 1-15.417-5.151 1 1 0 0 1 0-.696 10.75 10.75 0 0 1 4.446-5.143"/><path d="m2 2 20 20"/>'};
 const pmVis=m=>{const z=window._pmStock&&_pmStock.state(m);return z=="expired"||m.st=="expired"?"ended":m.st=="draft"?"off":m.st=="scheduled"?"wait":"on"};
 const pmVisBtn=(m,br)=>{const v=pmVis(m),on=v=="on"||v=="wait";const say={on:"Visible to residents",wait:"Scheduled: residents see it from its start date",off:"Hidden from residents",ended:"Ended: residents no longer see it"}[v];const act=v=="ended"?"":on?". Turn off to hide it":". Turn on to publish it";let since="";try{const lg=JSON.parse(localStorage.getItem("eso-pm-vislog")||"[]");for(let i=lg.length-1;i>=0;i--)if(lg[i]&&lg[i].id===m.id){since=". "+(lg[i].to=="off"?"Turned off ":"Turned on ")+new Date(lg[i].at).toLocaleString("en-US",{month:"short",day:"numeric",hour:"numeric",minute:"2-digit"});break}}catch(e){}
-const word={on:"Live",wait:"Scheduled",off:"Off live",ended:"Ended"}[v];return `<button type="button" class="pmv pmv-${v}" data-pmvis="${m.id}" role="switch" aria-checked="${on}" aria-label="${H(say+act)}: ${H(br)}" title="${H(say+act+since)}"${v=="ended"?" disabled":""}><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${v=="off"||v=="ended"?2.75:2.25}" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${PMV_ICON[v=="ended"?"off":v]}</svg><span class="pmv-t">${word}</span></button>`};
-window._pmVisBtn=pmVisBtn;
-const pmTabOf=m=>{const z=window._pmStock&&m.id&&_pmStock.state(m);return z=="expired"?"ex":z=="soldout"?"so":m.st=="draft"?"dr":m.st=="active"?"live":"saved"};
+const word={on:"Live",wait:"Scheduled",off:"Off live",ended:"Ended"}[v];return `<button type="button" class="pmv pmv-${v}" data-pmvis="${m.id}" aria-haspopup="dialog" aria-label="${H(word+". "+say+". Open to change")}: ${H(br)}" title="${H(say+act+since)}"${v=="ended"?" disabled":""}><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${v=="off"||v=="ended"?2.75:2.25}" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${PMV_ICON[v=="ended"?"off":v]}</svg><span class="pmv-t">${word}</span></button>`};
+window._pmVisBtn=pmVisBtn;window._pmVis=pmVis;window._pmVisIcon=PMV_ICON;
+const pmTabOf=m=>{const z=window._pmStock&&m.id&&_pmStock.state(m);return z=="expired"?"ex":z=="soldout"?"so":m.st=="draft"?"dr":m.st=="active"?"live":"sch"};
 window._pmTabOf=pmTabOf;
-function pmTabs(){const c={all:0,live:0,so:0,ex:0,saved:0,dr:0};Object.values(META).forEach(m=>{if(!m||!m.st)return;if(window._pmst&&(_pmst.gone(m)||_pmst.archived(m)))return;if(m.st!="draft")c.all++;c[pmTabOf(m)]++});const t=PF.tab||"all";return `<div class="pdtabs pmtabs" role="tablist" aria-label="Promotion status">${[["all","All"],["live","Live"],["so","Sold out"],["ex","Expired"],["saved","Saved"],["dr","Drafts"],["claims","Claims"],["store","Storage"]].map(([k,l])=>k=="store"?(window._pmst?`<button role="tab" data-pmtab="store" aria-selected="${t==k}" class="${t==k?"on":""}">Storage <span class="pdc">${_pmst.count()}</span></button>`:""):k=="claims"?(window._pmcl?`<button role="tab" data-pmtab="claims" aria-selected="${t==k}" class="${t==k?"on":""}">${lic("inbox",14)} Claims${_pmcl.pending()?` <span class="pdc pdc-p" title="Pending claims">${_pmcl.pending()}</span>`:""}</button>`:""):`<button role="tab" data-pmtab="${k}" aria-selected="${t==k}" class="${t==k?"on":""}">${l} <span class="pdc">${c[k]}</span></button>`).join("")}</div>`}
+function pmTabs(){const c={all:0,live:0,so:0,ex:0,sch:0,dr:0};Object.values(META).forEach(m=>{if(!m||!m.st)return;if(window._pmst&&(_pmst.gone(m)||_pmst.archived(m)))return;if(m.st!="draft")c.all++;c[pmTabOf(m)]++});const t=PF.tab||"all";return `<div class="pdtabs pmtabs" role="tablist" aria-label="Promotion status">${[["all","All"],["live","Live"],["so","Sold out"],["ex","Expired"],["sch","Scheduled"],["dr","Drafts"],["claims","Claims"],["store","Storage"]].map(([k,l])=>k=="store"?(window._pmst?`<button role="tab" data-pmtab="store" aria-selected="${t==k}" class="${t==k?"on":""}">Storage <span class="pdc">${_pmst.count()}</span></button>`:""):k=="claims"?(window._pmcl?`<button role="tab" data-pmtab="claims" aria-selected="${t==k}" class="${t==k?"on":""}">${lic("inbox",14)} Claims${_pmcl.pending()?` <span class="pdc pdc-p" title="Pending claims">${_pmcl.pending()}</span>`:""}</button>`:""):`<button role="tab" data-pmtab="${k}" aria-selected="${t==k}" class="${t==k?"on":""}">${l} <span class="pdc">${c[k]}</span></button>`).join("")}</div>`}
 window.addEventListener("click",e=>{const t=e.target.closest&&e.target.closest("[data-pmsv],[data-pmsvf]");if(!t)return;e.preventDefault();e.stopImmediatePropagation();
  if(t.dataset.pmsvf!==undefined){RDP=false;PF.sv=!PF.sv;if(PF.sv){PF.cat="all";cat="all"}pfSave();render();return}
  const id=t.dataset.pmsv,was=SV.has(id);was?SV.delete(id):SV.add(id);svPut();svSync(id);toast(was?"Removed from saved":"Saved — find it under Saved");
@@ -2150,12 +2150,17 @@ async function clApi(id){const A=window.ESO_SAVE_API;if(!A)return{ok:true};try{a
 window._pmSv={btn:svBtn,res:()=>res,claimApi:clApi};
 document.addEventListener("click",e=>{const b=e.target.closest&&e.target.closest("[data-pmtab]");if(!b)return;e.preventDefault();PF.tab=b.dataset.pmtab;pfSave();render()},true);
 const SF={new:(a,b)=>a.created-b.created,ending:(a,b)=>a.endsDays-b.endsDays,views:(a,b)=>b.views-a.views,claims:(a,b)=>b.claims-a.claims,az:(a,b)=>a.d[0].localeCompare(b.d[0])};
-function results(){const R={};CATS.forEach(([k])=>{R[k]=DEALS[k].map((d,i)=>META[k+i]).filter(m=>!res||m.st=="active").filter(match).sort(SF[PF.sort]||SF.new)});return R}
+function results(){const R={};CATS.forEach(([k])=>{R[k]=Object.values(META).filter(m=>m&&m.k===k).filter(m=>!res||m.st=="active").filter(match).sort(SF[PF.sort]||SF.new)});return R}
 function HL(t){const e=H(t),q=PF.q.trim();if(!q)return e;const x=H(q).replace(/[.*+?^${}()|[\]\\]/g,"\\$&");return e.replace(new RegExp(x,"ig"),m=>`<mark>${m}</mark>`)}
 const STL={active:"Active",scheduled:"Scheduled",expired:"Expired",draft:"Draft"};
-function card(d,c,k,i){const[br,of,bd,pr,g,em,vw0]=d;const m=META[k+(i??0)]||{};const vw=m.id?(m.views||0):vw0;
+function card(d,c,k,i){const[br,of,bd,pr,g,em,vw0]=d;const m=(typeof i=="string"&&META[i])||META[k+(i??0)]||{};const vw=m.id?(m.views||0):vw0;
  const cv=window._cov&&_cov.get(m.id);
- return `<article class="pd s-${c.style}" data-pmid="${m.id||""}" style="--r:${c.radius}px;--ac:${c.accent};--ratio:${c.ratio}${c.font?";font-family:"+c.font+";--pfh:"+c.fontH:""}"><div class="pi ${cv?"has-cv":""}" style="background:${g}">${cv?`<img class="pcv" src="${cv.src}" alt="${H(cv.alt||"")}" style="object-position:${cv.fx}% ${cv.fy}%">`:`<span class="pic">${lic(k,44,1.5)}</span>`}${c.badge?`<span class="bd">${H(bd)}</span>`:""}${res||!m.id?"":`<button class="pme" data-pmedit="${m.id}" aria-label="Edit card cover for ${H(br)}" title="Edit card cover">${lic("pen",14)}</button>`}${res||!m.id?"":pmVisBtn(m,br)}${res&&m.id?svBtn(m.id):""}</div><div class="pb"><b>${HL(br)}</b><p>${HL(of)}</p>${c.price?`<span class="pc">${H(pr)}</span>`:""}${c.expiry&&!c.badge?`<span class="ex">${H(bd)}</span>`:""}${m.code?`<span class="pcode">${lic("tag",11)}<span>${HL(m.code)}</span></span>`:""}${window._pmStock?_pmStock.bar(m):""}${window._pmst&&!res?_pmst.sched(m):""}${window._pmStock&&_pmStock.state(m)?`<button class="pbt b-${c.btn} pbt-off" data-pmoff="${_pmStock.state(m)}" disabled>${H(_pmStock.btn(m))}</button>`:`<button class="pbt b-${c.btn}" data-pmdeal="${m.id||""}">${H(c.label)}</button>`}</div>${res?"":`<div class="stf">${window._pmStock&&_pmStock.state(m)?`<span class="pst ${_pmStock.state(m)}" title="${_pmStock.state(m)=="soldout"?"Fully claimed":""}">${_pmStock.state(m)=="soldout"?"Sold out":"Expired"}</span>`:`<span class="pst ${m.st}">${STL[m.st]||""}</span>`}<button type="button" class="stn" data-pmwho="views" data-pmwid="${m.id||""}" aria-label="${vw} views, see who viewed">${lic("eye",12)} ${typeof vw=="number"&&vw>=1e4?(vw/1e3).toFixed(0)+"k":vw}</button><button type="button" class="stn" data-pmwho="claims" data-pmwid="${m.id||""}" aria-label="${window._pmStock?_pmStock.used(m):m.claims||0} claimed, see who claimed">${lic("ticket",12)} ${window._pmStock?_pmStock.used(m):m.claims||0}<span class="stl"> claimed</span></button></div>`}</article>`}
+ return `<article class="pd s-${c.style}" data-pmid="${m.id||""}" style="--r:${c.radius}px;--ac:${c.accent};--ratio:${c.ratio}${c.font?";font-family:"+c.font+";--pfh:"+c.fontH:""}"><div class="pi ${cv?"has-cv":""}" style="background:${g}">${cv?`<img class="pcv" src="${cv.src}" alt="${H(cv.alt||"")}" style="object-position:${cv.fx}% ${cv.fy}%">`:`<span class="pic">${lic(k,44,1.5)}</span>`}${c.badge?`<span class="bd">${H(bd)}</span>`:""}${res||!m.id?"":`<button class="pme" data-pmedit="${m.id}" aria-label="Edit card cover for ${H(br)}" title="Edit card cover">${lic("pen",14)}</button>`}${res||!m.id?"":pmVisBtn(m,br)}${res&&m.id?svBtn(m.id):""}</div><div class="pb">${c.catTag?`<span class="pcat">${lic(k,11,2)}${H((CATS.find(x=>x[0]==k)||[0,k])[1])}</span>`:""}<b>${HL(br)}</b><p>${HL(of)}</p>${c.price?`<span class="pc">${H(pr)}</span>`:""}${c.expiry&&!c.badge?`<span class="ex">${H(bd)}</span>`:""}${m.code?`<span class="pcode">${lic("tag",11)}<span>${HL(m.code)}</span></span>`:""}${window._pmStock?_pmStock.bar(m):""}${window._pmst&&!res?_pmst.sched(m):""}${window._pmStock&&_pmStock.state(m)?`<button class="pbt b-${c.btn} pbt-off" data-pmoff="${_pmStock.state(m)}" disabled>${H(_pmStock.btn(m))}</button>`:`<button class="pbt b-${c.btn}" data-pmdeal="${m.id||""}">${H(c.label)}</button>`}</div>${res?"":`<div class="stf">${window._pmStock&&_pmStock.state(m)?`<span class="pst ${_pmStock.state(m)}" title="${_pmStock.state(m)=="soldout"?"Fully claimed":""}">${_pmStock.state(m)=="soldout"?"Sold out":"Expired"}</span>`:`<span class="pst ${m.st}">${STL[m.st]||""}</span>`}<button type="button" class="stn" data-pmwho="views" data-pmwid="${m.id||""}" aria-label="${vw} views, see who viewed">${lic("eye",12)} ${typeof vw=="number"&&vw>=1e4?(vw/1e3).toFixed(0)+"k":vw}</button><button type="button" class="stn" data-pmwho="claims" data-pmwid="${m.id||""}" aria-label="${window._pmStock?_pmStock.used(m):m.claims||0} claimed, see who claimed">${lic("ticket",12)} ${window._pmStock?_pmStock.used(m):m.claims||0}<span class="stl"> claimed</span></button></div>`}</article>`}
+function flatSec(R,ks){const items=[];ks.forEach(k=>R[k].forEach(m=>items.push([k,m])));const f=SF[PF.sort]||SF.new;items.sort((a,b)=>f(a[1],b[1]));
+  const T={live:"Live",so:"Sold out",ex:"Expired",sch:"Scheduled",dr:"Drafts"},ttl=PF.tab&&T[PF.tab]||"Results",lst=PF.view=="list";
+  const cs={};ks.forEach(k=>{cs[k]=Object.assign({},cfg(k),{style:lst?"list":"card",layout:lst?"list":"grid",catTag:true,per:4})});
+  const nc=new Set(items.map(x=>x[0])).size;
+  return `<section class="pm-sec pm-flat" id="pms-flat"><div class="pm-sh"><h2><span class="pm-st">${ttl}</span> <small>${items.length} ${items.length==1?"deal":"deals"} · ${nc} ${nc==1?"category":"categories"}</small></h2></div><div class="pr l-${lst?"list":"grid"}" style="--per:4">${items.map(([k,m])=>card(m.d,cs[k],k,m.id)).join("")}</div></section>`}
 function sec(k,list){const c0=cfg(k),c=PF.view=="list"?Object.assign({},c0,{style:"list",layout:"list"}):c0,C=CATS.find(x=>x[0]==k);const nm=CF[k]&&CF[k].mode=="custom"?"Custom":c0.follows?"Follows "+c0.follows:TPL[(CF[k]&&CF[k].tpl)||SUG[k]].n;
  /* "Show more": a category with more than 60 deals draws the first 60 and a button for the next 60 (the counts above stay true). Under 60 nothing changes. Safe by design: the list is
     never cut by what is on screen but by a count Staff can raise; a filter, search, tab or sort starts it again; follow() and links open the hidden card with window._pmReveal. */
@@ -2164,14 +2169,14 @@ function sec(k,list){const c0=cfg(k),c=PF.view=="list"?Object.assign({},c0,{styl
  if(MR.sig!==sig){MR.sig=sig;MR.shown={}}
  const shown=list.length>MR.page?Math.min(list.length,MR.shown[k]||MR.page):list.length;
  MR.more[k]={list,c,k,shown};
- return `<section ${CF[k]&&CF[k].mode=="custom"?"data-cm ":""}class="pm-sec ${dOpen&&dCat==k?"sel":""}" id="pms-${k}"><div class="pm-sh"><h2><span class="pm-st">${C[1]}</span> <small>${list.length} ${list.length==1?"deal":"deals"}</small></h2>${res?"":`<button class="ed" data-pmed="${k}" title="Section style · ${nm} (staff-only quick override)" aria-label="Section style: ${nm}">${lic("pen",13)}<span class="edl"> Section style · ${nm}</span></button>`}</div><div class="pr l-${c.layout}" style="--per:${c.per}">${list.slice(0,shown).map(m=>card(m.d,c,k,m.i)).join("")}</div>${moreHTML(k)}</section>`}
+ return `<section ${CF[k]&&CF[k].mode=="custom"?"data-cm ":""}class="pm-sec ${dOpen&&dCat==k?"sel":""}" id="pms-${k}"><div class="pm-sh"><h2><span class="pm-st">${C[1]}</span> <small>${list.length} ${list.length==1?"deal":"deals"}</small></h2>${res?"":`<button class="ed" data-pmed="${k}" title="Section style · ${nm} (staff-only quick override)" aria-label="Section style: ${nm}">${lic("pen",13)}<span class="edl"> Section style · ${nm}</span></button>`}</div><div class="pr l-${c.layout}" style="--per:${c.per}">${list.slice(0,shown).map(m=>card(m.d,c,k,m.id)).join("")}</div>${moreHTML(k)}</section>`}
 function moreHTML(k){const s=window._pmMore.more[k];if(!s||s.list.length<=window._pmMore.page)return "";
 const left=s.list.length-s.shown,next=Math.min(window._pmMore.page,left),C=CATS.find(x=>x[0]==k);
 return `<div class="pm-more" data-pmmorebox="${k}">${left?`<button type="button" class="btn o" data-pmmore="${k}" aria-label="Show ${next} more promotions in ${H(C[1])}, ${left} not shown yet">Show ${next} more</button>`:""}<span class="pm-more-n" role="status" aria-live="polite">${left?`Showing ${s.shown} of ${s.list.length}`:`Showing all ${s.list.length}`}</span></div>`}
 /* show more cards of one category: appended to the row, so what is open, selected or scrolled stays as it is */
 function pmMoreTo(k,upto){const s=window._pmMore.more[k];if(!s||upto<=s.shown)return false;
 const to=Math.min(s.list.length,Math.ceil(upto/window._pmMore.page)*window._pmMore.page),row=document.querySelector("#pms-"+k+" .pr");if(!row)return false;
-const html=s.list.slice(s.shown,to).map(m=>card(m.d,s.c,k,m.i)).join("");row.insertAdjacentHTML("beforeend",html);
+const html=s.list.slice(s.shown,to).map(m=>card(m.d,s.c,k,m.id)).join("");row.insertAdjacentHTML("beforeend",html);
 const firstNew=row.children[s.shown];s.shown=to;window._pmMore.shown[k]=to;
 const box=document.querySelector('[data-pmmorebox="'+k+'"]');if(box)box.outerHTML=moreHTML(k);return firstNew||true}
 window._pmReveal=function(id){const m=META[id];if(!m)return false;const s=window._pmMore&&window._pmMore.more[m.k];if(!s)return false;const i=s.list.indexOf(m);if(i<0||i<s.shown)return false;return !!pmMoreTo(m.k,i+1)};
@@ -2198,7 +2203,7 @@ function page(){if(!res&&PF.tab=="store"&&window._pmst){const s=page0();return s
  ${res?"":pmTabs()}<!--pmtb-->${toolbar(R)}
  <nav class="pm-nav" aria-label="Deal categories"><button class="${PF.cat=="all"?"on":""}" data-pmcat="all">All deals <span class="n">${tot}</span></button>${CATS.map(c=>`<button class="${PF.cat==c[0]?"on":""}" data-pmcat="${c[0]}">${c[1]} <span class="n">${R[c[0]].length}</span></button>`).join("")}</nav>
  ${act||!res?"":`<div class="pm-strip"><button data-pmq="valet">20% off monthly valet</button><button data-pmcat="ev">$100 off home EV chargers</button><button data-pmcat="moving">Storage: first month $1</button></div>`}
- ${act&&!ks.length?empty:ks.map(k=>sec(k,R[k])).join("")}
+ ${act&&!ks.length?empty:!res&&PF.cat=="all"&&act?flatSec(R,ks):ks.map(k=>sec(k,R[k])).join("")}
  <p class="pm-note">Sample promotions and partner names for the prototype. Images are generated placeholders.</p></div>`}
 /* Redeem page (Resident view): trang con như Saved — ← ∧ h1 ∧ ô nhập code; kết quả từ _pmcl.rdLook (chỉ tra cứu/claim, không tự redeem). RDP không lưu localStorage. */
 let RDP=false,RDV="",RDR="";
@@ -5862,7 +5867,7 @@ let DS=null;
 function detail(id){const M=window._pmMETA||{},m=M[id];if(!m)return;const [br,of,bd,pr,g]=m.d,cv=C[id];DS=id;let d=document.getElementById("pdd");if(!d){d=document.createElement("div");d.id="pdd";document.body.appendChild(d);history.pushState({pdd:1},"")}
  const ends=m.endsDays>=999?"No end date":"Ends "+new Date(2026,9,30+m.endsDays).toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"});
  d.innerHTML=`<div class="gm-s" data-pdx></div><div class="pdd-d" role="dialog" aria-modal="true" aria-labelledby="pddt"><div class="pdd-cv" style="background:${g}">${cv?`<img src="${cv.src}" alt="${E(cv.alt)}" style="object-position:${cv.fx}% ${cv.fy}%">`:""}<span class="bd">${E(bd)}</span><button class="bx bx-o gm-i pdd-x" data-pdx aria-label="Back">${X}</button>${window._pmSv&&_pmSv.res()?_pmSv.btn(id,"pdd-sv"):""}</div><div class="gm-b">
- <h2 id="pddt">${E(br)}</h2><p class="pdd-of">${E(of)}</p><div class="gm-row"><b class="pdd-pr">${E(pr)}</b><span class="gm-mut">${ends}</span></div>
+ <span class="pdd-cat">${E(((window.PM_CATALOG&&PM_CATALOG.CATS.find(x=>x[0]==m.k))||[0,m.k||""])[1])}</span><h2 id="pddt">${E(br)}</h2><p class="pdd-of">${E(of)}</p><div class="gm-row"><b class="pdd-pr">${E(pr)}</b><span class="gm-mut">${ends}</span></div>
  ${m.code?`<div class="pdd-code"><span>Promo code</span><b>${E(m.code)}</b><button class="bx bx-o" data-pdcopy="${E(m.code)}">Copy</button></div>`:""}
  <details class="gm-rules" open><summary>Terms</summary><pre>Valid for verified residents of this property${m.au=="members"?" (members only)":m.au=="movein"?" (new move-ins)":""}. One use per resident. ${ends}. Cannot be combined with other offers. Partner terms apply.</pre></details>
  <button class="bx bx-p gm-big" data-pdcta>${m.code?"Copy code & visit partner":"Get this deal"}</button></div></div>`;d.querySelector("[data-pdx]").focus()}
@@ -5878,7 +5883,7 @@ addEventListener("click",e=>{const t=e.target;if(!t.closest)return;
  const ed=t.closest(".pd [data-pmedit]");if(ed){e.preventDefault();e.stopImmediatePropagation();const ar=ed.closest(".pd");return open(ed.dataset.pmedit,{title:ar.querySelector(".pb b")?.textContent})}
  const dl=t.closest(".pd[data-pmid]");if(dl&&dl.dataset.pmid&&!t.closest("[data-pmvis]")&&!t.closest(".stf")&&!t.closest("[data-pmsch]")&&!(window._pmcl&&window._pm&&_pm.res&&t.closest(".pbt[data-pmdeal]"))&&!document.getElementById("lw")){e.preventDefault();e.stopImmediatePropagation();return detail(dl.dataset.pmid)}},true);
 addEventListener("keydown",e=>{if(e.key=="Escape"){if(S)close();else if(DS)dclose()}});
-if(/#\/promotions/.test(location.hash)&&Object.keys(C).length)setTimeout(()=>dispatchEvent(new HashChangeEvent("hashchange",{oldURL:location.href,newURL:location.href})),0);window._cov={get:id=>C[id],open,detail,set(id,v){C[id]=v;sv()}};})();</script>
+if(/#\/promotions/.test(location.hash)&&Object.keys(C).length)setTimeout(()=>dispatchEvent(new HashChangeEvent("hashchange",{oldURL:location.href,newURL:location.href})),0);window._cov={get:id=>C[id],open,detail,paint,down,set(id,v){C[id]=v;sv()}};})();</script>
 <style id="pmcovercss">
 .pd .pi.has-cv{position:relative;overflow:hidden}.pd .pi .pcv{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:0}.pd .pi .bd,.pd .pi .pme{z-index:2}.pd .pi.has-cv .bd{box-shadow:0 1px 3px rgba(0,0,0,.25)}
 .pd[data-pmid]{cursor:pointer}
@@ -7776,27 +7781,31 @@ const recSync=(m,title,offer,price,code,orig)=>{
 if(!m||!m.pmc)return;
 let a=[];try{a=JSON.parse(localStorage.getItem("eso-pmc-saved")||"[]")}catch(e){return}
 const r=Array.isArray(a)&&a.find(s=>String(s.id)===String(m.pmc));if(!r||!r.x)return;
-r.x.title=title;r.x.reward=offer;
+r.x.title=title;r.x.reward=offer;if(m.k)r.x.cat=m.k;
 if(orig&&orig.d&&orig.d[3]===price)delete r.x.offerText;else r.x.offerText=price;
 if(r.x.method==="static"||r.x.method==="qr")r.x.code=code||"";
 try{localStorage.setItem("eso-pmc-saved",JSON.stringify(a))}catch(e){}};
-const applyAll=()=>{const m=M();for(const id in ED){const e=ED[id];if(!m[id])continue;[0,1,3].forEach(i=>{if(e.d&&e.d[i]!=null)m[id].d[i]=e.d[i]});if("code" in e)m[id].code=e.code}};
+const applyAll=()=>{const m=M();for(const id in ED){const e=ED[id];if(!m[id])continue;[0,1,3].forEach(i=>{if(e.d&&e.d[i]!=null)m[id].d[i]=e.d[i]});if("code" in e)m[id].code=e.code;if(e.cat&&PM_CATALOG.CATS.some(c=>c[0]===e.cat))m[id].k=e.cat}};
 applyAll();
+/* the cover chosen in the form is held here until Save: undefined = unchanged, null = removed, text = a new image */
+let IMG;const prv=id=>{const p=$("#q22pv");if(!p)return;const cv=IMG===undefined?window._cov.get(id):IMG?{src:IMG}:null;p.innerHTML=cv?'<img src="'+cv.src+'" alt="">':"<span>No image: the card uses its colour</span>";const rm=$('[data-q22="rmimg"]');if(rm)rm.hidden=!cv};
 /* ---- card detail: edit content, persisted in eso-pmedits ---- */
 let last=null;document.addEventListener("pointerdown",e=>{const c=e.target.closest&&e.target.closest(".pd[data-pmid]");if(c)last=c.dataset.pmid},true);
 const curId=()=>{const t=($("#pdd h2")||{}).textContent,m=M();if(last&&m[last]&&m[last].d[0]==t)return last;return Object.keys(m).find(k=>m[k].d[0]==t)};
 new MutationObserver(()=>{const b=$("#pdd .pdd-d>.gm-b");if(b&&!b.dataset.q22&&!(window._pm&&_pm.res)){b.dataset.q22=1;const id=curId();if(!id)return;b.dataset.id=id;b.insertAdjacentHTML("afterbegin",'<button class="bx bx-o q22-ed" data-q22="edit">Edit details</button>')}}).observe(document.body,{childList:true,subtree:true});
 document.addEventListener("click",e=>{const t=e.target.closest&&e.target.closest("[data-q22]");if(!t)return;e.preventDefault();e.stopImmediatePropagation();const a=t.dataset.q22,m=M();
- if(a=="edit"){const b=t.closest(".gm-b"),id=b.dataset.id,x=m[id];b.innerHTML=`<h2>Edit details</h2><div class="q22-f"><label class="gm-l" for="q22t">Title</label><input id="q22t" class="gm-in" maxlength="60" value="${E(x.d[0])}"><label class="gm-l" for="q22o">Offer</label><input id="q22o" class="gm-in" maxlength="90" value="${E(x.d[1])}"><label class="gm-l" for="q22p">Price / value</label><input id="q22p" class="gm-in" maxlength="30" value="${E(x.d[3])}"><label class="gm-l" for="q22c">Promo code (optional)</label><input id="q22c" class="gm-in" maxlength="20" value="${E(x.code||"")}" style="text-transform:uppercase"><div class="q22-er" role="alert"></div></div><div class="q22-a">${ED[id]?'<button class="bx bx-o" data-q22="revert">Revert to original</button>':""}<button class="bx bx-o" data-q22="cancel">Cancel</button><button class="bx bx-p" data-q22="save">Save</button></div>`;b.dataset.id=id;$("#q22t").focus();return}
+ if(a=="edit"){const b=t.closest(".gm-b"),id=b.dataset.id,x=m[id];b.innerHTML=`<h2>Edit details</h2><div class="q22-f"><label class="gm-l" for="q22t">Title</label><input id="q22t" class="gm-in" maxlength="60" value="${E(x.d[0])}"><label class="gm-l" for="q22o">Offer</label><input id="q22o" class="gm-in" maxlength="90" value="${E(x.d[1])}"><label class="gm-l" for="q22p">Price / value</label><input id="q22p" class="gm-in" maxlength="30" value="${E(x.d[3])}"><label class="gm-l" for="q22c">Promo code (optional)</label><input id="q22c" class="gm-in" maxlength="20" value="${E(x.code||"")}" style="text-transform:uppercase"><label class="gm-l" for="q22k">Category</label><select id="q22k" class="gm-in">${PM_CATALOG.CATS.map(c=>`<option value="${c[0]}"${c[0]==x.k?" selected":""}>${E(c[1])}</option>`).join("")}</select><div class="gm-l" id="q22il">Cover image</div><div class="q22-img" role="group" aria-labelledby="q22il"><div class="q22-prev" id="q22pv" style="background:${x.d[4]}"></div><input id="q22f" type="file" accept="image/*" hidden><div class="q22-ia"><button type="button" class="bx bx-o" data-q22="pick">Choose image</button><button type="button" class="bx bx-o" data-q22="rmimg">Remove image</button></div><small class="gm-mut">JPG, PNG or WebP. Shown on the card and at the top of this box.</small></div><div class="q22-er" role="alert"></div></div><div class="q22-a">${ED[id]?'<button class="bx bx-o" data-q22="revert">Revert to original</button>':""}<button class="bx bx-o" data-q22="cancel">Cancel</button><button class="bx bx-p" data-q22="save">Save</button></div>`;b.dataset.id=id;IMG=undefined;prv(id);const fi=$("#q22f");fi.addEventListener("change",()=>{const f=fi.files&&fi.files[0];if(!f)return;const er=$(".q22-er");er.textContent="";window._cov.down(f).then(src=>{IMG=src;prv(id)},msg=>{er.textContent=String(msg)});fi.value=""});$("#q22t").focus();return}
  const b=t.closest(".gm-b"),id=b&&b.dataset.id;if(!id)return;
- if(a=="cancel"){window._cov.detail(id);return}
- if(a=="revert"){const o=ED[id]&&ED[id].o;if(o){[0,1,3].forEach(i=>m[id].d[i]=o.d[i]);m[id].code=o.code;recSync(m[id],o.d[0],o.d[1],o.d[3],o.code||"",o)}delete ED[id];svE();window._cov.detail(id);rr();tst("Restored original content");return}
+ if(a=="pick"){$("#q22f").click();return}
+ if(a=="rmimg"){IMG=null;prv(id);return}
+ if(a=="cancel"){IMG=undefined;window._cov.detail(id);return}
+ if(a=="revert"){const o=ED[id]&&ED[id].o;if(o){[0,1,3].forEach(i=>m[id].d[i]=o.d[i]);m[id].code=o.code;m[id].k=o.k||id.replace(/\d+$/,"");recSync(m[id],o.d[0],o.d[1],o.d[3],o.code||"",o)}delete ED[id];svE();window._cov.detail(id);rr();tst("Restored original content");return}
  if(a=="save"){const v=k=>$("#"+k).value.trim(),er=$(".q22-er"),title=v("q22t"),offer=v("q22o"),price=v("q22p"),code=v("q22c").toUpperCase();
   if(!title){er.textContent="Title is required.";return}if(!offer){er.textContent="Offer is required.";return}
   if(code&&!/^[A-Z0-9-]{3,20}$/.test(code)){er.textContent="Code: 3-20 letters, numbers or dashes.";return}
   if(code&&Object.keys(m).some(k=>k!=id&&m[k].code==code)){er.textContent="That code is already used by another promotion.";return}
-  const x=m[id];if(!ED[id])ED[id]={o:{d:x.d.slice(),code:x.code}};ED[id].d=[title,offer,null,price];ED[id].code=code||undefined;if(!code)ED[id].code="";
-  x.d[0]=title;x.d[1]=offer;x.d[3]=price;x.code=code||undefined;svE();recSync(x,title,offer,price,code,ED[id].o);window._cov.detail(id);rr();tst("Promotion updated");return}},true);
+  const x=m[id];if(!ED[id])ED[id]={o:{d:x.d.slice(),code:x.code,k:x.k}};ED[id].d=[title,offer,null,price];ED[id].code=code||undefined;if(!code)ED[id].code="";const nk=$("#q22k").value,ok=ED[id].o.k||id.replace(/\d+$/,"");if(nk!==ok)ED[id].cat=nk;else delete ED[id].cat;x.k=nk;
+  x.d[0]=title;x.d[1]=offer;x.d[3]=price;x.code=code||undefined;if(IMG!==undefined){window._cov.set(id,IMG?{src:IMG,fx:50,fy:50,alt:title}:undefined);window._cov.paint(id);IMG=undefined}svE();recSync(x,title,offer,price,code,ED[id].o);window._cov.detail(id);rr();tst("Promotion updated");return}},true);
 /* ---- templates: one clear "in use", Edit page opens it ---- */
 const fix=()=>{const p=P();if(!p)return;const S=p.ST,lw=S.lw||{},live=Object.keys(lw).find(x=>x.startsWith("tpl:")&&lw[x].state=="live");if(live&&!S.off){const k=live.slice(4);if(S.def!=k&&p.allT()[k]){S.def=k;p.sv()}}};fix();
 document.addEventListener("click",e=>{const t=e.target.closest&&e.target.closest("[data-tpdef]");if(!t||!P())return;const S=P().ST,lw=S.lw=S.lw||{};Object.keys(lw).forEach(x=>{if(x.startsWith("tpl:")&&lw[x].state=="live")lw[x].state="saved"});S.off=false;P().sv()},true);
@@ -7968,35 +7977,55 @@ html.dark .pmv-on{background:#14532d;color:#dcfce7;border-color:#166534}html.dar
 @media(max-width:480px){.pmv{right:8px;top:46px}}
 .pd.pmv-flash{outline:3px solid #2563eb;outline-offset:3px;animation:pmvf 2.6s ease-out 1}@keyframes pmvf{0%,60%{outline-color:#2563eb}100%{outline-color:transparent}}html.dark .pd.pmv-flash{outline-color:#93c5fd}@media(prefers-reduced-motion:reduce){.pd.pmv-flash{animation:none}}
 .pmv-hist{margin:0 0 12px;font-size:13px}.pmv-hist summary{cursor:pointer;font-weight:600;padding:6px 0}.pmv-hist ul{list-style:none;margin:4px 0 0;padding:0;display:grid;gap:6px}.pmv-hist li{display:grid;grid-template-columns:1fr auto;gap:2px 10px;padding:8px 10px;border-radius:8px;background:rgba(100,116,139,.1);border-left:3px solid #94a3b8}.pmv-hist li.pmv-h-on{border-left-color:#22c55e}.pmv-hist li.pmv-h-scheduled{border-left-color:#f59e0b}.pmv-hist time{font-variant-numeric:tabular-nums;opacity:.8}.pmv-hist em{grid-column:1/-1;font-style:normal;opacity:.7;font-size:12px}.pmv-hist p{margin:4px 0 0;opacity:.75}
-.pmv-row{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:12px 0;font-size:14px}.pmv-row .pmv{position:static;box-shadow:none;min-height:36px;padding:0 12px 0 10px}.pmv-row .pmv-t{display:inline!important}@media(pointer:coarse){.pmv-row .pmv{height:44px;min-width:44px}}</style>
+.pmv-row{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:12px 0;font-size:14px}.pmv-row .pmv{position:static;box-shadow:none;min-height:36px;padding:0 12px 0 10px}.pmv-row .pmv-t{display:inline!important}@media(pointer:coarse){.pmv-row .pmv{height:44px;min-width:44px}}/* status switch of 3, category tag, flat grid, smaller detail box on phone and tablet */
+.pmv-seg{display:grid;gap:8px;align-items:stretch;justify-content:stretch}.pmv-seg>span{font-weight:600}
+.pmvs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px;padding:4px;border-radius:12px;background:rgba(100,116,139,.14)}
+.pmvs button{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:40px;padding:0 8px;border:1px solid transparent;border-radius:9px;background:transparent;color:inherit;font:inherit;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap}
+.pmvs button:hover:not([disabled]){background:rgba(100,116,139,.14)}.pmvs button[disabled]{cursor:not-allowed;opacity:.55}
+.pmvs button[aria-checked="true"].pmvs-on{background:#dcfce7;color:#14532d;border-color:#86efac}.pmvs button[aria-checked="true"].pmvs-scheduled{background:#fef3c7;color:#78350f;border-color:#fcd34d}.pmvs button[aria-checked="true"].pmvs-off{background:#fff;color:#334155;border-color:#94a3b8;border-style:dashed}
+html.dark .pmvs button[aria-checked="true"].pmvs-on{background:#14532d;color:#dcfce7;border-color:#166534}html.dark .pmvs button[aria-checked="true"].pmvs-scheduled{background:#78350f;color:#fef3c7;border-color:#92400e}html.dark .pmvs button[aria-checked="true"].pmvs-off{background:#1e293b;color:#e2e8f0;border-color:#64748b}
+.pmvs button:focus-visible{outline:2px solid var(--ring,#2563eb);outline-offset:2px}@media(pointer:coarse){.pmvs button{min-height:44px}}
+.pmv-hint{font-size:12px;opacity:.75;line-height:1.4}
+.q22-img{display:grid;gap:8px}.q22-prev{aspect-ratio:16/7;max-height:132px;border-radius:10px;overflow:hidden;display:grid;place-items:center;color:#fff;font-size:12px;text-shadow:0 1px 2px rgba(0,0,0,.4)}.q22-prev img{width:100%;height:100%;object-fit:cover}.q22-ia{display:flex;gap:8px;flex-wrap:wrap}.q22-ia [hidden]{display:none}
+.pcat{display:inline-flex;align-items:center;gap:4px;align-self:flex-start;max-width:100%;margin:0 0 4px;padding:2px 8px;border-radius:99px;background:rgba(100,116,139,.16);color:inherit;font-size:11px;font-weight:600;line-height:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pdd-cat{align-self:flex-start;display:inline-block;padding:2px 10px;border-radius:99px;background:rgba(100,116,139,.16);font-size:12px;font-weight:600;line-height:18px}
+.pmx .pm-flat .pr.l-grid:not(:has(>.s-hero)){grid-template-columns:repeat(auto-fill,minmax(min(100%,220px),1fr))!important}
+.pmx .pm-flat .pr.l-grid>:only-child{max-width:none;margin-inline:0}
+@media(max-width:600px){.pmx .pm-flat .pr.l-grid:not(:has(>.s-hero)){grid-template-columns:repeat(2,minmax(0,1fr))!important}}
+@media(max-width:767px){#pdd .pdd-d{max-height:88vh}#pdd .pdd-cv{aspect-ratio:auto;height:clamp(88px,16vh,128px)}#pdd .pdd-d>.gm-b{overflow:auto;min-height:0;padding:14px 16px 18px;gap:10px}#pdd .pdd-d h2{font-size:18px}}
+@media(min-width:768px) and (max-width:1099px){#pdd .pdd-d{display:flex;flex-direction:column;grid-template-columns:none;width:min(560px,92vw);height:auto;max-height:86vh}#pdd .pdd-cv{aspect-ratio:auto;height:140px;flex:none}#pdd .pdd-d>.gm-b{padding:18px 22px 20px;gap:10px;overflow:auto;min-height:0}}
+</style>
 <script id="pmv-js">(function(){
 /* The on/off switch on a deal's card (Staff only). Off makes the deal a draft: residents do not see it, and it stays in Staff's list (Drafts). On publishes it.
    A deal Staff made is changed in its own record (eso-pmc-saved); a sample deal is remembered in eso-pm-status, which the Resident app reads too (promotions/catalog.js). */
 var SK='eso-pmc-saved';
 function tst(m,undo){try{window.toast&&window.toast(m,undo)}catch(e){}}
 function local(){var n=new Date(),p=function(x){return String(x).padStart(2,'0')};return n.getFullYear()+'-'+p(n.getMonth()+1)+'-'+p(n.getDate())}
-function toggle(id){
+function setVis(id,to,quiet){
 var M=window._pmMETA,m=M&&M[id];if(!m)return;
-/* the list is drawn again after a change, so the button that had focus is replaced: remember it and give focus to its replacement (a keyboard user keeps their place) */
-var kb=!!(document.activeElement&&document.activeElement.closest&&document.activeElement.closest('[data-pmvis]'));
-var z=window._pmStock&&_pmStock.state(m);if(z==='expired'||m.st==='expired'){tst('This deal has ended, so it cannot be turned on from here.');return}
-var turnOn=m.st==='draft',name=(m.d&&m.d[0])||'This deal';
+var kb=!!(document.activeElement&&document.activeElement.closest&&document.activeElement.closest('[data-pmvset]'));
+var z=window._pmStock&&_pmStock.state(m);if(z==='expired'||m.st==='expired'){tst('This deal has ended, so its status cannot be changed from here.');return}
+var cur=m.st==='draft'?'off':m.st==='scheduled'?'scheduled':'on';if(cur===to)return;
+var name=(m.d&&m.d[0])||'This deal';
 if(m.pmc){
  var list=[];try{list=JSON.parse(localStorage.getItem(SK)||'[]')}catch(e){}
  var r=list.filter(function(s){return String(s.id)===String(m.pmc)})[0];if(!r)return;
- r.st=turnOn?((r.x&&r.x.start&&r.x.start>local())?'scheduled':'active'):'draft';
+ r.x=r.x||{};
+ if(to==='scheduled'){if(!(r.x.start&&r.x.start>local())){var t=new Date();t.setDate(t.getDate()+1);r.x.start=t.getFullYear()+'-'+String(t.getMonth()+1).padStart(2,'0')+'-'+String(t.getDate()).padStart(2,'0')}r.st='scheduled'}
+ else if(to==='on'){if(r.x.start&&r.x.start>local())r.x.start=local();r.st='active'}
+ else r.st='draft';
  try{localStorage.setItem(SK,JSON.stringify(list))}catch(e){tst('Could not save. Try again.');return}
  m.st=r.st;if(m.d)m.d[2]=r.st==='scheduled'?'Starts '+String(r.x.start).slice(5):r.st==='draft'?'Draft':'New';
 }else{
- var C=window.PM_CATALOG,ov=C.readOverrides(localStorage);ov[id]=turnOn?'active':'draft';
+ var C=window.PM_CATALOG,ov=C.readOverrides(localStorage);ov[id]=to==='on'?'active':to==='scheduled'?'scheduled':'draft';
  try{localStorage.setItem(C.STATUS_KEY,JSON.stringify(ov))}catch(e){tst('Could not save. Try again.');return}
  var fresh=C.meta(C.deals(),ov)[id];m.st=fresh.st;m.d[2]=fresh.d[2];m.views=fresh.views;m.claims=fresh.claims;
 }
-note(id,m.st==='draft'?'off':m.st==='scheduled'?'scheduled':'on');
-tst(name+(turnOn?(m.st==='scheduled'?' is scheduled: residents see it from its start date.':' is on: residents can see it now.'):' is off: residents do not see it. It moved to Drafts.'),function(){toggle(id)});
+note(id,to);
+if(!quiet)tst(name+(to==='on'?' is live: residents can see it now.':to==='scheduled'?' is scheduled: residents see it from its start date.':' is off live: residents do not see it. It is in Drafts.'),function(){setVis(id,cur,true)});
 try{window._pm&&_pm.upd&&_pm.upd()}catch(e){}
 dlg(id);
-if(kb&&document.getElementById('pdd')){var nb=document.querySelector('#pdd .pmv');if(nb)nb.focus()}
+if(kb){var nb=document.querySelector('#pdd [data-pmvset][aria-checked="true"]');if(nb)nb.focus()}
 follow(id,kb);
 }
 /* Follow the deal: turning it on or off moves it to another tab (Live to Drafts), so it would vanish from under the pointer. Go with it: open the tab it
@@ -8046,11 +8075,23 @@ if(!m||!h||!m.d||m.d[0]!==h.textContent){m=null;for(var k in M)if(M[k].d&&M[k].d
 if(!m||!m.id||!window._pmVisBtn)return;
 var old=box.querySelectorAll('.pmv-row,.pmv-hist');for(var i=0;i<old.length;i++)old[i].remove();
 var row=document.createElement('div');row.className='pmv-row';
-row.innerHTML='<span>Shown to residents</span>'+_pmVisBtn(m,m.d[0]);
+var v=window._pmVis?_pmVis(m):'on',ic=window._pmVisIcon||{},ended=v==='ended',
+ cur=v==='off'?'off':v==='wait'?'scheduled':'on',
+ opts=[['on','Live','on'],['scheduled','Scheduled','wait'],['off','Off live','off']],
+ hint=ended?'Ended: residents no longer see it, and it cannot be turned on here.':cur==='on'?'Residents can see and claim it now.':cur==='scheduled'?'Residents see it from its start date. '+String((m.d&&m.d[2])||''):'Hidden from residents. It stays in Drafts.';
+row.className='pmv-row pmv-seg';row.dataset.id=m.id;
+row.innerHTML='<span id="pmvl">Shown to residents</span><div class="pmvs" role="radiogroup" aria-labelledby="pmvl">'+opts.map(function(o){var on=!ended&&o[0]===cur;return '<button type="button" role="radio" class="pmvs-'+o[0]+'" data-pmvset="'+o[0]+'" aria-checked="'+on+'" tabindex="'+(on||(ended&&o[0]==='on')?0:-1)+'"'+(ended?' disabled':'')+'><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+(ic[o[2]]||'')+'</svg><span>'+o[1]+'</span></button>'}).join('')+'</div><small class="pmv-hint" role="status">'+hint.replace(/[<>&"]/g,'')+'</small>';
 var after=box.querySelector('.gm-row');after?after.after(row):box.prepend(row);
 row.insertAdjacentHTML('afterend',histHTML(m.id));
+var bdg=document.querySelector('#pdd .pdd-cv .bd');if(bdg&&m.d)bdg.textContent=m.d[2];
 }
 new MutationObserver(function(){var p=document.getElementById('pdd');if(p&&!p.querySelector('.pmv-row'))dlg()}).observe(document.body,{childList:true,subtree:true});
-window.addEventListener('click',function(e){var b=e.target.closest&&e.target.closest('[data-pmvis]');if(!b)return;e.preventDefault();e.stopImmediatePropagation();if(!b.disabled)toggle(b.dataset.pmvis)},true);
+window.addEventListener('click',function(e){var t=e.target.closest&&e.target.closest('[data-pmvset]');
+if(t){e.preventDefault();e.stopImmediatePropagation();var r=t.closest('.pmv-row');if(r&&!t.disabled)setVis(r.dataset.id,t.dataset.pmvset);return}
+var b=e.target.closest&&e.target.closest('[data-pmvis]');if(!b)return;e.preventDefault();e.stopImmediatePropagation();
+/* the pill on a card shows the status; the three choices are in the detail box it opens */
+lastId=b.dataset.pmvis;if(window._cov&&_cov.detail)_cov.detail(b.dataset.pmvis)},true);
+window.addEventListener('keydown',function(e){var t=e.target.closest&&e.target.closest('[data-pmvset]');if(!t||!/^Arrow(Left|Right|Up|Down)$/.test(e.key))return;
+var all=[].slice.call(t.parentNode.querySelectorAll('[data-pmvset]:not([disabled])')),i=all.indexOf(t),n=all[(i+(/Left|Up/.test(e.key)?all.length-1:1))%all.length];if(n){e.preventDefault();n.focus();n.click()}},true);
 })();</script>
 </body></html>

@@ -20,7 +20,7 @@ test("the catalog has 29 sample deals in 7 categories and gives each a status: 1
   const M = C.meta(D);
   const by = (st) => Object.values(M).filter((m) => m.st === st).length;
   assert.deepEqual([by("active"), by("scheduled"), by("draft"), by("expired")], [17, 4, 4, 4]);
-  // Staff's tabs: Live 16 + Sold out 1 + Expired 2 + Saved 4 + Drafts 4 = 27, because 2 of the 4 ended deals are in Storage. "All" counts the published ones only (23).
+  // Staff's tabs: Live 16 + Sold out 1 + Expired 2 + Scheduled 4 + Drafts 4 = 27, because 2 of the 4 ended deals are in Storage. "All" counts the published ones only (23).
   assert.equal(by("active") + by("scheduled") + by("draft") + 2, 27);
 });
 
@@ -122,28 +122,29 @@ test("Staff's on/off choice: off hides a running sample deal from residents, on 
   assert.deepEqual(C.readOverrides(store({ "eso-pm-status": "not json" })), {});
 });
 
-test('Staff\'s switch is a Staff-only button at the top of the card, with words and a role="switch", and it is caught before the card opens', () => {
+test('Staff\'s switch is a Staff-only button at the top of the card, with words, that opens the box with 3 choices, and it is caught before the card opens', () => {
   const staff = readFileSync(new URL("../../src/staff/account-settings-content.html", import.meta.url), "utf8");
   assert.ok(staff.includes('${res||!m.id?"":pmVisBtn(m,br)}'), "not drawn in the resident view");
-  assert.match(staff, /role="switch" aria-checked=/);
+  assert.match(staff, /aria-haspopup="dialog" aria-label="\$\{H\(word\+/);
+  assert.match(staff, /role="radiogroup"/, "Live / Scheduled / Off live are three explicit choices in the box");
   assert.match(staff, /on:"Live",wait:"Scheduled",off:"Off live",ended:"Ended"/);
-  assert.ok(staff.includes("window.addEventListener('click',function(e){var b=e.target.closest&&e.target.closest('[data-pmvis]')"), "caught on window, before the card's own handlers");
+  assert.ok(staff.includes("var b=e.target.closest&&e.target.closest('[data-pmvis]');if(!b)return;e.preventDefault();e.stopImmediatePropagation();"), "caught on window, before the card's own handlers");
   assert.ok(staff.includes('!t.closest("[data-pmvis]")&&!t.closest(".stf")'), "the card does not open when the switch is pressed");
   assert.ok(!/\.pmv\{[^}]*font:600 12px\/16px inherit/.test(staff), 'a font shorthand with "inherit" is dropped by the browser, and the label came out huge');
   // the same switch inside the deal's detail box, Staff only (skipped in the resident view), shared helper so the two can never differ
   assert.ok(staff.includes("window._pmVisBtn=pmVisBtn;"));
   assert.ok(staff.includes("if(!box||(window._pm&&_pm.res))return;"), "no switch in the box in the resident view");
-  assert.match(staff, /row\.innerHTML='<span>Shown to residents<\/span>'\+_pmVisBtn\(m,m\.d\[0\]\)/);
+  assert.match(staff, /row\.innerHTML='<span id="pmvl">Shown to residents<\/span><div class="pmvs" role="radiogroup"/);
   // the card is followed: after a change Staff land on the tab it moved to, at its card, marked for a moment
   assert.ok(staff.includes("window._pmTabOf=pmTabOf;"));
-  assert.ok(staff.includes("follow(id,kb);"), "toggle() follows the deal");
+  assert.ok(staff.includes("follow(id,kb);"), "setVis() follows the deal");
   assert.ok(staff.includes("c.classList.add('pmv-flash')"));
   assert.ok(staff.includes("@media(prefers-reduced-motion:reduce){.pd.pmv-flash{animation:none}}"), "no animation for reduced motion");
   // a deal scheduled for a date is live from that date in Staff's list too (the Resident app already shows it then): Saved becomes Live
   assert.ok(staff.includes('s.st==="scheduled"&&s.x&&s.x.start&&s.x.start<=todayISO?"active":s.st'));
   // keyboard: the list is drawn again after a change, so focus goes to the new switch (card and box); the words stay on touch screens too
-  assert.ok(staff.includes("document.activeElement.closest('[data-pmvis]')"), "the focused switch is remembered");
-  assert.ok(staff.includes("var nb=document.querySelector('#pdd .pmv');if(nb)nb.focus()"), "focus returns to the switch in the box");
+  assert.ok(staff.includes("document.activeElement.closest('[data-pmvset]')"), "the focused choice is remembered");
+  assert.ok(staff.includes("var nb=document.querySelector('#pdd [data-pmvset][aria-checked=\"true\"]');if(nb)nb.focus()"), "focus returns to the chosen option in the box");
   assert.ok(staff.includes("if(refocus){var s=c.querySelector('.pmv');if(s)s.focus({preventScroll:true})}"), "focus follows the card to its new tab");
   assert.ok(!/@media\(pointer:coarse\)\{\.pmv\{[^}]*\}\.pmv-t\{display:none\}\}/.test(staff), "no icon-only switch on touch screens: Live / Off live must be readable");
   // 1,000 deals: off-screen cards are skipped, and the follow looks again until a long list is drawn (and scrolls at once before it focuses)
@@ -160,7 +161,7 @@ test('Staff\'s switch is a Staff-only button at the top of the card, with words 
   assert.ok(staff.includes('aria-label="Show ${next} more promotions in ${H(C[1])}, ${left} not shown yet"'), "the button says what it opens");
   // every change of the switch is kept with its time, and shown in the box; only the switch writes it
   assert.ok(staff.includes("var LK='eso-pm-vislog';"));
-  assert.ok(staff.includes("note(id,m.st==='draft'?'off':m.st==='scheduled'?'scheduled':'on');"), "toggle() writes one entry per change");
+  assert.ok(staff.includes("note(id,to);"), "setVis() writes one entry per change");
   assert.ok(staff.includes("Visibility history ("), "the box shows the history");
   const resident = readFileSync(new URL("../../src/features/promotions/resident.js", import.meta.url), "utf8");
   assert.ok(!resident.includes("eso-pm-vislog"), "residents never read the history");
@@ -309,6 +310,11 @@ test('what Staff changes with "Edit details" is what the resident reads: sample 
   assert.equal(junk.ev0.reward, "");
   assert.equal(junk.ev0.price.length, 30);
   assert.equal(junk.ev0.code, "", "a code that is not 3 to 20 letters, numbers or dashes is dropped");
+  // Staff can move a deal to another category: a known category is kept, an unknown one is dropped, and the Resident record carries it
+  const moved = C.readEdits(store({ "eso-pmedits": JSON.stringify({ parking0: { d: ["a"], cat: "pets" }, ev0: { d: ["b"], cat: "nope" } }) }));
+  assert.equal(moved.parking0.cat, "pets");
+  assert.equal("cat" in moved.ev0, false, "an unknown category is dropped");
+  assert.equal(C.records({}, { parking0: { title: "", reward: "", price: "", cat: "pets" } }).find((x) => x.id === "parking0").x.cat, "pets");
   assert.deepEqual(C.readEdits(store({ "eso-pmedits": "[1]" })), {});
   assert.deepEqual(C.readEdits(store({ "eso-pmedits": "nope" })), {});
   // the same edit made again is not cached wrong: a new edit shows at once

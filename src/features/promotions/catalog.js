@@ -73,7 +73,7 @@
   /** Where Staff's on/off choice for a sample deal is kept: { "parking3": "draft" | "active" }. A deal not in it has the status the catalog gave it. */
   const STATUS_KEY = "eso-pm-status";
 
-  /** What Staff chose, made safe: only known ids and only the two choices (off = "draft", on = "active"). */
+  /** What Staff chose, made safe: only known ids and only the three choices (off = "draft", on = "active", later = "scheduled"). */
   function readOverrides(storage) {
     let raw = null;
     try {
@@ -83,7 +83,7 @@
     }
     const out = {};
     if (raw && typeof raw === "object" && !Array.isArray(raw)) {
-      for (const k of Object.keys(raw)) if (/^[a-z]+\d{1,2}$/.test(k) && (raw[k] === "draft" || raw[k] === "active")) out[k] = raw[k];
+      for (const k of Object.keys(raw)) if (/^[a-z]+\d{1,2}$/.test(k) && (raw[k] === "draft" || raw[k] === "active" || raw[k] === "scheduled")) out[k] = raw[k];
     }
     return out;
   }
@@ -105,7 +105,8 @@
       const d = Array.isArray(e.d) ? e.d : [];
       const s = (v, n) => (typeof v === "string" ? v.trim().slice(0, n) : "");
       const code = typeof e.code === "string" ? e.code.trim().toUpperCase() : undefined;
-      out[k] = { title: s(d[0], 60), reward: s(d[1], 90), price: s(d[3], 30), code: code === undefined ? undefined : /^[A-Z0-9-]{3,20}$/.test(code) ? code : "" };
+      const cat = typeof e.cat === 'string' && CATS.some(([v]) => v === e.cat) ? e.cat : undefined;
+      out[k] = { title: s(d[0], 60), reward: s(d[1], 90), price: s(d[3], 30), code: code === undefined ? undefined : /^[A-Z0-9-]{3,20}$/.test(code) ? code : "", ...(cat ? { cat } : {}) };
     }
     return out;
   }
@@ -203,7 +204,7 @@
             title,
             reward,
             desc: `${reward} (${price}).`,
-            cat: m.k,
+            cat: e.cat || m.k,
             partner: title,
             offerText: price,
             badge: m.d[2],
