@@ -94,7 +94,7 @@
         #dlg-code { font-size: 0.9375rem; line-height: 1.25rem; letter-spacing: 0.04em; }
         #dlg button { position: relative; height: 2rem; min-height: 0; padding-inline: 0.625rem; font-size: 0.8125rem; }
         #dlg button#dlg-reveal { width: 2rem; min-width: 0; padding-inline: 0; }
-        #dlg button#dlg-close { width: 2rem; min-width: 0; padding-inline: 0; }
+        #dlg button#dlg-close { position: absolute; width: 2rem; min-width: 0; padding-inline: 0; } /* stays in the corner of the picture */
         #dlg button::after { content: ""; position: absolute; inset: -0.375rem -0.125rem; }
         #dlg button#dlg-close::after { inset: -0.375rem; }
       }

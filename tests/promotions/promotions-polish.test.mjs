@@ -70,3 +70,7 @@ test("the status word on a reward card is a small badge with a 44 px press area"
   assert.ok(html.includes("#rw-list button[data-status] { position: relative; height: 1.25rem; min-height: 0; padding-inline: 0.5rem; }"));
   assert.ok(html.includes('#rw-list button[data-status]::after { content: ""; position: absolute; inset: -0.75rem -0.25rem; }'), "20 + 12 + 12 = 44 px");
 });
+
+test("the close button of the deal window stays in the corner of its picture (the compact rule made every button of the window relative)", () => {
+  assert.ok(html.includes("#dlg button#dlg-close { position: absolute; width: 2rem; min-width: 0; padding-inline: 0; }"));
+});
