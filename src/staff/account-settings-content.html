@@ -396,10 +396,12 @@ function download(id){
  try{var a=DOC.createElement('a');a.href=URL.createObjectURL(new Blob([c.text],{type:'text/csv'}));a.download=name;DOC.body.appendChild(a);a.click();a.remove()}catch(e){}
  tst(c.rows?'Downloaded '+c.rows+(c.rows===1?' claim':' claims')+'.':'Nobody has claimed this yet: the file has only the header row.')}
 
+/* what the Manage box shows depends on the deal's state and end date: it is drawn again when either changes (Off live, Scheduled, Live, a new date), not only when another deal is opened */
+function sig(id){var m=M()[id];return m?m.st+"|"+(endIso(m)||""):""}
 function render(box,id){
  var m=M()[id];if(!m)return;var e=ended(m),end=endIso(m),t=today(),base=end&&end>t?end:t;
  var state=e?'Ended'+(end?' on '+fmt(end):'')+'. Residents do not see it.':(m.st==='draft'?'Off live. Residents do not see it.':(m.st==='scheduled'?'Scheduled. ':'Live. ')+(end?'Ends '+fmt(end)+'.':'No end date.'));
- box.dataset.id=id;
+ box.dataset.id=id;box.dataset.sig=sig(id);
  box.innerHTML='<h4>Manage</h4><p class="pml-s">'+E(state)+'</p>'
  +'<div class="pml-r"><label for="pmlD">'+(e?'Extend until':'Change end date')+'</label><input id="pmlD" type="date" min="'+t+'" value="'+addDays(base,30)+'"><button type="button" class="bx bx-p" data-pml="extend">'+(e?'Extend':'Set date')+'</button></div>'
  +'<div class="pml-r">'+(e?'':'<button type="button" class="bx bx-o" data-pml="end">End now</button>')+'<button type="button" class="bx bx-o" data-pml="csv">Export claimers (CSV)</button><button type="button" class="bx bx-o pml-d" data-pml="rm">Remove card</button></div>'
@@ -424,7 +426,7 @@ new MutationObserver(function(){
  var row=p.querySelector('.pmv-row');if(!row||!row.dataset.id)return;
  var box=p.querySelector('.pml-box');
  if(!box){box=DOC.createElement('section');box.className='pml-box';var anchor=p.querySelector('.pmv-hist')||row;anchor.after(box);render(box,row.dataset.id)}
- else if(box.dataset.id!==row.dataset.id)render(box,row.dataset.id)
+ else if(box.dataset.id!==row.dataset.id||box.dataset.sig!==sig(row.dataset.id))render(box,row.dataset.id)
 }).observe(DOC.body,{childList:true,subtree:true});
 window._pmLife={endNow:endNow,extend:extend,remove:remove,csv:csvOf,render:render};
 })();</script>
@@ -2657,7 +2659,7 @@ function fieldHTML(b,f){const[k,l,t,o]=f,v=b.props[k];const lab=`<label class="p
  return `<div class="pbf">${lab}<input id="pbf-${k}" data-bp="${k}" value="${H(v)}">${b.type=="coupon"&&k=="code"?couponWarn(v):""}</div>`}
 /* A Coupon block shows a promo code on the Resident page only when a promotion takes that code (anything else would be copied and then refused in Redeem): say so here. */
 function couponWarn(v){const s=String(v||"").trim();if(!s)return "";const codes=Object.values(META).map(m=>String(m.code||"").toLowerCase()).filter(Boolean),W=t=>`<p class="pbwarn" role="alert">${H(t)}</p>`;
- if(/{{s*codes*}}/.test(s))return codes.length?"":W("No promotion has a promo code yet, so the Resident page shows no code here.");
+ if(/\{\{\s*code\s*\}\}/.test(s))return codes.length?"":W("No promotion has a promo code yet, so the Resident page shows no code here.");
  return codes.includes(s.toLowerCase())?"":W("No promotion uses the code "+s+". Residents would copy it and be told it was not found, so the Resident page does not show it. Use a code of one of your promotions.")}
 function blockInsp(b){if(!b)return `<div class="pbemp">${ic("cursor",22,1.5)}<p>Select a block on the canvas to edit its content and style.</p></div>`;const s=b.style;
  return `<div class="pbsec"><h4>${ic(BN[b.type][1],14)} ${BN[b.type][0]}</h4>${(FLD[b.type]||[]).map(f=>fieldHTML(b,f)).join("")}<p class="pbh">Tokens: {{brand}} {{offer}} {{code}} fill in from the promotion.</p></div>
@@ -4399,7 +4401,7 @@ const FL={brand:["Brand name","text"],links:["Menu links","text","Comma separate
 const HAS_IMG=["hero","split","imgtext","featured"],HAS_BTN=["hero","split","cta","featured"],HAS_CARD=["grid","carousel","featured","tiles","quotes"];
 /* The Coupon block's code: a code no promotion takes would be copied by a Resident and refused in Redeem, so the Resident page does not show it. Say so while Staff type it. */
 const cpWarn=(v)=>{const s=String(v||"").trim();if(!s)return "";const codes=Object.values((window._pm&&_pm.META)||{}).map(m=>String(m.code||"").toLowerCase()).filter(Boolean),W=t=>`<small class="ix-warn" role="alert">${H(tt(t))}</small>`;
- if(/{{s*codes*}}/.test(s))return codes.length?"":W("No promotion has a promo code yet, so the Resident page shows no code here.");
+ if(/\{\{\s*code\s*\}\}/.test(s))return codes.length?"":W("No promotion has a promo code yet, so the Resident page shows no code here.");
  return codes.includes(s.toLowerCase())?"":W("No promotion uses this code. Residents would copy it and be told it was not found, so the Resident page does not show it. Use a code of one of your promotions.")};
 const field=(b,k,v)=>{const f=FL[k];if(!f||k=="img"||k=="btn"||k=="focal"||k=="imgx"||k=="lk"||k=="href")return "";const id="ix-"+k,L=`<span class="ix-l">${tt(f[0])}</span>`;
  switch(f[1]){case"text":return `<label class="ix-f">${L}<input class="ix-in" id="${id}" data-ixp="${k}" value="${H(v)}">${f[2]?`<small>${tt(f[2])}</small>`:""}${b.type=="coupon"&&k=="code"?cpWarn(v):""}</label>`;
@@ -6743,7 +6745,8 @@ const lim=m=>{const x=m.x||{};return +(x.limT||LIM[m.id]||0)};
 // demo seeds: one healthy, one low stock, one sold out (persisted so a claim really decrements)
 const act=Object.values(META).filter(m=>m.st=="active");
 [[act[0],23],[act[1],3],[act[2],0]].forEach(([m,l])=>{if(m&&!LIM[m.id]&&!(m.x&&m.x.limT))LIM[m.id]=used(m)+l});localStorage.setItem(K,JSON.stringify(LIM));
-const endD=m=>{const x=m.x||{};if(x.end)return new Date(x.end+"T00:00:00");if(m.ext)return new Date(m.ext+"T00:00:00");if(m.st=="expired")return PM_CATALOG.day(-((m.endsDays||3)%20+1));return null};
+// A deal ends at the END of its last day (23:59, or the end time Staff set), as the Resident app counts it: one that ends today is still live today.
+const endD=m=>{const x=m.x||{};if(x.end)return new Date(x.end+"T"+(/^\d{2}:\d{2}$/.test(x.etime||"")?x.etime:"23:59")+":00");if(m.ext)return new Date(m.ext+"T23:59:00");if(m.st=="expired")return PM_CATALOG.day(-((m.endsDays||3)%20+1));return null};
 const expired=m=>m.st=="expired"||(!!endD(m)&&endD(m)<new Date());
 const left=m=>{const L=lim(m);return L?Math.max(0,L-used(m)):null};
 const state=m=>!m||!m.id?"":expired(m)?"expired":left(m)===0?"soldout":"";

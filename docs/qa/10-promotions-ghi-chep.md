@@ -157,7 +157,7 @@ Người dùng: khối "Offer ends in" / "Use this code at checkout" / `MALLA10`
 - [x] **Phần 2: Brand kit.** Màu chính, màu phụ, font, kiểu nút, logo; xem Resident đổi cả thanh portal, huy hiệu, hộp thoại; trả về mặc định.
 - [x] **Phần 3: Tạo và sửa deal.** Form New promotion (ảnh bìa, logo đối tác, mã tĩnh/duy nhất/QR/link, giới hạn tổng/mỗi người/mỗi unit, hẹn lịch, nháp); Edit details (đổi tiêu đề, giá, mã, danh mục) hiện đúng ở Resident.
 - [x] **Phần 4: Claim.** Alex và Jamie cùng unit, giới hạn theo unit/theo người, hết suất, đã claim, Cancel, claim lại, History; Staff xác nhận/đổi/từ chối ở Claims và Resident thấy đúng trạng thái và giờ.
-- [ ] **Phần 5: Vòng đời.** Đóng, gia hạn, tạm tắt/Off live, hẹn lịch, xoá, xuất CSV; ngày thật 16/11/2026, đồng hồ, "Expired on" đúng; sample deal và deal do Staff tạo.
+- [x] **Phần 5: Vòng đời.** Đóng, gia hạn, tạm tắt/Off live, hẹn lịch, xoá, xuất CSV; ngày thật 16/11/2026, đồng hồ, "Expired on" đúng; sample deal và deal do Staff tạo.
 - [ ] **Phần 6: Truy cập và dọn.** Bàn phím, focus, (i), Redeem; vùng bấm; không có hai điều khiển cho một việc; dọn dữ liệu test; ghi tổng kết, hỏi người dùng về push.
 
 ### Saved: một màn hình riêng, sao tô vàng
@@ -247,3 +247,27 @@ Chưa sửa: một lần đầu, claim của Jamie cho deal theo người không
 Dọn dữ liệu: xoá 3 deal QA4, toàn bộ bản ghi Resident của Jamie, claim và nhật ký QA4 của Alex, các mục Claims và trạng thái QA4.
 
 Test: `promotions-history.test.mjs` (huỷ vẫn là Cancelled, từ chối thật vẫn là Rejected, số claim).
+
+## Phần 5 (xong): Vòng đời deal
+
+Cách làm: Staff (tab thứ hai) với hai deal QA5 do form tạo và deal mẫu "Green Bowl"; Resident (375 sáng) mở sẵn ở tab khác, đo sau mỗi thao tác ở Staff mà **không tải lại** trang Resident. Ngày thật 16/11/2026.
+
+Chạy đúng:
+- **Off live** (deal vào Drafts, Resident ẩn ngay), **Live** (hiện lại), **Scheduled** (bắt đầu ngày mai, Resident ẩn; Live đặt lại ngày bắt đầu hôm nay).
+- **Set date**: ngày mai (Resident "Exp: Nov 17", "1d 21h left"), hôm nay ("Exp: Nov 16", "21h 37m left"); ngày quá khứ bị từ chối ("Pick today or a later date.").
+- **End now** (hỏi xác nhận, Resident ẩn ngay, Staff "Ended on Nov 16" kèm toast Undo), **Extend** (deal đã kết thúc sống lại, Resident hiện lại với ngày mới, "6d 21h left").
+- **Remove card**: Resident ẩn ngay, deal ở trạng thái removed, toast Undo.
+- Deal mẫu: Off live, Live, đổi ngày (Resident "Exp: Dec 20"), End now (ẩn) đều đúng; nhãn "Expired on Oct 27" của hai deal mẫu hết hạn khớp ngày thật.
+
+Lỗi tìm thấy và đã sửa:
+1. **Staff coi deal kết thúc hôm nay là đã kết thúc ngay từ 0 giờ.** Đặt ngày kết thúc là hôm nay thì Staff ghi "Ended on Nov 16. Residents do not see it." trong khi Resident vẫn bán tới 23:59 ("21h 37m left"). Hai nơi mâu thuẫn. Giờ Staff tính hết hạn ở cuối ngày cuối (23:59 hoặc giờ kết thúc Staff đặt), như Resident.
+2. **Hộp Manage không đổi theo trạng thái.** Bấm Off live mà hộp vẫn ghi "Live. Ends Nov 20." Giờ hộp vẽ lại khi trạng thái hoặc ngày kết thúc đổi (chữ ghi "Off live. Residents do not see it.", "Scheduled. ...").
+3. **Hai biểu thức chính quy trong cảnh báo mã (Phần 3) mất dấu gạch chéo ngược** khi tôi chèn bằng heredoc nên `{{ code }}` có dấu cách không được nhận. Đã sửa; test kiểm tra.
+
+Bài học: lệnh heredoc của shell trong môi trường này làm mất dấu `\` trong chuỗi (đã mất hai lần); mọi mã có `\d`, `\s`, `\{` phải ghi bằng công cụ Write hoặc Edit, rồi grep lại dòng đã sửa.
+
+Chưa sửa: "Scheduled" chỉ đặt ngày bắt đầu là ngày mai, Staff không chọn được ngày bắt đầu khác trong Manage (chọn được khi tạo bằng form).
+
+Dọn dữ liệu: xoá hai deal QA5, trạng thái và ngày kết thúc của "Green Bowl" (`eso-pm-status`, `eso-pm-ends`), khoá `qa-*`.
+
+Test: `promotions-history.test.mjs` (hết hạn cuối ngày, hộp Manage vẽ lại, biểu thức chính quy).

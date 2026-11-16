@@ -233,3 +233,12 @@ test("a claim the resident cancelled stays Cancelled after Staff's inbox records
   const res = readFileSync(new URL("../../src/features/promotions/resident.js", import.meta.url), "utf8");
   assert.ok(res.includes("claims, latest"), "a promotion claimed more than once says how many claims are active");
 });
+
+test("a deal that ends today is live until the end of today in Staff too, and the Manage box follows the deal's state", () => {
+  const staff = readFileSync(new URL("../../src/staff/account-settings-content.html", import.meta.url), "utf8");
+  assert.ok(staff.includes('if(x.end)return new Date(x.end+"T"+(/^\\d{2}:\\d{2}$/.test(x.etime||"")?x.etime:"23:59")+":00")'), "end of the last day (23:59 or the end time), the way the Resident app counts it");
+  assert.ok(staff.includes('if(m.ext)return new Date(m.ext+"T23:59:00")'));
+  assert.ok(staff.includes("box.dataset.sig=sig(id)") && staff.includes("box.dataset.sig!==sig(row.dataset.id)"), "Off live, Scheduled, Live and a new date redraw the Manage box");
+  assert.ok(!/\/\{\{s\*codes\*\}\}\//.test(staff), "the coupon check keeps its backslashes: {{ code }} with spaces counts too");
+  assert.ok(staff.includes("\\{\\{\\s*code\\s*\\}\\}"));
+});
