@@ -445,7 +445,7 @@ Lỗ hổng thấy khi dựng ca: (1) bot trả lời câu hỏi giảm giá b�
 - [x] **R4-1: Panel Promotions trong chat của Staff.** Trong panel "Resident and unit": danh sách claim của cư dân đó (deal, mã, trạng thái, thời điểm, lý do nếu bị từ chối), nút "Open in Claims inbox" mở đúng claim. Chỉ hiện claim của cư dân trong cuộc trò chuyện (phân quyền). Thử với T-1086 và nhiều cư dân, 375/830/1440, sáng và tối.
 - [x] **R4-2: Resident "Ask about this claim".** Ở My rewards và hộp thoại deal đã claim: nút mở Messages với nội dung soạn sẵn (deal, mã, giờ claim, trạng thái), chuyển thẳng cho property team, không qua bot; ticket gắn nhãn Promotions.
 - [x] **R4-3: Bot nhận ra câu hỏi về deal, claim, giảm giá, tính tiền.** Trả lời đúng ngữ cảnh (không dùng nội dung xe lạ), đưa nút "Talk to a person" và ghi nhãn Promotions cho ticket.
-- [ ] **R4-4: Staff xử lý ngay từ claim.** Ghi chú nội bộ trên claim, "Nhắn cư dân" (mở trả lời trong đúng cuộc trò chuyện), cấp bù hoặc cộng ưu đãi tay (ghi rõ lý do, ai làm, khi nào) và cư dân thấy kết quả ở My rewards và thông báo.
+- [x] **R4-4: Staff xử lý ngay từ claim.** Ghi chú nội bộ trên claim, "Nhắn cư dân" (mở trả lời trong đúng cuộc trò chuyện), cấp bù hoặc cộng ưu đãi tay (ghi rõ lý do, ai làm, khi nào) và cư dân thấy kết quả ở My rewards và thông báo.
 - [ ] **R4-5: Ma trận trường hợp.** Claim 2 lần, huỷ rồi claim lại, hai Staff cùng xử lý một claim, Verify hai lần, deal bị Off live hoặc hết hạn khi claim đang Pending, hết suất giữa chừng, cư dân A xem claim của B, Staff property khác, cư dân đã chuyển đi, hỏi sau khi claim Redeemed. Ghi kết quả từng ca.
 - [ ] **R4-6: Tổng kết vòng 4.** Dọn dữ liệu (claim của res-1, ticket T-1086 và các ticket thử), cập nhật ghi chép, hỏi push.
 
@@ -481,3 +481,21 @@ Chưa kiểm: nút ở 375 và 830, chế độ tối.
 Dọn dữ liệu: đã khôi phục tin nhắn và claim của res-3 về như trước; ca tập T-1086 (claim Pending của Alex) không bị đụng.
 
 Test: `tests/promotions/promotions-ask.test.mjs` (6 test). `npm test` 511 test, 510 qua, 1 lỗi cũ.
+
+### R4-4 (xong): Staff xử lý ngay từ claim
+
+Đã làm (Claims inbox, hộp chi tiết của claim):
+- **"Apply by hand"** (cho claim đang Pending hoặc Verified chưa áp): mở hộp hỏi "What you did" (chọn câu có sẵn: credited to invoice, refunded the difference, added to the account, already applied; hoặc tự viết), bắt buộc có lý do ("Say what you did so the resident knows."). Kết quả: claim thành Verified, ghi "Applied by hand: lý do, Property team, giờ" trong chi tiết, và ghi một dòng vào ghi chú nội bộ. "Move back to Pending" gỡ trạng thái này.
+- **Internal notes (only Staff see these)**: ô viết và danh sách ghi chú có người, giờ; tối đa 20 ghi chú, mỗi cái 500 ký tự. Không đi vào `eso-pm-claimstate` nên cư dân không đọc được (đã kiểm). Ô "Sync note" của hệ thống ngoài giữ nguyên (việc khác).
+- **"Message <tên>"**: mở Messages của Staff đúng cuộc trò chuyện đang mở của cư dân đó (deep link `#/c/<id>`); chưa có chat đang mở thì báo "No open chat with <tên>.".
+- **Cư dân thấy kết quả**: trong My rewards, lịch sử, hộp deal và thông báo: "Applied by the property team: lý do" (thông báo: "the property team applied it for you"); claim chỉ Verify thường giữ lời cũ. Panel Promotions trong chat Staff cũng nói như vậy.
+
+Thử bằng giao diện thật trên ca mới (không phải T-1086): Priya Nair (res-2) claim CubeSmart (CUBES20); Staff thêm ghi chú nội bộ, thử Apply không lý do (bị chặn), chọn câu có sẵn + sửa thêm "(invoice 11/16)", Apply; Resident res-2 thấy ngay (không tải lại) "Verified ... Applied by the property team: ..." (đã chụp hình); "Message Priya" mở đúng chat T-1081 và panel Promotions ở đó ghi lại "Verified, Applied by the property team"; ghi chú nội bộ không lộ cho cư dân.
+
+Lỗi tìm thấy và đã sửa: câu chọn sẵn trong hộp Apply không điền vào ô lý do (thiếu xử lý `change`, giống hộp Reject đã có).
+
+Chưa kiểm: hộp Apply và các nút mới ở 375 và 830, chế độ tối; "Apply by hand" cho claim gọi API ngoài (`aid`) chưa nối API (chỉ local, như Verify khi không có API).
+
+Dọn dữ liệu: claim, trạng thái và ghi chú của Priya đã xoá; ca tập T-1086 và claim Pending của Alex không bị đụng.
+
+Test: `tests/promotions/promotions-handle.test.mjs` (3 test). `npm test` 514 test, 513 qua, 1 lỗi cũ.

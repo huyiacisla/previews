@@ -561,7 +561,7 @@ function refreshDialog() {
     const cs = mate ? null : claimStatus(storage, me.id, p.id);
     const say = {
       pending: "Waiting for the property team to confirm.",
-      verified: "Confirmed by the property team.",
+      verified: cs && cs.manual ? `Applied by the property team: ${cs.manual}` : "Confirmed by the property team.",
       redeemed: "Used. Thank you.",
       rejected: cs && /cancelled/i.test(cs.reason || "") ? "You cancelled this claim." : `Not approved by the property team.${cs && cs.reason ? ` ${cs.reason}` : ""}`,
     };

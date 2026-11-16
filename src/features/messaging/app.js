@@ -1273,7 +1273,7 @@ export function mount({ portal }) {
         return r ? r.x.title : "";
       })
         .slice(0, 6)
-        .map((e) => ({ ...e, note: SAID[e.label] || e.note }));
+        .map((e) => ({ ...e, note: e.label === "Verified" && /^Applied/.test(e.note) ? e.note : SAID[e.label] || e.note }));
     } catch {
       return [];
     }

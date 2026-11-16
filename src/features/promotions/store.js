@@ -329,7 +329,7 @@ export function claimStatus(storage, residentId, promoId) {
   // the newest claim is the one that is shown: an older rejected one does not speak for a new claim that waits
   const s = all[`${residentId}|${promoId}|${count}`];
   if (s && (s.st === "verified" || s.st === "redeemed" || s.st === "rejected"))
-    return { st: s.st, reason: s.st === "rejected" ? String(s.reason || "").slice(0, 200) : "", locked: s.st === "rejected" && !!s.lock };
+    return { st: s.st, reason: s.st === "rejected" ? String(s.reason || "").slice(0, 200) : "", locked: s.st === "rejected" && !!s.lock, ...(s.st !== "rejected" && s.manual ? { manual: String(s.manual).slice(0, 200) } : {}) };
   return { st: "pending", reason: "", locked: false };
 }
 
@@ -365,7 +365,7 @@ export function claimTimeline(storage, residentId, promoId) {
   const s = (read(storage, KEY.claimState, {}) || {})[`${residentId}|${promoId}|${n}`];
   const ms = (v) => (Number(v) > 0 ? new Date(Number(v)).toISOString() : "");
   const out = [{ label: "Claimed", at: c.at || "", note: c.code ? `Code issued: ${c.code}` : "", tone: "wait" }];
-  if (s && (s.st === "verified" || s.st === "redeemed")) out.push({ label: "Verified", at: ms(s.vt) || (s.st === "verified" ? ms(s.at) : ""), note: "The property team confirmed your claim", tone: "ok" });
+  if (s && (s.st === "verified" || s.st === "redeemed")) out.push({ label: "Verified", at: ms(s.vt) || (s.st === "verified" ? ms(s.at) : ""), note: s.manual ? `Applied by the property team: ${String(s.manual).slice(0, 200)}` : "The property team confirmed your claim", tone: "ok" });
   if (s && s.st === "redeemed") out.push({ label: "Redeemed", at: ms(s.rt) || ms(s.at), note: "The code was used", tone: "ok" });
   const byMe = Array.isArray(c.cancelled) && c.cancelled.includes(n);
   if (s && s.st === "rejected" && !byMe) out.push({ label: "Rejected", at: ms(s.jt) || ms(s.at), note: String(s.reason || "No reason given").slice(0, 200), tone: "no" });
@@ -402,7 +402,7 @@ export function historyFor(storage, residentId, titleOf = () => "") {
     if (e.k !== "claimed") continue;
     const s = states[`${residentId}|${e.p}|${e.n}`];
     if (!s) continue;
-    if (s.st === "verified" || s.st === "redeemed") ev.push({ at: ms(s.vt) || (s.st === "verified" ? ms(s.at) : ""), promoId: e.p, title, label: "Verified", note: "The property team confirmed your claim", tone: "ok" });
+    if (s.st === "verified" || s.st === "redeemed") ev.push({ at: ms(s.vt) || (s.st === "verified" ? ms(s.at) : ""), promoId: e.p, title, label: "Verified", note: s.manual ? `Applied by the property team: ${String(s.manual).slice(0, 200)}` : "The property team confirmed your claim", tone: "ok" });
     if (s.st === "redeemed") ev.push({ at: ms(s.rt) || ms(s.at), promoId: e.p, title, label: "Redeemed", note: "The code was used", tone: "ok" });
     if (s.st === "rejected" && !mine.has(`${e.p}|${e.n}`)) ev.push({ at: ms(s.jt) || ms(s.at), promoId: e.p, title, label: "Rejected", note: String(s.reason || "No reason given").slice(0, 200), tone: "no" });
   }

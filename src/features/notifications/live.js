@@ -92,7 +92,7 @@ export function promoItems(storage, role, me, now = Date.now()) {
     /* a missing title is not a reason to lose the notice */
   }
   const say = {
-    verified: ["Your claim was confirmed", (t) => `${t}: the property team confirmed it. Use your code at the partner.`],
+    verified: ["Your claim was confirmed", (t, r, m) => (m ? `${t}: the property team applied it for you. ${m}` : `${t}: the property team confirmed it. Use your code at the partner.`)],
     redeemed: ["Your claim was marked as used", (t) => `${t}: the property team marked it as used.`],
     rejected: ["Your claim was not approved", (t, r) => `${t}${r ? `: ${r}` : ""}`],
   };
@@ -108,7 +108,7 @@ export function promoItems(storage, role, me, now = Date.now()) {
       id: `promo-${rk}|${s.st}`,
       cat: "promotions",
       title: say[s.st][0],
-      detail: say[s.st][1](title, String(s.reason || "").slice(0, 120)),
+      detail: say[s.st][1](title, String(s.reason || "").slice(0, 120), s.st === "verified" ? String(s.manual || "").slice(0, 120) : ""),
       prop: HOME,
       dest: "promotions",
       read: false,
