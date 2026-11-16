@@ -1215,7 +1215,14 @@ function paintRewards() {
         if (e.key === "Enter" && e.target === li) goToCard(r.id, "rewards");
       });
     }
-    $("[data-view]", li).addEventListener("click", () => openClaim(r.id));
+    // View: a claim that is still waiting shows its steps (where it stands); every other reward shows the promotion itself, with its code (the steps when the promotion is not on the page any more)
+    $("[data-view]", li).addEventListener("click", () => {
+      if (waiting || !canGo) openClaim(r.id);
+      else {
+        rwDlg.close();
+        openDialog(r.id, null, "rewards");
+      }
+    });
     list.appendChild(li);
   }
   // what the people of this unit claimed (only for a promotion limited per unit): shared with the whole unit
