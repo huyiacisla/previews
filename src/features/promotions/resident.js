@@ -311,6 +311,8 @@ function render() {
   paintFilterPanel(counts);
   paintRewardsBadge();
   paintPage(all, mine, cfg, hot, cats);
+  $("#page-top").hidden = ui.savedOnly || !$("#page-top").childElementCount;
+  $("#saved-head").hidden = !ui.savedOnly;
   paintSavedButton(all.filter((p) => mine.saved.has(p.id)).length, cfg.save);
 
   // filter row: All, one per category, Saved
@@ -339,7 +341,7 @@ function render() {
         scrollToCatalog();
       });
   }
-  filters.hidden = !filters.childElementCount;
+  filters.hidden = ui.savedOnly || !filters.childElementCount;
 
   const grid = $("#grid");
   clear(grid);
@@ -656,7 +658,12 @@ $("#btn-saved").addEventListener("click", () => {
   ui.savedOnly = !ui.savedOnly;
   ui.category = "all";
   render();
-  if (ui.savedOnly) $("#count").scrollIntoView({ block: "start", behavior: "smooth" });
+  mainEl.scrollTo({ top: 0, behavior: "smooth" });
+});
+$("#saved-back").addEventListener("click", () => {
+  ui.savedOnly = false;
+  render();
+  mainEl.scrollTo({ top: 0, behavior: "smooth" });
 });
 
 // ---- Redeem a code and My rewards ----

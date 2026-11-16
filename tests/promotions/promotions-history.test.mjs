@@ -154,3 +154,14 @@ test("a countdown and a coupon are part of the hero: one offer, a small Ends-in 
   const res = readFileSync(new URL("../../src/features/promotions/resident.js", import.meta.url), "utf8");
   assert.ok(res.includes("openDeal: (p) => openDialog(p.id)") && res.includes("return false;"));
 });
+
+test("Saved is a view of its own, and a saved star is filled gold", () => {
+  const html = readFileSync(new URL("../../src/partials/promotions-app.html", import.meta.url), "utf8");
+  assert.ok(!/<symbol id="i-star"[^>]*fill="none"/.test(html), "the star symbol leaves its fill to the page, so a saved star can be filled");
+  assert.equal((html.match(/fill-amber-400/g) || []).length, 3, "the Saved button, the card star and the details star are gold when pressed");
+  assert.ok(html.includes('id="saved-head"') && html.includes('id="saved-back"'), "a heading and a way back");
+  const js = readFileSync(new URL("../../src/features/promotions/resident.js", import.meta.url), "utf8");
+  assert.ok(js.includes('$("#page-top").hidden = ui.savedOnly'), "the designed page steps aside in the Saved view");
+  assert.ok(js.includes("filters.hidden = ui.savedOnly"), "and so do the category chips");
+  assert.ok(html.includes("top-auto bottom-step-lg"), "messages appear at the bottom, not over the bar");
+});

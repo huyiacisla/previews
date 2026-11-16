@@ -8,7 +8,7 @@
     <symbol id="i-x" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></symbol>
     <symbol id="i-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></symbol>
     <symbol id="i-copy" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></symbol>
-    <symbol id="i-star" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l2.8 5.7 6.2.9-4.5 4.4 1 6.2L12 17.3 6.5 20.2l1-6.2L3 9.6l6.2-.9z"/></symbol>
+    <symbol id="i-star" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l2.8 5.7 6.2.9-4.5 4.4 1 6.2L12 17.3 6.5 20.2l1-6.2L3 9.6l6.2-.9z"/></symbol>
     <symbol id="i-tag" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.586 2.586A2 2 0 0 0 11.172 2H4a2 2 0 0 0-2 2v7.172a2 2 0 0 0 .586 1.414l8.704 8.704a2.426 2.426 0 0 0 3.42 0l6.58-6.58a2.426 2.426 0 0 0 0-3.42z"/><circle cx="7.5" cy="7.5" r=".5" fill="currentColor"/></symbol>
     <symbol id="i-external" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 7h10v10"/><path d="M7 17 17 7"/></symbol>
     <symbol id="i-filter" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 5h18"/><path d="M6 12h12"/><path d="M10 19h4"/></symbol>
@@ -48,7 +48,7 @@
           <button type="button" id="btn-redeem" class="sm:order-1 group/button inline-flex h-8 shrink-0 touch-manipulation items-center justify-center gap-step-sm rounded-md border border-input bg-card px-step-md text-sm font-medium text-foreground transition outline-none select-none hover:bg-muted focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 active:translate-y-px pointer-coarse:h-9 [&_svg]:size-4"><svg aria-hidden="true"><use href="#i-ticket"/></svg>Redeem<span class="max-sm:sr-only"> a code</span></button>
           <button type="button" id="btn-rewards" class="sm:order-2 group/button inline-flex h-8 shrink-0 touch-manipulation items-center justify-center gap-step-sm rounded-md border border-input bg-card px-step-md text-sm font-medium text-foreground transition outline-none select-none hover:bg-muted focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 active:translate-y-px pointer-coarse:h-9 [&_svg]:size-4"><svg aria-hidden="true"><use href="#i-check"/></svg>My rewards<span id="rewards-count" hidden class="inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] leading-none font-medium text-primary-foreground tabular-nums"></span></button>
           <button type="button" id="btn-saved" aria-pressed="false" aria-label="Saved promotions" class="sm:order-5 group/button relative ml-auto inline-flex h-8 shrink-0 touch-manipulation items-center justify-center gap-step-sm rounded-md border border-input bg-card px-step-sm text-sm font-medium text-foreground transition outline-none select-none hover:bg-muted focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 active:translate-y-px aria-pressed:bg-muted pointer-coarse:h-9 [&_svg]:size-4">
-            <svg aria-hidden="true"><use href="#i-star"/></svg>
+            <svg aria-hidden="true" fill="none" class="group-aria-pressed/button:fill-amber-400 group-aria-pressed/button:text-amber-500"><use href="#i-star"/></svg>
             <span class="max-sm:sr-only">Saved</span>
             <span id="saved-count" hidden class="absolute -top-1.5 -right-1.5 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] leading-none font-medium text-primary-foreground tabular-nums"></span>
           </button>
@@ -86,6 +86,10 @@
     <!-- the page Staff designed in Templates & brand (drawn by page.js), when they published one: full width -->
     <div id="page-top" hidden class="isolate"></div>
     <div class="mx-auto flex w-full max-w-6xl flex-col gap-step-lg px-step-lg py-step-lg lg:px-step-xl">
+      <div id="saved-head" hidden class="flex items-center justify-between gap-step-md">
+        <h2 class="text-lg font-semibold tracking-tight">Saved promotions</h2>
+        <button type="button" id="saved-back" class="inline-flex h-8 touch-manipulation items-center rounded-md border border-input bg-card px-step-md text-sm font-medium outline-none transition hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50">Show all promotions</button>
+      </div>
       <p id="count" role="status" class="scroll-mt-52 text-sm text-muted-foreground tabular-nums"></p>
       <ul id="grid" role="list" class="isolate grid grid-cols-1 gap-step-lg sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"></ul>
       <div id="empty" hidden></div>
@@ -130,13 +134,13 @@
       <p id="dlg-error" role="alert" class="text-sm text-danger-text empty:hidden"></p>
       <div class="flex flex-wrap items-center gap-step-sm">
         <button type="button" id="dlg-claim-btn" class="group/button inline-flex h-8 shrink-0 touch-manipulation items-center justify-center gap-step-sm rounded-md border border-transparent bg-primary bg-clip-padding px-step-md control-text font-medium whitespace-nowrap text-primary-foreground transition outline-none select-none hover:bg-primary/90 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 active:translate-y-px disabled:pointer-events-none disabled:opacity-50 pointer-coarse:h-11 [&_svg]:size-4"><span id="dlg-claim-text">Claim</span><svg id="dlg-claim-ext" hidden aria-hidden="true"><use href="#i-external"/></svg></button>
-        <button type="button" id="dlg-save" aria-pressed="false" class="group/button inline-flex h-8 shrink-0 touch-manipulation items-center justify-center gap-step-sm rounded-md border border-transparent bg-background bg-clip-padding px-step-md control-text font-medium whitespace-nowrap text-foreground ring-1 ring-foreground/10 transition outline-none select-none hover:bg-muted focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 active:translate-y-px aria-pressed:bg-accent pointer-coarse:h-11 [&_svg]:size-4"><svg aria-hidden="true" class="group-aria-pressed/button:fill-current"><use href="#i-star"/></svg><span id="dlg-save-text">Save</span></button>
+        <button type="button" id="dlg-save" aria-pressed="false" class="group/button inline-flex h-8 shrink-0 touch-manipulation items-center justify-center gap-step-sm rounded-md border border-transparent bg-background bg-clip-padding px-step-md control-text font-medium whitespace-nowrap text-foreground ring-1 ring-foreground/10 transition outline-none select-none hover:bg-muted focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 active:translate-y-px aria-pressed:bg-accent pointer-coarse:h-11 [&_svg]:size-4"><svg aria-hidden="true" fill="none" class="group-aria-pressed/button:fill-amber-400 group-aria-pressed/button:text-amber-500"><use href="#i-star"/></svg><span id="dlg-save-text">Save</span></button>
       </div>
     </div>
   </div>
 </dialog>
 
-<div id="toasts" popover="manual" class="pointer-events-none fixed inset-x-0 top-step-lg z-toast m-0 flex w-full flex-col items-center gap-step-sm overflow-visible border-0 bg-transparent p-0 px-step-lg"></div>
+<div id="toasts" popover="manual" class="pointer-events-none fixed inset-x-0 top-auto bottom-step-lg z-toast m-0 flex w-full flex-col-reverse items-center gap-step-sm overflow-visible border-0 bg-transparent p-0 px-step-lg"></div>
 
 <!-- ============ templates ============ -->
 <!-- redeem a code -->
@@ -248,7 +252,7 @@
       </div>
       <!-- makes the whole card open the details; the title button stays the keyboard and screen reader target -->
       <span data-stretch aria-hidden="true" class="absolute inset-0 cursor-pointer"></span>
-      <button type="button" data-save aria-pressed="false" class="group/button absolute top-step-sm right-step-sm z-raised inline-flex size-8 touch-manipulation items-center justify-center rounded-md border border-transparent bg-background/90 text-foreground transition outline-none select-none hover:bg-background focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 active:translate-y-px aria-pressed:text-primary pointer-coarse:size-11 [&_svg]:size-4"><svg aria-hidden="true" class="group-aria-pressed/button:fill-current"><use href="#i-star"/></svg></button>
+      <button type="button" data-save aria-pressed="false" class="group/button absolute top-step-sm right-step-sm z-raised inline-flex size-8 touch-manipulation items-center justify-center rounded-md border border-transparent bg-background/90 text-foreground transition outline-none select-none hover:bg-background focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 active:translate-y-px aria-pressed:text-primary pointer-coarse:size-11 [&_svg]:size-4"><svg aria-hidden="true" fill="none" class="group-aria-pressed/button:fill-amber-400 group-aria-pressed/button:text-amber-500"><use href="#i-star"/></svg></button>
     </article>
   </li>
 </template>

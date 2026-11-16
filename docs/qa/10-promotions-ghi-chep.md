@@ -159,3 +159,12 @@ Người dùng: khối "Offer ends in" / "Use this code at checkout" / `MALLA10`
 - [ ] **Phần 4: Claim.** Alex và Jamie cùng unit, giới hạn theo unit/theo người, hết suất, đã claim, Cancel, claim lại, History; Staff xác nhận/đổi/từ chối ở Claims và Resident thấy đúng trạng thái và giờ.
 - [ ] **Phần 5: Vòng đời.** Đóng, gia hạn, tạm tắt/Off live, hẹn lịch, xoá, xuất CSV; ngày thật 16/11/2026, đồng hồ, "Expired on" đúng; sample deal và deal do Staff tạo.
 - [ ] **Phần 6: Truy cập và dọn.** Bàn phím, focus, (i), Redeem; vùng bấm; không có hai điều khiển cho một việc; dọn dữ liệu test; ghi tổng kết, hỏi người dùng về push.
+
+### Saved: một màn hình riêng, sao tô vàng
+
+Người dùng chụp ảnh: bấm sao Saved thì không ra chỗ Saved riêng mà vẫn thấy trang thiết kế, thanh bị vướng, và ngôi sao không tô vàng để biết đã bấm.
+
+- **Saved là một màn riêng**: khi bấm, trang thiết kế (hero, lưới "Top deals") và hàng chip ẩn đi; dưới thanh là tiêu đề "Saved promotions", nút "Show all promotions" để quay lại, dòng "N saved promotions" và đúng các thẻ đã lưu (cuộn về đầu). Bỏ sao ở một thẻ thì thẻ biến mất; hết thẻ thì hiện "Nothing saved yet. Star a promotion to keep it here."
+- **Sao tô vàng**: biểu tượng `i-star` có `fill="none"` ngay trong symbol nên `fill-current` không bao giờ tô được (thuộc tính trên symbol thắng giá trị thừa kế). Bỏ thuộc tính khỏi symbol, đặt `fill="none"` ở từng nơi dùng, và khi `aria-pressed` thì `fill-amber-400 text-amber-500`: nút Saved trên thanh, sao trên thẻ, sao trong chi tiết.
+- **Thông báo (toast) xuống đáy** màn hình: ở đỉnh nó đè lên nút Redeem/My rewards.
+- Bài học: một lớp CSS "chắc chắn chạy" vẫn phải thử bằng cách bấm thật và xem màu tính ra (`getComputedStyle(...).fill`).
