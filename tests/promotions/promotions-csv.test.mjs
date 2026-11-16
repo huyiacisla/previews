@@ -125,3 +125,23 @@ test("the Staff button exports what is in the storage, not what is on the screen
   assert.ok(staff.includes('"No claims to export yet"'), "an empty storage says so");
   assert.ok(!staff.includes('"Claim ID","Promotion","Resident"'), "the old export of the list on screen (with names and demo rows) is gone");
 });
+
+test("the decider is the staff member's name and id: kept in the decision, in the audit log and in the export", () => {
+  const s = memory();
+  const p = deal(s);
+  assert.ok(claim(s, "res-1", p, T(1)).ok);
+  assert.ok(decideClaim(s, { rid: "res-1", promoId: p.id, action: "verify", by: "Jordan Lee", byId: "stf-1", now: T(5).getTime() }).ok);
+  assert.deepEqual([JSON.parse(s.getItem(KEY.claimState))[`res-1|${p.id}|1`].by, JSON.parse(s.getItem(KEY.claimState))[`res-1|${p.id}|1`].byId], ["Jordan Lee", "stf-1"]);
+  const verify = JSON.parse(s.getItem("eso-pm-audit-v1")).events.find((e) => e.type === "verify");
+  assert.deepEqual([verify.actor, verify.actorId, verify.at], ["Jordan Lee", "stf-1", T(5).toISOString()]);
+  assert.equal(collectClaimRows(s)[0].Decision_By, "Jordan Lee (stf-1)");
+  const staff = readFileSync(new URL("../../src/staff/account-settings-content.html", import.meta.url), "utf8").replace(/\r\n/g, "\n");
+  assert.ok(staff.includes("byId:actorId()") && staff.includes("actorId:rec.byId"), "Staff's own Verify records the id too");
+  assert.ok(readFileSync(new URL("../../src/features/messaging/app.js", import.meta.url), "utf8").includes("by: me.name, byId: me.id"), "and so does a decision made from the chat");
+});
+
+test("the Verify and Reject icon buttons of a claim row are 44 px on a phone or touch screen", () => {
+  const staff = readFileSync(new URL("../../src/staff/account-settings-content.html", import.meta.url), "utf8").replace(/\r\n/g, "\n");
+  assert.ok(staff.includes("@media(pointer:coarse),(max-width:639px){.cl-ib{width:44px;height:44px}}"));
+  assert.ok(staff.includes('class="cl-ib ok" data-clv="${c.id}" aria-label="Verify" title="Verify"'), "the button has a name");
+});

@@ -1316,7 +1316,7 @@ export function mount({ portal }) {
   const APPLY_WHY = ["Discount credited to this month's invoice", "Difference refunded to the resident", "Deal added to the resident's account", "Checked: the deal was already applied"];
   const REJECT_WHY = ["Not a current resident at this unit", "Already claimed on another account in this unit", "Claim limit reached", "Promotion expired before the claim"];
   function decide(conv, c, action, reason) {
-    const r = decideClaim(localStorage, { rid: conv.residentId, promoId: c.promoId, action, reason, by: me.name });
+    const r = decideClaim(localStorage, { rid: conv.residentId, promoId: c.promoId, action, reason, by: me.name, byId: me.id });
     if (!r.ok) {
       toast(r.reason);
       return;

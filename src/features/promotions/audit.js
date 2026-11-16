@@ -4,7 +4,7 @@
 // "eso-pm-audit-v1" = { v: 1, events: [{ id, type, promoId, residentId, n, actor, reason, spotDelta, code, at }] }, oldest first.
 //   type       claim | reject | give_back | verify | redeem   (a resident cancelling is a give_back by the resident)
 //   spotDelta  claim -1, give_back +1, every other event 0: the sum over the events is how many of the deal's spots were taken in this app
-//   actor      who did it: the resident ("resident:res-1") or the property team ("Dana Whitfield", "Property Manager", "Staff")
+//   actor      who did it: the resident ("resident:res-1") or the property team member's name ("Jordan Lee"); actorId is that member's id ("stf-1"), when known
 // Entries are only ever added. The newest MAX are kept, so one key cannot fill the storage of a browser.
 
 export const AUDIT_KEY = "eso-pm-audit-v1";
@@ -35,7 +35,7 @@ const newId = () => {
 const SPOT = { claim: -1, give_back: 1 };
 
 /** Build an entry (not stored yet). `at` is an ISO time, a Date or milliseconds; it defaults to now. */
-export function auditEntry({ type, promoId, residentId = "", n = 0, actor = "", reason = "", code = "", at }) {
+export function auditEntry({ type, promoId, residentId = "", n = 0, actor = "", actorId = "", reason = "", code = "", at }) {
   if (!AUDIT_TYPES.includes(type)) throw new Error(`audit: unknown type ${type}`);
   const t = at instanceof Date ? at.getTime() : typeof at === "number" ? at : Date.parse(at) || Date.now();
   return {
@@ -45,6 +45,7 @@ export function auditEntry({ type, promoId, residentId = "", n = 0, actor = "", 
     residentId: String(residentId || ""),
     n: Number(n) || 0,
     actor: String(actor || "").slice(0, 60),
+    ...(actorId ? { actorId: String(actorId).slice(0, 40) } : {}), // the staff member's id (stf-1), beside the name
     reason: String(reason || "").replace(/\s+/g, " ").trim().slice(0, 200),
     spotDelta: SPOT[type] || 0,
     ...(code ? { code: String(code).slice(0, 40) } : {}),

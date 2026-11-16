@@ -38,6 +38,9 @@ const ms = (v) => {
 };
 const iso = (t) => (t > 0 ? new Date(t).toISOString() : "");
 
+// "Jordan Lee (stf-1)": the name, and the member's id when the decision recorded it
+const who = (d) => (d ? `${d.by}${typeof d.byId === "string" && d.byId ? ` (${d.byId})` : ""}` : "");
+
 /** One object per real claim, newest first: the cells of CLAIM_CSV_COLUMNS, as text. */
 export function collectClaimRows(storage) {
   const states = readObject(storage, KEY.claimState);
@@ -62,7 +65,7 @@ export function collectClaimRows(storage) {
         const claimedAt = ms(claimedEvent && claimedEvent.t) || (n === c.count ? ms(c.at) : 0);
         // who decided: what Staff's decision says, else the newest decision line of the audit log; a cancellation is the resident's own
         const decisions = mine.filter((e) => e.type === "verify" || e.type === "reject" || e.type === "redeem");
-        const decider = cancelled ? `resident:${rid}` : status === "pending" ? "" : (s && typeof s.by === "string" && s.by) || (decisions.length ? decisions[decisions.length - 1].actor : "");
+        const decider = cancelled ? `resident:${rid}` : status === "pending" ? "" : who(s && typeof s.by === "string" && s.by ? s : decisions.length ? { by: decisions[decisions.length - 1].actor, byId: decisions[decisions.length - 1].actorId } : null);
         const updated = Math.max(
           claimedAt,
           cancelled && c.cancelledAt && typeof c.cancelledAt === "object" ? ms(c.cancelledAt[n]) : 0,
