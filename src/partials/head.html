@@ -1,6 +1,26 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <meta name="robots" content="noindex" />
+<!-- A page that shows another page inside the dashboard's frame (Messages, Notifications, Settings…) starts as the captured Dashboard and is rebuilt by preview.js a
+     moment later. Until its frame has loaded, the middle of the page stays empty instead of showing the Dashboard for a flash. (preview.js lifts this; the timer
+     is only a safety so a page can never stay empty.) -->
+<script>
+  (function () {
+    var p = location.pathname;
+    if (!/^\/(staff|client|resident)\/(messages|notifications|tickets|documents|promotions|support|workspace|settings)(\/|\.html|$)|^\/client\/usage\/capacity\.html$|^\/admin\/(dashboard|notifications|settings)(\/|\.html|$)/.test(p)) return; // (Admin: its <main> is rebuilt by admin/dashboard.js)
+    var r = document.documentElement;
+    r.setAttribute("data-eso-wait", "");
+    // The tab's title too: the capture says "Dashboard" (or "Portfolio Performance"). These are the titles preview.js gives the same pages.
+    var m = p.match(/^\/(staff|client|resident)\/(messages|notifications|tickets|documents|promotions|usage\/capacity)/);
+    if (m) {
+      var name = { messages: "Messages", notifications: "Notifications", tickets: "Ticket box", documents: "Documents", promotions: "Promotions", "usage/capacity": "Capacity" }[m[2]];
+      var cap = m[1].charAt(0).toUpperCase() + m[1].slice(1);
+      addEventListener("DOMContentLoaded", function () { document.title = name + " | " + cap + " Portal · " + m[1] + " preview"; });
+    }
+    setTimeout(function () { r.removeAttribute("data-eso-wait"); }, 3000);
+  })();
+</script>
+<style>html[data-eso-wait] #main-content{visibility:hidden}</style>
 <link rel="stylesheet" href="/styles.css" />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />

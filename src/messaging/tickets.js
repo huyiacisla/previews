@@ -77,7 +77,7 @@ function button(label, { icon, onClick, href } = {}) {
   return el;
 }
 
-const stageBadge = (t) => badge(t.stageLabel, t.kind === 'support' && t.stage === 'resolved' ? TONE_SUPPORT_RESOLVED : TONE[t.stage] || 'neutral');
+const stageBadge = (t) => badge(t.stageLabel, (t.kind === 'support' || t.kind === 'direct') && t.stage === 'resolved' ? TONE_SUPPORT_RESOLVED : TONE[t.stage] || 'neutral');
 
 /* -------------------------------------------------------------- navigation */
 
@@ -127,11 +127,19 @@ function rowsNow() {
   const counts = { open: all.filter((t) => t.isOpen).length, closed: all.filter((t) => !t.isOpen).length, all: all.length };
   let rows = ui.tab === 'all' ? all : all.filter((t) => (ui.tab === 'open') === t.isOpen);
   if (ui.tab === 'closed') rows = [...rows].sort((a, b) => (b.closedAt || b.updatedAt) - (a.closedAt || a.updatedAt));
+  // Support works the open tickets by urgency: an emergency, then High priority, then the newest activity.
+  if (ui.tab === 'open' && me.role === 'admin') {
+    const rank = (t) => (t.emergency ? 2 : t.priority === 'high' ? 1 : 0);
+    rows = [...rows].sort((a, b) => rank(b) - rank(a) || b.updatedAt - a.updatedAt);
+  }
   return { rows, counts };
 }
 
+const ROLE_WORD = { client: 'Client', staff: 'Staff', resident: 'Resident' };
 function whoLine(t) {
-  if (me.role === 'staff' || me.role === 'admin') return [t.requester.name, t.unit && `Unit ${t.unit}`, t.assignee].filter(Boolean).join(' · ');
+  // Admin: who asked (and what they are), where from, and who has it: "Marcus Cole · Client · Unassigned"
+  if (me.role === 'admin') return [t.requester.name, ROLE_WORD[t.requester.role], t.unit && `Unit ${t.unit}`, t.assignee ? `With ${t.assignee}` : t.isOpen ? 'Unassigned' : ''].filter(Boolean).join(' · ');
+  if (me.role === 'staff') return [t.requester.name, t.unit && `Unit ${t.unit}`, t.assignee].filter(Boolean).join(' · ');
   return t.assignee ? `With ${t.assignee}` : 'Waiting for the team';
 }
 
@@ -200,6 +208,7 @@ function renderList(force) {
     const bx = $('[data-badges]', li);
     bx.appendChild(stageBadge(t));
     if (t.emergency) bx.appendChild(badge('Emergency', 'danger', 'alert'));
+    else if (t.priority === 'high' && t.isOpen) bx.appendChild(badge('High priority', 'danger')); // seen from the list, not only inside the ticket
     const tm = $('[data-time]', li);
     const when = t.isOpen ? t.updatedAt : t.closedAt || t.updatedAt;
     tm.textContent = listTime(when, Date.now());
@@ -266,7 +275,7 @@ function exportText(t, entries) {
     '--- Conversation ---',
   ];
   for (const e of entries) {
-    if (e.audit) lines.push(`[${e.audit.at}] AUDIT ${e.audit.field}: ${e.audit.from} -> ${e.audit.to} by ${e.audit.actorName} (${e.audit.actorId})`);
+    if (e.audit) lines.push(`[${e.audit.at}] AUDIT ${e.audit.field}: ${e.audit.from} -> ${e.audit.to} by ${e.audit.actorName}${me.role === 'staff' || me.role === 'admin' ? ` (${e.audit.actorId})` : ''}`);
     else if (!e.author) lines.push(`[${iso(e.at)}] System: ${e.text}`);
     else {
       lines.push(`[${iso(e.at)}] ${e.author.name} (${ROLE_LABEL[e.author.role]})${e.emergency ? ' [EMERGENCY]' : ''}: ${entryText(e)}`);
@@ -329,10 +338,16 @@ function renderDetail(force) {
   clear(actions);
   actions.appendChild(button('Export', { icon: 'download', onClick: () => { download(`${t.no}.txt`, exportText(t, rec.entries)); toast(`Saved ${t.no}.txt`); } }));
   actions.appendChild(button('Copy link', { icon: 'copy', onClick: () => {
-    const url = `${location.origin}${location.pathname}?as=${me.id}#/t/${t.id}`;
+    // The address of the page with the portal frame around it, not of the bare content page it is drawn from.
+    const url = `${location.origin}${location.pathname.replace(/-content\.html$/, '.html')}?as=${me.id}#/t/${t.id}`;
     (navigator.clipboard ? navigator.clipboard.writeText(url) : Promise.reject()).then(() => toast('Link copied.'), () => toast('Could not copy the link.'));
   } }));
-  if (t.isOpen && t.canOpenLive) actions.appendChild(button('Open in Messages', { icon: 'message', href: `/${portal}/messages.html?as=${me.id}#/c/${t.id}` }));
+  // Support can always go to the conversation, also after it is closed (to reopen it or to see it with the Reopen button).
+  if ((t.isOpen || me.role === 'admin') && t.canOpenLive) {
+    const om = button('Open in Messages', { icon: 'message', href: `/${portal}/messages.html?as=${me.id}#/c/${t.id}` });
+    om.target = '_top'; // inside the portal frame the whole window goes to Messages, not only the frame
+    actions.appendChild(om);
+  }
 
   $('#d-count').textContent = `${t.messages} ${t.messages === 1 ? 'message' : 'messages'}`;
   const record = $('#record');
@@ -348,8 +363,10 @@ function renderDetail(force) {
       if (e.audit) {
         const a = tpl('t-audit');
         $('[data-change]', a).textContent = `${e.audit.field}: ${e.audit.from} → ${e.audit.to}`;
-        $('[data-actor]', a).textContent = e.audit.actorId === 'system' ? 'System' : `${e.audit.actorName} (${e.audit.actorId})`;
-        $('[data-time]', a).textContent = e.audit.at;
+        // The internal id and the raw ISO time are for Staff and Admin (the audit trail); a Resident or a Client reads a name and a time, as in Messages.
+        const full = me.role === 'staff' || me.role === 'admin';
+        $('[data-actor]', a).textContent = e.audit.actorId === 'system' ? 'System' : full ? `${e.audit.actorName} (${e.audit.actorId})` : e.audit.actorName;
+        $('[data-time]', a).textContent = full ? e.audit.at : formatFull(new Date(e.audit.at).getTime());
         $('[data-time]', a).dateTime = e.audit.at;
         record.appendChild(a);
       } else if (!e.author) {

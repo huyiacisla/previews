@@ -1,5 +1,9 @@
-import { lookCss, gestureConfig } from "./look-prefs.js";
-import { pathForHash, STAFF_ROUTES, RESIDENT_ROUTES, CLIENT_ROUTES } from "./staff-routes.js";
+import { lookCss, gestureConfig, onAccent, accentText, PAGE_LIGHT, PAGE_DARK } from "./look-prefs.js";
+import { savePrefs } from "./settings/prefs.js";
+import { pathForHash, STAFF_ROUTES, RESIDENT_ROUTES, CLIENT_ROUTES, ADMIN_ROUTES } from "./staff-routes.js";
+import { guardAccess } from "./access-guard.js";
+// A property that has ended takes its Staff and Residents' access with it: their pages show one message and stop here (access-guard.js).
+if (guardAccess()) throw new Error("This property has ended: the page shows the sign-out message and builds nothing else.");
 // An address typed without the ending (/staff/workspace, /staff/settings/profile) is the page with the ending, so every check below sees one form.
 if (/^\/(staff|client|resident|admin|messages)\//.test(location.pathname) && !/\.[a-z0-9]+$/i.test(location.pathname)) history.replaceState(null, "", `${location.pathname.replace(/\/$/, "")}.html${location.search}${location.hash}`);
 // Chỉ đổi giao diện: bật/tắt dark qua ?dark (app thật dùng next-themes: class `light`/`dark` trên <html>).
@@ -29,7 +33,15 @@ if (location.pathname === "/staff/account-settings.html") {
 }
 // Messages and Ticket box are full-page apps (the *-content.html files, and Admin's pages). For Client, Staff and Resident the page you open
 // is the portal's own frame with the app inside it (see EMBED below), so those are not "standalone".
-const standaloneApp = /\/(messages|tickets)(-content)?\.html$/.test(location.pathname) && !/^\/(client|staff|resident)\/(messages|tickets)\.html$/.test(location.pathname);
+// Every page has a tab icon (the browser asked for /favicon.ico and got a 404): a small mark of the app, drawn inline.
+if (!document.querySelector('link[rel~="icon"]')) {
+  const ico = document.createElement("link");
+  ico.rel = "icon";
+  ico.type = "image/svg+xml";
+  ico.href = "data:image/svg+xml," + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><rect width="32" height="32" rx="8" fill="#2563eb"/><path d="M10 23V9h7a4.5 4.5 0 0 1 0 9h-4" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>');
+  document.head.append(ico);
+}
+const standaloneApp = /\/(messages|tickets)(-content)?\.html$/.test(location.pathname) && !/^\/(client|staff|resident|admin)\/(messages|tickets)\.html$/.test(location.pathname);
 if (isClientFrame || isResidentFrame || isStaffFrame) {
   root.style.visibility = "hidden";
   const reveal = setTimeout(() => { root.style.visibility = ""; }, 3000); // an toàn: không bao giờ để trang trống
@@ -42,24 +54,39 @@ if (isClientFrame || isResidentFrame || isStaffFrame) {
     if (frameOf === "staff") { document.querySelector("header")?.setAttribute("data-eso-frame", ""); adopted = true; }
     else adopted = await adoptStaffFrame({ me, initials, portal: frameOf });
     if (adopted) (await import("./portal-frame-extras.js")).addFrameBehaviours({ me, portal: frameOf }); // filter, local time, notifications, search, help: the frame was a static snapshot
+    // The rebuilt Resident menu comes after the links above were set: its "Dashboard" gets its page too.
+    if (adopted && frameOf === "resident") for (const a of document.querySelectorAll('a[data-slot="sidebar-menu-button"]')) if (a.querySelector("span.truncate")?.textContent.trim() === "Dashboard" && a.getAttribute("href") === "#") a.setAttribute("href", `/resident/home.html${location.search}`);
   } catch { /* trang giữ nguyên khung cũ */ }
   clearTimeout(reveal);
   root.style.visibility = "";
 }
 
+// The header's theme button remembers the choice, so a reload (and every other page of the portal) keeps it. Staff, Client and Admin keep it with their look
+// settings ("ui-prefs:<portal>"); a Resident keeps it with their own preferences (the same place Settings writes it).
+const toggleTheme = () => {
+  setDark(!root.classList.contains("dark"));
+  const theme = root.classList.contains("dark") ? "dark" : "light";
+  for (const b of document.querySelectorAll('button[aria-label^="Theme:"]')) b.setAttribute("aria-label", `Theme: ${theme}`); // the name says what is on now, not what it was at load
+  const portal = (location.pathname.match(/^\/(staff|client|resident|admin)\//) || [])[1];
+  if (!portal) return;
+  try {
+    if (portal === "resident") savePrefs(localStorage, new URLSearchParams(location.search).get("as") || "res-1", { theme });
+    else { const k = `ui-prefs:${portal}`; const cur = JSON.parse(localStorage.getItem(k) || "null"); localStorage.setItem(k, JSON.stringify({ ...(cur && typeof cur === "object" ? cur : {}), theme })); }
+  } catch { /* private window: the choice lasts until reload */ }
+};
 document.addEventListener("click", (e) => {
-  if (e.target.closest("[data-theme-toggle]")) setDark(!root.classList.contains("dark"));
+  if (e.target.closest("[data-theme-toggle]")) toggleTheme();
 });
 
 // Nút theme của dashboard (aria-label "Theme: ...") không có data-theme-toggle trong HTML chụp: nối lại.
 document.addEventListener("click", (e) => {
-  if (e.target.closest('button[aria-label^="Theme:"]')) setDark(!root.classList.contains("dark"));
+  if (e.target.closest('button[aria-label^="Theme:"]')) toggleTheme();
 });
 
 // Cá nhân hóa chọn trong trang Settings (Staff và Client): màu sidebar, theme và màu nhấn đi theo người dùng sang các trang thật.
 // Trang Settings ghi `ui-prefs:<portal>` mỗi khi người dùng đổi; chưa đổi gì thì không có khóa này và các trang giữ nguyên diện mạo gốc.
 // Trang prototype (nội dung Settings) tự quản lý giao diện của nó; mọi trang còn lại, kể cả khung dashboard bọc Settings của Client, nhận từ đây.
-const isPrototypePage = /\/staff\/account-settings\.html$|\/account-settings-content\.html$|\/resident\/settings-content\.html$/.test(location.pathname);
+const isPrototypePage = /\/staff\/account-settings\.html$|\/account-settings-content\.html$|\/(resident|admin)\/settings-content\.html$/.test(location.pathname);
 // A content page shown inside the Client frame (?embed=1 and a parent window): the frame owns the header, the theme and the address.
 // Light/dark follows the frame, a link to another page opens in the whole window (not nested in the frame), and the page's own
 // address (#/c/…) is mirrored on the frame so a reload comes back to the same place. The Settings prototype does these itself.
@@ -76,8 +103,8 @@ if (embedded) {
       const p = parent.document.documentElement;
       p.classList.toggle("dark", root.classList.contains("dark"));
       p.classList.toggle("light", root.classList.contains("light"));
-      for (const a of ["data-contrast", "data-reduce-motion"]) p.toggleAttribute(a, root.hasAttribute(a));
-    }).observe(root, { attributes: true, attributeFilter: ["class", "data-contrast", "data-reduce-motion"] });
+      for (const a of ["data-contrast", "data-reduce-motion", "data-big-target", "data-strong-focus"]) p.toggleAttribute(a, root.hasAttribute(a));
+    }).observe(root, { attributes: true, attributeFilter: ["class", "data-contrast", "data-reduce-motion", "data-big-target", "data-strong-focus"] });
   } catch { /* no usable parent */ }
   document.addEventListener("click", (e) => {
     const a = e.target.closest("a[href]");
@@ -92,7 +119,7 @@ if (embedded) {
 
 const applyUiPrefs = () => {
   const p = location.pathname.split("/")[1];
-  if ((p === "staff" || p === "client" || p === "resident") && !isPrototypePage) {
+  if ((p === "staff" || p === "client" || p === "resident" || p === "admin") && !isPrototypePage) {
     try {
       const ui = JSON.parse(localStorage.getItem(`ui-prefs:${p}`) || "null");
       const hex = (v) => typeof v === "string" && /^#[0-9a-f]{6}$/i.test(v);
@@ -103,7 +130,7 @@ const applyUiPrefs = () => {
         // Chọn lại "Default" (không có màu) thì bỏ màu đã đặt trước đó, không cần tải lại trang.
         const box = document.querySelector('[data-slot="sidebar-container"]');
         const names = ["--surface-inverted", "--surface-inverted-foreground", "--surface-inverted-subtle", "--surface-inverted-accent"];
-        if (Array.isArray(ui.sb) && ui.sb.slice(0, 4).every(hex)) {
+        if (Array.isArray(ui.sb) && ui.sb.length === 4 && ui.sb.every(hex)) { // exactly four colours: background, text, accent, highlight; anything else keeps the default
           const [bg, fg, acc, accent] = ui.sb;
           s.setProperty("--sidebar", bg);
           s.setProperty("--sidebar-foreground", fg);
@@ -130,8 +157,12 @@ const applyUiPrefs = () => {
         // Tùy chọn sidebar còn áp dụng được cho sidebar thật: biểu tượng, số đếm nhóm, thẻ tổng quan (CSS theo thuộc tính nằm trong styles.css).
         root.setAttribute("data-sb-icons", ui.icons === false ? "off" : "on");
         root.setAttribute("data-sb-counts", ui.counts === false ? "off" : "on");
+        root.setAttribute("data-sb-search", ui.search === false ? "off" : "on");
+        root.setAttribute("data-sb-scroll", typeof ui.scroll === "string" ? ui.scroll : "auto-hide");
         // Thẻ "Portfolio Capacity" ở đầu sidebar (thiết kế của Staff): con trực tiếp của khối đầu sidebar.
-        const cap = [...document.querySelectorAll('[data-slot="sidebar-container"] p')].find((e) => e.textContent.trim() === "Capacity summary");
+        // The card has a different heading in each portal (Client: Capacity summary, Staff and Resident: Workspace Capacity, Admin: its Active spaces card): one switch hides it in all four.
+        const CARD_HEADINGS = ["Capacity summary", "Workspace Capacity", "Vehicle allowance", "Portfolio Overview", "Active spaces"];
+        const cap = [...document.querySelectorAll('[data-slot="sidebar-container"] *')].find((e) => e.children.length === 0 && CARD_HEADINGS.includes(e.textContent.trim()));
         const top = document.querySelector('[data-slot="sidebar-inner"]')?.firstElementChild;
         let card = cap;
         while (card && top && card.parentElement !== top) card = card.parentElement;
@@ -141,32 +172,58 @@ const applyUiPrefs = () => {
         if (!look) { look = document.createElement("style"); look.id = "eso-look"; document.head.append(look); }
         look.textContent = lookCss(ui);
         root.setAttribute("data-nav-side", ui.gestures && ui.gestures.side === "right" ? "right" : "left");
-        // Accessibility (Settings > Accessibility): higher contrast and reduced motion reach every page; the other two are for the settings page itself.
-        if (ui.a11y) { root.toggleAttribute("data-contrast", !!ui.a11y.contrast); root.toggleAttribute("data-reduce-motion", !!ui.a11y.motion); }
-        if (hex(ui.accent) && ui.accent.toLowerCase() !== "#2b55f2") { root.style.setProperty("--primary", ui.accent); root.style.setProperty("--sidebar-primary", ui.accent); }
+        // Accessibility (Settings > Accessibility): all four reach every page (styles.css): higher contrast, reduced motion, larger tap targets, a stronger focus ring.
+        if (ui.a11y) {
+          root.toggleAttribute("data-contrast", !!ui.a11y.contrast);
+          root.toggleAttribute("data-reduce-motion", !!ui.a11y.motion);
+          // (a choice made in Settings wins; with none, a touch screen gets the 44 px targets: see below)
+          root.toggleAttribute("data-big-target", typeof ui.a11y.target === "boolean" ? ui.a11y.target : matchMedia("(pointer: coarse)").matches);
+          root.toggleAttribute("data-strong-focus", !!ui.a11y.focus);
+        }
+        if (hex(ui.accent) && ui.accent.toLowerCase() !== "#2b55f2") {
+          root.style.setProperty("--primary", ui.accent);
+          root.style.setProperty("--sidebar-primary", ui.accent);
+          // text on the accent, and the accent as text, kept readable whatever colour was picked (look-prefs.js)
+          root.style.setProperty("--primary-foreground", onAccent(ui.accent));
+          root.style.setProperty("--primary-text-l", accentText(ui.accent, PAGE_LIGHT));
+          root.style.setProperty("--primary-text-d", accentText(ui.accent, PAGE_DARK));
+        } else {
+          for (const v of ["--primary-foreground", "--primary-text-l", "--primary-text-d"]) root.style.removeProperty(v);
+        }
       }
     } catch { /* trang vẫn dùng diện mạo gốc */ }
   }
 };
 applyUiPrefs();
 
+// Touch screens (a phone, a tablet): controls are at least 44 px by default ("Larger tap targets" in Settings > Accessibility is on). Someone who turned it OFF
+// in Settings keeps it off; the Settings pages and the frames inside a page read the same attribute (they copy it from the page).
+try {
+  const portal = location.pathname.split("/")[1];
+  const saved = JSON.parse(localStorage.getItem(`ui-prefs:${portal}`) || "null");
+  const chosen = saved && saved.a11y && typeof saved.a11y.target === "boolean" ? saved.a11y.target : null;
+  if (matchMedia("(pointer: coarse)").matches && chosen !== false) root.setAttribute("data-big-target", "");
+} catch { /* the page keeps its normal size */ }
+
 // Thu gọn sidebar thành thanh biểu tượng (desktop, khi đã bật trong Settings): nút ở mép sidebar hoặc Ctrl/⌘+B. Nhớ trạng thái giữa các trang.
 {
   const p = location.pathname.split("/")[1];
-  if ((p === "staff" || p === "client" || p === "resident") && !isPrototypePage) {
+  if ((p === "staff" || p === "client" || p === "resident" || p === "admin") && !isPrototypePage) {
     const key = `ui-sidebar-collapsed:${p}`;
     const wrap = () => document.querySelector('[data-slot="sidebar"]');
     const toggle = () => document.querySelector('[data-slot="sidebar-container"] button[aria-label="Collapse sidebar"], [data-slot="sidebar-container"] button[aria-label="Expand sidebar"]');
     const usable = () => root.getAttribute("data-sb-collapse") === "on" && matchMedia("(min-width: 1024px)").matches;
-    const set = (on) => {
+    const set = (on, remember = true) => {
       const w = wrap();
       if (!w) return;
       w.setAttribute("data-state", on ? "collapsed" : "expanded");
       if (on) w.setAttribute("data-collapsible", "icon"); else w.removeAttribute("data-collapsible");
       toggle()?.setAttribute("aria-label", on ? "Expand sidebar" : "Collapse sidebar");
-      try { localStorage.setItem(key, on ? "1" : "0"); } catch { /* storage blocked */ }
+      if (remember) { try { localStorage.setItem(key, on ? "1" : "0"); } catch { /* storage blocked */ } }
     };
-    const sync = () => { try { set(usable() && localStorage.getItem(key) === "1"); } catch { /* storage blocked */ } };
+    // Personalize > Sidebar > Layout "Rail": on a desktop the sidebar is an icon rail all the time (the person's own collapse choice is left as it was).
+    const rail = () => { try { return JSON.parse(localStorage.getItem(`ui-prefs:${p}`) || "null")?.layout === "B" && matchMedia("(min-width: 1024px)").matches; } catch { return false; } };
+    const sync = () => { try { if (rail()) set(true, false); else set(usable() && localStorage.getItem(key) === "1", false); } catch { /* storage blocked */ } };
     document.addEventListener("click", (e) => {
       const b = e.target.closest('button[aria-label="Collapse sidebar"], button[aria-label="Expand sidebar"]');
       if (b && usable()) set(b.getAttribute("aria-label") === "Collapse sidebar");
@@ -180,10 +237,75 @@ applyUiPrefs();
   }
 }
 
+// Messages and the Ticket box in a portal frame have their Send button where the floating assistant button is: it is not shown on those two pages.
+if (/\/(staff|client|resident|admin)\/(messages|tickets)\.html$/.test(location.pathname)) root.setAttribute("data-no-fab", "");
+
+// The property's own name (the Display name saved in the property profile) replaces the default one in the text of the Staff and Resident pages.
+// The menu is left alone: its account card is not changed here.
+{
+  const p = location.pathname.split("/")[1];
+  if ((p === "staff" || p === "resident") && !isPrototypePage) {
+    import("./property-name.js").then(({ propertyName, DEFAULT_PROPERTY }) => {
+      let shown = DEFAULT_PROPERTY;
+      const run = () => {
+        const name = propertyName(localStorage);
+        const olds = [...new Set([DEFAULT_PROPERTY, shown])].filter((s) => s !== name);
+        if (!olds.length && shown === name) return;
+        const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, {
+          acceptNode: (n) => (n.parentElement && !n.parentElement.closest('[data-slot="sidebar-container"], script, style, textarea, #frame-say') && olds.some((o) => n.nodeValue.includes(o)) ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT),
+        });
+        const nodes = [];
+        while (walker.nextNode()) nodes.push(walker.currentNode);
+        for (const n of nodes) for (const o of olds) n.nodeValue = n.nodeValue.split(o).join(name);
+        shown = name;
+      };
+      let timer;
+      const later = () => { clearTimeout(timer); timer = setTimeout(run, 150); };
+      new MutationObserver(later).observe(document.body, { childList: true, subtree: true });
+      addEventListener("storage", (e) => { if (e.key === "eso-prop") later(); });
+      later();
+    });
+  }
+}
+
+// A page of the portal that holds another page in a frame (Promotions, Support, Workspace, Settings, Messages…) hands it the same look: dark or light, and the
+// accent colour. Settings only passes them on when something in Settings changed; the header's theme button and the saved look reach the frame this way.
+if (!isPrototypePage) {
+  const syncEmbed = (fr) => {
+    try {
+      const d = fr.contentDocument;
+      if (!d || !d.documentElement) return;
+      const dark = root.classList.contains("dark");
+      d.documentElement.classList.toggle("dark", dark);
+      d.documentElement.classList.toggle("light", !dark);
+      const accent = root.style.getPropertyValue("--primary");
+      if (accent) d.documentElement.style.setProperty("--primary", accent); else d.documentElement.style.removeProperty("--primary");
+      // the text on the accent follows it into the frame, so a light accent does not leave white text on a light button there
+      for (const v of ["--primary-foreground", "--primary-text-l", "--primary-text-d"]) {
+        const val = root.style.getPropertyValue(v);
+        if (val) d.documentElement.style.setProperty(v, val); else d.documentElement.style.removeProperty(v);
+      }
+    } catch { /* a frame of another origin: left alone */ }
+  };
+  const syncAll = () => document.querySelectorAll("iframe").forEach(syncEmbed);
+  document.addEventListener("load", (e) => {
+    if (!e.target || e.target.tagName !== "IFRAME") return;
+    syncEmbed(e.target);
+    setTimeout(() => syncEmbed(e.target), 500); // the page inside may set its own look a moment after it loads
+    setTimeout(() => syncEmbed(e.target), 1500);
+  }, true);
+  new MutationObserver(syncAll).observe(root, { attributes: true, attributeFilter: ["class", "style"] });
+}
+
 // Staff và Resident: header của dashboard chụp ghi "User 5" / "User 1"; Messages và Ticket box đã gọi họ bằng tên người dùng (Jordan Lee,
 // Alex Rivera), nên header cũng vậy. Menu hồ sơ là menu của thiết kế (thẻ tên, Status cho Staff, nhóm Account, Sign out).
 const portalNow = location.pathname.split("/")[1]; // (`portal`, below, is declared further down)
-if ((portalNow === "staff" || portalNow === "resident") && !standaloneApp && !isPrototypePage) {
+// Admin: the captured header drew 51 px buttons with 24 px icons and hid the theme button below 768 px, so a phone had a huge bell, a long
+// search bar and no way to change the theme. The other portals' headers already have the compact rules (styles.css, header[data-eso-frame]:
+// 32 px buttons, 18 px icons, theme button at every width, one row); marking the Admin header gives it the same ones.
+if (location.pathname.split("/")[1] === "admin") document.querySelector("header")?.setAttribute("data-eso-frame", "");
+// Admin too: the capture says "User 6 · QA", while Messages and the Ticket box call the same person Taylor Brooks.
+if ((portalNow === "staff" || portalNow === "resident" || portalNow === "admin") && !standaloneApp && !isPrototypePage) {
   const portal = portalNow;
   const trigger = document.querySelector('header button[aria-label^="Open profile menu"]');
   if (trigger) {
@@ -202,10 +324,54 @@ if ((portalNow === "staff" || portalNow === "resident") && !standaloneApp && !is
         const q = location.search;
         const account = portal === "staff"
           ? [["user", "View profile", `/staff/settings/profile.html${q}`], ["chat", "Messenger & availability", `/staff/settings/availability.html${q}`], ["key", "My permissions", `/staff/workspace/access.html${q}`], ["bell", "Notification preferences", `/staff/settings/notifications.html${q}`], ["user", "My Social", `/staff/social.html${q}#/me`], ["user", "Saved posts", `/staff/social.html${q}#/me`]]
-          : [["chat", "Messages", `/resident/messages.html${q}`], ["clipboard", "Ticket box", `/resident/tickets.html${q}`]]; // Settings has its own item in the menu: no second way in here
-        (await import("./portal-frame-extras.js")).addProfileMenu({ me, initials, portal, account, hasStatus: portal === "staff" });
+          : portal === "admin"
+            ? [["user", "Settings", `/admin/settings.html${q}`], ["chat", "Messaging & Support", `/admin/messages.html${q}`], ["clipboard", "Ticket box", `/admin/tickets.html${q}`], ["bell", "Notifications", `/admin/notifications.html${q}`]]
+            : [["user", "Settings", `/resident/settings.html${q}`], ["chat", "Messages", `/resident/messages.html${q}`], ["clipboard", "Ticket box", `/resident/tickets.html${q}`]]; // (a person opens the avatar for their own settings first: Staff's menu has "View profile" too)
+        const extras = await import("./portal-frame-extras.js");
+        extras.addProfileMenu({ me, initials, portal, account, hasStatus: portal === "staff" });
+        if (portal === "admin") extras.addBell({ me, portal }); // the captured Admin bell opened nothing and showed no count
       } catch { /* the header stays as captured */ }
     })();
+  }
+}
+
+// Admin sidebar: "Social" becomes "Social management" (the list of properties, each with its Social), with "Social monitoring" under it.
+if (portalNow === "admin" && !standaloneApp && !isPrototypePage) {
+  const parent = [...document.querySelectorAll('a[data-slot="sidebar-menu-button"]')].find((a) => a.querySelector("span.truncate")?.textContent.trim() === "Social");
+  const parentLi = parent?.closest("li");
+  if (parent && parentLi && !document.querySelector("[data-eso-social-sub]")) {
+    const sub = parentLi.cloneNode(true);
+    sub.setAttribute("data-eso-social-sub", "");
+    const subLink = sub.querySelector('a[data-slot="sidebar-menu-button"]');
+    subLink.querySelector("span.truncate").textContent = "Social monitoring";
+    subLink.setAttribute("href", `/admin/social-monitoring.html${location.search}`);
+    subLink.removeAttribute("aria-current");
+    subLink.removeAttribute("data-active");
+    subLink.id = "sb-social-monitoring";
+    subLink.style.cssText = "margin-left:1.25rem;width:calc(100% - 1.25rem)";
+    const icon = subLink.querySelector("svg");
+    if (icon) icon.innerHTML = '<path d="M2.06 12.35a1 1 0 0 1 0-.7 10.75 10.75 0 0 1 19.88 0 1 1 0 0 1 0 .7 10.75 10.75 0 0 1-19.88 0"/><circle cx="12" cy="12" r="3"/>'; // an eye: it only looks
+    parentLi.after(sub);
+    parent.querySelector("span.truncate").textContent = "Social management";
+    parent.setAttribute("href", `/admin/social-management.html${location.search}`);
+  }
+}
+
+// Admin sidebar: "System health" (the data checks of every module), next to Platform Operations. A copy of that item with its own name, link and icon.
+if (portalNow === "admin" && !standaloneApp && !isPrototypePage && !document.getElementById("sb-system-health")) {
+  const ops = [...document.querySelectorAll('a[data-slot="sidebar-menu-button"]')].find((a) => /^Platform Operat/.test(a.querySelector("span.truncate")?.textContent.trim() || ""));
+  const opsLi = ops?.closest("li");
+  if (ops && opsLi) {
+    const li = opsLi.cloneNode(true);
+    const a = li.querySelector('a[data-slot="sidebar-menu-button"]');
+    a.id = "sb-system-health";
+    a.querySelector("span.truncate").textContent = "System health";
+    a.setAttribute("href", `/admin/health.html${location.search}`);
+    a.removeAttribute("aria-current");
+    a.removeAttribute("data-active");
+    const icon = a.querySelector("svg");
+    if (icon) icon.innerHTML = '<path d="M22 12h-2.48a2 2 0 0 0-1.93 1.46l-2.35 8.36a.25.25 0 0 1-.48 0L9.24 2.18a.25.25 0 0 0-.48 0l-2.35 8.36A2 2 0 0 1 4.49 12H2"/>'; // a pulse line
+    opsLi.after(li);
   }
 }
 
@@ -215,7 +381,7 @@ if (["staff", "admin", "resident"].includes(portalNow) && !isPrototypePage) {
     const a = e.target.closest('a[href="#"]');
     if (!a || a.closest(".eso-pm")) return;
     e.preventDefault();
-    import("./portal-frame-extras.js").then((m) => m.say("That page is not part of this preview yet."));
+    import("./portal-frame-extras.js").then((m) => m.say("Coming soon: this feature is in development and is not available in the preview yet."));
   });
 }
 
@@ -252,7 +418,8 @@ addEventListener("message", (e) => { if (e.origin === location.origin && e.data 
   // saved a Personalize choice; every other page has no swipe, as before. Vertical scrolling never starts a gesture.
   const pp = location.pathname.split("/")[1];
   const config = () => {
-    if (pp !== "staff" && pp !== "client") return null;
+    // (The Resident's Settings has the same Gestures page, so the choices there must do something too: they used to be saved and ignored.)
+    if (pp !== "staff" && pp !== "client" && pp !== "resident" && pp !== "admin") return null;
     try { const ui = JSON.parse(localStorage.getItem(`ui-prefs:${pp}`) || "null"); return ui ? gestureConfig(ui) : null; } catch { return null; }
   };
   let drag = null;
@@ -436,19 +603,39 @@ if (["staff", "admin", "client", "resident"].includes(portal) && !standaloneApp)
     if (el) sessionStorage.setItem(key, String(el.scrollTop));
   });
   const nav = performance.getEntriesByType("navigation")[0];
-  if (nav && nav.type === "back_forward") {
+  // Back/Forward, or "Exit" from a page of its own (Messages, Social, Ticket box…) to the dashboard it was opened from: the dashboard comes back where it was left.
+  let fromOwnPage = false;
+  try { fromOwnPage = /\/(dashboard|home)\.html$/.test(location.pathname) && new URL(document.referrer).origin === location.origin && /\/(messages|social|tickets|support|notifications|promotions)\.html$/.test(new URL(document.referrer).pathname); } catch { /* no referrer */ }
+  // The page fills in after it loads (charts, cards), and the frame may replace the scrolling area while it builds: keep putting the position back
+  // for up to 3 seconds (not stopping at the first success), and stop as soon as the person scrolls.
+  const restore = () => {
     const top = Number(sessionStorage.getItem(key) || 0);
-    if (top) requestAnimationFrame(() => { const el = scroller(); if (el) el.scrollTop = top; });
-  }
+    if (!top) return;
+    let tries = 0;
+    let touched = false;
+    const stop = () => { touched = true; };
+    for (const ev of ["wheel", "touchstart", "keydown", "pointerdown"]) addEventListener(ev, stop, { once: true, passive: true });
+    const put = () => {
+      if (touched) return;
+      const el = scroller();
+      if (el && Math.abs(el.scrollTop - top) >= 2) el.scrollTop = top;
+      if (++tries < 30) setTimeout(put, 100);
+    };
+    setTimeout(put, 0); // not requestAnimationFrame: a page in a hidden tab never gets one
+  };
+  if (nav && (nav.type === "back_forward" || (nav.type === "navigate" && fromOwnPage))) restore();
+  addEventListener("pageshow", (e) => { if (e.persisted) restore(); }); // coming back from the browser's page cache runs no script again
 }
 if (["staff", "admin", "client", "resident"].includes(portal) && !standaloneApp) {
   const labels = new Set(["Messages", "Messaging & Support"]);
   // Other items that have a real page: Staff Settings and Promotions open the account-settings page (Promotions is a section of it);
   // the Resident Promotions item opens the page that lists what Staff published.
   const pages = {
-    staff: { Settings: "/staff/workspace.html", Promotions: "/staff/promotions.html", Social: "/staff/social.html" },
-    client: { "Workspace Settings": "/client/workspace.html", Support: "/client/support.html", Documents: "/client/documents.html" },
-    resident: { Promotions: "/resident/promotions.html", Social: "/resident/social.html" },
+    // "Dashboard" is the page's own home: on the dashboard itself it used to be a dead "#" that answered "not part of this preview yet".
+    staff: { Dashboard: "/staff/dashboard.html", Settings: "/staff/workspace.html", Promotions: "/staff/promotions.html", Social: "/staff/social.html" },
+    client: { Dashboard: "/client/dashboard.html", "Workspace Settings": "/client/workspace.html", Support: "/client/support.html", Documents: "/client/documents.html" },
+    resident: { Dashboard: "/resident/home.html", Promotions: "/resident/promotions.html", Social: "/resident/social.html" },
+    admin: { Dashboard: "/admin/dashboard.html", Support: "/admin/tickets.html", Settings: "/admin/settings.html", Profile: "/admin/settings/profile.html" }, // the Support inbox of the Admin portal is the Ticket box
   }[portal] || {};
   for (const a of document.querySelectorAll('a[data-slot="sidebar-menu-button"]')) {
     const label = a.querySelector("span.truncate")?.textContent.trim();
@@ -534,13 +721,22 @@ const EMBED = {
   "/resident/promotions.html": { title: "Promotions", src: "/resident/promotions-content.html", active: "Promotions" },
   "/resident/messages.html": { title: "Messages", src: "/resident/messages-content.html", active: "Messages" },
   "/resident/tickets.html": { title: "Ticket box", src: "/resident/tickets-content.html", active: "Ticket box" },
+  // Admin: Notifications, Messaging & Support, the Ticket box (the "Support" menu item) and Settings all sit inside the Admin frame (its own sidebar and header).
+  "/admin/notifications.html": { title: "Notifications", src: "/admin/notifications-content.html", active: null },
+  "/admin/messages.html": { title: "Messaging & Support", src: "/admin/messages-content.html", active: "Messaging & Support" },
+  "/admin/tickets.html": { title: "Ticket box", src: "/admin/tickets-content.html", active: "Support" },
+  "/admin/health.html": { title: "System health", src: "/admin/health-content.html", active: "System health" },
+  "/admin/social-management.html": { title: "Social management", src: "/admin/social-management-content.html", active: "Social management" },
+  "/admin/social-monitoring.html": { title: "Social monitoring", src: "/admin/social-monitoring-content.html", active: "Social monitoring" },
+  ...Object.fromEntries(ADMIN_ROUTES.map(([hash, path]) => [path, { title: "Settings", src: "/admin/settings-content.html", hash, active: "Settings" }])),
 };
+if (!EMBED[location.pathname]) root.removeAttribute("data-eso-wait");
 if (EMBED[location.pathname]) {
   const page = EMBED[location.pathname];
   const main = document.getElementById("main-content");
   const header = document.querySelector("header");
   if (main) {
-    const label = { client: "Client", staff: "Staff", resident: "Resident" }[portal];
+    const label = { client: "Client", staff: "Staff", resident: "Resident", admin: "Admin" }[portal];
     document.title = `${page.title} | ${label} Portal · ${portal} preview`;
     // Mục đang mở của bản chụp là Dashboard: chuyển dấu sang mục của trang này (đổi class giữa hai mục), hoặc bỏ dấu nếu không có mục nào
     // (đổi class với một bản sao của mục không mở).
@@ -568,6 +764,7 @@ if (EMBED[location.pathname]) {
     frame.src = `${page.src}?${q}${location.hash || page.hash || ""}`;
     frame.style.cssText = "display:block;width:100%;border:0;background:transparent";
     main.replaceChildren(frame);
+    frame.addEventListener("load", () => root.removeAttribute("data-eso-wait")); // (partials/head.html keeps the middle of the page empty until now)
     main.style.cssText = "padding:0;max-width:none;overflow:hidden";
     if (page.hash) root.setAttribute("data-eso-settings", ""); // styles.css lifts the floating assistant above the Settings search bar on small screens
     const fit = () => { frame.style.height = `${Math.max(320, innerHeight - (header ? header.offsetHeight : 0))}px`; };

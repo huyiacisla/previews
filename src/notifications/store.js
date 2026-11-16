@@ -1,9 +1,21 @@
 // Notifications of the Client portal: the list, who has read what, search, filters and the counts the bell shows.
 //
 // Pure logic with no DOM, so tests can run it in Node. The list is SAMPLE data made on the spot from fixed recipes (the preview has no
-// notification service): it agrees with what the Client pages already say (16 unread messages, Parking Spots 261 / 25 and Staff 18 / 3
-// over the plan limit, one property needing attention) and totals 109 that need attention, the number the bell has always shown.
+// notification service): it agrees with what the Client pages already say (16 unread messages, the plan's limits from capacity/store.js,
+// one property needing attention) and totals 109 that need attention, the number the bell has always shown.
 // "Read" is remembered per person in the browser; nothing is written anywhere else.
+
+import { ITEMS, limitFor, normalizePurchased } from '../capacity/store.js';
+
+// The plan AS IT IS NOW: what the company added in Capacity counts (set from the storage by buildAll before the samples are made).
+let BOUGHT = normalizePurchased(null);
+const limit = (id) => limitFor(id, BOUGHT);
+function readBought(storage) {
+  for (const key of ['eso-capacity:client', 'capacity-state:client']) {
+    try { const v = JSON.parse(storage && storage.getItem(key)); if (v && typeof v === 'object') return normalizePurchased(v); } catch { /* not there or unreadable */ }
+  }
+  return normalizePurchased(null);
+}
 
 export const CATEGORIES = {
   messages: 'Messages',
@@ -25,11 +37,12 @@ export const PROPERTIES = ['Mallard Pointe at Riverbend', 'Sundale'];
 /** The categories of each portal's notifications, in the order the filter lists them. */
 export const ROLE_CATEGORIES = {
   client: ['messages', 'requests', 'violations', 'parking', 'plan', 'properties', 'reports', 'system'],
-  staff: ['messages', 'requests', 'violations', 'parking', 'residents', 'system'],
+  staff: ['messages', 'requests', 'violations', 'parking', 'residents', 'community', 'system'],
   resident: ['messages', 'requests', 'parking', 'promotions', 'community', 'billing', 'system'],
 };
 /** A Client runs several properties; Staff and Residents belong to one, so they get no property filter. */
-export const ROLE_PROPERTIES = { client: PROPERTIES, staff: [PROPERTIES[0]], resident: [PROPERTIES[0]] };
+ROLE_CATEGORIES.admin = ['messages', 'properties', 'system']; // Messages are the live Support tickets and chats (live.js)
+export const ROLE_PROPERTIES = { client: PROPERTIES, staff: [PROPERTIES[0]], resident: [PROPERTIES[0]], admin: [PROPERTIES[0]] };
 
 const KEY = (personaId) => `eso-notif-read:${personaId}`;
 
@@ -59,8 +72,8 @@ const CLIENT_RECIPES = [
     return [what, `Spot ${'ABCG'[i % 4]}-${5 + ((i * 11) % 60)} · ${p}`, p, null];
   }],
   ['plan', 2, 1, (i) => [
-    ['Parking Spots over limit', '261 / 25 on your plan', null, 'plan'],
-    ['Staff over limit', '18 / 3 on your plan', null, 'plan'],
+    ['Parking Spots near limit', `${ITEMS[0].used} / ${limit('parking')} on your plan`, null, 'plan'],
+    ['Plan limits', `Your plan covers ${limit('residents')} residents, ${limit('staff')} staff and ${limit('parking')} parking spaces`, null, 'plan'],
     ['Billing contact updated', 'Your billing contact was changed', null, 'plan'],
   ][i]],
   ['properties', 1, 0, () => ['Properties needing attention', 'Mallard Pointe at Riverbend · 0 open violations', 'Mallard Pointe at Riverbend', 'dashboard']],
@@ -98,10 +111,72 @@ const RESIDENT_RECIPES = [
   ['billing', 2, 2, (i) => [['Payment received', 'Statement is ready'][i % 2], `Unit 02-291`, HOME, null]],
   ['system', 2, 1, (i) => [['New sign-in on your account', 'Your password is 90 days old'][i % 2], 'Open Profile settings to review.', null, null]],
 ];
-const RECIPES = { client: CLIENT_RECIPES, staff: STAFF_RECIPES, resident: RESIDENT_RECIPES };
+// Admin: what the captured Admin dashboard says about the platform (32 health warnings, 8 people needing a space, sign-ins). Tickets and chats are live.
+const ADMIN_RECIPES = [
+  ['properties', 1, 1, (i) => [
+    ['People needing space assignment', '8 approved parkers have no assigned space at Mallard Pointe at Riverbend.', PROPERTIES[0], 'dashboard'],
+    ['Client account is healthy', 'AMC LLC: both properties are active.', null, null],
+  ][i]],
+  ['system', 2, 3, (i) => [
+    ['32 platform health warnings', 'No critical checks. Open the Command Center to review them.', null, 'dashboard'],
+    ['New sign-in on your account', 'A device you use signed in from a new place.', null, null],
+    ['Scheduled maintenance tonight', 'No action needed. Service stays available.', null, null],
+    ['A data sync finished', 'All properties are up to date.', null, null],
+    ['Your password is 90 days old', 'Open Settings to change it.', null, null],
+  ][i]],
+];
+const RECIPES = { client: CLIENT_RECIPES, staff: STAFF_RECIPES, resident: RESIDENT_RECIPES, admin: ADMIN_RECIPES };
 
 /** All notifications of a portal ("client", "staff" or "resident"), newest first. `now` anchors the times; content and read flags do not depend on it. */
-export function buildAll(now = Date.now(), role = 'client') {
+// What the live items (live.js) replace: a sample "message" next to a real one would say the same thing twice.
+export const REPLACED_BY_LIVE = { admin: ['messages'], client: ['messages'], staff: ['messages', 'community'], resident: ['messages', 'community'] };
+
+/* What each person switched off in Settings > Notifications. Every portal keeps its settings in the prototype's own key (the page shim prefixes it):
+   Resident and Admin in "<portal>:eso-proto" (rn* and an* switches), Staff and Client in "eso-notif" / "client:eso-notif" ({ m: { event: [in-app, email, sms] } }). */
+const RESIDENT_SWITCHES = { rnParking: ['parking'], rnRequests: ['requests'], rnPayments: ['billing'], rnCommunity: ['community'], rnPromos: ['promotions'], rnMessages: ['messages'] };
+const ADMIN_SWITCHES = { anMessages: ['messages'], anAlerts: ['properties', 'system'] };
+const RESIDENT_DEFAULT_OFF = new Set(); // every Resident switch starts on ("Community posts" too: it carries the replies they are waiting for)
+// A category made of several events (requests: new + updated) goes quiet only when every one of them has In-app off.
+const EVENT_CATEGORY = { req_new: 'requests', req_upd: 'requests', vio_new: 'violations', vio_esc: 'violations' };
+// An event that is a category of its own goes quiet as soon as its In-app switch is off: Direct message (the live chats), Community post, Near plan limit, Updates & recovery.
+const EVENT_ALONE = { msg_dm: 'messages', msg_com: 'community', cap: 'plan', sys: 'system' };
+const readJson = (storage, key) => { try { return JSON.parse(storage.getItem(key)); } catch { return null; } };
+
+/** The categories this person does not want in the bell and the list, from their switches. `storage` is the browser's; without it nothing is hidden. */
+export function hiddenCategories(role, storage = globalThis.localStorage) {
+  const hide = new Set();
+  if (!storage) return hide;
+  if (role === 'resident' || role === 'admin') {
+    const s = readJson(storage, `${role}:eso-proto`) || {};
+    const table = role === 'resident' ? RESIDENT_SWITCHES : ADMIN_SWITCHES;
+    for (const [key, cats] of Object.entries(table)) {
+      const on = s[key] === undefined ? !(role === 'resident' && RESIDENT_DEFAULT_OFF.has(key)) : !!s[key];
+      if (!on) for (const c of cats) hide.add(c);
+    }
+  } else if (role === 'staff' || role === 'client') {
+    const m = (readJson(storage, role === 'client' ? 'client:eso-notif' : 'eso-notif') || {}).m || {};
+    const byCat = {};
+    for (const [event, cat] of Object.entries(EVENT_CATEGORY)) if (Array.isArray(m[event])) (byCat[cat] ||= []).push(!!m[event][0]);
+    for (const [cat, flags] of Object.entries(byCat)) if (flags.length && flags.every((on) => !on)) hide.add(cat); // every event of the category has In-app off
+    for (const [event, cat] of Object.entries(EVENT_ALONE)) if (Array.isArray(m[event]) && !m[event][0]) hide.add(cat);
+  }
+  return hide;
+}
+
+/** Pass `live` (an array, even an empty one) to swap the sample Messages and Community for the real ones; leave it out for the sample list alone.
+ *  What the person switched off in Settings (hiddenCategories) is left out of the list. */
+export function buildAll(now = Date.now(), role = 'client', live, storage = globalThis.localStorage) {
+  const hide = hiddenCategories(role, storage);
+  const keep = (n) => !hide.has(n.cat);
+  BOUGHT = readBought(storage);
+  const sample = buildSample(now, role);
+  if (!Array.isArray(live)) return sample.filter(keep);
+  const drop = new Set(REPLACED_BY_LIVE[role] || []);
+  // They sit among the rest by time. Their ids are stable, so the read state keeps working.
+  return [...live, ...sample.filter((n) => !drop.has(n.cat))].filter(keep).sort((a, b) => b.ts - a.ts);
+}
+
+function buildSample(now, role) {
   const items = [];
   (RECIPES[role] || RECIPES.client).forEach(([cat, unread, read, make], ci) => {
     if (unread + read === 0) return;
@@ -125,7 +200,8 @@ export function readMap(storage, personaId) {
     return v && typeof v === 'object' && !Array.isArray(v) ? v : {};
   } catch { return {}; }
 }
-export const isRead = (n, map) => (typeof map[n.id] === 'boolean' ? map[n.id] : n.read);
+// A person's own choice wins, except that reading the chat or the post where it lives reads its notification too.
+export const isRead = (n, map) => (typeof map[n.id] === 'boolean' ? (map[n.id] || (n.live ? n.read : false)) : n.read);
 
 /** Mark these ids read (value true) or unread (false). Returns the new map. */
 export function setRead(storage, personaId, ids, value) {

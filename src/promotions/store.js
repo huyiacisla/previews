@@ -10,7 +10,12 @@
 // This file only READS what Staff published. What a resident does (save, claim) is kept per resident under
 // "eso-res-promo:<residentId>" and is never written into Staff's records.
 
-export const KEY = { published: 'eso-pmc-saved', cats: 'eso-pmc-cats', settings: 'eso-proto', mine: (id) => `eso-res-promo:${id}` };
+import { PERSONAS } from '../messaging/personas.js';
+import { companyPrefs } from '../company-prefs.js';
+import './catalog.js'; // defines globalThis.PM_CATALOG: the sample deals Staff's page shows too (the Resident sees the running ones)
+
+// `claimState` is written by Staff's Claims inbox: { "<residentId>|<promotionId>|<n>": { st: verified | redeemed | rejected, reason } }. Only a status; the Resident app never writes it.
+export const KEY = { published: 'eso-pmc-saved', cats: 'eso-pmc-cats', settings: 'eso-proto', claimState: 'eso-pm-claimstate', mine: (id) => `eso-res-promo:${id}` };
 
 const BUILTIN = [['parking', 'Parking'], ['moving', 'Moving & Storage'], ['carcare', 'Car care'], ['ev', 'EV charging'], ['pets', 'Pets'], ['dining', 'Local dining'], ['services', 'Services']];
 const SEGMENTS = { members: 'Members', movein: 'New move-ins', pet: 'Pet owners', ev: 'EV drivers' };
@@ -31,7 +36,8 @@ export function todayISO(now = new Date()) {
 /** The two Staff switches. Missing means on (the Staff defaults). */
 export function readConfig(storage) {
   const s = read(storage, KEY.settings, {}) || {};
-  return { show: s.promoShow !== false, save: s.promoSave !== false };
+  // (the company can also switch Promotions off for its residents: Client > Workspace settings > Residents)
+  return { show: s.promoShow !== false && companyPrefs(storage).promos, save: s.promoSave !== false };
 }
 
 function categoryNames(storage) {
@@ -40,7 +46,21 @@ function categoryNames(storage) {
   return map;
 }
 
+/** The sample deals that are running, as records (the same ones Staff see in their list: 17 of the 27 are running). Made once, they never change by themselves. */
+let sampleCache = { key: null, list: [] };
+export function sampleRecords(storage) {
+  const C = globalThis.PM_CATALOG;
+  if (!C) return [];
+  // What Staff turned off (a draft) or on is read each time; the list is only made again when that choice changed.
+  const overrides = storage ? C.readOverrides(storage) : {};
+  const edits = storage ? C.readEdits(storage) : {};
+  const key = JSON.stringify([overrides, edits]);
+  if (sampleCache.key !== key) sampleCache = { key, list: C.records(overrides, edits) };
+  return sampleCache.list;
+}
+
 export function offerLabel(x) {
+  if (x.offerText) return String(x.offerText).slice(0, 40); // a sample deal says its price as it is ("$96/mo", "Free")
   if (x.otype === 'pct') return `${x.oval || '?'}% off`;
   if (x.otype === 'fixed') return `$${x.oval || '?'} off`;
   if (x.otype === 'free') return 'Free';
@@ -66,31 +86,61 @@ export function isLive(rec, today) {
 // Images come from what Staff uploaded (data URLs) or an https address; anything else (javascript:, file:) is dropped.
 const safeSrc = (v) => (typeof v === 'string' && /^(data:image\/|https?:\/\/)/i.test(v) ? v : '');
 
-function toPromo(rec, names) {
+/**
+ * A resident's claims of one promotion that count: what they claimed, minus the ones Staff rejected (a rejected claim gives its place back).
+ * `locked` is true when Staff rejected one of them with "Lock": the deal is really out and this resident cannot claim it again.
+ */
+export function activeClaims(storage, residentId, promoId) {
+  const count = Number(residentState(storage, residentId).claims[promoId]?.count) || 0;
+  const all = read(storage, KEY.claimState, {}) || {};
+  let rejected = 0;
+  let locked = false;
+  for (let n = 1; n <= count; n += 1) {
+    const s = all[`${residentId}|${promoId}|${n}`];
+    if (s && s.st === 'rejected') { rejected += 1; if (s.lock) locked = true; }
+  }
+  return { count, active: count - rejected, rejected, locked };
+}
+
+/** How many times residents claimed this promotion in this app: every resident's own claims that Staff did not reject. */
+export function claimedByResidents(storage, promoId) {
+  let n = 0;
+  for (const p of PERSONAS) {
+    if (p.role !== 'resident') continue;
+    n += activeClaims(storage, p.id, promoId).active;
+  }
+  return n;
+}
+
+function toPromo(rec, names, extra = 0) {
   const x = rec.x;
   const link = x.method === 'link' && /^https?:\/\//i.test(x.link || '') ? x.link : '';
   const total = Number(x.limT) > 0 ? Number(x.limT) : 0;
   return {
     id: String(rec.id),
-    title: x.title || 'Promotion',
-    summary: x.reward || '',
-    description: x.desc || '',
+    // Staff's fields have limits; a record that is longer (an old one, a pasted one) is cut here so a card never grows without bound.
+    title: String(x.title || 'Promotion').slice(0, 100),
+    summary: String(x.reward || '').slice(0, 80),
+    description: String(x.desc || '').slice(0, 500),
     category: { key: x.cat || 'services', name: names.get(x.cat) || 'Other' },
-    partner: x.partner || '',
+    partner: String(x.partner || '').slice(0, 120),
     partnerLogo: safeSrc(x.plogo),
     cover: safeSrc(x.cover) ? { src: x.cover, x: x.cx ?? 50, y: x.cy ?? 50, zoom: x.cz ?? 1, alt: x.alt || x.title || '' } : null,
+    // A sample deal has no picture file: a colour and a symbol stand in (only a plain CSS gradient and a short text are accepted).
+    visual: x.visual && /^linear-gradient\(135deg,#[0-9a-f]{6},#[0-9a-f]{6}\)$/i.test(x.visual.gradient || '') ? { gradient: x.visual.gradient, emoji: String(x.visual.emoji || '').slice(0, 8) } : null,
     offer: offerLabel(x),
     method: x.method || 'static',
-    code: x.method === 'static' || x.method === 'qr' ? (x.code || '').trim() : '',
+    code: x.method === 'static' || x.method === 'qr' ? String(x.code || '').trim().slice(0, 30) : '',
     prefix: (x.prefix || 'RES').toUpperCase(),
     link,
     perResident: Math.max(1, Number(x.limR) || 1),
     total,
-    claimed: Number(rec.claims) || 0,
-    full: total > 0 && (Number(rec.claims) || 0) >= total,
+    // What Staff's record says plus what residents claimed in this app (each resident's own key): the "fully claimed" limit counts both.
+    claimed: (Number(rec.claims) || 0) + (extra || 0),
+    full: total > 0 && (Number(rec.claims) || 0) + (extra || 0) >= total,
     end: x.end || '',
     audience: audienceLabel(x),
-    terms: x.terms || '',
+    terms: String(x.terms || '').slice(0, 1000),
   };
 }
 
@@ -107,21 +157,22 @@ export function inAudience(x, viewer) {
 }
 
 /** Live promotions for this resident, newest first, filtered by free text and category. */
-export function listPromotions(storage, { today = todayISO(), query = '', category = 'all', viewer } = {}) {
+export function listPromotions(storage, { today = todayISO(), query = '', category = 'all', viewer, samples = true } = {}) {
   if (!readConfig(storage).show) return [];
   const names = categoryNames(storage);
   const q = query.trim().toLowerCase();
-  return read(storage, KEY.published, [])
+  const published = read(storage, KEY.published, []);
+  return [...(Array.isArray(published) ? published : []), ...(samples ? sampleRecords(storage) : [])]
     .filter((rec) => isLive(rec, today) && inAudience(rec.x, viewer))
-    .map((rec) => toPromo(rec, names))
+    .map((rec) => toPromo(rec, names, claimedByResidents(storage, rec.id)))
     .filter((p) => category === 'all' || p.category.key === category)
     .filter((p) => !q || [p.title, p.summary, p.description, p.partner, p.category.name].join(' ').toLowerCase().includes(q));
 }
 
 /** Categories that have at least one live promotion, for the filter row. */
-export function categoriesIn(storage, today = todayISO(), viewer) {
+export function categoriesIn(storage, today = todayISO(), viewer, samples = true) {
   const counts = new Map();
-  for (const p of listPromotions(storage, { today, viewer })) counts.set(p.category.key, { name: p.category.name, count: (counts.get(p.category.key)?.count || 0) + 1 });
+  for (const p of listPromotions(storage, { today, viewer, samples })) counts.set(p.category.key, { name: p.category.name, count: (counts.get(p.category.key)?.count || 0) + 1 });
   return [...counts].map(([key, v]) => ({ key, ...v }));
 }
 
@@ -130,6 +181,20 @@ export function categoriesIn(storage, today = todayISO(), viewer) {
 export function residentState(storage, residentId) {
   const s = read(storage, KEY.mine(residentId), {}) || {};
   return { saved: new Set(Array.isArray(s.saved) ? s.saved : []), claims: s.claims && typeof s.claims === 'object' ? s.claims : {} };
+}
+
+/**
+ * What Staff decided about this resident's newest claim of this promotion.
+ * Returns { st: 'pending' | 'verified' | 'redeemed' | 'rejected', reason } and null when the resident has not claimed it.
+ */
+export function claimStatus(storage, residentId, promoId) {
+  const count = Number(residentState(storage, residentId).claims[promoId]?.count) || 0;
+  if (!count) return null;
+  const all = read(storage, KEY.claimState, {}) || {};
+  // the newest claim is the one that is shown: an older rejected one does not speak for a new claim that waits
+  const s = all[`${residentId}|${promoId}|${count}`];
+  if (s && (s.st === 'verified' || s.st === 'redeemed' || s.st === 'rejected')) return { st: s.st, reason: s.st === 'rejected' ? String(s.reason || '').slice(0, 200) : '', locked: s.st === 'rejected' && !!s.lock };
+  return { st: 'pending', reason: '', locked: false };
 }
 
 function put(storage, residentId, st) {
@@ -166,9 +231,15 @@ export function claim(storage, residentId, promo, now = new Date()) {
   const prev = st.claims[promo.id];
   const code = promo.method === 'unique' ? uniqueCode(promo.prefix, residentId, promo.id) : promo.code;
   if (prev) {
-    if (prev.count >= promo.perResident) return { ok: true, again: true, code: prev.code || code, link: promo.link };
+    const own = activeClaims(storage, residentId, promo.id);
+    if (own.locked) return { ok: false, reason: 'The property team closed this claim. Contact them if you think this is a mistake.' };
+    // a claim Staff rejected does not count against the limit: the resident may claim again
+    if (own.active >= promo.perResident) return { ok: true, again: true, code: prev.code || code, link: promo.link };
   }
-  st.claims[promo.id] = { count: (prev ? prev.count : 0) + 1, code, at: now.toISOString() };
+  // `who` is what Staff's Claims inbox shows for this claim (a real app sends the resident's profile with the claim).
+  const person = PERSONAS.find((p) => p.id === residentId);
+  const who = person ? { name: person.name, unit: (person.unit && person.unit.number) || '' } : undefined;
+  st.claims[promo.id] = { count: (prev ? prev.count : 0) + 1, code, at: now.toISOString(), ...(who ? { who } : {}) };
   if (!put(storage, residentId, st)) return { ok: false, reason: 'Could not save your claim. Try again.' };
   return { ok: true, code, link: promo.link };
 }

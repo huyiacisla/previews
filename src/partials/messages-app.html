@@ -95,6 +95,16 @@
       <h2 class="text-lg font-semibold">Messages could not load</h2>
       <p id="error-text" class="text-sm text-muted-foreground">Something went wrong while opening your conversations.</p>
       <button type="button" id="btn-retry" class="group/button inline-flex h-8 shrink-0 touch-manipulation items-center justify-center gap-step-sm rounded-md border border-transparent bg-primary bg-clip-padding px-step-md control-text font-medium whitespace-nowrap text-primary-foreground transition outline-none select-none hover:bg-primary/90 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 active:translate-y-px pointer-coarse:h-11">Try again</button>
+      <!-- A way to reach people that does not need Messages to work. The address and number are samples for the preview. -->
+      <div id="error-contact" class="mt-step-md flex w-full flex-col gap-step-xs rounded-lg bg-muted px-step-lg py-step-md text-sm">
+        <p class="font-medium">Still stuck? Reach EasySpotOps Support another way.</p>
+        <p class="flex flex-wrap items-center justify-center gap-x-step-lg gap-y-step-xs">
+          <a id="error-mail" href="mailto:support@easyspotops.example" class="inline-flex min-h-8 items-center text-primary underline underline-offset-2 pointer-coarse:min-h-11">support@easyspotops.example</a>
+          <a id="error-tel" href="tel:+19165550100" class="inline-flex min-h-8 items-center text-primary underline underline-offset-2 pointer-coarse:min-h-11">(916) 555-0100</a>
+        </p>
+        <p class="text-xs text-muted-foreground">For anything about the building, call the property office. In an emergency, call 911.</p>
+        <p id="error-ref" class="text-xs text-muted-foreground tabular-nums"></p>
+      </div>
     </div>
 
     <!-- app -->
@@ -104,7 +114,7 @@
         <div class="flex flex-col gap-step-md border-b border-border p-step-md">
           <div class="flex items-center gap-step-sm">
             <h2 id="list-title" class="min-w-0 flex-1 truncate text-base leading-snug font-medium">Conversations</h2>
-            <button type="button" id="btn-dnd" hidden aria-pressed="false" class="group/button inline-flex h-8 shrink-0 touch-manipulation items-center justify-center gap-step-xs rounded-md border border-transparent bg-clip-padding px-step-sm control-text font-medium whitespace-nowrap text-foreground-secondary transition outline-none select-none hover:bg-muted focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 aria-pressed:bg-accent aria-pressed:text-primary pointer-coarse:h-11 [&_svg]:size-4">
+            <button type="button" id="btn-dnd" hidden aria-pressed="false" class="group/button inline-flex h-8 shrink-0 touch-manipulation items-center justify-center gap-step-xs rounded-md border border-transparent bg-clip-padding px-step-sm control-text font-medium whitespace-nowrap text-foreground-secondary transition outline-none select-none hover:bg-muted focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 aria-pressed:border-primary aria-pressed:bg-accent aria-pressed:text-foreground pointer-coarse:h-11 [&_svg]:size-4">
               <svg aria-hidden="true"><use href="#i-bell-off"/></svg>Do not disturb
             </button>
             <button type="button" id="btn-announce" hidden class="group/button inline-flex h-8 shrink-0 touch-manipulation items-center justify-center gap-step-xs rounded-md border border-transparent bg-background bg-clip-padding px-step-md control-text font-medium whitespace-nowrap text-foreground ring-1 ring-foreground/10 transition outline-none select-none hover:bg-muted focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 active:translate-y-px pointer-coarse:h-11 [&_svg]:size-4">
@@ -162,7 +172,10 @@
             <ol id="stage-list" aria-label="Ticket progress" class="flex flex-wrap items-center gap-x-step-xs gap-y-step-xs"></ol>
           </div>
 
-          <div id="thread-tools" hidden class="flex flex-wrap items-end gap-step-md border-b border-border bg-muted/40 p-step-md">
+          <div id="thread-tools" hidden class="flex flex-wrap items-end gap-step-md border-b border-border bg-muted/40 p-step-md max-sm:gap-y-0 max-sm:py-0">
+            <!-- on a phone the three choices fold into one line that says what they are now; one tap opens them -->
+            <button type="button" id="tools-toggle" aria-expanded="false" aria-controls="tools-fields" class="group/button inline-flex min-h-11 w-full touch-manipulation items-center justify-between gap-step-sm rounded-md text-left text-sm text-foreground-secondary outline-none focus-visible:ring-3 focus-visible:ring-ring/50 sm:hidden"><span id="tools-summary" class="min-w-0 truncate"></span><svg aria-hidden="true" class="size-4 shrink-0 transition-transform group-aria-expanded/button:rotate-180"><use href="#i-chevron-down"/></svg></button>
+            <div id="tools-fields" data-collapsed="true" class="flex w-full flex-wrap items-end gap-step-md max-sm:data-[collapsed=true]:hidden sm:w-auto">
             <div class="flex flex-col gap-step-xs">
               <label for="sel-status" class="text-xs text-muted-foreground">Status</label>
               <select id="sel-status" class="h-8 rounded-md border border-input bg-card px-2 text-base outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 md:text-sm pointer-coarse:h-11"><option value="open">Open</option><option value="pending">Pending</option><option value="resolved">Resolved</option></select>
@@ -174,6 +187,7 @@
             <div class="flex flex-col gap-step-xs">
               <label for="sel-assignee" class="text-xs text-muted-foreground">Assigned to</label>
               <select id="sel-assignee" class="h-8 rounded-md border border-input bg-card px-2 text-base outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 md:text-sm pointer-coarse:h-11"></select>
+            </div>
             </div>
           </div>
 
@@ -203,12 +217,12 @@
                 <span class="flex min-w-0 flex-1 flex-col"><span id="reply-who" class="font-medium text-foreground-secondary"></span><span id="reply-text" class="truncate text-muted-foreground"></span></span>
                 <button type="button" id="reply-cancel" aria-label="Cancel reply" class="inline-flex size-6 shrink-0 items-center justify-center rounded-md text-muted-foreground outline-none hover:bg-background focus-visible:ring-3 focus-visible:ring-ring/50 pointer-coarse:size-8 [&_svg]:size-4"><svg aria-hidden="true"><use href="#i-x"/></svg></button>
               </div>
-              <p id="emergency-hint" hidden role="status" class="flex items-center gap-step-xs rounded-lg bg-danger-bg px-step-md py-step-xs text-xs text-danger-text [&_svg]:size-3"><svg aria-hidden="true"><use href="#i-alert"/></svg>Emergency: managers are alerted now, and it gets through Do Not Disturb. Use it for water, fire or gas.</p>
+              <p id="emergency-hint" hidden role="status" class="flex items-center gap-step-xs rounded-lg bg-danger-bg px-step-md py-step-xs text-xs text-danger-text [&_svg]:size-3"><svg aria-hidden="true"><use href="#i-alert"/></svg><span class="min-w-0 flex-1">Emergency: managers are alerted now.</span><button type="button" id="emergency-info" aria-haspopup="dialog" aria-label="About emergencies" class="group/button inline-flex size-6 shrink-0 touch-manipulation items-center justify-center rounded-full border border-transparent bg-clip-padding text-current opacity-80 transition outline-none select-none hover:bg-foreground/10 hover:opacity-100 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 pointer-coarse:size-11 [&_svg]:size-4"><svg aria-hidden="true"><use href="#i-info"/></svg></button></p>
               <div id="tray" hidden class="flex flex-wrap gap-step-sm"></div>
               <p id="attach-error" role="alert" hidden class="text-xs text-danger-text"></p>
               <div class="flex flex-wrap items-end gap-step-sm">
-                <button type="button" id="btn-canned" hidden aria-expanded="false" aria-controls="canned-menu" aria-label="Quick replies" class="group/button inline-flex size-8 shrink-0 touch-manipulation items-center justify-center rounded-md border border-transparent bg-transparent bg-clip-padding text-foreground-secondary transition outline-none select-none hover:bg-muted hover:text-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 active:translate-y-px aria-expanded:bg-accent aria-expanded:text-primary pointer-coarse:size-11 [&_svg]:size-4">
-                  <svg aria-hidden="true"><use href="#i-list"/></svg>
+                <button type="button" id="btn-canned" hidden aria-expanded="false" aria-controls="canned-menu" aria-label="Quick replies" class="group/button inline-flex h-8 shrink-0 touch-manipulation items-center justify-center gap-step-xs rounded-md border border-transparent bg-transparent bg-clip-padding px-step-sm text-sm text-foreground-secondary transition outline-none select-none hover:bg-muted hover:text-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 active:translate-y-px aria-expanded:bg-accent aria-expanded:text-primary pointer-coarse:h-11 [&_svg]:size-4">
+                  <svg aria-hidden="true"><use href="#i-list"/></svg><span>Quick replies</span>
                 </button>
                 <button type="button" id="btn-attach" aria-label="Attach a photo or file" class="group/button inline-flex size-8 shrink-0 touch-manipulation items-center justify-center rounded-md border border-transparent bg-transparent bg-clip-padding text-foreground-secondary transition outline-none select-none hover:bg-muted hover:text-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 active:translate-y-px pointer-coarse:size-11 [&_svg]:size-4">
                   <svg aria-hidden="true"><use href="#i-paperclip"/></svg>
@@ -226,6 +240,10 @@
                 </div>
                 <button type="submit" id="btn-send" class="group/button ml-auto inline-flex h-8 shrink-0 sm:ml-0 touch-manipulation items-center justify-center gap-step-sm rounded-md border border-transparent bg-primary bg-clip-padding px-step-md control-text font-medium whitespace-nowrap text-primary-foreground transition outline-none select-none hover:bg-primary/90 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 active:translate-y-px disabled:pointer-events-none disabled:opacity-50 pointer-coarse:h-11 [&_svg]:size-4">
                   <svg aria-hidden="true"><use href="#i-send"/></svg>Send
+                </button>
+                <!-- Admin, Support thread: answer and close in one tap (what most threads end with) -->
+                <button type="button" id="btn-send-resolve" hidden class="group/button inline-flex h-8 shrink-0 touch-manipulation items-center justify-center gap-step-sm rounded-md border border-transparent bg-background bg-clip-padding px-step-md control-text font-medium whitespace-nowrap text-foreground ring-1 ring-foreground/10 transition outline-none select-none hover:bg-muted focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 active:translate-y-px disabled:pointer-events-none disabled:opacity-50 pointer-coarse:h-11 [&_svg]:size-4">
+                  <svg aria-hidden="true"><use href="#i-check"/></svg>Send &amp; resolve
                 </button>
               </div>
               <div class="flex items-center justify-between gap-step-md text-xs text-muted-foreground">
@@ -447,7 +465,7 @@
 </template>
 
 <template id="t-btn">
-  <button type="button" data-variant="outline" class="group/button inline-flex h-8 shrink-0 touch-manipulation items-center justify-center gap-step-sm rounded-md border border-transparent bg-background bg-clip-padding px-step-md control-text font-medium whitespace-nowrap text-foreground ring-1 ring-foreground/10 transition outline-none select-none hover:bg-muted focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 active:translate-y-px disabled:pointer-events-none disabled:opacity-50 data-[variant=ghost]:bg-transparent data-[variant=ghost]:text-foreground-secondary data-[variant=ghost]:ring-0 data-[variant=ghost]:hover:bg-muted data-[variant=ghost]:hover:text-foreground data-[variant=primary]:bg-primary data-[variant=primary]:text-primary-foreground data-[variant=primary]:ring-0 data-[variant=primary]:hover:bg-primary/90 data-[variant=soft]:bg-accent data-[variant=soft]:text-primary data-[variant=soft]:ring-0 data-[variant=soft]:hover:bg-accent/80 data-[icon-only=true]:w-8 data-[icon-only=true]:px-0 data-[icon-only=true]:pointer-coarse:w-11 pointer-coarse:h-11 [&_svg]:size-4 [&_svg]:shrink-0"><svg data-icon hidden aria-hidden="true"><use href="#i-check"/></svg><span data-label></span></button>
+  <button type="button" data-variant="outline" class="group/button inline-flex h-8 shrink-0 touch-manipulation items-center justify-center gap-step-sm rounded-md border border-transparent bg-background bg-clip-padding px-step-md control-text font-medium whitespace-nowrap text-foreground ring-1 ring-foreground/10 transition outline-none select-none hover:bg-muted focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 active:translate-y-px disabled:pointer-events-none disabled:opacity-50 data-[variant=ghost]:bg-transparent data-[variant=ghost]:text-foreground-secondary data-[variant=ghost]:ring-0 data-[variant=ghost]:hover:bg-muted data-[variant=ghost]:hover:text-foreground data-[variant=primary]:bg-primary data-[variant=primary]:text-primary-foreground data-[variant=primary]:ring-0 data-[variant=primary]:hover:bg-primary/90 data-[variant=soft]:bg-accent data-[variant=soft]:text-primary data-[variant=soft]:ring-0 data-[variant=soft]:hover:bg-accent/80 data-[variant=ghost]:focus-visible:ring-3 data-[variant=primary]:focus-visible:ring-3 data-[variant=soft]:focus-visible:ring-3 data-[icon-only=true]:w-8 data-[icon-only=true]:px-0 data-[icon-only=true]:pointer-coarse:w-11 pointer-coarse:h-11 [&_svg]:size-4 [&_svg]:shrink-0"><svg data-icon hidden aria-hidden="true"><use href="#i-check"/></svg><span data-label></span></button>
 </template>
 
 <template id="t-day"><div class="flex justify-center py-step-sm"><time data-day class="inline-flex h-5 items-center rounded-full bg-secondary px-step-sm text-xs text-secondary-foreground"></time></div></template>
@@ -528,6 +546,18 @@
   <div class="mt-step-md flex flex-wrap items-center gap-step-md rounded-lg bg-muted/40 p-step-md"><p class="min-w-0 flex-1 text-sm">Was this conversation helpful?</p><div data-actions class="flex gap-step-sm"></div></div>
 </template>
 
+<!-- The (i): a long note is one short line with this button; the full text opens in a small window. -->
+<template id="t-info-btn"><button type="button" aria-haspopup="dialog" aria-label="More about this message" class="group/button -my-1 inline-flex size-8 shrink-0 touch-manipulation items-center justify-center rounded-full border border-transparent bg-clip-padding text-current opacity-80 transition outline-none select-none hover:bg-foreground/10 hover:opacity-100 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 pointer-coarse:size-11 [&_svg]:size-4"><svg aria-hidden="true"><use href="#i-info"/></svg></button></template>
+<dialog id="info-win" aria-labelledby="info-win-title" class="m-auto w-full max-w-md flex-col overflow-hidden open:flex rounded-xl bg-card p-0 text-foreground shadow-lift-md backdrop:bg-foreground/40 max-sm:m-0 max-sm:mt-auto max-sm:max-w-none max-sm:rounded-b-none">
+  <div class="flex items-center gap-step-sm border-b border-border px-step-lg py-step-md">
+    <h2 id="info-win-title" tabindex="-1" class="min-w-0 flex-1 truncate text-lg leading-6 font-semibold tracking-tight outline-none">About this message</h2>
+  </div>
+  <p id="info-win-text" class="px-step-lg py-step-md text-sm leading-6 wrap-anywhere text-foreground-secondary"></p>
+  <div class="flex justify-end border-t border-border px-step-lg py-step-md">
+    <button type="button" id="info-win-ok" class="group/button inline-flex h-8 shrink-0 touch-manipulation items-center justify-center rounded-md border border-transparent bg-primary bg-clip-padding px-step-md control-text font-medium whitespace-nowrap text-primary-foreground transition outline-none select-none hover:bg-primary/90 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 active:translate-y-px pointer-coarse:h-11">Got it</button>
+  </div>
+</dialog>
+
 <template id="t-banner">
   <div data-tone="info" role="status" class="flex items-start gap-step-sm bg-info-bg px-step-md py-step-sm text-xs text-info-text data-[tone=neutral]:bg-secondary data-[tone=neutral]:text-secondary-foreground data-[tone=success]:bg-success-bg data-[tone=success]:text-success-text data-[tone=warning]:bg-warning-bg data-[tone=warning]:text-warning-text [&_svg]:mt-0.5 [&_svg]:size-4 [&_svg]:shrink-0">
     <svg aria-hidden="true"><use href="#i-info"/></svg><p data-text class="min-w-0 flex-1 leading-4"></p><span data-actions class="flex shrink-0 gap-step-sm"></span>
@@ -544,7 +574,7 @@
 </template>
 
 <template id="t-toast">
-  <div role="status" class="pointer-events-auto flex max-w-md items-center gap-step-md rounded-lg bg-foreground px-step-lg py-step-md text-sm text-background shadow-lift-md"><p data-text class="min-w-0 flex-1"></p><button type="button" data-action hidden class="shrink-0 rounded-md px-step-sm py-1 text-sm font-medium underline outline-none hover:bg-background/10 focus-visible:ring-3 focus-visible:ring-ring/50"></button></div>
+  <div role="status" class="pointer-events-auto flex max-w-md items-center gap-step-md rounded-lg bg-foreground px-step-lg py-step-md text-sm text-background shadow-lift-md"><p data-text class="min-w-0 flex-1"></p><button type="button" data-action hidden class="shrink-0 rounded-md px-step-sm py-1 pointer-coarse:min-h-11 pointer-coarse:min-w-11 text-sm font-medium underline outline-none hover:bg-background/10 focus-visible:ring-3 focus-visible:ring-ring/50"></button></div>
 </template>
 
 <template id="t-recipient">
@@ -646,7 +676,7 @@
 </template>
 
 <template id="t-chip">
-  <button type="button" data-mine="false" class="inline-flex h-6 touch-manipulation items-center gap-1 rounded-lg bg-card px-step-sm text-xs ring-1 ring-foreground/10 outline-none transition-colors hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50 data-[mine=true]:bg-accent data-[mine=true]:text-primary data-[mine=true]:ring-primary/40 pointer-coarse:h-8"><span data-emoji class="text-sm"></span><span data-count class="tabular-nums"></span></button>
+  <button type="button" data-mine="false" class="inline-flex h-6 touch-manipulation items-center gap-1 rounded-lg bg-card px-step-sm text-xs ring-1 ring-foreground/10 outline-none transition-colors hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50 data-[mine=true]:bg-accent data-[mine=true]:text-primary data-[mine=true]:ring-primary/40 pointer-coarse:relative pointer-coarse:h-8 pointer-coarse:after:absolute pointer-coarse:after:-inset-x-1 pointer-coarse:after:-inset-y-2"><span data-emoji class="text-sm"></span><span data-count class="tabular-nums"></span></button>
 </template>
 
 <template id="t-att-img">

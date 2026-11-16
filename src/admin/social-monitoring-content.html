@@ -1,0 +1,237 @@
+<!doctype html>
+<html lang="en" class="light">
+<head>
+<!--include:partials/head.html-->
+<title>Social monitoring | Admin Portal · admin preview</title>
+</head>
+<body class="bg-background font-sans text-foreground" data-portal="admin">
+<svg aria-hidden="true" focusable="false" style="position:absolute;width:0;height:0;overflow:hidden">
+  <defs>
+    <symbol id="i-search" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21 21-4.34-4.34"/><circle cx="11" cy="11" r="8"/></symbol>
+    <symbol id="i-pin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 17v5"/><path d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H8a2 2 0 0 0 0 4 1 1 0 0 1 1 1z"/></symbol>
+    <symbol id="i-eye" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2.06 12.35a1 1 0 0 1 0-.7 10.75 10.75 0 0 1 19.88 0 1 1 0 0 1 0 .7 10.75 10.75 0 0 1-19.88 0"/><circle cx="12" cy="12" r="3"/></symbol>
+  </defs>
+</svg>
+
+<!-- Social monitoring (Admin). A window onto the Social of each property: the posts, the answers, and what Staff did about them. It only reads;
+     the people who run the property moderate it from their own Social pages. social/monitor.js works out what is shown (pure, tested),
+     social-monitoring.js keeps what the person chose. Same tokens and patterns as the other pages. -->
+<main id="main-content" tabindex="-1" x-data="socialMonitoring" x-cloak class="mx-auto flex min-h-dvh w-full max-w-5xl flex-col gap-step-lg px-step-lg py-step-lg outline-none lg:px-step-xl">
+  <header class="flex flex-wrap items-start justify-between gap-step-md">
+    <div class="min-w-0">
+      <a :href="back" target="_top" class="-ml-step-sm inline-flex h-8 items-center rounded-md px-step-sm control-text font-medium text-primary outline-none hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50 pointer-coarse:h-11">← All properties</a>
+      <h1 class="text-2xl leading-8 font-semibold tracking-tight text-foreground">Social monitoring</h1>
+      <p class="text-sm text-muted-foreground">View only. Staff moderate the Social of each property; Admin sees all of it in one place.</p>
+    </div>
+    <div class="flex min-w-0 flex-col gap-step-xs">
+      <label for="channel" class="text-xs font-medium text-muted-foreground">Property</label>
+      <select id="channel" x-model="channel" @change="load()" class="h-8 w-full min-w-48 max-w-72 rounded-md border border-input bg-card px-2.5 text-sm outline-none transition-colors focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 pointer-coarse:h-11">
+        <template x-for="c in channels" :key="c.id"><option :value="c.id" x-text="c.name" :selected="channel === c.id"></option></template>
+      </select>
+    </div>
+  </header>
+
+  <!-- the counts -->
+  <section aria-label="Totals" class="grid grid-cols-2 gap-step-md sm:grid-cols-3 lg:grid-cols-6">
+    <template x-for="s in cards" :key="s.label">
+      <div class="flex flex-col gap-step-xs rounded-xl bg-card p-step-md shadow-lift-xs">
+        <span class="text-xs text-muted-foreground" x-text="s.label"></span>
+        <span class="text-2xl leading-8 font-semibold tracking-tight tabular-nums" :class="s.warn ? 'text-warning-text' : 'text-foreground'" x-text="s.value"></span>
+      </div>
+    </template>
+  </section>
+
+  <!-- a property that has no feed of its own yet -->
+  <p id="quiet" role="status" :hidden="m.live" class="rounded-xl bg-card p-step-lg text-sm text-muted-foreground shadow-lift-xs">
+    <span x-text="channelName"></span><span x-text="m.ended ? ' has ended. Its accounts are signed out and its Social data is disconnected, so there is nothing to show.' : ' has no Social activity to show yet. Its posts appear here as soon as its Staff start using Social.'"></span>
+  </p>
+
+  <div :hidden="!m.live" class="flex flex-col gap-step-md">
+    <div role="tablist" aria-label="Social monitoring" class="-mx-step-lg flex gap-step-xs overflow-x-auto px-step-lg pb-step-xs [scrollbar-width:none] lg:mx-0 lg:px-0" @keydown.arrow-right.prevent="moveTab(1)" @keydown.arrow-left.prevent="moveTab(-1)">
+      <template x-for="t in tabs" :key="t.id">
+        <button type="button" role="tab" :id="'tab-' + t.id" :aria-selected="tab === t.id ? 'true' : 'false'" :tabindex="tab === t.id ? 0 : -1" @click="tab = t.id" class="group/button inline-flex h-8 shrink-0 touch-manipulation items-center justify-center gap-step-xs rounded-md border border-transparent bg-clip-padding px-step-md control-text font-medium whitespace-nowrap text-foreground-secondary transition outline-none select-none hover:bg-muted focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 aria-selected:bg-accent aria-selected:text-primary pointer-coarse:h-11"><span x-text="t.label"></span><span class="text-xs tabular-nums" :class="t.warn ? 'inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-warning-bg px-step-xs font-medium text-warning-text' : 'text-muted-foreground'" x-text="t.n"></span></button>
+      </template>
+    </div>
+
+    <!-- posts -->
+    <section role="tabpanel" aria-labelledby="tab-posts" :hidden="tab !== 'posts'" class="flex flex-col gap-step-md">
+      <div class="flex flex-wrap items-center gap-step-sm rounded-xl bg-card p-step-md shadow-lift-xs">
+        <div class="relative min-w-48 flex-1">
+          <label for="q" class="sr-only">Search posts</label>
+          <svg aria-hidden="true" class="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground"><use href="#i-search"/></svg>
+          <input id="q" type="search" autocomplete="off" spellcheck="false" placeholder="Search posts, replies or people…" x-model.debounce.120ms="q" @keydown.escape="q = ''" class="h-8 w-full min-w-0 rounded-md border border-input bg-card pr-2.5 pl-8 text-base outline-none transition-colors placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 md:text-sm pointer-coarse:h-11" />
+        </div>
+        <div class="grid w-full grid-cols-2 gap-step-sm sm:flex sm:w-auto">
+        <div>
+          <label for="kind" class="sr-only">Type of post</label>
+          <select id="kind" x-model="kind" class="h-8 w-full rounded-md border border-input bg-card px-2.5 text-sm outline-none transition-colors focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 pointer-coarse:h-11">
+            <option value="all">All types</option>
+            <template x-for="k in kinds" :key="k"><option :value="k" x-text="k"></option></template>
+          </select>
+        </div>
+        <div>
+          <label for="aud" class="sr-only">Who can see it</label>
+          <select id="aud" x-model="aud" class="h-8 w-full rounded-md border border-input bg-card px-2.5 text-sm outline-none transition-colors focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 pointer-coarse:h-11">
+            <option value="any">Any audience</option>
+            <option value="all">Everyone</option>
+            <option value="residents">Residents</option>
+            <option value="staff">Staff only</option>
+          </select>
+        </div>
+        </div>
+      </div>
+      <p id="result-count" role="status" class="text-sm text-muted-foreground tabular-nums" x-text="resultText"></p>
+
+      <ul class="flex flex-col gap-step-md">
+        <template x-for="p in posts" :key="p.id">
+          <li class="flex flex-col gap-step-sm rounded-xl bg-card p-step-md shadow-lift-xs">
+            <article class="flex flex-col gap-step-sm" :aria-label="'Post by ' + p.author">
+              <div class="flex flex-wrap items-center gap-x-step-sm gap-y-step-xs">
+                <span class="flex size-8 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-medium text-muted-foreground" x-text="initials(p.author)" aria-hidden="true"></span>
+                <span class="text-sm font-medium text-foreground" x-text="p.author"></span>
+                <span class="text-xs text-muted-foreground" x-text="p.role"></span>
+                <time class="text-xs text-muted-foreground tabular-nums" :datetime="new Date(p.at).toISOString()" x-text="when(p.at)"></time>
+                <span class="text-xs text-muted-foreground tabular-nums" x-text="'ID ' + p.id"></span>
+                <span :hidden="!p.pinned" class="inline-flex items-center gap-step-xs text-xs text-muted-foreground"><svg aria-hidden="true" width="14" height="14"><use href="#i-pin"/></svg>Pinned</span>
+                <span class="ml-auto flex flex-wrap gap-step-xs">
+                  <span class="inline-flex h-5 items-center rounded-full px-step-sm text-xs font-medium" :class="p.kind === 'Announcement' ? 'bg-info-bg text-info-text' : p.kind === 'Promotion' ? 'bg-success-bg text-success-text' : p.kind === 'Staff discussion' ? 'bg-warning-bg text-warning-text' : 'bg-muted text-muted-foreground'" x-text="p.kind"></span>
+                  <span class="inline-flex h-5 items-center rounded-full bg-muted px-step-sm text-xs font-medium text-muted-foreground" x-text="p.audience"></span>
+                </span>
+              </div>
+              <p class="text-sm leading-5 whitespace-pre-line text-foreground" x-text="p.text"></p>
+              <div class="flex flex-wrap items-center gap-x-step-md gap-y-step-xs text-xs text-muted-foreground tabular-nums">
+                <span x-text="p.reactions + (p.reactions === 1 ? ' reaction' : ' reactions')"></span>
+                <span x-text="p.shares + (p.shares === 1 ? ' share' : ' shares')"></span>
+                <span :hidden="!p.views" class="inline-flex items-center gap-step-xs"><svg aria-hidden="true" width="14" height="14"><use href="#i-eye"/></svg><span x-text="p.views + ' views'"></span></span>
+                <button type="button" :hidden="!p.replies.length" :aria-expanded="isOpen(p.id) ? 'true' : 'false'" :aria-controls="'replies-' + p.id" @click="toggle(p.id)" class="group/button -ml-step-xs inline-flex h-8 touch-manipulation items-center rounded-md px-step-sm control-text font-medium text-primary transition outline-none select-none hover:bg-muted focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 pointer-coarse:h-11" x-text="(isOpen(p.id) ? 'Hide ' : 'Show ') + p.replies.length + (p.replies.length === 1 ? ' reply' : ' replies')"></button>
+                <span :hidden="p.replies.length" x-text="'No replies'"></span>
+                <button type="button" @click="reportPost(p)" :aria-label="'Report post ' + p.id + ' to the property team'" class="group/button ml-auto inline-flex h-8 touch-manipulation items-center rounded-md px-step-sm control-text font-medium text-foreground-secondary transition outline-none select-none hover:bg-muted hover:text-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 pointer-coarse:h-11">Report to team</button>
+              </div>
+              <ul :id="'replies-' + p.id" :hidden="!isOpen(p.id)" class="flex flex-col gap-step-sm border-l border-border pl-step-md">
+                <template x-for="r in p.replies" :key="r.id">
+                  <li class="flex flex-col gap-step-xs" :style="'margin-left:' + Math.min(r.depth, 3) * 16 + 'px'">
+                    <div class="flex flex-wrap items-center gap-x-step-sm text-xs text-muted-foreground">
+                      <span class="text-sm font-medium text-foreground" x-text="r.author"></span>
+                      <span x-text="r.role"></span>
+                      <time class="tabular-nums" :datetime="new Date(r.at).toISOString()" x-text="when(r.at)"></time>
+                      <span :hidden="!r.hidden" class="inline-flex h-5 items-center rounded-full bg-warning-bg px-step-sm text-xs font-medium text-warning-text">Hidden by Staff</span>
+                    </div>
+                    <p class="text-sm leading-5 whitespace-pre-line text-foreground" x-text="r.text"></p>
+                  </li>
+                </template>
+              </ul>
+            </article>
+          </li>
+        </template>
+      </ul>
+      <p id="no-posts" :hidden="posts.length || !m.posts.length" class="rounded-xl bg-card p-step-lg text-sm text-muted-foreground shadow-lift-xs">No post matches. <button type="button" @click="resetFilters()" class="font-medium text-primary underline-offset-2 hover:underline focus-visible:ring-3 focus-visible:ring-ring/50 outline-none rounded-sm">Clear the filters</button></p>
+    </section>
+
+    <!-- the log: everything that happened, newest first, each with the id to look it up by -->
+    <section role="tabpanel" aria-labelledby="tab-activity" :hidden="tab !== 'activity'" class="flex flex-col gap-step-md">
+      <div class="flex flex-wrap items-center gap-step-sm rounded-xl bg-card p-step-md shadow-lift-xs">
+        <div class="relative min-w-48 flex-1">
+          <label for="aq" class="sr-only">Search the activity</label>
+          <svg aria-hidden="true" class="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground"><use href="#i-search"/></svg>
+          <input id="aq" type="search" autocomplete="off" spellcheck="false" placeholder="Search by person, words or id (p7, r12)…" x-model.debounce.120ms="aq" @keydown.escape="aq = ''" class="h-8 w-full min-w-0 rounded-md border border-input bg-card pr-2.5 pl-8 text-base outline-none transition-colors placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 md:text-sm pointer-coarse:h-11" />
+        </div>
+        <label for="atype" class="sr-only">What happened</label>
+        <select id="atype" x-model="atype" class="h-8 w-full rounded-md sm:w-auto border border-input bg-card px-2.5 text-sm outline-none transition-colors focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 pointer-coarse:h-11">
+          <option value="all">Everything</option>
+          <option value="post">Posts</option>
+          <option value="reply">Replies</option>
+          <option value="violation">Violations</option>
+          <option value="removal">Removals</option>
+        </select>
+      </div>
+      <p id="event-count" role="status" class="text-sm text-muted-foreground tabular-nums" x-text="events.length + (events.length === 1 ? ' event' : ' events')"></p>
+      <ol class="flex flex-col rounded-xl bg-card shadow-lift-xs">
+        <template x-for="e in events" :key="e.id">
+          <li class="flex flex-col gap-step-xs border-b border-border px-step-md py-step-sm last:border-b-0">
+            <div class="flex flex-wrap items-center gap-x-step-sm gap-y-step-xs">
+              <span class="inline-flex h-5 items-center rounded-full px-step-sm text-xs font-medium" :class="e.type === 'post' ? 'bg-info-bg text-info-text' : e.type === 'violation' ? 'bg-danger-bg text-danger-text' : e.type === 'removal' ? 'bg-warning-bg text-warning-text' : 'bg-muted text-muted-foreground'" x-text="eventLabel(e)"></span>
+              <span class="text-sm font-medium text-foreground" x-text="e.who"></span>
+              <time class="text-xs text-muted-foreground tabular-nums" :datetime="e.at ? new Date(e.at).toISOString() : ''" x-text="e.at ? when(e.at) : 'No time'"></time>
+              <span class="ml-auto text-xs text-muted-foreground tabular-nums" x-text="e.ref"></span>
+            </div>
+            <p class="text-sm leading-5 text-foreground-secondary" x-text="e.text"></p>
+          </li>
+        </template>
+      </ol>
+      <p id="no-events" :hidden="events.length" class="rounded-xl bg-card p-step-lg text-sm text-muted-foreground shadow-lift-xs">Nothing matches. <button type="button" @click="aq = ''; atype = 'all'" class="rounded-sm font-medium text-primary underline-offset-2 outline-none hover:underline focus-visible:ring-3 focus-visible:ring-ring/50">Clear the search</button></p>
+    </section>
+
+    <!-- the checks: what is wrong with the data, where, and how to fix it -->
+    <section role="tabpanel" aria-labelledby="tab-checks" :hidden="tab !== 'checks'" class="flex flex-col gap-step-md">
+      <div class="flex flex-wrap items-center justify-between gap-step-sm">
+        <p id="checks-summary" role="status" class="text-sm text-muted-foreground" x-text="failedChecks.length ? failedChecks.length + ' of ' + m.checks.length + ' checks found something. Each one says where and how to fix it.' : 'All ' + m.checks.length + ' checks passed.'"></p>
+        <div class="flex items-center gap-step-sm">
+          <span id="copied" role="status" class="text-sm text-muted-foreground" x-text="copied"></span>
+          <button type="button" id="report-checks" @click="reportChecks()" data-variant="outline" class="group/button inline-flex h-8 shrink-0 touch-manipulation items-center justify-center gap-step-sm rounded-md border border-transparent bg-background bg-clip-padding px-step-md control-text font-medium whitespace-nowrap text-foreground ring-1 ring-foreground/10 transition outline-none select-none hover:bg-muted focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 active:translate-y-px pointer-coarse:h-11">Report to property team</button>
+          <button type="button" id="copy-report" @click="copyReport()" data-variant="outline" class="group/button inline-flex h-8 shrink-0 touch-manipulation items-center justify-center gap-step-sm rounded-md border border-transparent bg-background bg-clip-padding px-step-md control-text font-medium whitespace-nowrap text-foreground ring-1 ring-foreground/10 transition outline-none select-none hover:bg-muted focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 active:translate-y-px pointer-coarse:h-11">Copy report</button>
+        </div>
+      </div>
+      <ul class="flex flex-col gap-step-md">
+        <template x-for="c in failedChecks" :key="c.id">
+          <li class="flex flex-col gap-step-sm rounded-xl bg-card p-step-md shadow-lift-xs">
+            <div class="flex flex-wrap items-center gap-step-sm">
+              <h2 class="text-base font-medium text-foreground" x-text="c.label"></h2>
+              <span class="inline-flex h-5 items-center rounded-full px-step-sm text-xs font-medium" :class="c.severity === 'error' ? 'bg-danger-bg text-danger-text' : 'bg-warning-bg text-warning-text'" x-text="c.severity === 'error' ? 'Error' : 'Warning'"></span>
+            </div>
+            <ul class="flex flex-col gap-step-xs">
+              <template x-for="(f, i) in c.found" :key="i">
+                <li class="text-sm text-foreground"><span class="font-medium" x-text="f.where"></span><span class="text-muted-foreground" x-text="': ' + f.detail"></span></li>
+              </template>
+            </ul>
+            <p class="rounded-md bg-muted px-step-sm py-step-xs text-sm text-foreground-secondary"><span class="font-medium text-foreground">How to fix: </span><span x-text="c.fix"></span></p>
+          </li>
+        </template>
+      </ul>
+      <details class="rounded-xl bg-card p-step-md shadow-lift-xs" :hidden="!passedChecks.length">
+        <summary class="flex min-h-8 cursor-pointer items-center text-sm font-medium text-foreground outline-none pointer-coarse:min-h-11 focus-visible:ring-3 focus-visible:ring-ring/50" x-text="passedChecks.length + (passedChecks.length === 1 ? ' check passed' : ' checks passed')"></summary>
+        <ul class="mt-step-sm flex flex-col gap-step-xs">
+          <template x-for="c in passedChecks" :key="c.id"><li class="text-sm text-muted-foreground" x-text="c.label"></li></template>
+        </ul>
+      </details>
+    </section>
+
+    <!-- what Staff did about it -->
+    <section role="tabpanel" aria-labelledby="tab-moderation" :hidden="tab !== 'moderation'" class="flex flex-col gap-step-lg">
+      <div class="flex flex-col gap-step-sm">
+        <h2 class="text-base font-medium text-foreground">Accounts to watch</h2>
+        <p id="no-standing" :hidden="m.standings.length" class="rounded-xl bg-card p-step-lg text-sm text-muted-foreground shadow-lift-xs">No account has a strike or a pause.</p>
+        <ul class="flex flex-col gap-step-sm">
+          <template x-for="s in m.standings" :key="s.who">
+            <li class="flex flex-wrap items-center gap-x-step-md gap-y-step-xs rounded-xl bg-card p-step-md shadow-lift-xs">
+              <span class="text-sm font-medium text-foreground" x-text="s.who"></span>
+              <span class="text-xs text-muted-foreground" x-text="s.unit"></span>
+              <span class="text-xs text-muted-foreground tabular-nums" x-text="s.count + ' of ' + s.limit + ' strikes'"></span>
+              <span class="ml-auto inline-flex h-5 items-center rounded-full px-step-sm text-xs font-medium" :class="s.status === 'review' ? 'bg-danger-bg text-danger-text' : s.status === 'clear' ? 'bg-muted text-muted-foreground' : 'bg-warning-bg text-warning-text'" x-text="statusLabel(s)"></span>
+            </li>
+          </template>
+        </ul>
+      </div>
+      <div class="flex flex-col gap-step-sm">
+        <h2 class="text-base font-medium text-foreground">Violations Staff recorded</h2>
+        <p id="no-violations" :hidden="m.violations.length" class="rounded-xl bg-card p-step-lg text-sm text-muted-foreground shadow-lift-xs">No violation has been recorded.</p>
+        <ul class="flex flex-col gap-step-sm">
+          <template x-for="v in m.violations" :key="v.id">
+            <li class="flex flex-col gap-step-xs rounded-xl bg-card p-step-md shadow-lift-xs">
+              <div class="flex flex-wrap items-center gap-x-step-md gap-y-step-xs">
+                <span class="text-sm font-medium text-foreground" x-text="v.who"></span>
+                <span class="text-sm text-foreground-secondary" x-text="v.reason"></span>
+                <time class="text-xs text-muted-foreground tabular-nums" :datetime="new Date(v.at).toISOString()" x-text="when(v.at)"></time>
+                <span class="ml-auto inline-flex h-5 items-center rounded-full px-step-sm text-xs font-medium" :class="v.active ? 'bg-warning-bg text-warning-text' : 'bg-muted text-muted-foreground'" x-text="kindLabel(v)"></span>
+              </div>
+              <p :hidden="!v.note" class="text-sm text-muted-foreground" x-text="v.note"></p>
+            </li>
+          </template>
+        </ul>
+      </div>
+    </section>
+  </div>
+  <!--include:partials/report-dialog.html-->
+</main>
+<script type="module" src="/admin/social-monitoring.js"></script>
+</body>
+</html>

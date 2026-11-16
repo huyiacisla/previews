@@ -2,13 +2,27 @@
    Colours come from the prototype's own variables (--primary, --sbfg, --fg, --bg), no raw hex.
    Every rule that must win carries !important, so link order does not matter. */
 
+/* Touch targets: on a touch screen (and when "Larger tap targets" is on) every control of the Settings pages is at least 44 px tall. The pages draw their own buttons,
+   fields and tabs at 28 to 40 px with their own rules, so this is stated once here. min-height only ever makes a control taller. Switches and check boxes are left alone. */
+html[data-big-target] :is(button, select, textarea, input:is(:not([type]), [type="text"], [type="search"], [type="email"], [type="tel"], [type="number"], [type="password"], [type="date"], [type="time"], [type="url"])):not([hidden]):not([role="switch"]) { min-height: 2.75rem !important; }
+html[data-big-target] :is(.stabs a, [role="tab"]):not([hidden]) { min-height: 2.75rem !important; display: inline-flex !important; align-items: center; }
+html[data-big-target] summary:not([hidden]) { min-height: 2.75rem !important; }
+html[data-big-target] button:not([role="switch"]):not([hidden]) { min-width: 2.75rem; }
+/* A switch keeps its drawn size (40 x 22); the area that answers a tap is made 52 x 46 with an invisible pseudo-element. (.sx-sw draws its thumb with ::after, so ::before is free.) */
+html[data-big-target] .sx-sw::before { content: ""; position: absolute; inset: -12px -6px; }
+
+/* The "Unsaved changes" bar waits off screen until something changes. While it waits it was still on the page for a screen reader ("Unsaved changes", Discard, Save changes)
+   and for Tab (two invisible stops). Hidden means hidden: out of the tab order and out of the accessibility tree; it shows with the slide when it opens. */
+html body #savebar:not(.o) { visibility: hidden !important; transition: transform .2s ease, visibility 0s linear .2s !important; }
+html body #savebar.o { visibility: visible !important; transition: transform .2s ease, visibility 0s !important; }
+
 /* Keyboard focus: visible on every control, light ring on the dark sidebar */
 html body :is(a,button,input,select,textarea,summary,[tabindex],[role=tab],[role=button]):focus-visible{outline:2px solid var(--primary)!important;outline-offset:2px!important}
 html body .sb :is(a,button,input):focus-visible{outline-color:var(--sbfg)!important;outline-offset:-2px!important}
 /* Pin buttons were opacity:0 until mouse hover; reveal them for keyboard users too */
 .sb a:focus-within .pin,.pin:focus-visible{opacity:1!important}
 /* The "<" Back button of a Settings page is 16px wide. Same look; the area that takes the tap is wider (an invisible 4px above and below, 8px to each side). */
-.phead .bk2{position:relative}
+.phead .bk2{position:relative;min-width:32px;min-height:32px} /* the Back arrow was 16 px wide on tablet and desktop: too small to hit */
 .phead .bk2::after{content:"";position:absolute;inset:-4px -8px}
 
 /* Dark: text that takes the accent blue (links such as "Reset to defaults", the line under the design summary) was 3.1:1 on the dark card.
@@ -39,8 +53,32 @@ html.client-portal .wshead{display:none!important}
 html.embed #sb,html.embed #ov,html.embed header.apphdr,html.embed #tabbar,html.embed .aifab{display:none!important}
 html.embed .main{margin-left:0!important;width:100%!important;max-width:none!important}
 
+/* Device sizes: one place to tune them. Mobile is below 768px, tablet 768 to 1279px, desktop 1280px and up. */
+:root{--eso-pf-avatar:64px;--eso-pf-cam:24px}
+@media(min-width:768px){:root{--eso-pf-avatar:72px;--eso-pf-cam:26px}}
+@media(min-width:1280px){:root{--eso-pf-avatar:80px;--eso-pf-cam:28px}}
+.pfblk .pfav{width:var(--eso-pf-avatar);height:var(--eso-pf-avatar);font-size:calc(var(--eso-pf-avatar)*.28)}
+.pfblk .pfav .cam{width:var(--eso-pf-cam);height:var(--eso-pf-cam)}
+.pfblk{gap:14px}
+
+/* The property's initials ("MP") were the brand blue on the dark card: 2.9 to 1. Light text in the dark theme. */
+html.dark body .wsc .wsc-l,.dark .plogo{color:var(--fg)}
+
+/* "URGENT" (red on the dark card, 3.9 to 1) and the "Look: switch" chip (1.8 to 1): lighter tones in the dark theme */
+html .nt .ug{color:#b91c1c} /* light theme: the red on the pink pill was 3.95 to 1; this is 5.9 to 1 */
+html.dark .nt .ug{background:oklch(0.3 0.09 25);color:oklch(0.85 0.1 25)}
+.dark .mdt{color:oklch(0.9 0.08 80)!important}
+
+/* The count in a Promotions tab: muted grey on a grey pill was 4.3 to 1 in the dark theme */
+html.dark .pdc{color:oklch(0.82 0 0)!important}
+
+/* Client, Resident and Admin copies: the Staff sections ("Social", "Promotion design") showed for a moment before the page was re-labelled */
+html.eso-skin-wait #content{visibility:hidden}
+
 /* Long values wrap instead of being cut off */
 .prow .pill{white-space:normal!important;text-align:right;overflow-wrap:anywhere;max-width:min(60%,24rem)}
+/* On a phone the label and the value stack, so a long value (an email) keeps one line instead of breaking mid-word */
+@media(max-width:480px){.prow{flex-wrap:wrap;row-gap:6px}.prow .pill{max-width:100%;overflow-wrap:break-word;text-align:left}}
 
 /* Floating AI button no longer covers the last row */
 #content.content{padding-bottom:96px}
@@ -209,6 +247,18 @@ html.dark .cw-err{color:#f87171}
   .cw .pzrow>:not(.stt){grid-column:2}
 }
 .cw .pzsec{margin-top:0}
+
+/* Touch targets. On a phone-sized page the Back button and every switch can be pressed anywhere in a 44 px area (the drawn size does not change);
+   on a touch screen the fields and buttons are 44 px high as well. */
+@media (max-width:767px),(pointer:coarse){
+  .bk2,.phead .bk2{min-width:44px;min-height:44px}
+  .sw{position:relative}
+  .sw::before{content:"";position:absolute;inset:-11px -6px}
+}
+@media (pointer:coarse){
+  input:not([type="checkbox"],[type="radio"],[type="range"],[type="file"],[type="color"]),select,textarea{min-height:44px}
+  .btn,.stbtn{min-height:44px}
+}
 
 /* Respect "reduce motion" */
 @media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important;scroll-behavior:auto!important}}

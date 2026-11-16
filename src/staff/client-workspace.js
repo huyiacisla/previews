@@ -11,16 +11,24 @@
    the Client copy keeps its own, the page shim prefixes the key). Demo only: nothing is sent anywhere. */
 
 import { dockeyLeaf, dockeyDesc, installDockey } from './dockey-settings.js';
+import { ITEMS, normalizePurchased, limitFor, propertiesCount } from '../capacity/store.js';
 
 export const PROP = 'Mallard Pointe at Riverbend';
 const COMPANY = 'AMC LLC';
 
 /* What the plan covers and what the company uses: the figures Billing & Plan shows (Starter). More is added in Usage > Capacity. */
-export const USAGE = [
-  { k: 'Properties', used: 1 },
-  { k: 'Parking spots', used: 261, cap: 500 },
-  { k: 'Staff seats', used: 0, cap: 0 },
-];
+const plan = (id) => ITEMS.find((i) => i.id === id); // the plan's limits live in capacity/store.js only
+// What was added in Capacity is kept under "capacity-state:client" (a copy without "eso-", which this page's storage shim would rename; see portal-frame.js and usage/app.js).
+const bought = () => { try { return normalizePurchased(JSON.parse(localStorage.getItem('capacity-state:client'))); } catch { return normalizePurchased(null); } };
+/** Properties in the portfolio, parking spaces and staff seats against the plan AS IT IS NOW (what was bought in Capacity counts). */
+export const usage = () => {
+  const p = bought();
+  return [
+    { k: 'Properties', used: propertiesCount(p), names: p.properties.map((x) => x.name) },
+    { k: 'Parking spots', used: plan('parking').used, cap: limitFor('parking', p) },
+    { k: 'Staff seats', used: plan('staff').used, cap: limitFor('staff', p) },
+  ];
+};
 
 export const CW_DEFAULTS = {
   cwName: COMPANY, cwLegal: COMPANY, cwWeb: 'https://amcllc.example', cwHq: '', cwTz: 'America/Los_Angeles', cwCur: 'USD', cwMgmt: true,
@@ -65,8 +73,10 @@ const company = () => wrap(
   pzCard(tog('cwMgmt', 'Show "Managed by ' + COMPANY + '" to residents', 'Residents see your company under the property name in their portal.'), 'Each property keeps its own name, logo and colors. Set them in the property’s settings.'));
 
 const portfolio = () => wrap(
-  card('Properties', `${USAGE[0].used} in your portfolio.`,
-    `<div class="prow cw-prop"><div><b>${keep(PROP)}</b><small>${USAGE[1].used} parking spots · Active</small></div><button type="button" class="stbtn sm" data-go="workspace/property">Open settings</button></div>`) +
+  // the properties in the portfolio: the one the company started with, and each one added in Capacity (the same count the sidebar and the profile show)
+  card('Properties', `${usage()[0].used} in your portfolio.`,
+    `<div class="prow cw-prop"><div><b>${keep(PROP)}</b><small>${usage()[1].used} parking spots · Active</small></div><button type="button" class="stbtn sm" data-go="workspace/property">Open settings</button></div>` +
+    bought().properties.map((p) => `<div class="prow cw-prop"><div><b>${keep(p.name)}</b><small>${p.units} ${p.units === 1 ? 'unit' : 'units'}${p.address ? ' · ' + esc(p.address) : ''} · Added in Capacity</small></div></div>`).join('')) +
   card('Add a property', 'Each additional property is $25.00/mo, prorated for the rest of the billing period.',
     `<div class="cw-act"><a class="stbtn sm p" href="/client/usage/capacity.html#property" target="_top">Add a property in Capacity</a></div>`,
     'You name it, say how many apartment units it has, and authorize the charge. It is added to Billing & Plan.') +
@@ -104,7 +114,7 @@ const access = () => wrap(
   pzCard(pick('cwInvite', 'Who can invite people', 'Everyone invited gets a role and a set of properties.', [['owners', 'Owners only'], ['admins', 'Owners and Client Admins']]) +
     tog('cwApprove', 'Approve new people before they get access', 'An owner or Client Admin confirms each invitation.') +
     tog('cwBillView', 'Property managers can see billing', 'Off: only owners and Client Admins see plans and invoices.')) +
-  card('Seats', 'Staff members across all properties.', row('Staff members', 'Using what the plan covers. Add more seats in Usage, Capacity ($10.00/mo each).', `${USAGE[2].used} of ${USAGE[2].cap}`), 'Add or remove people in Staff & Access, in the sidebar.'));
+  card('Seats', 'Staff members across all properties.', row('Staff members', 'Using what the plan covers. Add more seats in Usage, Capacity ($10.00/mo each).', `${usage()[2].used} of ${usage()[2].cap}`), 'Add or remove people in Staff & Access, in the sidebar.'));
 
 /* Invoices and payment: who is invoiced and how. The plan's limits are not here: they are Usage > Capacity in the sidebar. The plan itself is Billing & Plan. */
 const billing = () => wrap(
@@ -170,7 +180,7 @@ const propParking = () => {
   );
 };
 const propTeam = () => wrap(
-  card('Team', 'People who work at this property.', row('People with access', 'Property managers, staff and viewers.', `${USAGE[2].used}`) + row('Primary contact', 'Receives escalations.', 'Dana Whitfield')) +
+  card('Team', 'People who work at this property.', row('People with access', 'Property managers, staff and viewers.', `${usage()[2].used}`) + row('Primary contact', 'Receives escalations.', 'Dana Whitfield')) +
   card('Who can manage it', 'Set by role.', row('Owners and Client Admins', 'All properties.', 'Always') + row('Property managers', 'Only the properties assigned to them.', 'Assigned'),
     'Assign people to properties in Staff & Access, in the sidebar.'));
 
@@ -178,16 +188,16 @@ const propTeam = () => wrap(
 export function clientWorkspaceTree(prop) {
   const kids = (prop && prop.kids ? prop.kids.slice() : []);
   const property = Object.assign({}, prop, {
-    id: 'property', t: PROP, g: undefined, pic: 'bld', desc: `${USAGE[1].used} spots · Active`,
+    id: 'property', t: PROP, g: undefined, pic: 'bld', get desc() { return `${usage()[1].used} spots · Active`; },
     kids: kids.concat([
       { id: 'parkrules', t: 'Parking rules', ic: '🅿️', c: '#0ea5e9', g: 'Operations', sum: () => (val('cwPropDefaults') || !val('cwOverride') ? 'Portfolio defaults' : 'Its own'), leaf: propParking, kw: 'parking rules grace tow override defaults property' },
-      { id: 'team', t: 'Team', ic: '👥', c: '#64748b', g: 'People', sum: () => `${USAGE[2].used} people`, leaf: propTeam, kw: 'team people staff managers access assigned property' },
+      { id: 'team', t: 'Team', ic: '👥', c: '#64748b', g: 'People', sum: () => `${usage()[2].used} people`, leaf: propTeam, kw: 'team people staff managers access assigned property' },
     ]),
   });
   // `pic` is the icon of the page's own icon table; `g` is the heading the section starts under.
   return [
     { id: 'company', t: 'Company', ic: '🏢', c: '#2563eb', pic: 'bld', g: 'Company', desc: 'Name, legal details, time zone and currency.', leaf: company, kw: 'company name legal website address time zone currency managed by' },
-    { id: 'portfolio', t: 'Properties', ic: '🗂', c: '#f97316', pic: 'map', g: 'Portfolio', desc: `${USAGE[0].used} in your portfolio. Add one, open one.`, leaf: portfolio, kw: 'properties portfolio add property override defaults' },
+    { id: 'portfolio', t: 'Properties', ic: '🗂', c: '#f97316', pic: 'map', g: 'Portfolio', get desc() { return `${usage()[0].used} in your portfolio. Add one, open one.`; }, leaf: portfolio, kw: 'properties portfolio add property override defaults' },
     property,
     { id: 'parking', t: 'Parking and enforcement', ic: '🅿️', c: '#0ea5e9', pic: 'park', g: 'Defaults for every property', desc: 'Grace, guests, permits, violations and towing.', leaf: parking, kw: 'parking enforcement grace period guest permit violation fine tow towing defaults vehicles per unit' },
     { id: 'residents', t: 'Resident experience', ic: '🏠', c: '#22c55e', pic: 'people', desc: 'Social, promotions, tickets and messages.', leaf: residents, kw: 'residents social promotions tickets messages assistant bot defaults' },
@@ -214,7 +224,9 @@ const FIELD_ERRORS = {
 export function mirrorPrefs() {
   const put = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch { /* storage blocked: the pages use their defaults */ } };
   put('docs-prefs:client', { soonDays: Number(val('cwDocSoon')), share: val('cwDocShare'), storageWarn: !!val('cwAlStorage') });
-  const b = String(val('cwBudget') ?? '').trim();
+  // The box as it is now (an emptied box means "no limit"); the saved value when the box is not on screen.
+  const box = typeof document !== 'undefined' ? document.getElementById('cw-cwBudget') : null;
+  const b = String(box ? box.value : (val('cwBudget') ?? '')).trim();
   put('capacity-prefs:client', { budget: /^\d{1,5}(\.\d{1,2})?$/.test(b) ? Number(b) : null });
 }
 const ACTIONS = {
@@ -254,6 +266,11 @@ function watchSectionIcons() {
 }
 
 export function installClientWorkspace() {
+  // The budget is ONE value: if it was changed on the Capacity page, this page starts from that amount.
+  try {
+    const p = JSON.parse(localStorage.getItem('capacity-prefs:client'));
+    if (p && typeof S !== 'undefined') S.cwBudget = typeof p.budget === 'number' && Number.isFinite(p.budget) ? String(p.budget) : '';
+  } catch { /* nothing kept yet */ }
   installDockey();
   watchSectionIcons();
   // Keep the other pages' copy of these settings current: after every save the prototype makes.

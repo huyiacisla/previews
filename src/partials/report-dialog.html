@@ -1,0 +1,26 @@
+<!-- "Report to property team" (Admin): a window that shows what will be sent, takes an optional note, and sends it through Messages.
+     Included inside the page's x-data element; its state and methods come from health/report-ui.js (reportMixin). -->
+<dialog x-ref="reportDlg" aria-labelledby="report-title" @keydown="reportKey($event)" @close="reportClosed()" class="m-auto w-full max-w-lg rounded-xl bg-card p-0 text-foreground shadow-lift-lg backdrop:bg-foreground/40 max-h-dvh overflow-y-auto max-sm:mb-0 max-sm:max-w-none max-sm:rounded-b-none">
+  <form method="dialog" @submit.prevent="sendReport()" class="flex flex-col gap-step-md p-step-lg">
+    <div class="flex flex-col gap-step-xs">
+      <h2 id="report-title" class="text-lg leading-7 font-medium text-foreground">Report to property team</h2>
+      <p class="text-sm text-muted-foreground" x-text="rd.to ? 'This goes in Messages to ' + rd.to.name + ', ' + rd.to.title + ', about ' + rd.property + '. You do not change anything in its Social.' : rd.property + ' has no team in Messages yet, so there is nobody to send this to. Copy the report and send it another way.'"></p>
+    </div>
+    <div class="flex flex-col gap-step-xs">
+      <label for="report-note" class="text-sm font-medium text-foreground">Note <span class="font-normal text-muted-foreground">(optional)</span></label>
+      <textarea id="report-note" x-model="rd.note" @input="refreshPreview()" rows="2" maxlength="500" placeholder="What you would like them to do, and by when." class="block min-h-16 w-full resize-y rounded-md border border-input bg-card px-step-md py-1.5 text-base leading-5 outline-none transition-colors placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 md:text-sm"></textarea>
+    </div>
+    <div class="flex flex-col gap-step-xs">
+      <span class="text-sm font-medium text-foreground">What will be sent</span>
+      <pre id="report-body" tabindex="0" aria-label="What will be sent" class="max-h-48 overflow-auto rounded-md bg-muted p-step-sm text-xs leading-5 whitespace-pre-wrap text-foreground-secondary outline-none focus-visible:ring-3 focus-visible:ring-ring/50" x-text="rd.preview"></pre>
+      <p :hidden="!rd.cut" class="text-xs text-warning-text">It is longer than one message, so the end is cut. The full report is in System health.</p>
+    </div>
+    <p id="report-error" role="alert" :hidden="!rd.error" class="rounded-md bg-danger-bg px-step-sm py-step-xs text-sm text-danger-text" x-text="rd.error"></p>
+    <p id="report-sent" role="status" :hidden="!rd.sentConv" class="rounded-md bg-success-bg px-step-sm py-step-xs text-sm text-success-text">Sent. <a :href="rd.messagesHref" target="_top" class="font-medium underline underline-offset-2">Open it in Messages</a></p>
+    <div class="flex flex-wrap items-center justify-end gap-step-sm">
+      <button type="button" @click="copyReportText()" class="group/button inline-flex h-8 touch-manipulation items-center justify-center rounded-md border border-transparent bg-clip-padding px-step-md control-text font-medium whitespace-nowrap text-foreground-secondary transition outline-none select-none hover:bg-muted hover:text-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 pointer-coarse:h-11">Copy report</button>
+      <button type="button" id="report-cancel" @click="closeReport()" data-variant="outline" class="group/button inline-flex h-8 touch-manipulation items-center justify-center rounded-md border border-transparent bg-background bg-clip-padding px-step-md control-text font-medium whitespace-nowrap text-foreground ring-1 ring-foreground/10 transition outline-none select-none hover:bg-muted focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 pointer-coarse:h-11" x-text="rd.sentConv ? 'Close' : 'Cancel'"></button>
+      <button type="submit" id="report-send" :disabled="!rd.to || rd.sending || rd.sentConv" class="group/button inline-flex h-8 touch-manipulation items-center justify-center rounded-md border border-transparent bg-primary bg-clip-padding px-step-md control-text font-medium whitespace-nowrap text-primary-foreground transition outline-none select-none hover:bg-primary/90 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 active:translate-y-px disabled:pointer-events-none disabled:opacity-50 data-[variant=primary]:focus-visible:ring-3 pointer-coarse:h-11" x-text="rd.sending ? 'Sending…' : 'Send to team'"></button>
+    </div>
+  </form>
+</dialog>

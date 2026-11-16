@@ -1,5 +1,30 @@
 @import "./ui-tokens.css";
 
+/* The side cards of the menu on a phone and a tablet (Local time, Workspace Capacity): smaller, so the menu itself starts higher. On a phone the three cards used to take
+   400 px of 812 before the first menu item (the "Hide" buttons were also stretched to 44 px by the touch-target rule, which made every card header 44 px tall).
+   Only the two collapsible cards change; the property card is not touched. The Hide/Show button keeps a small look and a 44 px area to press (an invisible extension). */
+@media (max-width: 1023px) {
+  [data-slot="sidebar-container"] section[data-slot="collapsible"] { padding: 0.5rem 0.625rem; gap: 0.25rem; border-radius: 0.75rem; }
+  [data-slot="sidebar-container"] section[data-slot="collapsible"] > div:first-child { min-height: 1.25rem; }
+  [data-slot="sidebar-container"] section[data-slot="collapsible"] [data-slot="collapsible-trigger"] { min-height: 0 !important; min-width: 0 !important; height: 1.25rem; padding: 0 0.25rem; position: relative; }
+  [data-slot="sidebar-container"] section[data-slot="collapsible"] [data-slot="collapsible-trigger"]::after { content: ""; position: absolute; inset: -12px -8px; }
+  /* Local time: the time and the date side by side */
+  [data-slot="sidebar-container"] section[aria-label="Local time"] > div:last-child { display: flex; align-items: baseline; justify-content: space-between; gap: 0.5rem; padding-top: 0 !important; }
+  [data-slot="sidebar-container"] section[aria-label="Local time"] > div:last-child > p:first-child { font-size: 1rem !important; }
+  [data-slot="sidebar-container"] section[aria-label="Local time"] > div:last-child > p:last-child { font-size: 0.6875rem !important; }
+  /* Capacity: tighter rows, thinner bars */
+  [data-slot="sidebar-container"] section[data-slot="collapsible"] [data-slot="collapsible-content"] { gap: 0.375rem; }
+  [data-slot="sidebar-container"] section[data-slot="collapsible"] [data-slot="collapsible-content"] > div { gap: 0.125rem; }
+  [data-slot="sidebar-container"] section[data-slot="collapsible"] [data-slot="progress-track"] { height: 0.25rem; }
+}
+
+/* The accent as text (tonal and outline buttons): preview.js sets --primary-text-l / -d when the person picked an accent (look-prefs.js makes it readable on a light / dark page). */
+html { --primary-text: var(--primary-text-l, var(--primary)); }
+html.dark { --primary-text: var(--primary-text-d, var(--primary)); }
+
+/* Alpine.js: an element marked x-cloak stays out of sight until Alpine has drawn it (no flash of empty templates). */
+[x-cloak] { display: none !important; }
+
 /* App thật nạp Inter qua next/font và gán --font-sans; preview gán tay. */
 :root {
   --font-sans: Inter, ui-sans-serif, system-ui, sans-serif;
@@ -54,6 +79,17 @@ html[data-contrast] [class*="ring-foreground/10"] { --tw-ring-color: var(--foreg
 /* Tùy chọn sidebar chọn ở Settings (preview.js đặt thuộc tính trên <html>); chưa chọn thì không có thuộc tính và sidebar giữ nguyên. */
 html[data-sb-icons="off"] [data-slot="sidebar-container"] [data-slot="sidebar-menu-button"] > span.grid { display: none; }
 html[data-sb-counts="off"] [data-slot="sidebar-container"] [data-slot="collapsible-trigger"] .tabular-nums { display: none; }
+/* "Count badges" off also takes the unread numbers off the menu (Messages, Communication). The unread count stays in the item's spoken name. */
+html[data-sb-counts="off"] [data-slot="sidebar-container"] [data-slot="badge"] { display: none; }
+/* Personalize > Sidebar > Scrollbar: how the menu's scrollbar looks (Auto-hide is the design's own). */
+html[data-sb-scroll="hidden"] [data-slot="sidebar-container"] [class*="sidebarNav"] { scrollbar-width: none; }
+html[data-sb-scroll="hidden"] [data-slot="sidebar-container"] [class*="sidebarNav"]::-webkit-scrollbar { display: none; }
+html[data-sb-scroll="slim"] [data-slot="sidebar-container"] [class*="sidebarNav"] { scrollbar-width: thin; }
+html[data-sb-scroll="transparent"] [data-slot="sidebar-container"] [class*="sidebarNav"] { scrollbar-width: thin; scrollbar-color: transparent transparent; }
+html[data-sb-scroll="visible"] [data-slot="sidebar-container"] [class*="sidebarNav"] { scrollbar-width: auto; overflow-y: scroll; }
+html[data-sb-scroll="visible"] [data-slot="sidebar-container"] [class*="sidebarNav"]::-webkit-scrollbar { display: block; }
+/* "Menu search" off: the filter box above the menu is gone. */
+html[data-sb-search="off"] [data-slot="sidebar-container"] div:has(> input[aria-label="Filter menu"]) { display: none; }
 
 /* Nút thu gọn sidebar ở mép: chỉ hiện khi người dùng bật "Enable sidebar collapse" (preview.js đặt data-sb-collapse) và chỉ trên desktop.
    Trang của Admin và Resident không có thuộc tính này nên không đổi gì. */
@@ -79,18 +115,18 @@ html[data-sb-collapse="off"] [data-slot="sidebar-container"] button[aria-label="
 .eso-lb-opt[aria-selected="true"]::after { content: ""; flex: none; width: 0.3125rem; height: 0.625rem; margin-right: 0.25rem; border: solid currentColor; border-width: 0 2px 2px 0; transform: rotate(45deg) translateY(-1px); }
 /* Header of the adopted frame (portal-frame.js), sized like the account-settings design: a 60 px bar, 32 x 36 px buttons (40 px for the menu)
    with 18 px icons. The captured header drew 39-51 px buttons with 24 px icons, and hid the theme button below 1024 px. */
-header[data-eso-frame] { padding-block: 0.75rem; }
-header[data-eso-frame] > :first-child { min-height: 0; padding: 0; gap: 0.5rem; flex-wrap: nowrap; }
+header[data-eso-frame]:not([data-id]) { padding-block: 0.75rem; }
+header[data-eso-frame]:not([data-id]) > :first-child { min-height: 0; padding: 0; gap: 0.5rem; flex-wrap: nowrap; }
 /* One row at every width: between about 640 and 880 px the captured header wrapped the buttons and the name under the search bar.
    The search bar gives up width instead (it may shrink to nothing but the buttons never wrap), and the buttons stay together on the right. */
-header[data-eso-frame] > :first-child > :nth-child(2) { flex: 0 1 27.5rem; min-width: 0; }
-header[data-eso-frame] > :first-child > :last-child { flex-shrink: 0; margin-left: auto; }
-header[data-eso-frame] :is(button[aria-label="Open navigation"], button[aria-label^="Open EasySpotOps Help"], button[aria-label^="Theme"], button[aria-label^="Open notifications"]) { width: 2rem; min-width: 0; height: 2.25rem; min-height: 0; padding: 0; border-radius: 0.625rem; }
-header[data-eso-frame] button[aria-label="Open navigation"] { width: 2.5rem; }
-header[data-eso-frame] :is(button[aria-label="Open navigation"], button[aria-label^="Open EasySpotOps Help"], button[aria-label^="Theme"], button[aria-label^="Open notifications"]) svg { width: 1.125rem; height: 1.125rem; }
-header[data-eso-frame] button[aria-label^="Open profile menu"] { min-height: 0; height: 2.25rem; }
-header[data-eso-frame] [data-slot="input-group-addon"] svg { width: 0.875rem; height: 0.875rem; }
-header[data-eso-frame] [data-slot="input-group"] { min-height: 0; height: 2.125rem; }
+header[data-eso-frame]:not([data-id]) > :first-child > :nth-child(2) { flex: 0 1 27.5rem; min-width: 0; }
+header[data-eso-frame]:not([data-id]) > :first-child > :last-child { flex-shrink: 0; margin-left: auto; }
+header[data-eso-frame]:not([data-id]) :is(button[aria-label="Open navigation"], button[aria-label^="Open EasySpotOps Help"], button[aria-label^="Theme"], button[aria-label^="Open notifications"]) { width: 2rem; min-width: 0; height: 2.25rem; min-height: 0; padding: 0; border-radius: 0.625rem; }
+header[data-eso-frame]:not([data-id]) button[aria-label="Open navigation"] { width: 2.5rem; }
+header[data-eso-frame]:not([data-id]) :is(button[aria-label="Open navigation"], button[aria-label^="Open EasySpotOps Help"], button[aria-label^="Theme"], button[aria-label^="Open notifications"]) svg { width: 1.125rem; height: 1.125rem; }
+header[data-eso-frame]:not([data-id]) button[aria-label^="Open profile menu"] { min-height: 0; height: 2.25rem; }
+header[data-eso-frame]:not([data-id]) [data-slot="input-group-addon"] svg { width: 0.875rem; height: 0.875rem; }
+header[data-eso-frame]:not([data-id]) [data-slot="input-group"] { min-height: 0; height: 2.125rem; }
 /* Short screens and the phone drawer: the residence card, clock, capacity and note left the menu three rows (Dashboard, Messages, one group).
    The whole sidebar scrolls instead: the cards scroll away and the menu gets its full length. Wide, tall screens keep the design as it is. */
 @media (max-width: 1023px), (max-height: 760px) {
@@ -143,6 +179,33 @@ li:hover > .eso-pin, .eso-pin:focus-visible, .eso-pin[aria-pressed="true"] { opa
 .eso-pin:hover { opacity: 1; background: color-mix(in oklab, currentColor 12%, transparent); }
 .eso-pin:focus-visible { outline: 2px solid var(--ring); }
 li:has(> .eso-pin) > a { padding-right: 2.25rem; }
+/* The sidebar's own pin buttons are 20 px wide in the captured markup; a target is at least 24 px (WCAG 2.5.8), 28 here. */
+li > button[aria-label$="to favorites"], li > button[aria-label$="from favorites"] { min-width: 1.75rem; min-height: 1.75rem; }
+/* The keyboard focus ring is the full ring colour: the design's own 50% ring measured about 2.2:1 against the page, and a focus indicator needs 3:1 (WCAG 1.4.11). */
+:focus-visible { --tw-ring-color: var(--ring); }
+/* Text links and link rows in the captured dashboards are 20 px high; a target is at least 24 px (WCAG 2.5.8). */
+main a[class*="hover:underline"][class*="text-primary"] { padding-block: 0.125rem; }
+main a[class*="items-start"][class*="justify-between"], main a[class*="inline-flex"][class*="text-primary"][class*="text-sm"] { min-height: 1.5rem; }
+/* On a touch screen a text field is 16 px, or iOS zooms the page when it is tapped. */
+@media (pointer: coarse) { input:not([type="checkbox"], [type="radio"], [type="range"], [type="file"], [type="color"]), select, textarea { font-size: 1rem; } }
+/* The floating assistant button sits in the bottom-right corner, exactly where the Send button of Messages and the Ticket box is: on those pages it steps aside. */
+html[data-no-fab] .easyspotops-floating-support-shell { display: none; }
+/* A dialog of the page inside the frame is open (account-settings.quality.js sets this): the floating assistant button would sit on its buttons. */
+html[data-eso-modal] .easyspotops-floating-support-shell { display: none; }
+/* The assistant is only an icon while its chat is closed (less on screen, nothing over the page's own buttons); the name shows when the chat is open.
+   Its accessible name stays (aria-label) and the browser's tooltip still says what it is (title). */
+.easyspotops-floating-closed-shell .easyspotops-floating-button { width: 2.75rem !important; height: 2.75rem !important; min-height: 2.75rem !important; padding: 0 !important; gap: 0 !important; }
+.easyspotops-floating-closed-shell .easyspotops-floating-label { display: none !important; }
+/* A menu item with no page yet is dimmed but still takes the mouse: pressing it answers "Coming soon" (the component's own aria-disabled would swallow the press). */
+a[data-slot="sidebar-menu-button"][data-soon="1"] { pointer-events: auto; cursor: not-allowed; }
+/* A menu item reached with the keyboard shows it. */
+[data-slot="sidebar-menu-button"]:focus-visible { outline: 2px solid var(--ring, #60a5fa); outline-offset: -2px; }
+/* The page area keeps room for its scrollbar, so a page that grows taller than the screen does not shift the header and search 6px sideways. */
+#main-content { scrollbar-gutter: stable; }
+/* The (i) button of a conversation shows where the keyboard is, like every other control. */
+#btn-context:focus-visible, #thread-actions button:focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }
+/* Notifications page: every control is a 44px target on a touch screen (they are 32px with a mouse). */
+@media (pointer: coarse) { #mark-all, #settings-link, #filters-btn, #f-cat, #f-prop, #f-sort, #clear, #empty-clear, #more, [role="tab"][data-tab], button[aria-label^="Remove filter"] { min-height: 2.75rem; } #filters-btn, button[aria-label^="Remove filter"], #toasts button { min-width: 2.75rem; } #search { min-height: 2.75rem; } }
 @media (pointer: coarse) { .eso-pin { opacity: 0.6; width: 2.75rem; height: 2.75rem; right: 0; } }
 /* Notifications panel (bell): same rhythm as the profile menu: icon chip, title, one muted line, "View all" at the right of the heading. */
 .eso-np { padding: 0.5rem; }
@@ -199,6 +262,25 @@ li:has(> .eso-pin) > a { padding-right: 2.25rem; }
 html[data-reduce-motion] *, html[data-reduce-motion] *::before, html[data-reduce-motion] *::after {
   animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; scroll-behavior: auto !important;
 }
+
+/* Settings > Accessibility. "Larger tap targets": a control is at least 44 px tall, and an icon-only button 44 wide. "Stronger focus ring": a thick outline in the
+   accent colour wherever the keyboard focus is. Both are off until the attribute is on <html>, so a page nobody changed looks as it did. */
+html[data-big-target] :is(button, [role="tab"], [role="menuitem"], select, textarea, input:is([type="text"], [type="search"], [type="email"], [type="tel"], [type="number"], [type="password"], [type="date"], [type="time"])):not([hidden]) { min-height: 2.75rem; }
+html[data-big-target] button:has(> svg:only-child) { min-width: 2.75rem; }
+html[data-big-target] #me-link { min-width: 2.75rem; justify-content: center; } /* the avatar link of the Social header: 32 px wide on a phone */
+/* a short word on a button ("Reply") is as wide as it needs but never narrower than a fingertip */
+/* (not on tabs, nor on anything that shares a row's width with flex-1 / grow: a min-width there switches off the "never narrower than my text" default, and a long tab label ran over its neighbour) */
+html[data-big-target] :is(button, [role="menuitem"]):not([hidden]):not([role="switch"]):not([role="checkbox"]):not([role="radio"]):not([role="tab"]):not([class*="flex-1"]):not([class*="grow"]) { min-width: 2.75rem; }
+/* Links that stand on their own (a row of a list, "View all", a card's link) are controls too; a link inside a sentence is not changed. Switches, checkboxes and radios included. */
+html[data-big-target] :is(li, div, td, section, article, nav) > a[href]:not([hidden]):not([data-slot="sidebar-menu-button"]) { min-height: 2.75rem; }
+html[data-big-target] [data-slot="sidebar-menu-button"] { min-height: 2.75rem; }
+/* The search boxes' own ring is the primary colour at half strength: under 3:1 on dark. A full-strength outline keeps the focus visible in both looks. */
+input[aria-label="Filter menu"]:focus-visible, header input[type="search"]:focus-visible { outline: 2px solid var(--ring); outline-offset: 1px; }
+/* Only a plain inline text link becomes a flex box to centre its text; a card-link (block, flex or grid) keeps its own layout, or its children shrink to their content. */
+html[data-big-target] :is(li, div, td, section, article, nav) > a[href]:not([hidden]):not([data-slot="sidebar-menu-button"]):not([class*="block"]):not([class*="flex"]):not([class*="grid"]) { display: inline-flex; align-items: center; }
+html[data-big-target] header button[aria-label^="Open notifications"] { min-width: 2.75rem; }
+html[data-big-target] :is([role="switch"], [role="checkbox"], [role="radio"], summary):not([hidden]) { min-height: 2.75rem; }
+html[data-strong-focus] :focus-visible { outline: 3px solid var(--primary) !important; outline-offset: 2px !important; }
 
 /* Token spacing có tên của @easyspotops/ui nằm trong @theme nên chỉ được phát khi có utility dùng;
    CSS Module trích từ app thật (styles/<portal>.css) dùng var() trực tiếp ⇒ khai lại đúng giá trị. */

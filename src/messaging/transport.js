@@ -26,6 +26,22 @@ function safeLocalStorage() {
   }
 }
 
+/**
+ * After a reset the conversation and message numbers start again (c1, m1…). Anything kept elsewhere under the old numbers would point at a different
+ * conversation now: unsent drafts, messages waiting in an outbox, and which notifications were read. They go with the data. Returns how many keys went.
+ */
+export function clearSideData(storage = globalThis.localStorage) {
+  let n = 0;
+  try {
+    const keys = [];
+    for (let i = 0; i < storage.length; i += 1) keys.push(storage.key(i)); // collected first: removing while counting would skip keys
+    for (const k of keys) {
+      if (/^eso-msg-(draft|outbox):|^eso-notif-read:/.test(k)) { storage.removeItem(k); n += 1; }
+    }
+  } catch { /* storage blocked: nothing was kept */ }
+  return n;
+}
+
 export function createTransport(opts = {}) {
   const key = opts.key || 'eso-msg-v1';
   let storage = opts.storage || safeLocalStorage();
@@ -54,7 +70,10 @@ export function createTransport(opts = {}) {
   const read = () => {
     try {
       const raw = storage.getItem(key);
-      return raw ? JSON.parse(raw) : null;
+      const doc = raw ? JSON.parse(raw) : null;
+      // A document that is not a conversation document (hand-edited, damaged, "{}") is the same as none: the samples load again.
+      const isObj = (v) => v && typeof v === 'object' && !Array.isArray(v);
+      return isObj(doc) && isObj(doc.convs) && isObj(doc.msgs) && Number.isFinite(doc.rev) ? doc : null;
     } catch {
       return null;
     }

@@ -33,18 +33,20 @@ if(c){
 c.querySelectorAll('select:not([aria-label]),input:not([type=hidden]):not([type=checkbox]):not([type=radio]):not([aria-label])').forEach(function(f){if(f.id&&document.querySelector('label[for="'+f.id+'"]')||f.closest('label'))return;var row=f.closest('.srow,.row,.prow,.pzrow');var t=row&&row.querySelector('.stt,b,strong,h4,h5');var txt=t&&t.textContent.trim()||f.getAttribute('placeholder')||'';if(txt)f.setAttribute('aria-label',txt)});
 /* 5. Controls under 24px tall get a larger hit area (switches excluded: spaced apart, pass by spacing exception) */
 c.querySelectorAll('a[href]:not(.qa-tap),button:not(.sw):not([role=switch]):not(.qa-tap)').forEach(function(bt){if(bt.offsetHeight&&bt.offsetHeight<24)bt.classList.add('qa-tap')})}
+/* 5b. A row of choice buttons (accent and sidebar colour dots, segmented buttons) shows the choice only with the class "on": say it to assistive tech too,
+   and name a colour dot that has no name. Groups that already use tabs, radios or aria-selected are left alone. */
+if(c){c.querySelectorAll('.dsw,.seg,.segm,[class*="seg"],.pzdots,.pzseg,.pzsg').forEach(function(g){var bs=[].filter.call(g.children,function(x){return x.tagName==='BUTTON'});if(bs.length<2)return;
+if(bs.some(function(x){return x.hasAttribute('aria-selected')||x.getAttribute('role')==='tab'||x.getAttribute('role')==='radio'}))return;
+bs.forEach(function(x,i){x.setAttribute('aria-pressed',(x.classList.contains('on')||x.classList.contains('sel')||x.classList.contains('active')||x.classList.contains('selected'))?'true':'false');
+if(!x.getAttribute('aria-label')&&!x.textContent.trim()){var v=x.getAttribute('data-v')||x.getAttribute('title')||'';x.setAttribute('aria-label',v?'Option '+v:'Option '+(i+1))}})})}
 /* 6. Breadcrumb semantics */
 var cr=document.querySelector('nav.crumb');if(cr){if(!cr.getAttribute('aria-label'))cr.setAttribute('aria-label','Breadcrumb');var l=cr.lastElementChild;if(l&&l.tagName!=='A'&&!l.getAttribute('aria-current'))l.setAttribute('aria-current','page')}
 }
 
-/* 7. Scroll jitter on Personalize.
-   The sticky "Your design" card (.pzst) shrinks (277px -> 101px) when the app adds .stuck. That cut the page height,
-   the browser clamped scrollY, the card unstuck and re-expanded: a loop. Keep the total page height constant instead. */
-function pz(){var c=document.querySelector('#content .pzst');if(!c)return;var st=c.classList.contains('stuck');if(c._qaS===st)return;c._qaS=st;
-var de=document.documentElement;
-if(!st){c.style.marginBottom='';c._qaD=de.scrollHeight}
-else if(c._qaD!=null){c.style.marginBottom='';var m=parseFloat(getComputedStyle(c).marginBottom)||0;var ex=Math.max(0,c._qaD-de.scrollHeight);if(ex)c.style.marginBottom=(m+ex)+'px'}}
-new MutationObserver(pz).observe(b,{attributes:true,attributeFilter:['class'],subtree:true});pz();
+/* 7. Scroll jitter on Personalize: handled where the sticky card is (account-settings-content.html, window._pzchk). An earlier version of this fix lived here
+   (pz): it measured the page AFTER the card had shrunk, which makes the browser cut the scroll position to the shorter page (277px -> 101px card, a 40px
+   jump back) and it cleared the margin the other code had set, so dragging the scroll bar snapped back. Do not bring a second one back: there must be one. */
+function pz(){}
 
 /* Debounce with setTimeout (requestAnimationFrame is paused in hidden panes and left the flag stuck) */
 var q=0;function sched(){if(q)return;q=setTimeout(function(){q=0;fix();pz()},60)}
@@ -52,4 +54,37 @@ fix();addEventListener('hashchange',sched);
 new MutationObserver(sched).observe(b,{childList:true,subtree:true});
 }
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
+
+/* Text typed in Settings is bounded and safe. A line of text takes at most 120 characters and a note at most 500 (a field that sets its own limit keeps it, and
+   a pasted text is cut to the limit). A web address takes http(s) only: javascript:, data: and vbscript: are dropped the moment they are typed. This runs
+   before the page's own handlers, so what they save is already clean. */
+document.addEventListener('focusin',function(e){var t=e.target;if(!t||t.hasAttribute('maxlength'))return;
+if(t.tagName==='INPUT'&&(t.type==='text'||t.type==='url'||t.type==='search'||t.type===''))t.maxLength=120;
+else if(t.tagName==='TEXTAREA')t.maxLength=500},true);
+/* A value set by a script, a paste or an autofill never took the limit of a field nobody had focused. Cut it to the limit when it changes, and again just
+   before a button or a change is handled, so a long text is never what gets saved. */
+function clamp(t){if(!t||!t.value)return;var tx=t.tagName==='INPUT'&&(t.type==='text'||t.type==='url'||t.type==='search'||t.type==='');
+if(!tx&&t.tagName!=='TEXTAREA')return;var max=t.maxLength>0?t.maxLength:(t.tagName==='TEXTAREA'?500:120);if(t.value.length>max)t.value=t.value.slice(0,max)}
+document.addEventListener('input',function(e){clamp(e.target)},true);
+document.addEventListener('change',function(e){clamp(e.target)},true);
+document.addEventListener('click',function(e){if(!e.target.closest||!e.target.closest('button,[role=button],.btn'))return;var c=document.getElementById('content');if(c)c.querySelectorAll('input,textarea').forEach(clamp)},true);
+document.addEventListener('input',function(e){var t=e.target;if(!t||t.tagName!=='INPUT')return;
+var looksLikeAddress=t.type==='url'||/web|url|site|link|href/i.test((t.id||'')+' '+(t.name||'')+' '+(t.getAttribute('aria-label')||'')+' '+(t.getAttribute('data-k')||''));
+if(looksLikeAddress&&/^\s*(javascript|data|vbscript):/i.test(t.value)){t.value='';t.setAttribute('aria-invalid','true');t.setAttribute('title','Use a web address that starts with http:// or https://')}
+else if(t.getAttribute('aria-invalid')==='true'&&looksLikeAddress)t.removeAttribute('aria-invalid')},true);
+
+/* 8. The frame's floating assistant button must not cover the buttons of a dialog of this page. At 675px it sat on top of "Publish"/"Schedule" in
+   New promotion, so the main action could not be clicked. While a dialog of this page is open, tell the frame (same origin) to hide that button;
+   styles.css does the hiding (html[data-eso-modal]). */
+(function(){
+if(parent===window)return;
+var last=null;
+function sig(){
+var open=Array.prototype.some.call(document.querySelectorAll('[aria-modal="true"],dialog[open],.pmc-ov'),function(e){return e.getClientRects().length>0});
+if(open===last)return;last=open;
+try{parent.document.documentElement.toggleAttribute('data-eso-modal',open)}catch(e){}}
+function start(){new MutationObserver(sig).observe(document.body,{childList:true,subtree:true,attributes:true,attributeFilter:['class','hidden','open','aria-modal','style']});sig()}
+if(document.body)start();else document.addEventListener('DOMContentLoaded',start);
+addEventListener('pagehide',function(){try{parent.document.documentElement.removeAttribute('data-eso-modal')}catch(e){}});
+})();
 })();

@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { ensureFeed, seedPosts } from '../src/social/seed.js';
 import { timeline, ownAnnouncements, toggleLike, addReply, addPost, applyMute, muteThread, following, AUDIENCES, MAX_POST } from '../src/social/staff-store.js';
+import * as staffStore from '../src/social/staff-store.js';
 import { timeline as residentTimeline } from '../src/social/store.js';
 
 const NOW = Date.parse('2026-11-10T15:00:00');
@@ -37,7 +38,7 @@ test('pinned first, then newest; the person using the app is named by their own 
   for (let i = 1; i < rest.length; i += 1) assert.ok(rest[i - 1].t >= rest[i].t);
   assert.equal(list.find((p) => p.id === 'p1').name, ME);
   assert.equal(list.find((p) => p.id === 'p1').mine, true);
-  assert.equal(list.find((p) => p.id === 'p2').name, 'Dana Whitfield');
+  assert.equal(list.find((p) => p.id === 'p2').name, 'Noor Hassan');
   assert.equal(list.find((p) => p.id === 'p5').kind, 'Community post');
   assert.equal(list.find((p) => p.id === 'p3').kind, 'Staff discussion');
 });
@@ -94,6 +95,23 @@ test('posting: who may see it, announcements are for residents, and residents se
   assert.ok(res.some((p) => p.id === notice.post.id), 'the announcement reaches residents');
   assert.ok(!res.some((p) => p.id === staffOnly.post.id), 'the staff note does not');
   assert.ok(ownAnnouncements(s, ME).some((a) => a.id === notice.post.id));
+});
+
+test('Mute this person: all their posts are held back, never your own, and Unmute brings them back', () => {
+  const s = fresh();
+  const before = staffStore.timeline(s, 'Jordan Lee');
+  const victim = before.find((p) => !p.mine && p.by && p.by !== 'marcus');
+  assert.ok(victim, 'a post by somebody else');
+  assert.equal(staffStore.mutePerson(s, victim.by), true);
+  assert.equal(staffStore.mutePerson(s, 'me'), false, 'not yourself');
+  assert.equal(staffStore.mutePerson(s, ''), false);
+  const { shown, hidden } = staffStore.applyMute(s, before);
+  assert.ok(!shown.some((p) => p.by === victim.by), 'none of their posts show');
+  assert.ok(hidden >= 1);
+  assert.equal(staffStore.mutePerson(s, victim.by), true, 'twice is harmless');
+  assert.equal(staffStore.muted(s).people.filter((x) => x === victim.by).length, 1);
+  staffStore.unmute(s, 'people', victim.by);
+  assert.ok(staffStore.applyMute(s, before).shown.some((p) => p.by === victim.by));
 });
 
 test('mute settings hold posts back, never your own, and a muted thread stays muted', () => {

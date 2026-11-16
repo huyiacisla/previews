@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en" class="light">
+<head>
+<!--include:partials/head.html-->
+<title>System health | Admin Portal · admin preview</title>
+</head>
+<body class="bg-background font-sans text-foreground" data-portal="admin">
+<!-- System health (Admin). The data checks of every module in one place: what is wrong, where, and how to fix it. It only reads.
+     health/health.js works out the modules and their checks (pure, tested); health.js here keeps what the person chose. Same tokens and patterns as the
+     other pages. Each check has the words "where" and "how to fix", so a finding can be pasted into a bug report as it is (Copy report). -->
+<main id="main-content" tabindex="-1" x-data="systemHealth" x-cloak class="mx-auto flex min-h-dvh w-full max-w-5xl flex-col gap-step-lg px-step-lg py-step-lg outline-none lg:px-step-xl">
+  <header class="flex flex-wrap items-start justify-between gap-step-md">
+    <div class="min-w-0">
+      <h1 class="text-2xl leading-8 font-semibold tracking-tight text-foreground">System health</h1>
+      <p class="text-sm text-muted-foreground">Checks the data of Messages, Documents, Notifications and each property's Social. View only: nothing here changes data.</p>
+    </div>
+    <div class="flex items-center gap-step-sm">
+      <span id="copied" role="status" class="text-sm text-muted-foreground" x-text="copied"></span>
+      <button type="button" id="refresh" @click="load()" data-variant="outline" class="group/button inline-flex h-8 shrink-0 touch-manipulation items-center justify-center gap-step-sm rounded-md border border-transparent bg-background bg-clip-padding px-step-md control-text font-medium whitespace-nowrap text-foreground ring-1 ring-foreground/10 transition outline-none select-none hover:bg-muted focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 active:translate-y-px pointer-coarse:h-11">Check again</button>
+      <button type="button" id="copy-report" @click="copyReport()" data-variant="outline" class="group/button inline-flex h-8 shrink-0 touch-manipulation items-center justify-center gap-step-sm rounded-md border border-transparent bg-background bg-clip-padding px-step-md control-text font-medium whitespace-nowrap text-foreground ring-1 ring-foreground/10 transition outline-none select-none hover:bg-muted focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 active:translate-y-px pointer-coarse:h-11">Copy report</button>
+    </div>
+  </header>
+
+  <section aria-label="Totals" class="grid grid-cols-2 gap-step-md sm:grid-cols-4">
+    <template x-for="s in cards" :key="s.label">
+      <div class="flex flex-col gap-step-xs rounded-xl bg-card p-step-md shadow-lift-xs">
+        <span class="text-xs text-muted-foreground" x-text="s.label"></span>
+        <span class="text-2xl leading-8 font-semibold tracking-tight tabular-nums" :class="s.warn ? 'text-warning-text' : 'text-foreground'" x-text="s.value"></span>
+      </div>
+    </template>
+  </section>
+
+  <p id="summary" role="status" class="text-sm text-muted-foreground" x-text="summaryText"></p>
+
+  <div class="flex flex-wrap items-center gap-step-sm">
+    <label for="show" class="sr-only">Show</label>
+    <select id="show" x-model="show" class="h-8 rounded-md border border-input bg-card px-2.5 text-sm outline-none transition-colors focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 pointer-coarse:h-11">
+      <option value="all">All modules</option>
+      <option value="problems">Only those with findings</option>
+    </select>
+  </div>
+
+  <ul class="flex flex-col gap-step-md">
+    <template x-for="m in shown" :key="m.id">
+      <li class="flex flex-col gap-step-sm rounded-xl bg-card p-step-md shadow-lift-xs">
+        <div class="flex flex-wrap items-center gap-x-step-sm gap-y-step-xs">
+          <h2 class="text-base font-medium text-foreground" x-text="m.name"></h2>
+          <span class="inline-flex h-5 items-center rounded-full px-step-sm text-xs font-medium" :class="m.failed ? (m.errors ? 'bg-danger-bg text-danger-text' : 'bg-warning-bg text-warning-text') : 'bg-success-bg text-success-text'" x-text="m.failed ? m.failed + (m.failed === 1 ? ' check found something' : ' checks found something') : 'All ' + m.run + ' checks passed'"></span>
+          <span class="ml-auto flex items-center gap-step-xs">
+            <button type="button" :hidden="!(m.channel && m.failed)" @click="reportModule(m)" :aria-label="'Report ' + m.name + ' to the property team'" class="inline-flex h-8 items-center rounded-md px-step-sm control-text font-medium text-foreground-secondary outline-none hover:bg-muted hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50 pointer-coarse:h-11">Report to team</button>
+            <a :href="m.href" target="_top" :aria-label="'Open ' + m.name" class="inline-flex h-8 items-center rounded-md px-step-sm control-text font-medium text-primary outline-none hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50 pointer-coarse:h-11">Open</a>
+          </span>
+        </div>
+        <ul class="flex flex-col gap-step-sm">
+          <template x-for="c in m.checks.filter(x => !x.ok)" :key="c.id">
+            <li class="flex flex-col gap-step-xs rounded-lg bg-muted/50 p-step-sm">
+              <div class="flex flex-wrap items-center gap-step-sm">
+                <h3 class="text-sm font-medium text-foreground" x-text="c.label"></h3>
+                <span class="inline-flex h-5 items-center rounded-full px-step-sm text-xs font-medium" :class="c.severity === 'error' ? 'bg-danger-bg text-danger-text' : 'bg-warning-bg text-warning-text'" x-text="c.severity === 'error' ? 'Error' : 'Warning'"></span>
+              </div>
+              <ul class="flex flex-col gap-step-xs">
+                <template x-for="(f, i) in c.found" :key="i"><li class="text-sm text-foreground"><span class="font-medium" x-text="f.where"></span><span class="text-muted-foreground" x-text="': ' + f.detail"></span></li></template>
+              </ul>
+              <p class="text-sm text-foreground-secondary"><span class="font-medium text-foreground">How to fix: </span><span x-text="c.fix"></span></p>
+            </li>
+          </template>
+        </ul>
+        <details :hidden="!m.checks.some(x => x.ok)">
+          <summary class="flex min-h-8 cursor-pointer items-center text-sm text-muted-foreground outline-none pointer-coarse:min-h-11 focus-visible:ring-3 focus-visible:ring-ring/50" x-text="m.checks.filter(x => x.ok).length + ' passed'"></summary>
+          <ul class="mt-step-xs flex flex-col gap-step-xs">
+            <template x-for="c in m.checks.filter(x => x.ok)" :key="c.id"><li class="text-sm text-muted-foreground" x-text="c.label"></li></template>
+          </ul>
+        </details>
+      </li>
+    </template>
+  </ul>
+  <!--include:partials/report-dialog.html-->
+  <p id="none" :hidden="shown.length" class="rounded-xl bg-card p-step-lg text-sm text-muted-foreground shadow-lift-xs">Nothing to show with this filter. <button type="button" @click="show = 'all'" class="rounded-sm font-medium text-primary underline-offset-2 outline-none hover:underline focus-visible:ring-3 focus-visible:ring-ring/50">Show all modules</button></p>
+</main>
+<script type="module" src="/admin/health.js"></script>
+</body>
+</html>

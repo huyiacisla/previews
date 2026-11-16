@@ -6,10 +6,24 @@
    3. keeps the values in the prototype's own store (S, key "eso-proto"), which /resident/promotions.html also reads.
    Demo only: nothing is sent to a server. Everything else in Settings (Notifications, Security, Support...) is the prototype's own. */
 import { pathForHash as routePath } from '../staff-routes.js';
+import { backTarget } from '../back-target.js';
 import { pickPersona, initials as initialsOf } from '../messaging/personas.js';
 import { readPrefs, savePrefs, phoneError, CONTACTS, demoEmail } from '../settings/prefs.js';
 import { residentState, setShow } from '../social/store.js';
+import { companyPrefs } from '../company-prefs.js';
+import { normalizePurchased, propertiesCount } from '../capacity/store.js';
+// How many properties the company has now: the one it started with and each one added in Capacity (kept under a name without "eso-", see portal-frame.js).
+const propCount = () => { try { return propertiesCount(normalizePurchased(JSON.parse(localStorage.getItem('capacity-state:client')))); } catch { return 1; } };
+const companyMgmt = () => companyPrefs(globalThis.localStorage); // what the company decided for its residents (Show "Managed by …", and the rest)
+// "Require 2-step verification for everyone" (the company's): the personal 2-step page says so while the person has not turned it on. Staff and Client people only.
+const mfaNote = () => (companyPrefs(globalThis.localStorage).mfa
+  ? [['Your account is protected by your password only.', 'Your company requires 2-step verification. Until you turn it on, your account is protected by your password only.']]
+  : []);
+// The page's own 2-step code asks this: when the company requires 2-step verification, the person cannot turn it off (Staff and Client people only; the company's
+// switch is "Require 2-step verification for everyone" in Workspace settings). Asked each time, so a change of the company's switch is seen at once.
+globalThis._companyMfa = () => /^\/(staff|client)\//.test(globalThis.location.pathname) && companyPrefs(globalThis.localStorage).mfa === true;
 import { clientWorkspaceTree, installClientWorkspace, CW_DEFAULTS, PROP as CW_PROP } from './client-workspace.js';
+import { ITEMS as PLAN_ITEMS } from '../capacity/store.js';
 
 (function () {
   const w = window;
@@ -20,9 +34,15 @@ import { clientWorkspaceTree, installClientWorkspace, CW_DEFAULTS, PROP as CW_PR
      sign-in, look and feel, language, date and time, accessibility and their property. The sidebar colors and personalization are shared. */
   const client = location.pathname.startsWith('/client/');
   const resident = location.pathname.startsWith('/resident/');
-  const portalKey = client ? 'client' : resident ? 'resident' : 'staff';
+  // The Admin portal has the page too (/admin/settings…): like a Resident, an admin has no workspace here, only their own settings
+  // (profile, availability, notifications, messages, sign-in, Personalize with gestures and the sidebar, language, date and time, accessibility).
+  const admin = location.pathname.startsWith('/admin/');
+  const solo = resident || admin;
+  const portalKey = client ? 'client' : resident ? 'resident' : admin ? 'admin' : 'staff';
   const pathForHash = (hash) => routePath(hash, portalKey);
-  const me0 = resident ? pickPersona('resident', new URLSearchParams(location.search).get('as')) : null;
+  const me0 = solo ? pickPersona(resident ? 'resident' : 'admin', new URLSearchParams(location.search).get('as')) : null;
+  // The Staff person using the portal: the same one the header names (the prototype's own profile says "QA Staff PM"; see STAFF_WORDS and reskinS).
+  const meS = !client && !solo ? pickPersona('staff', new URLSearchParams(location.search).get('as')) : null;
 
   /* 1. Real pages. The prototype is a single-page app with its own sidebar; these items have a real page in the portal. */
   const home = `/${portalKey}`;
@@ -44,7 +64,9 @@ import { clientWorkspaceTree, installClientWorkspace, CW_DEFAULTS, PROP as CW_PR
     promoShow: true, promoSave: true,
     rpWeekly: true, rpMonthly: false, rpAlerts: true,
     // Resident: what to be told about, how, and the Social timeline switch.
-    rnParking: true, rnRequests: true, rnPayments: true, rnCommunity: false, rnPromos: true, rnMessages: true, rnEmail: true, rnSms: false, rnQuiet: true, resSocial: true,
+    rnParking: true, rnRequests: true, rnPayments: true, rnCommunity: true, rnPromos: true, rnMessages: true, rnEmail: true, rnSms: false, rnQuiet: true, resSocial: true,
+    // Admin: every switch starts on (platform health alerts included, as the bell always showed them).
+    anTickets: true, anReplies: true, anEmergency: true, anMessages: true, anAlerts: true,
   };
   // The Client's Workspace is about its company and portfolio: its own settings (see client-workspace.js).
   if (client) Object.assign(NEW, CW_DEFAULTS);
@@ -125,6 +147,25 @@ html.a11y-focus :focus-visible{outline:3px solid var(--primary)!important;outlin
       // The prototype's property pages (branding, details, hours, emergency contact, amenities) are kept as each property's settings.
       ws.splice(0, ws.length, ...clientWorkspaceTree(ws.find((x) => x.id === 'property')));
       skinKids(me);
+    } else if (admin) {
+      /* Admin: their own settings only. No Workspace, Social master or Promotions; Availability stays (an admin answers Support). */
+      const drop = (kids, ids) => { for (const id of ids) { const i = kids.findIndex((x) => x.id === id); if (i >= 0) kids.splice(i, 1); } };
+      drop(me, ['socialmaster']);
+      ws.splice(0, ws.length);
+      const sec = me.find((x) => x.id === 'security');
+      if (sec && sec.kids) sec.kids = sec.kids.filter((k) => k.id !== 'wssec');
+      // Look and feel: the sidebar these colors change is the real Admin sidebar, so only the options that reach it stay.
+      const pz = me.find((x) => x.id === 'personalize');
+      if (pz && pz.kids) {
+        pz.kids = pz.kids.filter((k) => k.id !== 'icons');
+        const side = pz.kids.find((k) => k.id === 'sidebar');
+        if (side && side.leaf) { const l = side.leaf; side.leaf = () => trimSidebar(l(), 'Platform summary card'); side.kw = 'sidebar color colors preset background text active item count badges platform summary card'; }
+      }
+      const rep = (id, patch) => { const k = me.find((x) => x.id === id); if (k) Object.assign(k, patch); };
+      const g = me.find((x) => x.id === 'general');
+      if (g) { const l0 = g.leaf; Object.assign(g, { t: 'My profile', desc: 'Your name, role and how the team reaches you.', sum: () => `${me0.name} · ${me0.title}`, leaf: () => adminProfile(l0()) }); }
+      rep('notifications', { desc: 'Which Support and platform events reach you, and how.', sum: () => [S.anTickets !== false && 'Tickets', S.anEmergency !== false && 'Emergencies', S.anAlerts && 'Platform alerts'].filter(Boolean).join(' · ') || 'Off', leaf: adminNotifications, kw: 'notifications alerts tickets support emergency messages platform health email digest quiet hours' });
+      skinKids(me);
     } else if (resident) {
       /* Resident: no Workspace (it is left empty and its address goes to Settings), no Availability, Social master or Promotions. */
       const drop = (kids, ids) => { for (const id of ids) { const i = kids.findIndex((x) => x.id === id); if (i >= 0) kids.splice(i, 1); } };
@@ -137,7 +178,7 @@ html.a11y-focus :focus-visible{outline:3px solid var(--primary)!important;outlin
       if (pz && pz.kids) {
         pz.kids = pz.kids.filter((k) => k.id !== 'icons');
         const side = pz.kids.find((k) => k.id === 'sidebar');
-        if (side && side.leaf) { const l = side.leaf; side.leaf = () => trimSidebar(l(), 'Residence summary card'); side.kw = 'sidebar color colors preset background text active item count badges residence summary card'; }
+        if (side && side.leaf) { const l = side.leaf; side.leaf = () => trimSidebar(l(), 'Vehicle allowance card'); side.kw = 'sidebar color colors preset background text active item count badges residence summary card'; }
       }
       const rep = (id, patch) => { const k = me.find((x) => x.id === id); if (k) Object.assign(k, patch); };
       const g = me.find((x) => x.id === 'general');
@@ -152,6 +193,7 @@ html.a11y-focus :focus-visible{outline:3px solid var(--primary)!important;outlin
     } else if (!ws.find((x) => x.id === 'residentpromos')) {
       ws.push({ id: 'residentpromos', t: 'Resident promotions', ic: '🏷️', c: '#e11d48', pic: 'bell', desc: 'Choose whether residents see and can save the promotions you publish.', g: 'Community', sum: () => (S.promoShow ? 'Shown to residents' : 'Hidden from residents') + (S.promoSave ? ' · Saving on' : ''), leaf: promos, kw: 'promotions residents resident app show hide save deals offers' });
     }
+    if (meS) { skinKids(me); skinKids(ws); }
     return T;
   };
 
@@ -220,6 +262,37 @@ html.a11y-focus :focus-visible{outline:3px solid var(--primary)!important;outlin
       `<h3 class="pzsec">How</h3>` +
       pzCard(pzT('rnEmail', 'Email', 'To ' + esc(demoEmail(me0.name)) + '.') + pzT('rnSms', 'Text message', 'Only for urgent things like a tow or a closed garage.') + pzT('rnQuiet', 'Quiet hours', 'No sounds between 10 PM and 7 AM. Urgent notices still come through.'), 'Everything also shows in the bell at the top of every page.');
   }
+  // Admin: the same card, with what Support knows about the person. The phone and the contact choice are theirs to change (kept with the Resident's helper).
+  function adminProfile(html) {
+    const t = document.createElement('template');
+    t.innerHTML = html;
+    const card0 = t.content.querySelector('.pscard');
+    if (!card0) return html;
+    card0.querySelectorAll('.prow').forEach((r) => r.remove());
+    const h = card0.querySelector('.hd h3'); const d = card0.querySelector('.hd p');
+    if (h) h.textContent = 'My profile';
+    if (d) d.textContent = 'Your name, role and how the team reaches you.';
+    const pro = card0.querySelector('.pro');
+    if (pro) pro.innerHTML = '<span class="bd">Read only</span>Your name, role and email are managed by EasySpotOps. Your photo, phone and contact choice are yours to change.';
+    const p = readPrefs(localStorage, me0.id);
+    const opt = (v, label) => `<option value="${v}"${p.contact === v ? ' selected' : ''}>${label}</option>`;
+    card0.insertAdjacentHTML('beforeend',
+      `<div class="prow"><div><b>Name</b><small>As it shows in Messages and the Ticket box.</small></div><span class="pill">${esc(me0.name)}</span></div>` +
+      `<div class="prow"><div><b>Role</b><small>Your role in the Admin portal.</small></div><span class="pill">${esc(me0.title)}</span></div>` +
+      `<div class="prow"><div><b>Team</b><small>Who you answer for.</small></div><span class="pill">${esc(me0.org)}</span></div>` +
+      `<div class="prow"><div><b>Email</b><small>Used to sign in.</small></div><span class="pill">${esc(demoEmail(me0.name))}</span></div>` +
+      `<div class="prow"><div><label for="rs-phone"><b>Phone</b></label><small>Optional. Only other admins see it.</small></div><input class="ix-in" id="rs-phone" type="tel" inputmode="tel" autocomplete="tel" value="${esc(p.phone || '')}" aria-describedby="rs-err"></div>` +
+      `<div class="prow"><div><label for="rs-contact"><b>Best way to reach me</b></label><small>Used when an emergency is escalated.</small></div><select class="ix-in" id="rs-contact">${opt('app', 'In the app')}${opt('email', 'Email')}${opt('text', 'Text message')}</select></div>` +
+      `<p id="rs-err" role="alert" class="helpt" style="color:var(--danger,#b91c1c)" hidden></p>` +
+      `<div class="bt" style="padding:12px 16px;display:flex;justify-content:flex-end"><button type="button" class="stbtn sm p" data-rs-save>Save changes</button></div>`);
+    return t.innerHTML;
+  }
+  function adminNotifications() {
+    return `<h3 class="pzsec">Tell me about</h3>` +
+      pzCard(pzT('anTickets', 'New Support tickets', 'A Staff person or a Client opened a ticket.') + pzT('anReplies', 'Replies on my tickets', 'The requester answered a ticket assigned to you.') + pzT('anEmergency', 'Emergencies', 'An emergency nobody has acknowledged. Always shown in the app.') + pzT('anMessages', 'Direct messages', 'Messages from Staff, Clients and other admins.') + pzT('anAlerts', 'Platform health alerts', 'Critical and warning checks across clients and properties.')) +
+      `<h3 class="pzsec">How</h3>` +
+      pzCard(pzT('anEmail', 'Email', 'To ' + esc(demoEmail(me0.name)) + '.') + pzT('anDigest', 'Daily summary', 'One email each morning with what is still open.') + pzT('anQuiet', 'Quiet hours', 'No sounds between 10 PM and 7 AM. Emergencies still come through.'), 'Everything also shows in the bell at the top of every page.');
+  }
   function residentMessaging() {
     return `<h3 class="pzsec">Writing</h3>` +
       pzCard(pzT('msgEnter', 'Press Enter to send', 'Off: Enter adds a new line and the Send button sends.') + pzT('msgSound', 'Sound for new messages')) +
@@ -229,12 +302,12 @@ html.a11y-focus :focus-visible{outline:3px solid var(--primary)!important;outlin
   function residentProperty() {
     const st = residentState(localStorage, me0.id);
     // The switch is kept in the prototype's own settings (S.resSocial) and carried to Social when it changes.
-    return pcard('user', 'My property', 'Where you live.', prow('Residence', 'Unit and building.', esc(me0.title)) + prow('Property', 'Managed by your property team.', esc(me0.org)), '') +
+    return pcard('user', 'My property', 'Where you live.', prow('Residence', 'Unit and building.', esc(me0.title)) + prow('Property', companyMgmt().mgmt ? `Managed by ${esc(companyMgmt().name)}.` : 'Your property.', esc(me0.org)), '') +
       `<h3 class="pzsec">Social</h3>` +
       pzCard(pzT('resSocial', 'Show Social', 'Updates from your property and neighbors. Off hides the Social timeline and its menu item for you only.'), st.show ? 'You can also hide Social from the Social page itself.' : 'Social is hidden for you. Turn it on to see the timeline again.');
   }
   // Staff wording in sections that already exist becomes Client wording.
-  const WORDS = [['Staff Portal', 'Client Portal'], ['staff portal', 'client portal'], ['QA Staff PM', 'Dana Whitfield'], ['staff@mail.easyspotops.com', 'dana.whitfield@amcllc.example'], ['Manager Operations', 'Client Admin'], ['Property Manager', 'Client']];
+  const WORDS = [['Staff Portal', 'Client Portal'], ['staff portal', 'client portal'], ['QA Staff PM', 'Dana Whitfield'], ['staff@mail.easyspotops.com', 'dana.whitfield@amcllc.example'], ['Manager Operations', 'Client Admin'], ['Property Manager', 'Client'], ['EasySpotOps account', 'Client account'], ...mfaNote()];
   WORDS.push(
     ['Staff identity, role, company, and active property.', 'Your identity, role, company and the properties you manage.'],
     ['Your staff identity for assigned property operations.', 'Your identity for the properties you manage.'],
@@ -258,7 +331,7 @@ html.a11y-focus :focus-visible{outline:3px solid var(--primary)!important;outlin
     ['Mallard Pointe at Riverbend · role, permissions, assigned properties, security and property profile for this workspace.', 'AMC LLC · your portfolio and its properties, the rules they share, your team and your plan.'],
     ['Current property', 'Company'],
     ['Mallard Pointe at Riverbend', 'AMC LLC'],
-    ['Active assignment', '1 of 2 properties'],
+    ['Active assignment', `${propCount()} ${propCount() === 1 ? 'property' : 'properties'}`], // the same count as Workspace and the sidebar
   );
   WORDS.push(['EasySpotOps Help Center', 'Support'], ['this staff profile', 'your profile'], ['staff profile', 'your profile'], ['Staff (read-only)', 'Viewer (read-only)'], ['(QS)', '(DW)'], ['Messages, Community & Announcements, Promotions.', 'Messages, Calendar and Activity.']);
   // Pieces of existing sections that are about Social or Promotions: the Client has neither, so they are cut out.
@@ -276,9 +349,21 @@ html.a11y-focus :focus-visible{outline:3px solid var(--primary)!important;outlin
     ['Property Manager', me0.title], ['this staff profile', 'your profile'], ['staff profile', 'your profile'], ['Workspace security', 'Account security'],
     ['Mallard Pointe Management', me0.org], ['Current property', 'Property'], ['(QS)', `(${initialsOf(me0.name)})`], ['Quick messages for property staff', 'Quick messages for the property team'],
     ['Sidebar Left · Social off', 'Sidebar Left'], ['Sidebar Right · Social off', 'Sidebar Right'], ['Sidebar Left · Social on', 'Sidebar Left'], ['Sidebar Right · Social on', 'Sidebar Right'],
+    ['EasySpotOps account', 'Resident account'], // the page header and the profile row say whose account this is: the resident's
+  ] : admin ? [
+    ['Your personal staff profile: identity, availability, notifications and preferences. Applies across all workspaces.', 'Your profile, availability, notifications and look. They apply to the whole Admin portal.'],
+    ['Profile settings', 'Settings'], ['Staff Portal', 'Admin Portal'], ['staff portal', 'admin portal'], ['QA Staff PM', me0.name], ['staff@mail.easyspotops.com', demoEmail(me0.name)],
+    ['Property Manager', me0.title], ['this staff profile', 'your profile'], ['staff profile', 'your profile'], ['Workspace security', 'Account security'],
+    ['Mallard Pointe Management', me0.org], ['(QS)', `(${initialsOf(me0.name)})`], ['Quick messages for property staff', 'Quick messages for Staff and Clients'],
+    ['Workspace presence and Messenger availability.', 'Whether you show as available in Messages and Support.'], [' edge · Social off', ' edge'], [' edge · Social on', ' edge'], ['off · Social off', 'off'], ['a resident who writes to you', 'anyone who writes to you'],
+    ['Sidebar Left · Social off', 'Sidebar Left'], ['Sidebar Right · Social off', 'Sidebar Right'], ['Sidebar Left · Social on', 'Sidebar Left'], ['Sidebar Right · Social on', 'Sidebar Right'],
+    ['EasySpotOps account', 'Admin account'],
   ] : [];
-  const WSET = client ? WORDS : RWORDS;
-  const skin = (s) => (typeof s === 'string' ? CUTS.reduce((a, re) => a.replace(re, ''), WSET.reduce((a, [x, y]) => (a.includes(x) ? a.split(x).join(y) : a), s)) : s);
+  // Staff: only the person changes (name, email, role, initials), so the page, the header and the messages all name the same one.
+  const STAFF_WORDS = meS ? [['QA Staff PM', meS.name], ['staff@mail.easyspotops.com', demoEmail(meS.name)], ['Property Manager', meS.title], ['(QS)', `(${initialsOf(meS.name)})`], ['EasySpotOps account', 'Staff account'], ...mfaNote()] : [];
+  const WSET = client ? WORDS : solo ? RWORDS : STAFF_WORDS;
+  const cuts = client || solo ? CUTS : []; // the cuts remove Social and Promotions pieces, which only the Client and the Resident lack
+  const skin = (s) => (typeof s === 'string' ? cuts.reduce((a, re) => a.replace(re, ''), WSET.reduce((a, [x, y]) => (a.includes(x) ? a.split(x).join(y) : a), s)) : s);
   function skinKids(kids) {
     for (const k of kids) {
       if (k._skin) continue;
@@ -305,7 +390,8 @@ html.a11y-focus :focus-visible{outline:3px solid var(--primary)!important;outlin
       const cap = [...sb.querySelectorAll('.cap')].find((c) => !c.classList.contains('sbclkc'));
       if (cap && !cap.dataset.skin) {
         cap.dataset.skin = '1';
-        cap.innerHTML = '<div class="caph"><b>Portfolio Overview</b></div><div class="capr"><span>Properties</span><b>1 / 2</b></div><div class="capr"><span>Parking Spots</span><b>261 / 25 · Over limit</b></div><div class="capr"><span>Staff</span><b>18 / 3 · Over limit</b></div>';
+        const plan = (id) => PLAN_ITEMS.find((i) => i.id === id);
+        cap.innerHTML = `<div class="caph"><b>Portfolio Overview</b></div><div class="capr"><span>Properties</span><b>1 / 2</b></div><div class="capr"><span>Parking Spots</span><b>${plan('parking').used} / ${plan('parking').included}</b></div><div class="capr"><span>Residents</span><b>${plan('residents').used} / ${plan('residents').included}</b></div><div class="capr"><span>Staff</span><b>${plan('staff').used} / ${plan('staff').included}</b></div>`;
       }
       // The sidebar's icons come from a table built from the Staff menu; give each Client item the icon the Client dashboard shows
       // (unless the person picked their own under Sidebar icons).
@@ -327,7 +413,7 @@ html.a11y-focus :focus-visible{outline:3px solid var(--primary)!important;outlin
         const b = row.querySelector('b'); const p = row.querySelector('.pill');
         if (b) b.textContent = 'Properties';
         s.textContent = 'The properties of this company in this workspace.';
-        if (p) p.textContent = '1 of 2';
+        if (p) p.textContent = `${propCount()} of ${propCount()}`;
       }
     }
     // The count on "My tickets" and the "waiting on your reply" line came from the prototype's own tickets, not the Ticket box: drop them.
@@ -349,14 +435,19 @@ html.a11y-focus :focus-visible{outline:3px solid var(--primary)!important;outlin
      and preview.js reads it on the dashboard, messages and ticket pages. Nothing is written until the person changes something. */
   const portalName = portalKey;
   const publishUI = () => {
-    try { localStorage.setItem(`ui-prefs:${portalName}`, JSON.stringify({ sb: cols().slice(0, 4), theme: S.theme, accent: S.accent, icons: S.icons !== false, counts: S.showCounts !== false, cap: S.showCap !== false, collapse: S.sbCollapse === true,
+    try { localStorage.setItem(`ui-prefs:${portalName}`, JSON.stringify({ sb: cols().slice(0, 4), theme: S.theme, accent: S.accent, icons: S.icons !== false, layout: S.variant || 'A', scroll: S.scroll || 'auto-hide', // Personalize > Sidebar: Rail makes the real sidebar an icon rail; Scrollbar styles the menu's scrollbar
+      time: { h24: S.tfmt === '24', tz: S.tzAuto === false && S.tz ? String(S.tz) : '' }, // Date and time: the real pages (sidebar clock, Notifications) show times the way the person chose
+      counts: S.showCounts !== false, search: S.showSearch !== false, cap: S.showCap !== false, collapse: S.sbCollapse === true,
       // Accessibility switches reach the real pages too (contrast, reduced motion, larger taps, stronger focus ring).
       a11y: { contrast: !!S.a11yContrast, motion: !!S.a11yMotion, target: !!S.a11yTarget, focus: !!S.a11yFocus },
       // Text, buttons, cards and gestures reach the real pages through look-prefs.js (preview.js applies them).
       text: { font: S.afont, size: Number(S.asize), weight: Number(S.aweight), line: Number(S.lineH), color: S.textColor || '', head: S.headColor || '' },
       buttons: { shape: S.bshape, style: S.bstyle, size: S.bsize },
       cards: { radius: Number(S.cradius || 12), density: S.density },
-      gestures: { swipe: S.swipe !== false, zone: S.swZone, sens: S.swSens, close: S.swClose !== false, fx: S.swFx !== false, side: S.side },
+      gestures: { swipe: S.swipe !== false, zone: S.swZone, sens: S.swSens, close: S.swClose !== false, fx: S.swFx !== false,
+        // The edge the menu opens from (Gestures > Menu edge). The page keeps it as the swipe's direction, `swDir`: swipe right = menu on the left edge.
+        // (`S.side` is the desktop sidebar's side, a different setting: sending it left the menu edge choice with no effect on the real pages.)
+        side: S.swDir === 'left' ? 'right' : 'left' },
       clock: S.sbClock === true, favorites: S.showFav !== false })); } catch { /* storage full or blocked */ }
     // Inside the Client dashboard frame the real sidebar belongs to the parent page: tell it to look again right away.
     if (embedded) { try { parent.postMessage({ type: 'eso-ui-prefs' }, location.origin); } catch { /* no parent */ } }
@@ -370,6 +461,10 @@ html.a11y-focus :focus-visible{outline:3px solid var(--primary)!important;outlin
     if (resident) { try { setShow(localStorage, me0.id, S.resSocial !== false); } catch { /* storage blocked */ } } // the Social switch of My property
     return r;
   };
+  // The text-size buttons and the custom box write the settings themselves (not through save()), so the real pages never heard of the change until some other
+  // control was used. Publish it the moment it is written.
+  const fs0 = w.fsLive;
+  if (typeof fs0 === 'function') w.fsLive = function (v, commit) { const r = fs0.apply(this, arguments); if (commit) publishUI(); return r; };
   if (resident) { try { S.resSocial = residentState(localStorage, me0.id).show; } catch { /* first visit */ } }
 
   /* The Promotions header still told people to turn on the Resident view; that control is gone, so the sentence goes too. */
@@ -400,7 +495,8 @@ html.a11y-focus :focus-visible{outline:3px solid var(--primary)!important;outlin
       try {
         const ref = new URL(parent.document.referrer || 'about:blank');
         if (client && ref.origin === location.origin && /^\/client\/(?!account-settings)/.test(ref.pathname)) { parent.history.back(); return; }
-        if (!client && !resident && ref.origin === location.origin && /^\/staff\/(?!account-settings|settings\/|workspace|promotions|support)/.test(ref.pathname)) { parent.location.assign(ref.href); return; }
+        if (admin && ref.origin === location.origin && /^\/admin\/(?!settings)/.test(ref.pathname)) { parent.location.assign(ref.href); return; }
+        if (!client && !solo && ref.origin === location.origin && /^\/staff\/(?!account-settings|settings\/|workspace|promotions|support)/.test(ref.pathname)) { parent.location.assign(ref.href); return; }
         if (resident && ref.origin === location.origin && /^\/resident\/(?!settings)/.test(ref.pathname)) { parent.location.assign(ref.href); return; }
       } catch { /* no usable referrer */ }
       try { parent.location.href = `${real.Dashboard}${parent.location.search.replace(/[?&]embed=1/, '')}`; } catch { /* no parent */ }
@@ -424,10 +520,22 @@ html.a11y-focus :focus-visible{outline:3px solid var(--primary)!important;outlin
       } catch { /* no parent */ }
     });
     // Opened with no address: show Workspace (a Resident has none: the list of settings), not the placeholder.
-    if (!location.hash || location.hash === '#/dashboard') history.replaceState(null, '', location.pathname + location.search + (resident ? '#/settings' : '#/workspace'));
+    if (!location.hash || location.hash === '#/dashboard') history.replaceState(null, '', location.pathname + location.search + (solo ? '#/settings' : '#/workspace'));
+    // The Back arrow of a settings page returns to the page the person came from (Notifications, Messages…), exactly where they were,
+    // for as long as they have not moved inside settings; after that it goes up one level, as the page itself does (see back-target.js).
+    let entryHash = location.hash;
+    const t0 = Date.now();
+    addEventListener('hashchange', () => { if (Date.now() - t0 < 500) entryHash = location.hash; }); // the page settles its own address first
+    document.addEventListener('click', (e) => {
+      if (!e.target.closest('button.bk2')) return;
+      try {
+        const how = backTarget({ referrer: parent.document.referrer, origin: location.origin, pathname: parent.location.pathname, portal: portalKey, entryHash, hash: location.hash });
+        if (how === 'history') { e.preventDefault(); e.stopPropagation(); parent.history.back(); }
+      } catch { /* no parent: the page's own Back runs */ }
+    }, true);
   }
 
-  if (!client && !resident && !embedded) {
+  if (!client && !solo && !embedded) {
     // Staff: the prototype page has a placeholder "Dashboard" of its own, and the Help Center's "Back" steps through the prototype's pages
     // (Settings, Promotions…). Both mean the real Staff app: go back to the Staff page the person came from (the dashboard, Messages,
     // Social…), otherwise open the Staff dashboard. The address keeps ?as=… so the same person stays signed in.
@@ -498,12 +606,18 @@ html.a11y-focus :focus-visible{outline:3px solid var(--primary)!important;outlin
     w.dd = function () { dd0.apply(this, arguments); document.querySelectorAll('#dd [data-ddgo^="social"]').forEach((e) => e.remove()); reskin(); };
     for (const name of ['render', 'renderNav']) { const f = w[name]; w[name] = function () { const r = f.apply(this, arguments); reskin(); return r; }; }
   }
-  if (resident) {
-    document.documentElement.classList.add('resident-portal');
-    document.title = 'EasySpotOps Resident · Settings';
+  if (solo) {
+    document.documentElement.classList.add('resident-portal'); // (the class hides the Profile/Workspace tabs: an Admin has no workspace here either)
+    document.title = `EasySpotOps ${admin ? 'Admin' : 'Resident'} · Settings`;
     try { const [first, ...rest] = me0.name.split(' '); user.first = first; user.last = rest.join(' '); } catch { /* user is the prototype's profile object */ }
     // No Workspace, Promotions, Social or Help Center page here: a saved address or a link to one goes to the list of settings.
-    const guardR = () => { if (/^#\/(workspace|promotions|social|support)|^#\/settings\/(availability|socialmaster)/.test(location.hash)) location.replace('#/settings'); };
+    const guardR = () => {
+      const h = location.hash;
+      if ((admin ? /^#\/(workspace|promotions|social|support)|^#\/settings\/socialmaster/ : /^#\/(workspace|promotions|social|support)|^#\/settings\/(availability|socialmaster)/).test(h)) location.replace('#/settings');
+      // A section named without its parent ("#/personalize") is that section of Settings; any other address the page does not have shows the list (it used to
+      // draw the prototype's placeholder Dashboard).
+      else if (h && h !== '#/' && !/^#\/settings(\/|$)/.test(h)) location.replace(/^#\/(personalize|security|language|datetime|accessibility|notifications|messaging|general|property|availability)(\/|$)/.test(h) ? `#/settings${h.slice(1)}` : '#/settings');
+    };
     addEventListener('hashchange', guardR, true);
     guardR();
     // Staff wording that is left in sections shared with Staff becomes the resident's.
@@ -518,6 +632,30 @@ html.a11y-focus :focus-visible{outline:3px solid var(--primary)!important;outlin
     };
     for (const name of ['render', 'renderNav']) { const f = w[name]; if (typeof f === 'function') w[name] = function () { const r = f.apply(this, arguments); reskinR(); return r; }; }
   }
+  if (client || solo) {
+    // Social pulse is a Staff tool. The line "Menu: … · Social pulse: …" is cut out when the page draws (CUTS), but the page also rewrites that line itself when the
+    // person changes the menu edge: it is cut out again each time.
+    const hideSocialPulse = () => { for (const s of document.querySelectorAll('#gzpair span')) if (/Social pulse/.test(s.textContent)) s.remove(); };
+    new MutationObserver(hideSocialPulse).observe(document.body, { childList: true, subtree: true });
+    hideSocialPulse();
+  }
+  if (meS) {
+    // Staff: the prototype's own profile ("QA Staff PM", "QS") is the person the header names, on every draw of the page.
+    try { const [first, ...rest] = meS.name.split(' '); user.first = first; user.last = rest.join(' '); } catch { /* user is the prototype's profile object */ }
+    const reskinS = () => {
+      const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+      for (let n = walker.nextNode(); n; n = walker.nextNode()) {
+        const v = n.nodeValue;
+        if (!v || n.parentElement.closest('script,style')) continue;
+        const out = v.trim() === 'QS' ? v.replace('QS', initialsOf(meS.name)) : skin(v);
+        if (out !== v) n.nodeValue = out;
+      }
+    };
+    for (const name of ['render', 'renderNav']) { const f = w[name]; if (typeof f === 'function') w[name] = function () { const r = f.apply(this, arguments); reskinS(); return r; }; }
+  }
   // The Client's Workspace list was changed after the page drew once, so it draws again; Resident only needs its colors applied.
-  try { if (client || resident) apply(); if (client) render(); if (!client && !resident) render(); } catch { /* the first render happens on hashchange otherwise */ }
+  try { if (client || solo) apply(); if (client) render(); if (!client && !solo) render(); } catch { /* the first render happens on hashchange otherwise */ }
+  // Client, Resident and Admin: the page was kept out of sight until its sections were the portal's own (see the first script of the page).
+  try { if (solo) render(); } catch { /* drawn on the next hashchange */ }
+  document.documentElement.classList.remove('eso-skin-wait');
 })();

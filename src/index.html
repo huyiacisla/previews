@@ -7,20 +7,69 @@
 <body class="bg-background font-sans text-foreground">
 <main class="mx-auto max-w-3xl space-y-6 p-6">
   <h1 class="text-xl font-semibold">UI preview (HTML tĩnh, không logic)</h1>
-  <p class="text-sm text-muted-foreground">Layout + Dashboard của 4 portal, dựng theo bản chạy thật.</p>
-  <ul class="grid gap-2 text-sm text-primary">
-    <li><a href="/staff/dashboard.html">Staff · Dashboard</a></li>
-    <li><a href="/staff/workspace.html">Staff · Settings, Workspace, Promotions, Support (/staff/settings/profile, /staff/workspace, /staff/promotions, /staff/support; mở từ Settings, Promotions và nút trợ giúp của Staff Dashboard)</a></li>
-    <li><a href="/resident/promotions.html">Resident · Promotions (hiện các khuyến mãi Staff đã publish)</a></li>
-    <li><a href="/admin/dashboard.html">Admin · Dashboard</a></li>
-    <li><a href="/client/dashboard.html">Client · Dashboard</a></li>
-    <li><a href="/resident/home.html">Resident · Dashboard</a></li>
-    <li><a href="/messages/index.html">Messaging hub (how Resident, Staff, Client and Admin connect)</a></li>
-    <li><a href="/resident/messages.html">Resident · Messages</a></li>
-    <li><a href="/staff/messages.html">Staff · Messages</a></li>
-    <li><a href="/client/messages.html">Client · Messages</a></li>
-    <li><a href="/admin/messages.html">Admin · Messaging &amp; Support</a></li>
-  </ul>
+  <p class="text-sm text-muted-foreground">Layout + Dashboard của 4 portal, dựng theo bản chạy thật. Dữ liệu nằm trong trình duyệt (localStorage), không có máy chủ.</p>
+
+  <section aria-labelledby="ix-staff" class="space-y-2">
+    <h2 id="ix-staff" class="text-sm font-medium">Staff</h2>
+    <ul class="grid gap-2 text-sm text-primary">
+      <li><a href="/staff/dashboard.html">Dashboard</a></li>
+      <li><a href="/staff/messages.html">Messages</a></li>
+      <li><a href="/staff/tickets.html">Ticket box</a></li>
+      <li><a href="/staff/notifications.html">Notifications</a></li>
+      <li><a href="/staff/social.html">Social</a></li>
+      <li><a href="/staff/promotions.html">Promotions</a></li>
+      <li><a href="/staff/settings/profile.html">Settings</a></li>
+      <li><a href="/staff/workspace.html">Workspace</a></li>
+      <li><a href="/staff/support.html">Help Center</a></li>
+    </ul>
+  </section>
+
+  <section aria-labelledby="ix-client" class="space-y-2">
+    <h2 id="ix-client" class="text-sm font-medium">Client</h2>
+    <ul class="grid gap-2 text-sm text-primary">
+      <li><a href="/client/dashboard.html">Dashboard</a></li>
+      <li><a href="/client/messages.html">Messages</a></li>
+      <li><a href="/client/tickets.html">Ticket box</a></li>
+      <li><a href="/client/notifications.html">Notifications</a></li>
+      <li><a href="/client/documents.html">Documents</a></li>
+      <li><a href="/client/usage/capacity.html">Capacity</a></li>
+      <li><a href="/client/settings/profile.html">Settings</a></li>
+      <li><a href="/client/workspace.html">Workspace settings</a></li>
+      <li><a href="/client/support.html">Support</a></li>
+    </ul>
+  </section>
+
+  <section aria-labelledby="ix-resident" class="space-y-2">
+    <h2 id="ix-resident" class="text-sm font-medium">Resident</h2>
+    <ul class="grid gap-2 text-sm text-primary">
+      <li><a href="/resident/home.html">Dashboard</a></li>
+      <li><a href="/resident/messages.html">Messages</a></li>
+      <li><a href="/resident/tickets.html">Ticket box</a></li>
+      <li><a href="/resident/notifications.html">Notifications</a></li>
+      <li><a href="/resident/social.html">Social</a></li>
+      <li><a href="/resident/promotions.html">Promotions (hiện các khuyến mãi Staff đã publish)</a></li>
+      <li><a href="/resident/settings.html">Settings</a></li>
+    </ul>
+  </section>
+
+  <section aria-labelledby="ix-admin" class="space-y-2">
+    <h2 id="ix-admin" class="text-sm font-medium">Admin</h2>
+    <ul class="grid gap-2 text-sm text-primary">
+      <li><a href="/admin/dashboard.html">Command Center</a></li>
+      <li><a href="/admin/messages.html">Messaging &amp; Support</a></li>
+      <li><a href="/admin/tickets.html">Ticket box</a></li>
+      <li><a href="/admin/notifications.html">Notifications</a></li>
+      <li><a href="/admin/settings.html">Settings</a></li>
+      <li><a href="/admin/settings/profile.html">Profile</a></li>
+    </ul>
+  </section>
+
+  <section aria-labelledby="ix-all" class="space-y-2">
+    <h2 id="ix-all" class="text-sm font-medium">Chung</h2>
+    <ul class="grid gap-2 text-sm text-primary">
+      <li><a href="/messages/index.html">Messaging hub (how Resident, Staff, Client and Admin connect)</a></li>
+    </ul>
+  </section>
 </main>
 </body>
 </html>

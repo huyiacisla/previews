@@ -1,6 +1,6 @@
 // Messaging hub: links into the four portals, live unread counts, and demo-data controls.
 import { createStore } from './store.js';
-import { createTransport } from './transport.js';
+import { createTransport, clearSideData } from './transport.js';
 import { PERSONAS, PORTALS } from './personas.js';
 
 const $ = (s, r = document) => r.querySelector(s);
@@ -65,8 +65,8 @@ function twoStep(btn, label, run) {
   });
 }
 
-twoStep($('#hub-reset'), 'Reset demo data', () => { store.reset(); $('#hub-status').textContent = 'Demo data was reset.'; render(); });
-twoStep($('#hub-empty'), 'Start empty', () => { store.reset({ empty: true }); $('#hub-status').textContent = 'All conversations were cleared.'; render(); });
+twoStep($('#hub-reset'), 'Reset demo data', () => { store.reset(); clearSideData(); $('#hub-status').textContent = 'Demo data was reset.'; render(); });
+twoStep($('#hub-empty'), 'Start empty', () => { store.reset({ empty: true }); clearSideData(); $('#hub-status').textContent = 'All conversations were cleared.'; render(); });
 store.subscribe(render);
 setInterval(render, 30000);
 render();

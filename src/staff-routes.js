@@ -45,7 +45,14 @@ export const CLIENT_ROUTES = [
   ['#/support', '/client/support.html'],
 ];
 
-const table = (portal) => (portal === 'resident' ? RESIDENT_ROUTES : portal === 'client' ? CLIENT_ROUTES : STAFF_ROUTES);
+// The Admin has their own settings only (no workspace): the list, and two sections with a path of their own.
+export const ADMIN_ROUTES = [
+  ['#/settings/general', '/admin/settings/profile.html'],
+  ['#/settings/personalize', '/admin/settings/personalize.html'],
+  ['#/settings', '/admin/settings.html'],
+];
+
+const table = (portal) => (portal === 'resident' ? RESIDENT_ROUTES : portal === 'client' ? CLIENT_ROUTES : portal === 'admin' ? ADMIN_ROUTES : STAFF_ROUTES);
 
 /** The path for a position of the settings page, or null when that position has no path of its own (it then stays under the page's own path). */
 export function pathForHash(hash, portal = 'staff') {

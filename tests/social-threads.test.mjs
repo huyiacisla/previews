@@ -96,6 +96,20 @@ test('a resident cannot react to a comment they cannot see', () => {
   assert.equal(react(s, 'nope', 'love').ok, false);
 });
 
+test('a comment the feed keeps under the resident’s own name reads as theirs: "You", and it counts as their reply', () => {
+  const s = fresh();
+  const own = resPost(s, 'p1').replies.find((r) => r.id === 'r1'); // the sample's Alex Rivera is res-1
+  assert.equal(own.name, 'You');
+  assert.equal(own.mine, true);
+  assert.equal(own.key, 'res:res-1');
+  const other = resPost(s, 'p1', 'res-2').replies.find((r) => r.id === 'r1');
+  assert.equal(other.name, 'Alex Rivera', 'another resident reads it under the name');
+  assert.equal(other.mine, false);
+  // Staff, answering it, sit under it; the resident sees the answer is to their comment
+  const answer = resPost(s, 'p1').replies.find((r) => r.parentId === 'r1');
+  assert.ok(answer, 'the sample has an answer under the comment');
+});
+
 test('comments carry a key for each person, so Follow can name them', () => {
   const s = fresh();
   const r = staffPost(s, 'p1').replies.find((x) => x.id === 'r2');

@@ -9,9 +9,11 @@ const cart = (o = {}) => ({ ...emptyPurchased(), ...o });
 
 test('the prices and figures are the ones Billing & Plan shows', () => {
   const by = (id) => ITEMS.find((i) => i.id === id);
-  assert.deepEqual([by('parking').price, by('parking').used, by('parking').included], [5, 261, 500]);
-  assert.deepEqual([by('residents').price, by('residents').used, by('residents').included], [2, 0, 0]);
-  assert.deepEqual([by('staff').price, by('staff').used, by('staff').included], [10, 0, 0]);
+  // The owner's standard plan: Resident accounts 800, Staff members 10, Parking spaces at least 300.
+  assert.deepEqual([by('parking').price, by('parking').used, by('parking').included], [5, 261, 300]);
+  assert.deepEqual([by('residents').price, by('residents').used, by('residents').included], [2, 202, 800]);
+  assert.deepEqual([by('staff').price, by('staff').used, by('staff').included], [10, 7, 10]);
+  for (const it of ITEMS.filter((i) => i.id !== 'storage')) assert.ok(it.used <= it.included, `${it.id}: the sample use fits the plan`);
   assert.deepEqual([by('storage').price, by('storage').included, by('storage').block], [15, 10, 20]);
   assert.equal(PROPERTY.price, 25);
   assert.equal(BASE.recurring, 50);
@@ -20,7 +22,9 @@ test('the prices and figures are the ones Billing & Plan shows', () => {
 test('nothing bought: the monthly total is the base, limits are what is included, one property', () => {
   const p = emptyPurchased();
   assert.equal(recurring(p), 50);
-  assert.equal(limitFor('parking', p), 500);
+  assert.equal(limitFor('parking', p), 300);
+  assert.equal(limitFor('residents', p), 800);
+  assert.equal(limitFor('staff', p), 10);
   assert.equal(limitFor('storage', p), 10);
   assert.equal(propertiesCount(p), 1);
 });
@@ -41,7 +45,7 @@ test('the calculator adds each line, shows what changes each month, and the new 
 
 test('what was bought raises the limits and the monthly total, and counts toward the next calculation', () => {
   const bought = applyCart(emptyPurchased(), cart({ parking: 100, storage: 2, properties: [{ name: 'Sundale', units: 80, address: 'Elm St' }] }));
-  assert.equal(limitFor('parking', bought), 600);
+  assert.equal(limitFor('parking', bought), 400);
   assert.equal(limitFor('storage', bought), 50); // 10 included + 2 x 20
   assert.equal(propertiesCount(bought), 2);
   assert.equal(addOnsTotal(bought), 500 + 30 + 25);
@@ -73,7 +77,7 @@ test('quantities stay whole numbers inside the limits; a saved state is made saf
   assert.equal(n.parking, 7);
   assert.equal(n.staff, 200);
   assert.equal(n.storage, 0);
-  assert.deepEqual(n.properties, [{ name: 'A', units: 12, address: '' }]);
+  assert.deepEqual(n.properties, [{ id: 'extra-1', name: 'A', units: 12, address: '' }]); // every property has an id; one saved without is named by its place, once
   assert.deepEqual(normalizePurchased('x'), emptyPurchased());
 });
 

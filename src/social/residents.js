@@ -44,9 +44,18 @@ export function followersOf(storage, key) {
 }
 
 const PEOPLE = {
-  dana: ['Dana Whitfield', 'Staff'], luis: ['Luis Ortega', 'Staff'], kim: ['Kim Tran', 'Staff'],
-  alex: ['Alex Rivera', 'Resident'], priya: ['Priya Shah', 'Resident'], marcus: ['Marcus Lee', 'Resident'], rena: ['Rena Okafor', 'Resident'],
+  dana: ['Noor Hassan', 'Staff'], luis: ['Luis Ortega', 'Staff'], kim: ['Kim Tran', 'Staff'],
+  alex: ['Alex Rivera', 'Resident'], priya: ['Nadia Shah', 'Resident'], marcus: ['Victor Lee', 'Resident'], rena: ['Rena Okafor', 'Resident'],
 };
+
+/** Is this the key of a person Social knows ("me", a Staff or neighbor name, or a resident who logs in)? Following anyone else is refused. */
+export function isPerson(key) {
+  const k = canon(key);
+  if (!k) return false;
+  if (k === 'me') return true;
+  if (k.startsWith('res:')) return PERSONAS.some((p) => p.role === 'resident' && p.id === k.slice(4));
+  return Object.prototype.hasOwnProperty.call(PEOPLE, k);
+}
 
 /** Who a person key is: { name, role }. "me" is the Staff person using the Staff app, which a resident reads as the property team (`staffName`). */
 export function whoIs(key, staffName = 'Property team') {

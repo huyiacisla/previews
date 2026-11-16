@@ -12,7 +12,10 @@ import { ITEMS, normalizePurchased, limitFor, propertiesCount, storageUsedGb, gb
 /** What the company has added in Capacity, and the storage in use (Documents' list plus what is already stored), read from the browser. */
 function capacityNow() {
   const read = (k) => { try { return JSON.parse(localStorage.getItem(k)); } catch { return null; } };
-  return { purchased: normalizePurchased(read('eso-capacity:client')), storageUsed: storageUsedGb(read('eso-docs:client')) };
+  const purchased = normalizePurchased(read('eso-capacity:client'));
+  // A copy under a name without "eso-": the Client's Settings page renames every "eso-" key it reads, so it could not see what Capacity keeps.
+  try { localStorage.setItem('capacity-state:client', JSON.stringify(purchased)); } catch { /* storage blocked: Settings shows the plan as it is */ }
+  return { purchased, storageUsed: storageUsedGb(read('eso-docs:client')) };
 }
 
 const SVG_BUILDING ='<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4" aria-hidden="true"><path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z"></path><path d="M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2"></path><path d="M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2"></path><path d="M10 6h4M10 10h4M10 14h4M10 18h4"></path></svg>';
@@ -102,7 +105,8 @@ function buildSidebar(staffDoc, me) {
   // Nothing from the Staff frame's data (its property name, its numbers) is kept; a Client page has no property list of its own.
   setText(sc, 'Selected Workspace', 'Selected Account');
   // The Client is a company (AMC LLC) that owns several properties; a property such as Mallard Pointe is one of them, not the account.
-  const company = me.org || 'AMC LLC';
+  // The company's name is the one set in Workspace > Company (kept with the Client's settings), else the persona's.
+  const company = (() => { try { const s = JSON.parse(localStorage.getItem('client:eso-proto')); const n = s && typeof s.cwName === 'string' ? s.cwName.trim().slice(0, 80) : ''; return n || me.org || 'AMC LLC'; } catch { return me.org || 'AMC LLC'; } })();
   setText(sc, 'Mallard Pointe', company);
   // The plan's real figures (Billing & Plan), and what the company has added in Capacity, are read from the browser's storage.
   const cap = capacityNow();
@@ -136,15 +140,19 @@ function buildSidebar(staffDoc, me) {
     const rowOf = (b) => b.parentElement;
     const container = rowOf(bars[0]).parentElement;
     const third = [...container.children].find((c) => c !== rowOf(bars[0]) && c !== rowOf(bars[1]) && c.querySelector('p'));
+    const residentRow = rowOf(bars[1]).cloneNode(true);
     const staffRow = rowOf(bars[1]).cloneNode(true);
     const storageRow = rowOf(bars[1]).cloneNode(true);
-    if (third) third.replaceWith(staffRow); else rowOf(bars[1]).after(staffRow);
+    if (third) third.replaceWith(residentRow); else rowOf(bars[1]).after(residentRow);
+    residentRow.after(staffRow);
     staffRow.after(storageRow);
     const parkingLimit = limitFor('parking', cap.purchased);
+    const residentLimit = limitFor('residents', cap.purchased);
     const staffLimit = limitFor('staff', cap.purchased);
     const storageLimit = limitFor('storage', cap.purchased);
     setRow(bars[0], 'Properties', `${count} / ${count}`, 100);
     setRow(bars[1], 'Parking Spots', `${ITEMS[0].used} / ${parkingLimit}`, pctOf(ITEMS[0].used, parkingLimit));
+    setRow(residentRow.querySelector('[role="progressbar"]'), 'Residents', `${ITEMS[1].used} / ${residentLimit}`, pctOf(ITEMS[1].used, residentLimit));
     setRow(staffRow.querySelector('[role="progressbar"]'), 'Staff', `${ITEMS[2].used} / ${staffLimit}`, pctOf(ITEMS[2].used, staffLimit));
     setRow(storageRow.querySelector('[role="progressbar"]'), 'Storage', `${gbLabel(cap.storageUsed)} / ${gbLabel(storageLimit)}`, pctOf(cap.storageUsed, storageLimit));
   }
@@ -260,8 +268,13 @@ function buildResidentSidebar(staffDoc, me, spec) {
   const [r1, r2] = spec.capacity.rows;
   const staffRows = [['Residents', '202 / 3 (100%)'], ['Staff Users', '14 / 3 (100%)'], ['Parking Spaces', '261 / -']];
   const bars = [...sc.querySelectorAll('[role="progressbar"]')];
+  // The Resident's card is about their VEHICLE ALLOWANCE (how many vehicles and parking spaces the lease allows), not about a workspace:
+  // heading "Vehicle allowance", rows "Vehicles registered" and "Parking spaces assigned", each as used / allowed.
+  setText(sc, 'Workspace Capacity', 'Vehicle allowance');
+  const allowanceLabel = (label) => (/vehicle/i.test(label) ? 'Vehicles registered' : /parking/i.test(label) ? 'Parking spaces assigned' : label);
   [r1, r2].forEach((r, i) => {
     if (!r) return;
+    r.label = allowanceLabel(r.label);
     setText(sc, staffRows[i][0], r.label);
     setText(sc, staffRows[i][1], r.value);
     const b = bars[i];

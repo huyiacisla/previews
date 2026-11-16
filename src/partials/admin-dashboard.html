@@ -1,0 +1,210 @@
+<!-- Admin Command Center, an Alpine.js component (x-data="adminDashboard", registered in admin/dashboard.js).
+     Structure and every Tailwind class live here; the component only holds what the page shows. admin/dashboard.js moves #adm-root
+     into the page's <main> and starts Alpine. One screen answers, top to bottom: what needs an answer now, who is waiting in Support,
+     which messages are unread, how the platform stands, what the health checks say, what happened last.
+     LIVE sections read the same store as the Ticket box and Messages. SAMPLE sections repeat the captured dashboard's numbers. -->
+
+<svg aria-hidden="true" focusable="false" style="position:absolute;width:0;height:0;overflow:hidden">
+  <defs>
+    <symbol id="ad-ticket" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z"/><path d="M13 5v2"/><path d="M13 17v2"/><path d="M13 11v2"/></symbol>
+    <symbol id="ad-message" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 17a2 2 0 0 1-2 2H6.828a2 2 0 0 0-1.414.586l-2.202 2.202A.71.71 0 0 1 2 21.286V5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2z"/></symbol>
+    <symbol id="ad-siren" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 18v-6a5 5 0 1 1 10 0v6"/><path d="M5 21a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-1a2 2 0 0 0-2-2H7a2 2 0 0 0-2 2z"/><path d="M21 12h1"/><path d="M18.5 4.5 18 5"/><path d="M2 12h1"/><path d="M12 2v1"/><path d="m4.929 4.929.707.707"/><path d="M12 12v6"/></symbol>
+    <symbol id="ad-alert" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4"/><path d="M12 17h.01"/></symbol>
+    <symbol id="ad-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></symbol>
+    <symbol id="ad-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></symbol>
+    <symbol id="ad-user" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></symbol>
+    <symbol id="ad-clock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></symbol>
+  </defs>
+</svg>
+
+<div id="adm-root" hidden x-cloak x-data="adminDashboard" class="mx-auto flex w-full max-w-6xl flex-col gap-step-lg">
+
+  <!-- Title: what this page is and how things stand, in one line -->
+  <header class="flex flex-wrap items-end justify-between gap-step-md">
+    <div class="min-w-0">
+      <h1 class="text-2xl leading-8 font-semibold tracking-tight text-foreground">Admin Command Center</h1>
+      <p class="text-sm leading-5 text-muted-foreground"><span id="adm-headline" role="status" class="font-medium text-foreground-secondary" x-text="o.headline"></span><span aria-hidden="true"> · </span><span class="tabular-nums" x-text="date"></span></p>
+    </div>
+    <div class="flex flex-wrap items-center gap-step-sm">
+      <a :href="links.tickets" class="group/button inline-flex h-8 shrink-0 touch-manipulation items-center justify-center gap-step-sm rounded-md border border-transparent bg-primary bg-clip-padding px-step-md control-text font-medium whitespace-nowrap text-primary-foreground transition outline-none select-none hover:bg-primary/90 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 active:translate-y-px pointer-coarse:h-11 [&_svg]:size-4 [&_svg]:shrink-0"><svg aria-hidden="true"><use href="#ad-ticket"/></svg>Open Ticket box</a>
+      <a :href="links.messages" class="group/button inline-flex h-8 shrink-0 touch-manipulation items-center justify-center gap-step-sm rounded-md border border-transparent bg-background bg-clip-padding px-step-md control-text font-medium whitespace-nowrap text-foreground ring-1 ring-foreground/10 transition outline-none select-none hover:bg-muted focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 active:translate-y-px pointer-coarse:h-11 [&_svg]:size-4 [&_svg]:shrink-0"><svg aria-hidden="true"><use href="#ad-message"/></svg>Open Messages</a>
+    </div>
+  </header>
+
+  <!-- An emergency nobody has acknowledged: above everything else -->
+  <a id="adm-emergency" :hidden="!(o.emergencies.length)" :href="emergencyHref" class="flex items-center gap-step-md rounded-xl bg-danger-bg px-step-md py-step-md text-danger-text outline-none transition hover:opacity-90 focus-visible:ring-3 focus-visible:ring-ring/50 [&_svg]:size-5 [&_svg]:shrink-0">
+    <svg aria-hidden="true"><use href="#ad-siren"/></svg>
+    <span class="min-w-0 flex-1 text-sm leading-5"><span class="block font-medium" x-text="emergencyTitle"></span><span class="block" x-text="emergencyText"></span></span>
+    <span class="shrink-0 text-sm font-medium underline underline-offset-2">Open</span>
+  </a>
+
+  <!-- 1. What needs an answer now: four numbers, each one opens the page behind it -->
+  <section aria-labelledby="adm-now-h" class="flex flex-col gap-step-sm">
+    <h2 id="adm-now-h" class="text-xs font-medium text-muted-foreground">Needs attention now</h2>
+    <div id="adm-tiles" class="grid grid-cols-2 gap-step-md lg:grid-cols-4">
+      <!-- One number that opens a page. The chip's colour says how urgent it is; the note says what the number is made of. -->
+      <template x-for="t in tiles" :key="t.label">
+        <a data-tile :href="t.href" @click="t.scroll && toHealth($event)" :aria-label="t.label + ': ' + t.value + '. ' + t.note" class="flex min-w-0 flex-col gap-step-xs rounded-xl bg-card p-step-md shadow-lift-xs outline-none transition hover:bg-muted/60 focus-visible:ring-3 focus-visible:ring-ring/50">
+          <span class="flex items-center justify-between gap-step-sm">
+            <span data-label class="min-w-0 truncate text-xs font-medium text-muted-foreground" x-text="t.label"></span>
+            <span :data-tone="t.tone" class="inline-flex size-7 shrink-0 items-center justify-center rounded-lg bg-secondary text-secondary-foreground data-[tone=danger]:bg-danger-bg data-[tone=danger]:text-danger-text data-[tone=info]:bg-info-bg data-[tone=info]:text-info-text data-[tone=success]:bg-success-bg data-[tone=success]:text-success-text data-[tone=warning]:bg-warning-bg data-[tone=warning]:text-warning-text [&_svg]:size-4"><svg aria-hidden="true"><use :href="'#' + t.icon"/></svg></span>
+          </span>
+          <span data-value class="text-2xl leading-8 font-semibold text-foreground tabular-nums" x-text="t.value"></span>
+          <span class="text-xs leading-5 text-muted-foreground" x-text="t.note"></span>
+        </a>
+      </template>
+    </div>
+  </section>
+
+  <!-- 2. Support queue and unread messages, side by side on a wide screen -->
+  <div class="grid grid-cols-1 gap-step-lg xl:grid-cols-3">
+    <section aria-labelledby="adm-queue-h" class="flex min-w-0 flex-col overflow-hidden rounded-xl bg-card shadow-lift-xs xl:col-span-2">
+      <div class="flex flex-wrap items-start justify-between gap-step-md border-b border-border px-step-md py-step-md">
+        <div class="min-w-0">
+          <h2 id="adm-queue-h" class="flex items-center gap-step-sm text-base leading-6 font-medium text-foreground">Support queue <span class="inline-flex h-5 items-center rounded-full bg-success-bg px-step-sm text-xs font-medium text-success-text">Live</span></h2>
+          <p class="text-xs leading-5 text-muted-foreground tabular-nums" x-text="queueSub"></p>
+        </div>
+        <!-- how the box is split: Open, Pending, Resolved -->
+        <dl class="flex items-center gap-step-md text-xs text-muted-foreground">
+          <template x-for="s in stages" :key="s.label">
+            <div class="flex items-center gap-step-xs"><dt x-text="s.label"></dt><dd class="font-medium text-foreground tabular-nums" x-text="s.n"></dd></div>
+          </template>
+        </dl>
+      </div>
+      <ul id="adm-queue" role="list" class="divide-y divide-border" :hidden="!(q.open > 0)">
+        <!-- One ticket: number, subject and who asked, its badges, how long it has waited. The whole row opens the ticket. -->
+        <template x-for="t in queueRows" :key="t.id">
+          <li>
+            <a :href="t.href" :aria-label="t.aria" class="flex flex-col gap-step-xs px-step-md py-step-md outline-none transition-colors hover:bg-muted/60 focus-visible:bg-muted/60 focus-visible:ring-3 focus-visible:ring-ring/50 sm:flex-row sm:items-center sm:gap-step-md">
+              <span class="flex min-w-0 flex-1 items-start gap-step-md">
+                <span class="w-14 shrink-0 pt-0.5 text-xs leading-5 text-muted-foreground tabular-nums" x-text="t.no"></span>
+                <span class="min-w-0 flex-1">
+                  <span class="block truncate text-sm leading-5 font-medium text-foreground" x-text="t.subject"></span>
+                  <span class="block truncate text-xs leading-5 text-muted-foreground" x-text="t.who"></span>
+                </span>
+              </span>
+              <span class="flex flex-wrap items-center gap-step-xs pl-[4.25rem] sm:pl-0">
+                <span class="flex flex-wrap items-center gap-step-xs">
+                  <template x-for="b in t.badges" :key="b.text">
+                    <span :data-tone="b.tone" x-text="b.text" class="inline-flex h-5 shrink-0 items-center rounded-full bg-secondary px-step-sm text-xs font-medium whitespace-nowrap text-secondary-foreground data-[tone=danger]:bg-danger-bg data-[tone=danger]:text-danger-text data-[tone=info]:bg-info-bg data-[tone=info]:text-info-text data-[tone=success]:bg-success-bg data-[tone=success]:text-success-text data-[tone=warning]:bg-warning-bg data-[tone=warning]:text-warning-text"></span>
+                  </template>
+                </span>
+                <span class="inline-flex items-center gap-step-xs text-xs whitespace-nowrap text-muted-foreground tabular-nums sm:w-20 sm:justify-end [&_svg]:size-3"><svg aria-hidden="true"><use href="#ad-clock"/></svg><span x-text="t.wait"></span></span>
+              </span>
+            </a>
+          </li>
+        </template>
+      </ul>
+      <div :hidden="!(q.open === 0)" class="flex flex-col items-center gap-step-sm px-step-md py-step-xl text-center">
+        <span class="inline-flex size-10 items-center justify-center rounded-full bg-success-bg text-success-text [&_svg]:size-5"><svg aria-hidden="true"><use href="#ad-check"/></svg></span>
+        <p class="text-sm font-medium text-foreground">The Support queue is clear</p>
+        <p class="max-w-sm text-sm text-muted-foreground">New requests from Staff and Clients appear here the moment they are sent.</p>
+      </div>
+      <div class="flex items-center justify-between gap-step-md border-t border-border px-step-md py-step-sm">
+        <p class="text-xs text-muted-foreground tabular-nums" x-text="queueMore"></p>
+        <a :href="links.tickets" class="inline-flex h-8 items-center gap-step-xs rounded-sm text-sm font-medium text-primary underline-offset-2 outline-none hover:underline focus-visible:ring-3 focus-visible:ring-ring/50 pointer-coarse:min-h-11 [&_svg]:size-4">All tickets<svg aria-hidden="true"><use href="#ad-arrow"/></svg></a>
+      </div>
+    </section>
+
+    <section aria-labelledby="adm-msg-h" class="flex min-w-0 flex-col overflow-hidden rounded-xl bg-card shadow-lift-xs">
+      <div class="border-b border-border px-step-md py-step-md">
+        <h2 id="adm-msg-h" class="flex items-center gap-step-sm text-base leading-6 font-medium text-foreground">Unread messages <span class="inline-flex h-5 items-center rounded-full bg-success-bg px-step-sm text-xs font-medium text-success-text">Live</span></h2>
+        <p class="text-xs leading-5 text-muted-foreground tabular-nums" x-text="msgSub"></p>
+      </div>
+      <ul id="adm-msgs" role="list" class="divide-y divide-border" :hidden="!(msgRows.length)">
+        <!-- One conversation with something unread -->
+        <template x-for="x in msgRows" :key="x.id">
+          <li>
+            <a :href="x.href" class="flex items-start gap-step-md px-step-md py-step-md outline-none transition-colors hover:bg-muted/60 focus-visible:bg-muted/60 focus-visible:ring-3 focus-visible:ring-ring/50">
+              <span class="inline-flex size-8 shrink-0 items-center justify-center rounded-lg bg-info-bg text-info-text [&_svg]:size-4"><svg aria-hidden="true"><use href="#ad-message"/></svg></span>
+              <span class="min-w-0 flex-1">
+                <span class="flex items-start justify-between gap-step-md"><span class="min-w-0 truncate text-sm leading-5 font-medium text-foreground" x-text="x.title"></span><span class="shrink-0 text-xs leading-5 whitespace-nowrap text-muted-foreground tabular-nums" x-text="x.time"></span></span>
+                <span class="line-clamp-2 text-xs leading-5 text-muted-foreground" x-text="x.detail"></span>
+              </span>
+            </a>
+          </li>
+        </template>
+      </ul>
+      <div :hidden="!(msgRows.length === 0)" class="flex flex-1 flex-col items-center justify-center gap-step-sm px-step-md py-step-xl text-center">
+        <span class="inline-flex size-10 items-center justify-center rounded-full bg-success-bg text-success-text [&_svg]:size-5"><svg aria-hidden="true"><use href="#ad-check"/></svg></span>
+        <p class="text-sm font-medium text-foreground">Nothing unread</p>
+        <p class="max-w-sm text-sm text-muted-foreground">Every conversation has been read.</p>
+      </div>
+      <div class="mt-auto flex justify-end border-t border-border px-step-md py-step-sm">
+        <a :href="links.messages" class="inline-flex h-8 items-center gap-step-xs rounded-sm text-sm font-medium text-primary underline-offset-2 outline-none hover:underline focus-visible:ring-3 focus-visible:ring-ring/50 pointer-coarse:min-h-11 [&_svg]:size-4">All messages<svg aria-hidden="true"><use href="#ad-arrow"/></svg></a>
+      </div>
+    </section>
+  </div>
+
+  <!-- 3. The platform in numbers -->
+  <section aria-labelledby="adm-plat-h" class="flex flex-col gap-step-sm">
+    <h2 id="adm-plat-h" class="flex items-center gap-step-sm text-xs font-medium text-muted-foreground">Platform at a glance <span class="inline-flex h-5 items-center rounded-full bg-secondary px-step-sm text-xs font-medium text-secondary-foreground">Sample data</span></h2>
+    <dl id="adm-platform" class="grid grid-cols-2 gap-px overflow-hidden rounded-xl bg-border shadow-lift-xs sm:grid-cols-4 xl:grid-cols-7">
+      <template x-for="p in platform" :key="p.key">
+        <div class="flex min-w-0 flex-col gap-0.5 bg-card p-step-md last:col-span-2 xl:last:col-span-1">
+          <dt class="truncate text-xs font-medium text-muted-foreground" x-text="p.label"></dt>
+          <dd class="text-xl leading-7 font-semibold text-foreground tabular-nums" x-text="p.value"></dd>
+          <dd class="text-xs leading-4 text-muted-foreground" x-text="p.note"></dd>
+        </div>
+      </template>
+    </dl>
+  </section>
+
+  <!-- 4. Health checks and what happened last -->
+  <div class="grid grid-cols-1 gap-step-lg xl:grid-cols-3">
+    <section aria-labelledby="adm-health-h" class="flex min-w-0 flex-col overflow-hidden rounded-xl bg-card shadow-lift-xs xl:col-span-2">
+      <div class="flex flex-wrap items-start justify-between gap-step-md border-b border-border px-step-md py-step-md">
+        <div class="min-w-0">
+          <h2 id="adm-health-h" tabindex="-1" class="flex items-center gap-step-sm text-base leading-6 font-medium text-foreground outline-none">Platform health <span class="inline-flex h-5 items-center rounded-full bg-secondary px-step-sm text-xs font-medium text-secondary-foreground">Sample data</span></h2>
+          <p class="text-xs leading-5 text-muted-foreground">Read-only checks across clients, properties, people and assignments.</p>
+        </div>
+        <dl class="flex items-center gap-step-sm text-xs">
+          <div class="flex items-center gap-step-xs rounded-md bg-secondary px-step-sm py-0.5 text-secondary-foreground"><dt>Critical</dt><dd class="font-medium tabular-nums" x-text="health.critical"></dd></div>
+          <div class="flex items-center gap-step-xs rounded-md bg-warning-bg px-step-sm py-0.5 text-warning-text"><dt>Warning</dt><dd class="font-medium tabular-nums" x-text="health.warning"></dd></div>
+          <div class="flex items-center gap-step-xs rounded-md bg-secondary px-step-sm py-0.5 text-secondary-foreground"><dt>Info</dt><dd class="font-medium tabular-nums" x-text="health.info"></dd></div>
+        </dl>
+      </div>
+      <div class="flex flex-col">
+        <!-- A group of health alerts: what is wrong, what to do, and who it is about -->
+        <template x-for="(g, gi) in health.groups" :key="g.title">
+          <div class="flex flex-col">
+            <div class="flex items-start justify-between gap-step-md px-step-md pt-step-md">
+              <div class="min-w-0">
+                <h3 class="flex items-center gap-step-sm text-sm leading-5 font-medium text-foreground"><span class="inline-flex size-6 shrink-0 items-center justify-center rounded-md bg-warning-bg text-warning-text [&_svg]:size-3.5"><svg aria-hidden="true"><use href="#ad-alert"/></svg></span><span x-text="g.title"></span></h3>
+                <p class="pl-8 text-xs leading-5 text-muted-foreground"><span x-text="g.what + '.'"></span> <span x-text="g.next"></span></p>
+              </div>
+              <span class="inline-flex h-5 shrink-0 items-center rounded-full bg-warning-bg px-step-sm text-xs font-medium text-warning-text tabular-nums" x-text="g.items.length"></span>
+            </div>
+            <ul role="list" class="grid grid-cols-1 gap-x-step-lg px-step-md py-step-sm sm:grid-cols-2">
+              <template x-for="it in (expanded[gi] ? g.items : g.items.slice(0, 4))" :key="it.who">
+                <li class="flex items-center gap-step-sm border-b border-border py-step-sm text-sm leading-5">
+                  <span class="inline-flex size-6 shrink-0 items-center justify-center rounded-full bg-muted text-muted-foreground [&_svg]:size-3.5"><svg aria-hidden="true"><use href="#ad-user"/></svg></span>
+                  <span class="shrink-0 font-medium text-foreground" x-text="it.who"></span>
+                  <span class="min-w-0 truncate text-xs text-muted-foreground" x-text="it.where"></span>
+                </li>
+              </template>
+            </ul>
+            <div class="px-step-md pb-step-md" :hidden="!(g.items.length > 4)">
+              <button type="button" @click="expanded[gi] = !expanded[gi]" :aria-expanded="expanded[gi] ? 'true' : 'false'" x-text="expanded[gi] ? 'Show fewer' : 'Show all ' + g.items.length" class="inline-flex h-8 items-center rounded-md px-step-sm text-sm font-medium text-primary outline-none transition hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50 pointer-coarse:h-11"></button>
+            </div>
+          </div>
+        </template>
+      </div>
+    </section>
+
+    <section aria-labelledby="adm-act-h" class="flex min-w-0 flex-col overflow-hidden rounded-xl bg-card shadow-lift-xs">
+      <div class="border-b border-border px-step-md py-step-md">
+        <h2 id="adm-act-h" class="flex items-center gap-step-sm text-base leading-6 font-medium text-foreground">Recent activity <span class="inline-flex h-5 items-center rounded-full bg-secondary px-step-sm text-xs font-medium text-secondary-foreground">Sample data</span></h2>
+        <p class="text-xs leading-5 text-muted-foreground">The latest platform events.</p>
+      </div>
+      <ul role="list" class="divide-y divide-border">
+        <template x-for="(ev, i) in activity" :key="i">
+          <li class="flex items-start justify-between gap-step-md px-step-md py-step-sm">
+            <span class="min-w-0"><span class="block text-sm leading-5 font-medium text-foreground" x-text="ev.what"></span><span class="block truncate text-xs leading-5 text-muted-foreground" x-text="ev.who"></span></span>
+            <span class="shrink-0 text-xs leading-5 whitespace-nowrap text-muted-foreground tabular-nums" x-text="ev.when"></span>
+          </li>
+        </template>
+      </ul>
+    </section>
+  </div>
+</div>

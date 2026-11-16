@@ -9,18 +9,89 @@
 // 109 need attention, the menu). Panels draw with the page's own tokens, so light and dark follow the theme.
 
 import { buildAll, readMap, setRead, isRead, counts, latestUnread, badgeText } from "./notifications/store.js";
+import { browserLive } from "./notifications/live.js";
+import { linkFor } from "./notifications/view.js";
+import { companyPrefs } from "./company-prefs.js";
+import { pickPersona } from "./messaging/personas.js";
+import { ITEMS, normalizePurchased, limitFor } from "./capacity/store.js";
+
+/** The Staff sidebar's capacity card says what the plan really covers (Residents 800, Staff 10, Parking 300 or more), the same figures as every other place. */
+function staffCapacityCard(sc) {
+  let purchased;
+  try { purchased = normalizePurchased(JSON.parse(localStorage.getItem("eso-capacity:client"))); } catch { purchased = normalizePurchased(null); }
+  const rows = { Residents: "residents", "Staff Users": "staff", "Parking Spaces": "parking" };
+  for (const [label, id] of Object.entries(rows)) {
+    const lab = [...sc.querySelectorAll("p")].find((p) => p.textContent.trim() === label);
+    const val = lab && lab.nextElementSibling;
+    if (!val) continue;
+    const it = ITEMS.find((i) => i.id === id);
+    const limit = limitFor(id, purchased);
+    const pct = limit > 0 ? Math.min(100, Math.round((it.used / limit) * 100)) : 0;
+    val.textContent = `${it.used} / ${limit} (${pct}%)`;
+    const bar = lab.parentElement.nextElementSibling;
+    if (bar && bar.getAttribute("role") === "progressbar") {
+      bar.setAttribute("aria-valuenow", String(pct));
+      bar.setAttribute("aria-valuetext", `${pct}%`);
+      bar.style.setProperty("--progress-scale", String(pct / 100));
+      for (const e of [bar, ...bar.querySelectorAll("[data-complete]")]) { if (pct >= 100) e.setAttribute("data-complete", ""); else e.removeAttribute("data-complete"); }
+    }
+  }
+}
+
+/** The person using this page, as the Messenger and Social know them (the frame's `me` may be a bare stand-in). */
+const liveMe = (me) => (me && me.id && me.name ? me : pickPersona(CFG.portal, new URLSearchParams(location.search).get("as")));
 
 // Links keep the address's query (?as=… picks the person, ?dark the theme), so a click never changes who is using the preview.
 // The frame is the same for every portal; only these few facts differ (which pages exist, where help and notification settings live).
 const CFG = { portal: "client", support: "", notifSettings: "", notifPage: "", dest: {}, pages: [] };
-const withQuery = (href) => { if (!href.startsWith(`/${CFG.portal}/`)) return href; const [path, hash = ""] = href.split("#"); return `${path}${location.search}${hash ? "#" + hash : ""}`; };
+const withQuery = (href) => { if (!href.startsWith(`/${CFG.portal}/`)) return href; const [path, hash = ""] = href.split("#"); if (path.includes("?")) return href; return `${path}${location.search}${hash ? "#" + hash : ""}`; };
 const PORTAL_FACTS = {
   client: { help: "/client/support.html", notifSettings: "/client/settings/notifications.html", dest: { messages: "/client/messages.html", plan: "/client/workspace.html", dashboard: "/client/dashboard.html", support: "/client/support.html" } },
-  staff: { help: "/staff/support.html", notifSettings: "/staff/settings/notifications.html", dest: { messages: "/staff/messages.html", tickets: "/staff/tickets.html" } },
+  staff: { help: "/staff/support.html", notifSettings: "/staff/settings/notifications.html", dest: { messages: "/staff/messages.html", tickets: "/staff/tickets.html", social: "/staff/social.html" } },
   resident: { help: "/resident/tickets.html", notifSettings: "/resident/settings/notifications.html", dest: { messages: "/resident/messages.html", tickets: "/resident/tickets.html", promotions: "/resident/promotions.html", social: "/resident/social.html" } },
 };
-const FALLBACK_ID = { client: "cli-1", staff: "stf-1", resident: "res-1" };
-const NOT_YET = "That page is not part of this preview yet.";
+PORTAL_FACTS.admin = { help: "/admin/tickets.html", notifSettings: "/admin/settings.html#/settings/notifications", dest: { messages: "/admin/messages.html", tickets: "/admin/tickets.html", dashboard: "/admin/dashboard.html" } };
+const FALLBACK_ID = { client: "cli-1", staff: "stf-1", resident: "res-1", admin: "adm-1" };
+
+/**
+ * The Admin header is the captured one (it does not take the Staff frame), and its bell opened nothing and showed no number.
+ * This gives it the same panel and count as the other portals: the same list, read state and live updates. The captured bell
+ * has no badge, so one is added with the classes the Staff bell's badge has.
+ */
+export function addBell({ me, portal }) {
+  const header = document.querySelector("header");
+  const f = PORTAL_FACTS[portal];
+  if (!header || !f) return;
+  // The facts of the portal, and its pages read from the sidebar it has (so the search below lists the Admin's own menu).
+  const sc = document.querySelector('[data-slot="sidebar-container"]');
+  if (sc) { configure(portal, sc); try { wireNavBadge(sc, me); } catch (err) { console.warn("menu badge skipped:", err); }
+    markComingSoon(sc);
+    document.addEventListener("click", (e) => { // the item of the page you are on goes nowhere (the other portals do the same in wireLinks)
+      const cur = e.target.closest('nav a[aria-current="page"]');
+      if (cur && !e.metaKey && !e.ctrlKey && !e.shiftKey && cur.pathname === location.pathname && !cur.hash) e.preventDefault();
+    });
+  }
+  else {
+    CFG.portal = portal;
+    CFG.support = withQuery(f.help);
+    CFG.notifSettings = withQuery(f.notifSettings);
+    CFG.notifPage = withQuery(`/${portal}/notifications.html`);
+    CFG.dest = Object.fromEntries(Object.entries(f.dest).map(([k, v]) => [k, withQuery(v)]));
+  }
+  const bell = header.querySelector('button[aria-label^="Open notifications"]');
+  if (bell && !bell.querySelector('[data-slot="badge"]')) {
+    const b = document.createElement("span");
+    b.setAttribute("data-slot", "badge");
+    b.className = "absolute -top-1.5 -right-1.5 grid h-4 w-fit min-w-4 shrink-0 place-items-center overflow-hidden rounded-full bg-primary px-step-sm py-0 text-xs leading-none font-normal whitespace-nowrap text-primary-foreground";
+    b.hidden = true;
+    bell.append(b);
+  }
+  listenForNotifChanges();
+  try { wireBell(header, me); } catch (err) { console.warn("bell skipped:", err); }
+  // The search box of the captured Admin header was a picture: it opened nothing. Same search as the other portals (Ctrl/Cmd+K, "/").
+  try { wireSearch(header); } catch (err) { console.warn("search skipped:", err); }
+}
+const NOT_YET = "Coming soon: this feature is in development and is not available in the preview yet.";
 
 /** Set the portal's facts and read its pages from the sidebar it actually has (so search lists the portal's own menu). */
 function configure(portal, sc) {
@@ -40,6 +111,7 @@ function configure(portal, sc) {
   pages.push({ label: "Notifications", href: CFG.notifPage, group: "Communication" });
   if (!pages.some((p) => p.label === "Support")) pages.push({ label: "Support", href: CFG.support, group: "Help" });
   CFG.pages = pages;
+  if (portal === "staff") { try { staffCapacityCard(sc); } catch (err) { console.warn("capacity card skipped:", err); } }
 }
 
 const store = {
@@ -155,6 +227,7 @@ function wireFavorites(sc) {
   const decorate = (li) => {
     const label = labelOf(li);
     li.querySelector(".eso-pin")?.remove();
+    li.querySelector("[data-favorite-star]")?.remove(); // the snapshot's own star has no handler: two Pin buttons per row, the first one dead on Enter/Space
     if (!label) return;
     const on = pins.includes(label);
     const b = document.createElement("button");
@@ -215,12 +288,17 @@ function wireClock(sc) {
   body.className = "text-white";
   body.append(time, date);
   sec.append(body);
-  const zone = () => new Intl.DateTimeFormat("en-US", { timeZoneName: "short" }).formatToParts(new Date()).find((p) => p.type === "timeZoneName")?.value || "";
+  // Date and time (Settings): 12 or 24 hours, and the time zone the person chose (a damaged zone is ignored).
+  const prefs = () => { try { return JSON.parse(store.get(`ui-prefs:${CFG.portal}`) || "null")?.time || {}; } catch { return {}; } };
+  const tzOpt = () => { const z = prefs().tz; if (!z) return {}; try { new Intl.DateTimeFormat("en-US", { timeZone: z }); return { timeZone: z }; } catch { return {}; } };
+  const zone = () => new Intl.DateTimeFormat("en-US", { ...tzOpt(), timeZoneName: "short" }).formatToParts(new Date()).find((p) => p.type === "timeZoneName")?.value || "";
   const draw = () => {
     const d = new Date();
-    time.textContent = d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
-    date.textContent = `${d.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })} · ${zone()}`;
+    const o = tzOpt();
+    time.textContent = d.toLocaleTimeString("en-US", { ...o, hour: prefs().h24 ? "2-digit" : "numeric", minute: "2-digit", hourCycle: prefs().h24 ? "h23" : "h12" });
+    date.textContent = `${d.toLocaleDateString("en-US", { ...o, weekday: "short", month: "short", day: "numeric" })} · ${zone()}`;
   };
+  addEventListener("message", (e) => { if (e.origin === location.origin && e.data && e.data.type === "eso-ui-prefs") draw(); });
   let timer;
   const set = (open, remember = true) => {
     btn.setAttribute("aria-expanded", String(open));
@@ -245,8 +323,13 @@ function wireBell(header, me) {
   if (!bell) return;
   bell.setAttribute("aria-haspopup", "dialog");
   bell.setAttribute("aria-expanded", "false");
+  // The Notifications page has no menu item of its own: the bell is where it lives, so the bell says it is the current page.
+  if (/\/notifications\.html$/.test(location.pathname)) bell.setAttribute("aria-current", "page");
   const personId = me?.id || FALLBACK_ID[CFG.portal];
-  const list = () => buildAll(Date.now(), CFG.portal);
+  // What Messenger and Social have really said to this person, on top of the sample list; it tells us when either changes.
+  const live = browserLive(CFG.portal, liveMe(me));
+  live.onChange(() => emitNotif());
+  const list = () => buildAll(Date.now(), CFG.portal, live.items());
   const state = () => readMap(localStorage, personId);
   const unread = () => counts(list(), state()).unread;
   // The count on the bell is the real count of unread notifications (the Notifications page changes it).
@@ -281,8 +364,8 @@ function wireBell(header, me) {
       // A notification with a page of its own opens it; the others open the Notifications page. Either way it is read.
       const a = document.createElement("a");
       a.className = "eso-np-row";
-      a.href = (r.dest && DEST[r.dest]) || PAGE;
-      a.innerHTML = `<span class="eso-pm-pi">${ICON[PANEL_ICON[r.cat]]}</span><span class="eso-np-tx"><b></b><small></small></span>`;
+      a.href = linkFor(r, DEST) || PAGE;
+      a.innerHTML = `<span class="eso-pm-pi">${ICON[PANEL_ICON[r.cat]] || ICON.bell}</span><span class="eso-np-tx"><b></b><small></small></span>`;
       a.querySelector("b").textContent = r.title;
       a.querySelector("small").textContent = r.detail;
       a.addEventListener("click", () => { setRead(localStorage, personId, [r.id], true); emitNotif(); });
@@ -316,17 +399,70 @@ function wireBell(header, me) {
   syncBadge();
 }
 
+// ---- The Resident's menu follows what the company allows (Client > Workspace settings > Residents): Social, Promotions and Ticket box leave when switched off ----
+function wireCompanyItems(sc) {
+  if (CFG.portal !== "resident") return;
+  const sync = () => {
+    const c = companyPrefs(localStorage);
+    const off = { Social: !c.social, Promotions: !c.promos, "Ticket box": !c.tickets };
+    for (const a of sc.querySelectorAll('nav a[data-slot="sidebar-menu-button"]')) {
+      const label = a.querySelector("span.truncate")?.textContent.trim();
+      if (!(label in off)) continue;
+      const li = a.closest("li") || a;
+      li.dataset.company = off[label] ? "off" : "";
+      li.style.display = off[label] ? "none" : (li.dataset.socialOff === "1" ? "none" : "");
+    }
+  };
+  sync();
+  addEventListener("storage", (e) => { if (!e.key || e.key === "client:eso-proto") sync(); });
+  new MutationObserver(sync).observe(sc.querySelector("nav") || sc, { childList: true, subtree: true });
+}
+
+// ---- The Staff's Social item follows Settings > Social: gone from the menu when Social is off or "Show Social in sidebar" is off ----
+function wireSocialItem(sc) {
+  if (CFG.portal !== "staff") return;
+  const sync = () => {
+    let s = {};
+    try { s = JSON.parse(localStorage.getItem("eso-social") || "{}") || {}; } catch { /* unreadable: show it */ }
+    const hide = s.on === false || s.sidebar === false;
+    for (const a of sc.querySelectorAll('nav a[data-slot="sidebar-menu-button"]')) {
+      if (a.querySelector("span.truncate")?.textContent.trim() !== "Social") continue;
+      const li = a.closest("li") || a;
+      li.hidden = hide;
+      li.style.display = hide ? "none" : "";
+    }
+  };
+  sync();
+  addEventListener("storage", (e) => { if (!e.key || e.key === "eso-social") sync(); });
+}
+
 // ---- Communication group in the sidebar: its badge is the number of unread messages in Notifications ----
 function wireNavBadge(sc, me) {
   const trigger = [...sc.querySelectorAll('[data-slot="collapsible-trigger"]')].find((t) => /^Communication/.test(t.textContent.trim()));
   const badge = trigger?.querySelector('[data-slot="badge"]');
-  if (!badge) return;
+  // The Messages item carries its own number too (a Client or Resident menu had none; the Staff one was a fixed "1").
+  const msgLink = [...sc.querySelectorAll('nav a[data-slot="sidebar-menu-button"]')].find((a) => /^Messag/.test(a.querySelector("span.truncate")?.textContent.trim() || ""));
+  let msgBadge = msgLink?.querySelector('[data-slot="badge"]');
+  if (msgLink && !msgBadge) {
+    msgBadge = document.createElement("span");
+    msgBadge.setAttribute("data-slot", "badge");
+    msgBadge.className = "ml-auto inline-flex items-center justify-center gap-step-xs rounded-full bg-primary px-step-sm py-0.5 text-xs font-normal whitespace-nowrap text-primary-foreground";
+    msgLink.append(msgBadge);
+  }
+  if (!badge && !msgBadge) return;
   const sync = () => {
     const map = readMap(localStorage, me?.id || FALLBACK_ID[CFG.portal]);
-    const n = buildAll(Date.now(), CFG.portal).filter((x) => x.cat === "messages" && !isRead(x, map)).length;
-    badge.textContent = String(n);
-    badge.hidden = n === 0;
-    badge.setAttribute("aria-label", `${n} unread`);
+    const lv = browserLive(CFG.portal, liveMe(me));
+    // The number the Messages page shows (unread messages), so the menu and the page title agree; the notification list is the fallback.
+    const fromStore = lv.badge && lv.badge();
+    const n = Number.isFinite(fromStore) ? fromStore : buildAll(Date.now(), CFG.portal, lv.items()).filter((x) => x.cat === "messages" && !isRead(x, map)).length;
+    for (const b of [badge, msgBadge]) {
+      if (!b) continue;
+      b.textContent = String(n);
+      b.hidden = n === 0;
+      b.setAttribute("aria-label", `${n} unread`);
+    }
+    if (msgLink) { const nm = msgLink.querySelector("span.truncate")?.textContent.trim(); if (nm) msgLink.setAttribute("aria-label", n ? `${nm}, ${n} unread` : nm); }
   };
   onNotif(sync);
   sync();
@@ -343,7 +479,7 @@ function listenForNotifChanges() {
   // The Notifications page is another document of this window (or another tab): the browser tells us when it writes.
   addEventListener("storage", (e) => { if (e.key && e.key.startsWith("eso-notif-read:")) emitNotif(); });
 }
-const PANEL_ICON = { messages: "chat", requests: "clipboard", violations: "alert", parking: "parking", plan: "gauge", properties: "building", reports: "chart", system: "shield" };
+const PANEL_ICON = { messages: "chat", requests: "clipboard", violations: "alert", parking: "parking", plan: "gauge", properties: "building", reports: "chart", system: "shield", residents: "user", community: "chat" };
 
 // ---- Header: page search (Cmd/Ctrl+K and "/") ----
 function wireSearch(header) {
@@ -353,7 +489,12 @@ function wireSearch(header) {
   let at = -1;
   const draw = () => {
     const q = input.value.trim().toLowerCase();
-    results = CFG.pages.filter((p) => !q || p.label.toLowerCase().includes(q) || p.group.toLowerCase().includes(q)).slice(0, 8);
+    // The menu gets its addresses after the page list was read, so each result takes the link the menu has NOW.
+    const links = new Map([...document.querySelectorAll('[data-slot="sidebar-container"] nav a[data-slot="sidebar-menu-button"]')].map((a) => [a.querySelector("span.truncate")?.textContent.trim(), a.getAttribute("href")]));
+    // (each address keeps ?as=… and the theme, like every other link)
+    results = CFG.pages.map((p) => ({ ...p, href: withQuery(links.get(p.label) || p.href) }))
+      .filter((p) => !q || p.label.toLowerCase().includes(q) || p.group.toLowerCase().includes(q))
+      .slice(0, 8);
     if (openPanel?.anchor !== input) { const p = panel(input, { label: "Search results", width: "26rem", align: "start" }); p.id = "frame-search-results"; p.setAttribute("role", "listbox"); }
     const p = openPanel.node;
     p.replaceChildren();
@@ -379,6 +520,7 @@ function wireSearch(header) {
     input.setAttribute("aria-activedescendant", i >= 0 ? `frame-search-${i}` : "");
   };
   input.setAttribute("aria-autocomplete", "list");
+  input.placeholder = `Search ${CFG.portal[0].toUpperCase()}${CFG.portal.slice(1)} pages…`; // says whose pages these are
   input.addEventListener("input", draw);
   input.addEventListener("focus", draw);
   input.addEventListener("keydown", (e) => {
@@ -390,24 +532,64 @@ function wireSearch(header) {
   });
   document.addEventListener("keydown", (e) => {
     const typing = /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName) || e.target.isContentEditable;
-    if (((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") || (e.key === "/" && !typing && !e.metaKey && !e.ctrlKey && !e.altKey)) { e.preventDefault(); input.focus(); input.select(); }
+    if (((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") || (e.key === "/" && !typing && !e.metaKey && !e.ctrlKey && !e.altKey)) { e.preventDefault(); document.body.dispatchEvent(new Event("pointerdown", { bubbles: true })); /* one panel at a time: closes an open profile menu */ input.focus(); input.select(); if (openPanel?.anchor !== input) draw(); }
   });
+}
+
+/**
+ * A menu item with no page yet is marked as unavailable (not an error): screen readers hear "Coming soon", the pointer says so, and pressing it explains.
+ * Kept in step with the link's CURRENT address: a link that gets its page later (the menu is wired after this runs) must not stay dimmed and untouchable.
+ */
+function markComingSoon(sc) {
+  const mark = () => {
+    for (const a of sc.querySelectorAll('a[data-slot="sidebar-menu-button"]')) {
+      const soon = a.getAttribute("href") === "#";
+      if (soon && a.dataset.soon !== "1") {
+        a.dataset.soon = "1";
+        a.setAttribute("aria-disabled", "true");
+        a.title = "Coming soon";
+        const name = a.querySelector("span.truncate")?.textContent.trim();
+        if (name) a.setAttribute("aria-label", `${name}, coming soon`);
+        a.style.cursor = "not-allowed";
+      } else if (!soon && a.dataset.soon === "1") {
+        delete a.dataset.soon;
+        a.removeAttribute("aria-disabled");
+        a.removeAttribute("title");
+        a.removeAttribute("aria-label");
+        a.style.cursor = "";
+      }
+      // With the menu collapsed to icons the text is hidden: every item keeps its name for screen readers (an item with a number says it itself).
+      const name = a.querySelector("span.truncate")?.textContent.trim();
+      if (!soon && name && !a.getAttribute("aria-label") && !a.querySelector('[data-slot="badge"]')) a.setAttribute("aria-label", name);
+    }
+  };
+  mark();
+  new MutationObserver(mark).observe(sc, { subtree: true, childList: true, attributes: true, attributeFilter: ["href"] });
 }
 
 // Everything that goes to the Support page, and every "#" link that has no page yet.
 function wireLinks(header, sc) {
   const go = (e) => { e.preventDefault(); location.href = CFG.support; };
-  header.querySelector('button[aria-label="Open EasySpotOps Help Center"]')?.addEventListener("click", go);
+  const helpBtn = header.querySelector('button[aria-label="Open EasySpotOps Help Center"]');
+  helpBtn?.addEventListener("click", go);
+  // The Support page has no menu item of its own: the Help button is where it lives, so it says it is the current page (the bell does the same for Notifications).
+  if (helpBtn && /\/(support|tickets)\.html$/.test(location.pathname) && location.pathname === new URL(CFG.support, location.origin).pathname && !document.querySelector('nav a[aria-current="page"]')) helpBtn.setAttribute("aria-current", "page"); // only one current page: skip it when a menu item already says so
   for (const b of sc.querySelectorAll("button")) if (/EasySpotOps Help Center/.test(b.textContent)) b.addEventListener("click", go);
   // The Client's "Capacity summary" card (properties, parking spots, staff seats) opens its own place in the sidebar, Usage > Capacity (not Billing & Plan, and not Workspace Settings).
   for (const b of sc.querySelectorAll("button")) if (/Manage Capacity/.test(b.textContent)) b.addEventListener("click", () => {
     if (location.pathname.startsWith("/client/")) location.href = `/client/usage/capacity.html${location.search}`;
     else say("Plan management is not part of this preview yet.");
   });
+  // A menu item with no page yet is marked as unavailable (not an error): screen readers hear "Coming soon", the pointer says so, and pressing it explains.
+  // Kept in step with the link's CURRENT address: a link that gets its page later (the menu is wired after this runs) must not stay dimmed and untouchable.
+  markComingSoon(sc);
   // Any link that has no page yet, in the menu or in the page itself (View, property names, …), says so instead of doing nothing.
   document.addEventListener("click", (e) => {
     const a = e.target.closest('a[href="#"]');
-    if (a && !a.closest(".eso-pm")) { e.preventDefault(); say(NOT_YET); }
+    if (a && !a.closest(".eso-pm")) { e.preventDefault(); say(NOT_YET); return; }
+    // The menu item of the page you are on goes nowhere: it must not reload the page (and lose what you typed).
+    const cur = e.target.closest('nav a[data-slot="sidebar-menu-button"][aria-current="page"]');
+    if (cur && !e.metaKey && !e.ctrlKey && !e.shiftKey && cur.pathname === location.pathname && !cur.hash) e.preventDefault();
   });
 }
 
@@ -446,7 +628,10 @@ const dot = (key, size = 18) => {
   const ring = key === "offline" ? '<circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2"/><path d="m9 9 6 6M15 9l-6 6" stroke="currentColor" stroke-width="2"/>' : `<circle cx="12" cy="12" r="10" fill="currentColor" stroke="none"/>${s.glyph}`;
   return `<span class="eso-pm-st eso-pm-st-${s.tone}">${svg(ring, size)}</span>`;
 };
-const DURATIONS = ["Don't clear", "30 minutes", "1 hour", "4 hours", "Today"];
+// The same durations, with the same ids, as Settings > Messenger & availability, so a status set in one place is the status in the other.
+const DUR_ID = { "Don't clear": "never", "30 minutes": "30m", "1 hour": "1h", "2 hours": "2h", Today: "today", "This week": "week" };
+const DURATIONS = Object.keys(DUR_ID);
+const durLabel = (id) => DURATIONS.find((d) => DUR_ID[d] === id) || DURATIONS[0];
 
 /** The Client profile menu. `me` is the persona ({ name, title, org }). Replaces the plain menu the captured header had. */
 export function addProfileMenu({ me, initials, portal = "client", account = null, hasStatus = true }) {
@@ -460,29 +645,58 @@ export function addProfileMenu({ me, initials, portal = "client", account = null
     trigger.querySelector(":scope > span:not(.relative)")?.remove();
     trigger.classList.remove("sm:w-48"); // the button is as wide as the avatar, like the buttons beside it; styles.css widens its tappable area on touch screens
   }
+  // The captured Staff header says "Property Manager" for everybody; each staff person's own job title is the one that shows.
+  if (portal === "staff" && me && me.title) for (const s of document.querySelectorAll('header span, .eso-pm span')) if (!s.children.length && s.textContent.trim() === "Property Manager") s.textContent = me.title;
   const baseLabel = trigger.getAttribute("aria-label") || "Open profile menu";
   trigger.setAttribute("aria-haspopup", "dialog");
   trigger.setAttribute("aria-expanded", "false");
+  // The picture saved in Settings (one record for each portal) replaces the initials in the header; it follows a change made in the Settings frame at once.
+  const AVATAR_KEY = portal === "staff" ? "eso-avatar" : `${portal}:eso-avatar`;
+  const paintAvatar = () => {
+    const av = trigger.querySelector('[data-slot="avatar"]');
+    if (!av) return;
+    const v = store.get(AVATAR_KEY);
+    const ok = typeof v === "string" && /^data:image\/(png|jpe?g|webp);base64,[A-Za-z0-9+/=]+$/.test(v);
+    av.style.backgroundImage = ok ? `url("${v}")` : "";
+    av.style.backgroundSize = ok ? "cover" : "";
+    av.style.backgroundPosition = ok ? "center" : "";
+    for (const s of av.querySelectorAll("span")) s.style.visibility = ok ? "hidden" : "";
+  };
+  paintAvatar();
+  window.addEventListener("storage", (e) => { if (e.key === AVATAR_KEY || e.key === null) paintAvatar(); });
   const P = `${portal}:`; // what the person chose is kept per portal
   const q = location.search;
   // Account links: [icon name, label, address]. Each portal passes its own; the Client's are the default.
   const links = account || [["user", "View profile", `/client/settings/profile.html${q}`], ["chat", "Messenger & availability", `/client/settings/availability.html${q}`], ["key", "My permissions", `/client/workspace/access.html${q}`], ["bell", "Notification preferences", `/client/settings/notifications.html${q}`]];
-  let status = store.get(P + "status");
+  // ONE record of the person's status, shared with Settings > Messenger & availability (the prototype keeps it as JSON: { s, msg, dur, until, ... } under "eso-status";
+  // the Client's copy is prefixed like every other Client setting). Resident and Admin have no such page, so theirs is kept under their own name.
+  const STATUS_KEY = portal === "staff" ? "eso-status" : portal === "client" ? "client:eso-status" : `${portal}:eso-status`;
+  const state = () => { try { const v = JSON.parse(store.get(STATUS_KEY)); return v && typeof v === "object" ? v : {}; } catch { return {}; } };
+  const put = (patch) => store.set(STATUS_KEY, JSON.stringify({ ...state(), ...patch }));
+  const saved = state();
+  let status = saved.s;
   if (!STATUS[status]) status = "available";
-  let message = store.get(P + "status-msg") || "";
-  let duration = DURATIONS.includes(store.get(P + "status-dur")) ? store.get(P + "status-dur") : DURATIONS[0];
+  let message = typeof saved.msg === "string" ? saved.msg.slice(0, 100) : "";
+  let duration = durLabel(saved.dur);
   // "Reset after": a status other than Available, or a message, ends at the moment the chosen duration runs out and goes back to Available.
-  let until = Number(store.get(P + "status-until") || 0);
+  const untilOf = (v) => { const n = Number(v || 0); return Number.isFinite(n) ? n : 1; }; // a time that is not a number counts as already over
+  let until = untilOf(saved.until);
   let endTimer;
   const endAt = () => {
     if (status === "available" && !message) return 0;
-    if (duration === "Today") { const d = new Date(); d.setHours(23, 59, 59, 999); return d.getTime(); }
-    const ms = { "30 minutes": 30 * 60000, "1 hour": 3600000, "4 hours": 4 * 3600000 }[duration];
-    return ms ? Date.now() + ms : 0;
+    const n = new Date();
+    switch (DUR_ID[duration]) {
+      case "30m": return +n + 30 * 60000;
+      case "1h": return +n + 3600000;
+      case "2h": return +n + 2 * 3600000;
+      case "today": n.setHours(23, 59, 59, 0); return +n;
+      case "week": n.setDate(n.getDate() + (7 - n.getDay()) % 7); n.setHours(23, 59, 59, 0); return +n;
+      default: return 0;
+    }
   };
   const expire = () => {
     status = "available"; message = ""; duration = DURATIONS[0]; until = 0;
-    store.set(P + "status", status); store.set(P + "status-msg", ""); store.set(P + "status-dur", duration); store.set(P + "status-until", "0");
+    put({ s: status, msg: "", dur: "never", until: 0, back: "" });
     syncHeader();
     if (!menu.hidden) draw();
   };
@@ -492,7 +706,15 @@ export function addProfileMenu({ me, initials, portal = "client", account = null
     const left = until - Date.now();
     if (left <= 0) expire(); else endTimer = setTimeout(expire, Math.min(left, 2 ** 31 - 1));
   };
-  const setEnd = () => { until = endAt(); store.set(P + "status-until", String(until)); arm(); };
+  const setEnd = () => { until = endAt(); put({ until }); arm(); };
+  // Settings can change the status while this header is open (it sits in a frame of this page): take the new record in as soon as it is written.
+  window.addEventListener("storage", (e) => {
+    if (e.key !== STATUS_KEY) return;
+    const s = state();
+    status = STATUS[s.s] ? s.s : "available"; message = typeof s.msg === "string" ? s.msg.slice(0, 100) : ""; duration = durLabel(s.dur); until = untilOf(s.until);
+    syncHeader();
+    if (!menu.hidden) draw();
+  });
 
   const menu = document.createElement("div");
   menu.className = "eso-pm";
@@ -559,7 +781,7 @@ export function addProfileMenu({ me, initials, portal = "client", account = null
     const reset = document.createElement("button");
     reset.type = "button";
     reset.innerHTML = `${ICON.reset}<span>Reset status</span>`;
-    reset.addEventListener("click", () => { message = ""; duration = DURATIONS[0]; store.set(P + "status-msg", ""); store.set(P + "status-dur", duration); setStatus("available"); });
+    reset.addEventListener("click", () => { message = ""; duration = DURATIONS[0]; put({ msg: "", dur: "never" }); setStatus("available"); });
     // (setStatus, below, also stores the moment the status ends)
     list.append(reset);
     row.addEventListener("click", () => { const open = list.hidden; list.hidden = !open; row.setAttribute("aria-expanded", String(open)); });
@@ -571,15 +793,15 @@ export function addProfileMenu({ me, initials, portal = "client", account = null
     const field = document.createElement("form");
     field.className = "eso-pm-field";
     field.hidden = true;
-    field.innerHTML = '<input type="text" maxlength="80" aria-label="Status message" placeholder="What are you working on?"><button type="submit">Save</button>';
+    field.innerHTML = '<input type="text" maxlength="100" aria-label="Status message" placeholder="What are you working on?"><button type="submit">Save</button>';
     const input = field.querySelector("input");
     input.value = message;
     msg.addEventListener("click", () => { field.hidden = !field.hidden; if (!field.hidden) input.focus(); });
-    field.addEventListener("submit", (e) => { e.preventDefault(); message = input.value.trim(); store.set(P + "status-msg", message); setEnd(); draw(); menu.querySelector(".eso-pm-strow")?.focus(); });
+    field.addEventListener("submit", (e) => { e.preventDefault(); message = input.value.trim().slice(0, 100); put({ msg: message }); setEnd(); draw(); menu.querySelector(".eso-pm-strow")?.focus(); });
     field.addEventListener("keydown", (e) => e.stopPropagation());
 
     const dur = item(ICON.clock, "Duration", `Reset after: ${duration}`, {});
-    dur.addEventListener("click", () => { duration = DURATIONS[(DURATIONS.indexOf(duration) + 1) % DURATIONS.length]; store.set(P + "status-dur", duration); setEnd(); dur.querySelector("small").textContent = `Reset after: ${duration}`; });
+    dur.addEventListener("click", () => { duration = DURATIONS[(DURATIONS.indexOf(duration) + 1) % DURATIONS.length]; put({ dur: DUR_ID[duration] }); setEnd(); dur.querySelector("small").textContent = `Reset after: ${duration}`; });
     if (hasStatus) menu.append(msg, field, dur);
     menu.append(heading("Account"));
     for (const [icon, text, href] of links) {
@@ -587,6 +809,11 @@ export function addProfileMenu({ me, initials, portal = "client", account = null
       a.addEventListener("click", () => close(false));
       menu.append(a);
     }
+    // A way to reach EasySpotOps Support that does not go through Messages (which may be the thing that is broken). The address is a sample.
+    const help = item(ICON.chat || ICON.bell, "Contact support", "", { href: "mailto:support@easyspotops.example?subject=Help%20with%20EasySpotOps" });
+    help.dataset.contactSupport = "";
+    help.addEventListener("click", () => close(false));
+    menu.append(help);
     menu.append(document.createElement("hr"));
     const out = item(ICON.out, "Sign out", "", { danger: true });
     out.addEventListener("click", () => { close(false); say("Signing out is not part of this preview."); });
@@ -604,7 +831,7 @@ export function addProfileMenu({ me, initials, portal = "client", account = null
     // The dot is a picture; the button's name says the status too, so it is not carried by colour or shape alone.
     trigger.setAttribute("aria-label", `${baseLabel}, ${STATUS[status].label}`);
   };
-  const setStatus = (key) => { status = key; store.set(P + "status", key); setEnd(); draw(); syncHeader(); menu.querySelector(".eso-pm-strow")?.focus(); };
+  const setStatus = (key) => { status = key; put({ s: key }); setEnd(); draw(); syncHeader(); menu.querySelector(".eso-pm-strow")?.focus(); };
   const close = (focusBack = true) => { menu.hidden = true; trigger.setAttribute("aria-expanded", "false"); if (focusBack) trigger.focus(); };
   const open = () => {
     closePanel(false);
@@ -612,7 +839,7 @@ export function addProfileMenu({ me, initials, portal = "client", account = null
     const b = trigger.getBoundingClientRect();
     menu.style.top = `${Math.round(b.bottom + 6)}px`;
     menu.style.right = `${Math.max(8, Math.round(innerWidth - b.right))}px`;
-    menu.style.maxHeight = `calc(100dvh - ${Math.round(b.bottom + 14)}px)`;
+    menu.style.maxHeight = `min(70dvh, calc(100dvh - ${Math.round(b.bottom + 14)}px))`; // never more than 70% of the screen; the rest scrolls
     menu.hidden = false;
     trigger.setAttribute("aria-expanded", "true");
     menu.querySelector(".eso-pm-strow, .eso-pm-item")?.focus();
@@ -644,7 +871,7 @@ export function addFrameBehaviours({ me, portal = "client" } = {}) {
   if (!header || !sc) return;
   configure(portal, sc);
   listenForNotifChanges();
-  for (const fn of [() => wireNavBadge(sc, me), () => wireFavorites(sc), () => wireFilter(sc), () => wireClock(sc), () => wireBell(header, me), () => wireSearch(header), () => wireLinks(header, sc)]) {
+  for (const fn of [() => wireNavBadge(sc, me), () => wireSocialItem(sc), () => wireCompanyItems(sc), () => wireFavorites(sc), () => wireFilter(sc), () => wireClock(sc), () => wireBell(header, me), () => wireSearch(header), () => wireLinks(header, sc)]) {
     try { fn(); } catch (err) { console.warn("frame behaviour skipped:", err); } // one failing piece must not stop the others
   }
 }

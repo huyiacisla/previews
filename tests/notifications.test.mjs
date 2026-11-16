@@ -13,11 +13,17 @@ test('the list agrees with what the Client pages already say', () => {
   assert.equal(c.total, c.unread + c.read);
   const unreadBy = (cat) => list.filter((n) => n.cat === cat && !isRead(n, map)).length;
   assert.equal(unreadBy('messages'), 16, '16 unread messages (Communication)');
-  assert.equal(unreadBy('plan'), 2, 'Parking Spots and Staff over limit');
+  assert.equal(unreadBy('plan'), 2, 'the parking limit and the plan limits');
   assert.equal(unreadBy('properties'), 1, 'one property needing attention');
   const titles = list.map((n) => `${n.title}|${n.detail}`);
-  assert.ok(titles.includes('Parking Spots over limit|261 / 25 on your plan'));
-  assert.ok(titles.includes('Staff over limit|18 / 3 on your plan'));
+  assert.ok(titles.includes('Parking Spots near limit|261 / 300 on your plan'));
+  assert.ok(titles.includes('Plan limits|Your plan covers 800 residents, 10 staff and 300 parking spaces'));
+  // what the company added in Capacity counts: 10 more seats and 50 more spaces
+  const bought = mem();
+  bought.setItem('eso-capacity:client', JSON.stringify({ staff: 10, parking: 50 }));
+  const more = buildAll(NOW, 'client', undefined, bought).map((n) => `${n.title}|${n.detail}`);
+  assert.ok(more.includes('Plan limits|Your plan covers 800 residents, 20 staff and 350 parking spaces'), 'the limit follows what was bought');
+  assert.ok(more.includes('Parking Spots near limit|261 / 350 on your plan'));
 });
 
 test('newest first, ids are unique, every category is named', () => {

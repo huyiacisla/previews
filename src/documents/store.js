@@ -48,7 +48,8 @@ export function normalizeDocPrefs(v) {
 }
 
 const DAY = 86400000;
-const iso = (t) => new Date(t).toISOString().slice(0, 10);
+// The calendar day of the person's own clock (not UTC): in the evening in Los Angeles "today" is still today, not tomorrow.
+const iso = (t) => { const d = new Date(t); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
 const label = (list, id) => (list.find(([k]) => k === id) || [id, id])[1];
 export const categoryLabel = (id) => label(CATEGORIES, id);
 export const shareLabel = (id) => label(SHARES, id);
@@ -73,7 +74,9 @@ const SAMPLE_TIMES = { d1: [10, 15], d2: [14, 32], d3: [9, 5], d4: [16, 48], d5:
 /** A list saved by an older version: the sample documents get their time of day (anything else keeps its date only), and a document that was shared
  *  with property staff or residents is now for the whole team, since only the company's own people open Documents. */
 export function migrateDocs(docs) {
-  return docs.map((r) => {
+  // A saved list can hold anything (a hand-edited or damaged value): only entries that are documents are kept.
+  const valid = (r) => r && typeof r === 'object' && typeof r.id === 'string' && typeof r.name === 'string' && r.name !== '';
+  return docs.filter(valid).map((r) => {
     const share = SHARES.some(([id]) => id === r.share) ? r.share : 'team';
     let at = r.uploadedAt;
     if (!Number.isFinite(at) && SAMPLE_TIMES[r.id]) { const t = new Date(`${r.updated}T00:00:00`); t.setHours(...SAMPLE_TIMES[r.id], 0, 0); at = t.getTime(); }
@@ -151,6 +154,11 @@ export function validateUpload(input, now = Date.now()) {
   const name = String(input.name || '').trim();
   if (!name) errors.name = 'Give the document a name.';
   else if (name.length > 120) errors.name = 'Use 120 characters or fewer.';
+  // the name that is kept has the file type added: that whole name is what the limit counts
+  if (!errors.name && !errors.file && file && file.name) {
+    const kept = `${name.replace(/\.[a-z0-9]+$/i, '')}.${String(file.name).split('.').pop().toLowerCase()}`;
+    if (kept.length > 120) errors.name = 'Use 120 characters or fewer, counting the file type.';
+  }
   if (!CATEGORIES.some(([k]) => k === input.category)) errors.category = 'Choose a category.';
   if (!PROPERTIES.some(([k]) => k === input.property)) errors.property = 'Choose a property.';
   if (!SHARES.some(([k]) => k === input.share)) errors.share = 'Choose who can see it.';

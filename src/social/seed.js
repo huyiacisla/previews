@@ -2,6 +2,8 @@
 // Social pages show the same posts even when the prototype has never been opened in this browser. Times are relative to "now".
 // Once "eso-feed" exists it is never replaced; a real app replaces all of this with calls to the social API.
 
+import { isEnded } from '../property-lifecycle.js';
+
 const H = 3600000;
 const M = 60000;
 const G = [
@@ -23,9 +25,25 @@ export function seedPosts(now = Date.now()) {
   ];
 }
 
+/**
+ * The Social of a property added in Capacity ("extra-1"…): its own feed, with one welcome announcement from the property team, made when the
+ * property is bought. It never replaces a feed that exists. The first property uses ensureFeed() above. Returns true when it made one.
+ */
+export function ensurePropertyFeed(storage, id, name, now = Date.now()) {
+  const key = `eso-feed:${id}`;
+  try {
+    if (!id || id === 'main' || storage.getItem(key) || isEnded(storage, id)) return false;
+    const text = `Welcome to ${String(name || 'the property').slice(0, 80)}. News from the property team will appear here.`;
+    storage.setItem(key, JSON.stringify({ posts: [{ id: 'w1', a: 'me', t: now, ann: 1, pin: 1, src: 'ann', aud: 'all', txt: text, likes: 0, lk: 0, rp: 0, rs: [] }], follow: [], seen: 0, rpv: 1, myRp: [] }));
+    return true;
+  } catch { return false; }
+}
+
 /** Make sure the timeline exists in this browser. Returns true when it had to be created. Never replaces an existing one. */
 export function ensureFeed(storage, now = Date.now()) {
   try {
+    // A property that has ended has no feed, and nothing may make one: a page that only reads (the bell, a count) would bring back what was cut off.
+    if (isEnded(storage, 'main')) return false;
     if (storage.getItem('eso-feed')) return false;
     storage.setItem('eso-feed', JSON.stringify({ posts: seedPosts(now), follow: ['dana', 'kim'], seen: 0, rpv: 1, myRp: [] }));
     return true;

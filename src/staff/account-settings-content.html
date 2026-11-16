@@ -1,6 +1,6 @@
 <!doctype html><html lang="en"><head><script id="qa-portal-storage">/* The Client and Resident copies of this page keep their own settings: every "eso-" key they read or write is stored as "client:eso-..." or "resident:eso-...", so Staff, Client and Resident never mix. Messaging keys are left alone. Must run first. */
 if(/[?&]embed(=|&|$)/.test(location.search))document.documentElement.classList.add("embed"); /* shown inside the Client dashboard frame: no sidebar or header of its own */
-var PM=location.pathname.match(/^\/(client|resident)\//);if(PM){try{var SP=Storage.prototype,sg=SP.getItem,ss=SP.setItem,sr=SP.removeItem,sk=function(x){return typeof x=="string"&&x.indexOf("eso-")==0&&x.indexOf("eso-msg")!=0&&(PM[1]=="client"||x.indexOf("eso-proto")==0)?PM[1]+":"+x:x};SP.getItem=function(x){return sg.call(this,this===localStorage?sk(x):x)};SP.setItem=function(x,v){return ss.call(this,this===localStorage?sk(x):x,v)};SP.removeItem=function(x){return sr.call(this,this===localStorage?sk(x):x)}}catch(e){}}
+var PM=location.pathname.match(/^\/(client|resident|admin)\//);if(PM){/* these copies are re-labelled by account-settings.staff.js after the page draws: keep the content out of sight until it has (it lifts the class; the timer is only a safety) */document.documentElement.classList.add("eso-skin-wait");setTimeout(function(){document.documentElement.classList.remove("eso-skin-wait")},3000);try{var SP=Storage.prototype,sg=SP.getItem,ss=SP.setItem,sr=SP.removeItem,sk=function(x){return typeof x=="string"&&x.indexOf("eso-")==0&&x.indexOf("eso-msg")!=0&&(PM[1]=="client"||x.indexOf("eso-proto")==0||x.indexOf("eso-avatar")==0||x.indexOf("eso-status")==0||x.indexOf("eso-mfa")==0)?PM[1]+":"+x:x};SP.getItem=function(x){return sg.call(this,this===localStorage?sk(x):x)};SP.setItem=function(x,v){return ss.call(this,this===localStorage?sk(x):x,v)};SP.removeItem=function(x){return sr.call(this,this===localStorage?sk(x):x)}}catch(e){}}
 </script><script id="qa-fsm-pop">// mở post từ fsm = hash-nav tiến (state null) ⇒ popstate của fsm tưởng là Back và tắt fsm; chặn khi vào #/social/post/* mà không phải entry fsm
 addEventListener("popstate",e=>{if(document.documentElement.classList.contains("fsm")&&!(history.state&&history.state.fsm)&&/^#\/social(\/|$)/.test(location.hash))e.stopImmediatePropagation()},true);
 </script><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,interactive-widget=resizes-content">
@@ -135,7 +135,7 @@ body:has(.modal.sheet.o) .toast{bottom:auto;top:70px}
 .sic{width:30px;height:30px;border-radius:8px;display:grid;place-items:center;color:#fff;font-size:14px;flex-shrink:0;line-height:20px}
 .stt{flex:1;min-width:0}.stt small{display:block;color:var(--muted);font-size:12px;line-height:16px}.ssum{color:var(--muted);font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:46%;line-height:20px}.chev{color:var(--muted);font-size:20px;line-height:28px}
 .srow.danger{justify-content:center;color:#dc2626}.srow.hdr{padding:12px 14px}.av.big{width:54px;height:54px;font-size:18px;display:grid;place-items:center;flex-shrink:0;line-height:28px}
-.navbar{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;height:46px;position:sticky;top:56px;background:color-mix(in srgb,var(--bg) 88%,transparent);backdrop-filter:blur(8px);z-index:4;margin:-14px -14px 12px;padding:0 6px;border-bottom:1px solid var(--border)}
+.navbar{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;height:46px;position:sticky;top:56px;background:var(--bg);z-index:4;margin:-14px -14px 12px;padding:0 6px;border-bottom:1px solid var(--border)}
 .navbar .bk2{border:0;background:none;color:var(--primary);font-size:16px;text-align:left;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:22px}.navbar b{font-size:16px;line-height:22px}
 .pushin{animation:pushin .28s ease}.popin{animation:popin .28s ease}@keyframes pushin{from{transform:translateX(35%);opacity:0}}@keyframes popin{from{transform:translateX(-25%);opacity:0}}
 .flash{animation:flash 1.6s ease}@keyframes flash{0%,40%{box-shadow:0 0 0 3px var(--primary)}}
@@ -162,7 +162,7 @@ body.ou .ousum{display:block;font-size:14px;color:var(--muted);margin-top:2px;li
 body.ou .pane .sic{display:none}body.ou .vdiv{display:block;width:1px;height:30px;background:color-mix(in srgb,var(--muted) 35%,transparent)}
 body.ou .sw{width:46px;height:26px}body.ou .sw::after{width:20px;height:20px;top:3px;left:3px}body.ou .sw.on{background:var(--ouacc)}body.ou .sw.on::after{left:23px}
 body.ou .srow.hdr{flex-direction:row-reverse;padding:22px 20px;min-height:90px}body.ou .srow.hdr .chev{display:none}body.ou .srow.hdr b{font-size:18px;line-height:28px}body.ou .av.big{width:58px;height:58px}
-body.ou .sq:not(.pgi){position:fixed;left:16px;right:16px;bottom:calc(18px + env(safe-area-inset-bottom));z-index:24;background:color-mix(in srgb,var(--card) 92%,transparent);backdrop-filter:blur(12px);border-radius:99px;padding:4px 18px;margin:0;box-shadow:0 6px 24px #0005}body.ou .mic{display:block;color:var(--muted)}
+body.ou .sq:not(.pgi){position:fixed;left:16px;right:16px;bottom:calc(18px + env(safe-area-inset-bottom));z-index:24;background:var(--card);border-radius:99px;padding:4px 18px;margin:0;box-shadow:0 6px 24px #0005}body.ou .mic{display:block;color:var(--muted)}
 body.ou.b-D .sq:not(.pgi){bottom:calc(78px + env(safe-area-inset-bottom))}body.ou .badge{bottom:auto;top:64px;left:auto;right:8px}
 body.ou .navbar{display:block;position:static;background:none;backdrop-filter:none;border:0;height:auto;margin:6px 0 18px;padding:0 6px}body.ou .navbar .bk2{font-size:0;color:var(--fg);padding:6px 4px}body.ou .navbar .bk2::before{content:"‹";font-size:24px;line-height:32px;font-weight:400}body.ou .navbar b{display:block;font-size:24px;font-weight:600;margin:6px 8px 0;line-height:32px}body.ou .navbar span{display:none}
 body.ou .pane .card{border-radius:14px;border:0}body.ou .mastr,body.ou .addrow{border-radius:14px;border:0;padding:18px 22px}body.ou .mastr.on span{color:var(--ouacc)}
@@ -481,7 +481,7 @@ function wsPage(){if(tab=="profile"&&!wsPage.init){tab="property";wsPage.init=1}
  else if(tab=="profile"){const r=(l,v)=>`<div><label>${l}</label><input readonly value="${v}"></div>`;body=`<div class="card"><h3>My profile</h3><p class="d">Read-only in this workspace. Edit personal details in <a href="#" data-act="profile">Profile settings</a>.</p><div class="g2">${r("Name",user.first+" "+user.last)}${r("Email","staff@mail.easyspotops.com")}${r("Role","Property Manager")}${r("Permission preset","PM default")}</div></div><div class="sum">${sum.map(x=>`<div class="card" style="margin:0"><div class="muted" style="font-size:12px;line-height:16px">${x[0]}</div><b>${x[1]}</b></div>`).join("")}</div>`}
  else body=`<div class="card"><h3>${WSEC.find(x=>x[0]==tab)[1]}</h3><p class="d">Existing workspace section — unchanged in this prototype.</p></div>`;
  return `${head}<div class="wsgrid">${nav}<div class="wsbody">${body}<div class="card"><h3>Property Manager shortcuts</h3><div class="seg">${["Requests","Vehicles","Violations","Parking Spots","Reports"].map(x=>`<button data-p="${x}">${x}</button>`).join("")}</div></div></div></div>`}
-function propSec(ro,dis){const f=(k,l,t="text",full)=>`<div ${full?'class="full"':""}><label>${l}</label><input type="${t}" data-w="${k}" value="${esc(WD[k])}" ${dis}></div>`;
+function propSec(ro,dis){const f=(k,l,t="text",full)=>`<div ${full?'class="full"':""}><label>${l}</label><input type="${t}" data-w="${k}" maxlength="${({phone:30,email:120,website:200}[k]||120)}" value="${esc(WD[k])}" ${dis}></div>`;
  const PRE=[["#2563eb","#16a34a"],["#0f766e","#f59e0b"],["#7c3aed","#ec4899"],["#b91c1c","#0ea5e9"],["#1f2937","#84cc16"]];
  return `<div class="sechead"><div><h2>Property profile</h2><p class="muted">How ${esc(WD.display)} appears to staff and residents.</p></div></div>
  ${ro?`<div class="note">🔒 Read-only — editing requires the <b>property-manage</b> permission (e.g. Property Manager). Ask your manager for access.</div>`:`<div class="note info">You can edit this property because your role has the <b>property-manage</b> permission.</div>`}
@@ -674,8 +674,9 @@ function tzCity(tz){return tz.split("/").pop().replace(/_/g," ")}
 function tzAbbr(tz){const g=tzPart(tz,"shortGeneric");return g.length>5?tzPart(tz,"short"):g}
 function tzLabel(tz){const z=TZS.find(x=>x[0]==tz);return tzOff(tz)+" "+(z?z[1]:tzCity(tz))}
 function langName(){return (LANGS.find(l=>l[0]==(S.lang||"en"))||LANGS[0])[1]}
-function fmtTime(d,o,tz){return new Intl.DateTimeFormat("en-US",{timeZone:tz,hour:"numeric",minute:"2-digit",hourCycle:o.tfmt=="24"?"h23":"h12"}).format(d)}
-function fmtDate(d,o,tz,f){const P={};new Intl.DateTimeFormat("en-US",{timeZone:tz,year:"numeric",month:"2-digit",day:"2-digit"}).formatToParts(d).forEach(p=>P[p.type]=p.value);return (f||o.dfmt).replace("YYYY",P.year).replace("MM",P.month).replace("DD",P.day)}
+function validTz(tz){try{new Intl.DateTimeFormat("en-US",{timeZone:tz});return tz}catch(e){return PROP_TZ}}/* a time zone nobody knows (a damaged value) must not blank the page: the property's own is used */
+function fmtTime(d,o,tz){tz=validTz(tz);return new Intl.DateTimeFormat("en-US",{timeZone:tz,hour:"numeric",minute:"2-digit",hourCycle:o.tfmt=="24"?"h23":"h12"}).format(d)}
+function fmtDate(d,o,tz,f){tz=validTz(tz);const P={};new Intl.DateTimeFormat("en-US",{timeZone:tz,year:"numeric",month:"2-digit",day:"2-digit"}).formatToParts(d).forEach(p=>P[p.type]=p.value);return (f||o.dfmt).replace("YYYY",P.year).replace("MM",P.month).replace("DD",P.day)}
 function clockShort(){try{const o=lrCur(),tz=lrTz(o);return fmtTime(new Date(),o,tz)+" · "+tzAbbr(tz)+" ("+tzCity(tz)+")"}catch(e){return ""}}
 function clockCard(){if(S.sbClock===false)return "";const o=lrCur(),tz=lrTz(o),n=new Date(),t=fmtTime(n,o,tz),col=innerWidth<768?false:!!S.clkCol;let dt="";try{dt=new Intl.DateTimeFormat("en-US",{timeZone:tz,weekday:"short",month:"short",day:"numeric"}).format(n)}catch(e){}
  return col?`<div class="cap sbclkc col" id="sbclkc"><div class="caph"><b>Local time · <span id="sbclk">${t}</span></b><button data-clk aria-expanded="false" aria-label="Show local time">Show ⌄</button></div></div>`
@@ -691,7 +692,7 @@ const prow=(k,t,sub)=>`<button class="srow" data-lpick="${k}"><span class="stt">
 const card=(h,help)=>`<div class="sgroup">${h}</div>${help?`<p class="helpt">${help}</p>`:'<div style="height:14px"></div>'}`;
 function langPage(){const L=S.lang||"en";return card(LANGS.map(l=>`<button class="srow" data-lang="${l[0]}" role="radio" aria-checked="${L==l[0]}"><span class="stt">${l[1]}</span><span class="rad ${L==l[0]?"on":""}"></span></button>`).join(""),"Language used across the staff portal on this account. (Mock — translations not included.)")}
 function tzSrc(o){return o.tzAuto?"Property":o.tzLoc?"Location":"Manual"}
-function dtNow(o,tz){const n=new Date();return fmtDate(n,o,tz)+" · "+new Intl.DateTimeFormat("en-US",{timeZone:tz,hour:"numeric",minute:"2-digit",second:"2-digit",hourCycle:o.tfmt=="24"?"h23":"h12"}).format(n)+" "+tzAbbr(tz)+" ("+tzCity(tz)+")"}
+function dtNow(o,tz){tz=validTz(tz);const n=new Date();return fmtDate(n,o,tz)+" · "+new Intl.DateTimeFormat("en-US",{timeZone:tz,hour:"numeric",minute:"2-digit",second:"2-digit",hourCycle:o.tfmt=="24"?"h23":"h12"}).format(n)+" "+tzAbbr(tz)+" ("+tzCity(tz)+")"}
 function dtPage(){const o=lrCur(),tz=lrTz(o),now=new Date(),src=tzSrc(o),msg=S.tzMsg||"";
  return `<div id="dtz"><div class="tzlive" role="status" aria-live="off"><span class="tzsrc tz-${src.toLowerCase()}">${src}</span><b id="dtnow">${dtNow(o,tz)}</b><small>${tzOff(tz)} · ${tz}</small></div>`
  +(msg?`<p class="tzmsg" role="alert">${msg}</p>`:"")
@@ -808,7 +809,7 @@ matchMedia("(prefers-color-scheme: dark)").addEventListener("change",apply);
 // edge swipe — mirrors use-edge-swipe.ts (edge ≤24px, dx≥60, |dy|<dx)
 let pickKind=null;
 document.addEventListener("click",e=>{const t=e.target.closest("[data-pick],[data-rm],[data-gl],[data-gr],[data-gc],[data-gd],[data-wt],[data-pre],[data-am],[data-role],#discard,#savews,[data-drop]");if(!t)return;e.preventDefault();
- if(t.id=="savews"){W=JSON.parse(JSON.stringify(WD));try{localStorage.setItem("eso-prop",JSON.stringify(W));toast("Property profile saved (mock)")}catch(x){toast("Images too large for local storage — remove some")}dirty=false;$("#savebar").classList.remove("o");return}
+ if(t.id=="savews"){W=JSON.parse(JSON.stringify(WD));try{localStorage.setItem("eso-prop",JSON.stringify(W));toast(/^Property profile/.test((document.querySelector(".sechead h2")||{}).textContent||"")?"Property profile saved (mock)":"Changes saved (mock)")}catch(x){toast("Images too large for local storage — remove some")}dirty=false;$("#savebar").classList.remove("o");return}
  if(t.id=="discard"){WD=JSON.parse(JSON.stringify(W));dirty=false;$("#savebar").classList.remove("o");apply();toast("Changes discarded");return}
  if(t.dataset.role){canManage=t.dataset.role=="pm";window._wsRole=canManage?"pm":"staff";render();return}
  if(!canManage)return;
@@ -824,7 +825,7 @@ let dragI=null;document.addEventListener("dragstart",e=>{const g=e.target.closes
 document.addEventListener("drop",e=>{const z=e.target.closest("[data-drop],[data-gi]");if(!z||!canManage)return;e.preventDefault();
  if(e.dataTransfer.files.length&&z.dataset.drop){handleFiles(z.dataset.drop,e.dataTransfer.files);return}
  if(z.dataset.gi!==undefined&&dragI!==null){const [m]=WD.gallery.splice(dragI,1);WD.gallery.splice(+z.dataset.gi,0,m);dragI=null;markDirty();apply()}});
-document.addEventListener("input",e=>{const t=e.target;if(t.dataset.w){WD[t.dataset.w]=t.value;markDirty();if(t.type=="color"){apply()}}else if(t.dataset.h){WD.hours[t.dataset.h]=t.value;markDirty()}});
+document.addEventListener("input",e=>{const t=e.target;if(t.dataset.w){const lim=t.type=="color"||t.tagName=="TEXTAREA"?0:({phone:30,email:120,website:200}[t.dataset.w]||120);if(lim&&t.value.length>lim)t.value=t.value.slice(0,lim); /* a value set by script or pasted is cut like one typed (S325) */ WD[t.dataset.w]=t.value;markDirty();if(t.type=="color"){apply()}}else if(t.dataset.h){WD.hours[t.dataset.h]=t.value;markDirty()}});
 document.addEventListener("keydown",e=>{if(e.target.id=="amin"&&e.key=="Enter"&&e.target.value.trim()){WD.amen.push(e.target.value.trim());markDirty();apply();setTimeout(()=>$("#amin")&&$("#amin").focus())}});
 document.addEventListener("click",e=>{const t=e.target.closest("[data-go],[data-crumb],[data-sr],[data-md]");if(!t)return;e.preventDefault();
  if(t.dataset.md!==undefined){const L=["oneui","ios","md"];S.look=L[(L.indexOf(S.look||"oneui")+1)%3];save();$("#mdt").textContent="Look: "+{oneui:"One UI",ios:"iOS",md:"Material"}[S.look];toast({oneui:"Samsung One UI",ios:"iOS",md:"Android (Material)"}[S.look]+" style");return}
@@ -1103,7 +1104,7 @@ function rerender(){const pg=document.querySelector(".avp");if(pg)render();paint
 function setS(s,keepMsg){ST.s=s;if(!keepMsg&&ST.dur!="never")ST.until=untilFor(ST.dur);stSave();if($("#dd").classList.contains("o"))dd();rerender()}
 function openDlg(){const mob=innerWidth<768;let sel=ST.s,clr=ST.dur;
  modal(`<div class="stdlg"><h3>Set status message</h3><p class="d">Let teammates know what you're doing. Shown in your profile menu and in Messenger.</p>
- <textarea id="stm" maxlength="280" placeholder="What's your status?">${esc(ST.msg)}</textarea><div class="cnt"><span id="stc">${ST.msg.length}</span>/280</div>
+ <textarea id="stm" maxlength="100" placeholder="What's your status?">${esc(ST.msg)}</textarea><div class="cnt"><span id="stc">${ST.msg.length}</span>/280</div>
  <label class="fl">Quick messages</label><div class="chips">${ST.presets.map((p,i)=>`<button class="chip" data-stpre="${i}">${sic(p[1],12)}${esc(p[0])}</button>`).join("")}</div>
  <label class="fl" for="stsel">Status</label><select id="stsel">${STS.map(s=>`<option value="${s[0]}" ${sel==s[0]?"selected":""}>${s[1]}</option>`).join("")}</select>
  <label class="fl" for="stclr">Clear message after</label><select id="stclr">${DUR.map(d=>`<option value="${d[0]}" ${clr==d[0]?"selected":""}>${d[1]}</option>`).join("")}</select>
@@ -1145,7 +1146,7 @@ function avPage(){expire();const DN=["S","M","T","W","T","F","S"];
   ${row("Status","Choose how you appear in this workspace.",`<div class="stseg">${STS.map(s=>`<button class="chip ${ST.s==s[0]?"on":""}" data-avset="${s[0]}">${sic(s[0],12)}${s[1]}</button>`).join("")}</div>`)}
   ${row("Reset status after","Go back to Available automatically.",sel("dur",DUR,ST.dur))}
   ${row("Reset now","Clear status and message.",`<button class="stbtn sm" data-streset>${li("reset",14)} Reset status</button>`)}`)}
- ${pc(li("msg"),"Status messages","Quick messages for property staff. Each one can set a status.",ST.presets.map((p,i)=>`<div class="pre"><input type="text" value="${esc(p[0])}" data-avpt="${i}" maxlength="280" aria-label="Message ${i+1}"><select data-avps="${i}" aria-label="Status for message">${STS.map(s=>`<option value="${s[0]}" ${p[1]==s[0]?"selected":""}>${s[1]}</option>`).join("")}</select><button class="iconbtn" data-avpdel="${i}" aria-label="Delete">${li("trash",14)}</button></div>`).join("")+`<button class="stbtn sm" data-avpadd style="margin-top:8px">${li("plus",14)} Add message</button>`)}
+ ${pc(li("msg"),"Status messages","Quick messages for property staff. Each one can set a status.",ST.presets.map((p,i)=>`<div class="pre"><input type="text" value="${esc(p[0])}" data-avpt="${i}" maxlength="100" aria-label="Message ${i+1}"><select data-avps="${i}" aria-label="Status for message">${STS.map(s=>`<option value="${s[0]}" ${p[1]==s[0]?"selected":""}>${s[1]}</option>`).join("")}</select><button class="iconbtn" data-avpdel="${i}" aria-label="Delete">${li("trash",14)}</button></div>`).join("")+`<button class="stbtn sm" data-avpadd style="margin-top:8px">${li("plus",14)} Add message</button>`)}
  ${pc(li("bolt"),"Automatic status","Let EasySpotOps update your status for you.",
   row("Set Away when inactive","After no activity in the staff portal.",(ST.autoAway?sel("awayMin",[["5","5 min"],["10","10 min"],["15","15 min"],["30","30 min"]],ST.awayMin):"")+sw("autoAway","Set away when inactive"))+
   row("Busy during calendar events","Uses events from Calendar.",sw("cal","Busy during calendar events"))+
@@ -1235,7 +1236,7 @@ function geo(){const sc=C.base*C.z,w=C.im.width*sc,h=C.im.height*sc,mx=(w-SZ)/2,
 function draw(cv,n){const g=geo(),k=n/SZ,x=cv.getContext("2d");cv.width=n;cv.height=n;x.clearRect(0,0,n,n);x.drawImage(C.im,g.l*k,g.t*k,g.w*k,g.h*k)}
 function upd(){const g=geo(),i=$("#cimg");i.style.width=g.w+"px";i.style.height=g.h+"px";i.style.transform=`translate(${g.l}px,${g.t}px)`;[["cp32",64],["cp40",80],["cp96",192]].forEach(([id,n])=>{const c=document.getElementById(id);c&&draw(c,n)})}
 function close(){$("#modal").classList.remove("o","cropfs","sheet");$("#mbody").classList.remove("cropdlg");C=null}
-function setAv(v,msg){AV=v;err="";v?localStorage.setItem("eso-avatar",v):localStorage.removeItem("eso-avatar");rer();if($("#dd").classList.contains("o"))dd();toast(msg)}
+function setAv(v,msg){const was=AV;try{v?localStorage.setItem("eso-avatar",v):localStorage.removeItem("eso-avatar")}catch(e){AV=was;err="There is no room left in this browser to keep the picture. Remove a picture or clear some data, then try again.";rer();toast("Could not save the picture");return}AV=v;err="";rer();if($("#dd").classList.contains("o"))dd();toast(msg)}
 function sheetMenu(){modal(`<div class="asheet"><button data-pfcam>${ic(CAM)} Take photo</button><button data-pfup>${ic(IMG)} Choose from library</button>${AV?`<button class="dg" data-pfrm>${ic(TR)} Remove photo</button>`:""}<button class="cx" data-pfx>Cancel</button></div>`);$("#modal").classList.add("sheet")}
 document.addEventListener("click",e=>{const t=e.target.closest("#pfav,[data-pfup],[data-pfrm],[data-pfcam],[data-pfx],[data-crcancel],[data-crsave]");if(!t)return;e.preventDefault();e.stopPropagation();const d=t.dataset;
  if(t.id=="pfav"){if(innerWidth<768)sheetMenu();else $("#pfile").click();return}
@@ -1253,7 +1254,7 @@ apply();paintAv();
 </script>
 <style id="sticky-preview">
 .pzpv,.pzrow .stt,.pzrow .lsub{-webkit-user-select:none;user-select:none}
-.pzst{position:sticky;top:var(--stk,0px);z-index:12;background:var(--card)!important;transition:padding .15s,box-shadow .15s}
+.pzst{position:sticky;top:var(--stk,0px);z-index:12;background:var(--card)!important;transition:box-shadow .15s}
 .pzst.stuck{box-shadow:0 8px 20px rgb(15 23 42/.14)!important;border-color:var(--border)!important;padding:8px 10px!important}
 html.dark .pzst.stuck{box-shadow:0 8px 24px rgb(0 0 0/.55)!important}
 .pzst .pvtog{position:absolute;top:6px;right:6px;width:26px;height:26px;border-radius:6px;border:1px solid var(--border);background:var(--card);color:var(--muted);display:grid;place-items:center;cursor:pointer;z-index:2}
@@ -1293,14 +1294,14 @@ function wire(){io&&io.disconnect();const pane=document.querySelector("#content 
  if(!el.querySelector(".pvin")){const w=document.createElement("div");w.className="pvin";while(el.firstChild)w.appendChild(el.firstChild);el.appendChild(w)}
  el.insertAdjacentHTML("afterbegin",`<button class="pvtog" aria-label="${el.classList.contains("col")?"Show preview":"Hide preview"}" aria-expanded="${!el.classList.contains("col")}">${CH}</button><div class="pvbar">Live preview hidden</div>`);
  const s=document.createElement("div");s.style.cssText="height:1px;margin-bottom:-1px";el.before(s);
- io=new IntersectionObserver(([e])=>el.classList.toggle("stuck",!e.isIntersecting&&e.boundingClientRect.top<innerHeight/2),{rootMargin:`-${hdrOff()+9}px 0px 0px 0px`});io.observe(s)}
+ /* the observer no longer sets "stuck" itself: two things setting it by different rules made it flip while scrolling; the scroll check below is the one that does */ io=new IntersectionObserver(()=>{window._pzchk&&window._pzchk()},{rootMargin:`-${hdrOff()+9}px 0px 0px 0px`});io.observe(s)}
 window.wireSticky=wire;
 let lastH="";const _r=render;window.render=function(){const y=scrollY,same=lastH==location.hash;lastH=location.hash;_r();wire();if(same&&y)scrollTo(0,y);getSelection&&!(window.__typing&&__typing())&&getSelection().removeAllRanges()};
 document.addEventListener("click",e=>{const t=e.target.closest(".pvtog");if(!t)return;e.preventDefault();e.stopPropagation();const el=t.closest(".pzst");const c=el.classList.toggle("col");localStorage.setItem("eso-pvcol",c?"1":"0");t.setAttribute("aria-expanded",!c);t.setAttribute("aria-label",c?"Show preview":"Hide preview")},true);
 apply();
 })();
 </script>
-<style>.pzst.stuck .mini{overflow:hidden}.pvsd .mini{height:auto!important;max-height:none!important;overflow:hidden}</style><script>(function(){function chk(){const c=document.querySelector('#content .pzst');if(!c)return;const t=parseFloat(getComputedStyle(c).top)||0;c.classList.toggle('stuck',scrollY>40&&c.getBoundingClientRect().top<=t+10)}addEventListener('scroll',chk,{passive:true});const _r=render;window.render=function(){_r();chk();setTimeout(chk,60);setTimeout(chk,200)}})();</script><style>@media(max-width:1023px){.app.appdrw .sb{width:min(318px,86vw)!important}}</style><script>(function(){const DM=(typeof DEF!="undefined"&&DEF.menuStyle&&DEF.menuStyle!="icon")?DEF.menuStyle:"tree";function fix(){const a=$("#app"),sb=$("#sb");if(!a||!sb)return;const m=innerWidth<1024;a.classList.toggle("appdrw",m);if(m){if(/\bv-B\b/.test(a.className))a.className=a.className.replace(/\bv-B\b/,"v-A");if(sb.classList.contains("ms-icon")){sb.classList.remove("ms-icon");sb.classList.add("ms-"+DM)}}else{a.className=a.className.replace(/\bv-[A-D]\b/,"v-"+S.variant)}}const _n=renderNav;window.renderNav=function(){_n();fix()};const _a=apply;window.apply=function(){_a();fix()};addEventListener("resize",()=>{renderNav()});fix()})();</script><style>
+<style>.pzst.stuck .mini{overflow:hidden}.pvsd .mini{height:auto!important;max-height:none!important;overflow:hidden}/* the preview changes size while the page scrolls: the browser's own scroll anchoring then "corrects" the position by the same amount and throws the page back to the top (dragging the scroll bar snapped back several times) */html:has(.pzst),html:has(.pzst) body{overflow-anchor:none}</style><script>(function(){/* The preview shrinks when it sticks (about 270px to 90px). If the page got that much shorter, the browser pulled the scroll position back, which un-stuck it, which made the page taller, and so on: dragging the scroll bar snapped back to the top several times. So: (1) a gap between sticking (past 40px) and un-sticking (back under 20px), and (2) the room it gives up is kept as a margin, so the page keeps its height and nothing moves under the pointer. */function chk(){const c=document.querySelector('#content .pzst');if(!c)return;const t=parseFloat(getComputedStyle(c).top)||0;const was=c.classList.contains('stuck');const top=c.getBoundingClientRect().top;const on=was?(scrollY>20&&top<=t+30):(scrollY>40&&top<=t+10);if(on===was)return;if(on){const h0=c.offsetHeight;/* the room is reserved BEFORE it shrinks: measuring the shrunk card forces a layout, and with the page momentarily shorter the browser cuts the scroll position to fit */const m0=parseFloat(getComputedStyle(c).marginBottom)||0;c.style.marginBottom=(h0+m0)+'px';c.classList.add('stuck');c.style.marginBottom=Math.max(0,h0+m0-c.offsetHeight)+'px'}else{c.classList.remove('stuck');c.style.marginBottom=''}}window._pzchk=chk;addEventListener('scroll',chk,{passive:true});const _r=render;window.render=function(){_r();chk();setTimeout(chk,60);setTimeout(chk,200)}})();</script><style>@media(max-width:1023px){.app.appdrw .sb{width:min(318px,86vw)!important}}</style><script>(function(){const DM=(typeof DEF!="undefined"&&DEF.menuStyle&&DEF.menuStyle!="icon")?DEF.menuStyle:"tree";function fix(){const a=$("#app"),sb=$("#sb");if(!a||!sb)return;const m=innerWidth<1024;a.classList.toggle("appdrw",m);if(m){if(/\bv-B\b/.test(a.className))a.className=a.className.replace(/\bv-B\b/,"v-A");if(sb.classList.contains("ms-icon")){sb.classList.remove("ms-icon");sb.classList.add("ms-"+DM)}}else{a.className=a.className.replace(/\bv-[A-D]\b/,"v-"+S.variant)}}const _n=renderNav;window.renderNav=function(){_n();fix()};const _a=apply;window.apply=function(){_a();fix()};addEventListener("resize",()=>{renderNav()});fix()})();</script><style>
 .sb .ic svg,.pvic svg{width:var(--isz,18px);height:var(--isz,18px)}
 .sb .ic,.pvic{color:var(--icol,inherit)}
 .sb.ico-filled svg,.pvsd.ico-filled svg{fill:currentColor;fill-opacity:.9}
@@ -1574,7 +1575,7 @@ const _a=apply;window.apply=function(){_a();badge()};
 render();badge();
 })();</script>
 <style>#gsug{position:fixed;z-index:var(--z-menu);background:var(--card);color:var(--fg);border:1px solid var(--border);border-radius:14px;box-shadow:0 16px 48px rgba(0,0,0,.2);padding:6px;max-height:min(420px,calc(100dvh - 80px));overflow:auto;font-size:14px;line-height:20px}#gsug h6{margin:8px 10px 4px;font-size:11px;color:var(--muted);text-transform:none;letter-spacing:0;line-height:16px}#gsug a{display:flex;gap:10px;align-items:center;padding:8px 10px;border-radius:8px;color:inherit;text-decoration:none}#gsug a:hover,#gsug a.on{background:color-mix(in srgb,var(--fg) 6%,transparent)}#gsug a svg{width:16px;height:16px;color:var(--muted)}#gsug small{margin-left:auto;color:var(--muted);font-size:12px;line-height:16px}#gsug .em{padding:16px;color:var(--muted);text-align:center}</style><script>(function(){
-const D=[["Residents","people",["Alex Rivera · Unit 214","Priya Shah · Unit 118","Marcus Lee · Unit 305","Rena Okafor · Unit 412"]],["Vehicles","car",["Tesla Model 3 · 8KXR221","Honda CR-V · 7HGT904","Ford F-150 · 6RTE118"]],["Spots","park",["B-17 · Garage level 2","A-04 · EV charger","Guest G-12"]],["Requests","clip",["Guest pass · Unit 214","Towing review · B-17"]]];
+const D=[["Residents","people",["Alex Rivera · Unit 214","Nadia Shah · Unit 118","Victor Lee · Unit 305","Rena Okafor · Unit 412"]],["Vehicles","car",["Tesla Model 3 · 8KXR221","Honda CR-V · 7HGT904","Ford F-150 · 6RTE118"]],["Spots","park",["B-17 · Garage level 2","A-04 · EV charger","Guest G-12"]],["Requests","clip",["Guest pass · Unit 214","Towing review · B-17"]]];
 function pos(){const i=document.getElementById("gsearch"),g=document.getElementById("gsug");if(!i||!g)return;const r=i.getBoundingClientRect();const w=Math.max(r.width,Math.min(420,innerWidth-16));g.style.top=(r.bottom+6)+"px";g.style.left=Math.max(8,Math.min(r.left,innerWidth-w-8))+"px";g.style.width=w+"px"}
 function show(){const i=document.getElementById("gsearch");let g=document.getElementById("gsug");const q=i.value.trim().toLowerCase();
  if(!g){g=document.createElement("div");g.id="gsug";g.setAttribute("role","listbox");document.body.appendChild(g)}
@@ -1646,7 +1647,7 @@ const I={heart:'<path d="M12 20s-8-5-8-11a4 4 0 018-1 4 4 0 018 1c0 6-8 11-8 11z
 const ic=(k,sz=18)=>`<svg width="${sz}" height="${sz}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${I[k]}</svg>`;
 const H=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"})[c]);
 const ME={n:"QA Staff PM",r:"pm",ini:"QS",c:"#1e3a8a"};
-const P={me:ME,dana:{n:"Dana Whitfield",r:"mg",ini:"DW",c:"#7c3aed"},luis:{n:"Luis Ortega",r:"st",ini:"LO",c:"#0f766e"},kim:{n:"Kim Tran",r:"st",ini:"KT",c:"#b45309"},alex:{n:"Alex Rivera",r:"rs",ini:"AR",c:"#be185d",u:"Unit 214"},priya:{n:"Priya Shah",r:"rs",ini:"PS",c:"#0369a1",u:"Unit 118"},marcus:{n:"Marcus Lee",r:"rs",ini:"ML",c:"#4d7c0f",u:"Unit 305"},rena:{n:"Rena Okafor",r:"rs",ini:"RO",c:"#9333ea",u:"Unit 412"}};
+const P={me:ME,dana:{n:"Noor Hassan",r:"mg",ini:"NH",c:"#7c3aed"},luis:{n:"Luis Ortega",r:"st",ini:"LO",c:"#0f766e"},kim:{n:"Kim Tran",r:"st",ini:"KT",c:"#b45309"},alex:{n:"Alex Rivera",r:"rs",ini:"AR",c:"#be185d",u:"Unit 214"},priya:{n:"Nadia Shah",r:"rs",ini:"NS",c:"#0369a1",u:"Unit 118"},marcus:{n:"Victor Lee",r:"rs",ini:"VL",c:"#4d7c0f",u:"Unit 305"},rena:{n:"Rena Okafor",r:"rs",ini:"RO",c:"#9333ea",u:"Unit 412"}};
 const RL={pm:["Property Manager","pm"],mg:["Management","mg"],st:["Staff",""],rs:["Resident","rs"]};
 const G=["linear-gradient(135deg,#334155,#64748b)","linear-gradient(135deg,#0f766e,#22d3ee)","linear-gradient(135deg,#1e3a8a,#6366f1)","linear-gradient(135deg,#b45309,#f59e0b)","linear-gradient(135deg,#166534,#4ade80)","linear-gradient(135deg,#7f1d1d,#f87171)"];
 const now=Date.now(),m=6e4,h=36e5;
@@ -1983,8 +1984,10 @@ if("swCommunity" in S){if(S.swCommunity)S.swSocial=true;delete S.swCommunity}
 P.social='<path d="M21 12a8 8 0 01-11.5 7.2L4 20l1-4.5A8 8 0 1121 12z"/><path d="M8 10h8M8 14h5"/>';
 const op=d=>d=="left"?"right":"left",AR=d=>d=="left"?"← Left":"Right →";
 window.gConflict=()=>S.swipe&&S.swSocial&&S.swDir==S.soDir&&S.swZone=="any";
-window.gsum=()=>"Sidebar "+(S.swipe?AR(S.swDir):"off")+" · Social "+(S.swSocial?AR(S.soDir):"off");
-window.gsumS=()=>"Gestures: "+(S.swipe?"sidebar "+(S.swDir=="left"?"left":"right"):"sidebar off")+(S.swSocial?", Social "+(S.soDir=="left"?"←":"→"):"");
+// Said as the page says it everywhere else: by the EDGE the thing opens from (swipe right = menu on the left edge), not by the swipe's direction.
+const edgeName=d=>d=="right"?"left edge":"right edge";
+window.gsum=()=>"Sidebar "+(S.swipe?edgeName(S.swDir):"off")+" · Social "+(S.swSocial?edgeName(S.soDir):"off");
+window.gsumS=()=>"Gestures: "+(S.swipe?"sidebar "+edgeName(S.swDir):"sidebar off")+(S.swSocial?", Social "+edgeName(S.soDir):"");
 let gmsg="";
 S.soDir=op(S.swDir);const _sv=save;window.save=function(){S.soDir=op(S.swDir);_sv()};
 function ill(){const sb=S.swipe,so=S.swSocial,L=S.swDir=="left",any=S.swZone=="any";
@@ -2078,6 +2081,7 @@ body.pmon #badge{display:none!important}
 .drw input[type=range]{width:150px}
 .dck{width:36px;height:20px;border-radius:10px;border:0;background:color-mix(in srgb,var(--fg) 20%,transparent);position:relative;cursor:pointer}.dck::after{content:"";position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;background:#fff;transition:.15s}.dck.on{background:var(--primary)}.dck.on::after{left:18px}
 </style>
+<script><!--include:promotions/catalog.js--></script>
 <script>
 (()=>{
 Object.assign(P,{tag:'<path d="M20.6 13.4l-7.2 7.2a2 2 0 01-2.8 0L3 13V3h10l7.6 7.6a2 2 0 010 2.8z"/><circle cx="7.5" cy="7.5" r="1.5"/>'});
@@ -2085,13 +2089,7 @@ try{const g=NAV.find(x=>x[0]=="Communication");if(g&&!g[1].find(x=>x[0]=="Promot
 const H=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"})[c]);
 const gr=(a,b)=>`linear-gradient(135deg,${a},${b})`;
 const CATS=[["parking","Parking","🅿️"],["moving","Moving & Storage","📦"],["carcare","Car care","🚗"],["ev","EV charging","⚡"],["pets","Pets","🐾"],["dining","Local dining","🍜"],["services","Services","🧰"]];
-const DEALS={parking:[["Mallard Pointe Valet","20% off monthly valet for 3 months","Ends Dec 15","$96/mo",gr("#0f3d33","#2f8f6f"),"🅿️",412],["Covered Spot Upgrade","First month free on covered spots","New","$0 first mo",gr("#1e3a8a","#6366f1"),"🏠",268],["Guest Pass Bundle","10 extra guest-nights for $15","Ends Nov 30","$15",gr("#334155","#94a3b8"),"🎟️",190],["Bike Locker","Secure bike locker, half price","Limited","$10/mo",gr("#166534","#4ade80"),"🚲",88],["Motorcycle Spot","Reserved moto spot near Gate 1","New","$35/mo",gr("#7f1d1d","#f87171"),"🏍️",54]],
-moving:[["Riverbend Movers","$75 off local moves","Ends Nov 15","from $299",gr("#9a3412","#fb923c"),"🚚",143],["CubeSmart","First month $1 at Riverbend storage","Members","$1",gr("#b91c1c","#fca5a5"),"📦",120],["U-Haul","Free 1-day trailer with truck","Ends Nov 22","Free",gr("#c2410c","#fdba74"),"🛻",76],["PackRight","15% off moving boxes & supplies","Sample","15% off",gr("#a16207","#fde047"),"🧷",40]],
-carcare:[["Sparkle Auto Spa","Monthly unlimited washes $19.99","Ends Nov 30","$19.99/mo",gr("#0369a1","#38bdf8"),"🧽",201],["QuickLube","$25 off synthetic oil change","New","$25 off",gr("#1f2937","#6b7280"),"🛢️",98],["Tire Hub","Free rotation with any service","Sample","Free",gr("#111827","#4b5563"),"🛞",65],["Glass Pro","Windshield chip repair, on-site","Limited","$39",gr("#0e7490","#67e8f9"),"🪟",33]],
-ev:[["ChargePoint Home","$100 off a Level 2 home charger","Ends Dec 31","$100 off",gr("#065f46","#34d399"),"⚡",310],["Level 2 · Garage","Overnight charging at $0.18/kWh","Residents","$0.18/kWh",gr("#14532d","#86efac"),"🔌",222],["EV Rebate Help","Free rebate paperwork check","New","Free",gr("#1e40af","#93c5fd"),"🧾",57],["Tesla Service","Mobile service visit $20 off","Sample","$20 off",gr("#0f172a","#64748b"),"🔧",44]],
-pets:[["Nationwide Pet Insurance","Save more with Nationwide® pet","Members","Quote",gr("#7c2d12","#fdba74"),"🐶",188],["Riverbend Pet Spa","First grooming 30% off","Ends Nov 20","30% off",gr("#be185d","#f9a8d4"),"🛁",91],["Rover","$20 off first walk or sit","New","$20 off",gr("#047857","#6ee7b7"),"🦮",72],["Chewy","Free delivery on first order","Sample","Free",gr("#1d4ed8","#a5b4fc"),"🐱",50]],
-dining:[["Pho Riverbend","Free spring rolls with 2 entrées","Ends Nov 30","Free",gr("#b45309","#fcd34d"),"🍜",154],["Mallard Coffee","Buy 5, get 1 free","Ongoing","BOGO",gr("#78350f","#d6a874"),"☕",133],["Taqueria Luz","10% off for residents","New","10% off",gr("#991b1b","#fb7185"),"🌮",60],["Green Bowl","$5 off first delivery","Sample","$5 off",gr("#3f6212","#bef264"),"🥗",39]],
-services:[["Handy Hero","2 hrs handyman for $89","Ends Dec 10","$89",gr("#334155","#cbd5e1"),"🛠️",97],["FreshFold Laundry","Free pickup on first order","New","Free",gr("#0891b2","#a5f3fc"),"🧺",66],["LockSmith Now","Key fob copy $15","Ongoing","$15",gr("#4338ca","#c7d2fe"),"🔑",41],["Sparkle Cleaners","$40 off move-out cleaning","Sample","$40 off",gr("#0f766e","#5eead4"),"🧹",38]]};
+const DEALS=PM_CATALOG.deals();/* the sample deals live in promotions/catalog.js, which the Resident app reads too */
 const TPL={classic:{n:"Classic card",style:"card",radius:12,ratio:"4/3",btn:"pill",label:"View deal",accent:"#1f5d4c",layout:"carousel",per:5,price:false,badge:false,expiry:false},
  overlay:{n:"Image overlay",style:"overlay",radius:16,ratio:"3/4",btn:"pill",label:"Get offer",accent:"#ffffff",layout:"carousel",per:4,price:true,badge:true,expiry:true},
  compact:{n:"Compact list",style:"list",radius:10,ratio:"1/1",btn:"text",label:"View deal ›",accent:"#2563eb",layout:"list",per:2,price:true,badge:false,expiry:true},
@@ -2109,12 +2107,7 @@ const ACC=["#1f5d4c","#2563eb","#7c3aed","#c2410c","#be185d","#0f172a","#ffffff"
 Object.assign(LI,{search:'<circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/>',filter:'<path d="M3 5h18M6 12h12M10 19h4"/>',grid:'<rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>',list:'<path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/>',x:'<path d="M18 6L6 18M6 6l12 12"/>',inbox:'<path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.45 5.11L2 12v6a2 2 0 002 2h16a2 2 0 002-2v-6l-3.45-6.89A2 2 0 0016.76 4H7.24a2 2 0 00-1.79 1.11z"/>',layout:'<rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/>'});
 const NOWD=new Date(2026,9,30);const META={};let gi=0;
 const TYPE=o=>/%/.test(o)?"pct":/\$\d+ off/i.test(o)?"fixed":/bundle|buy \d|get 1|\bfor \$|bogo/i.test(o)?"bundle":/free|first month|\$1\b/i.test(o)?"trial":"coupon";
-CATS.forEach(([k])=>DEALS[k].forEach((d,i)=>{const n=gi++;const code=n%3!=1?(d[0].replace(/[^A-Za-z]/g,"").slice(0,5).toUpperCase()+(10+n%4*5)):"";
- META[k+i]={id:k+i,k,i,d,st:["active","active","scheduled","active","expired","draft","active"][n%7],ty:code&&n%5==4?"coupon":TYPE(d[1]),au:["all","members","movein","all"][n%4],en:["week","month","none","month"][n%4],bl:["Building A","Building B","Garage"][n%3],pb:["QA Staff PM","Dana Whitfield","Sample"][n%3],code,views:d[6],claims:Math.round(d[6]*.28)+n*3,created:n,endsDays:[4,18,999,25][n%4]+n%3};
- const m=META[k+i],live=m.st=="active"||m.st=="expired";if(!live){m.views=0;m.claims=0}else m.claims=Math.min(m.claims,Math.floor(m.views*.7));
- const fd=o=>new Date(2026,9,30+o).toLocaleDateString("en-US",{month:"short",day:"numeric"});
- /* one status = one label: badge text follows status ∧ endsDays (DOC demo clock Oct 30) */
- if(m.st=="expired")d[2]="Ended "+fd(-((m.endsDays%20)+1));else if(m.st=="scheduled")d[2]="Starts "+fd(3+n%9);else if(m.st=="draft")d[2]="Draft";else if(/^Ends /.test(d[2]))d[2]=m.endsDays>=999?"Ongoing":"Ends "+fd(m.endsDays)}));window._pmMETA=META;
+Object.assign(META,PM_CATALOG.meta(DEALS,PM_CATALOG.readOverrides(localStorage)));window._pmMETA=META;
 const FD={st:[["active","Active"],["scheduled","Scheduled"],["expired","Expired"],["draft","Draft"]],ty:[["pct","Discount %"],["fixed","Fixed $ off"],["trial","Free / first month"],["bundle","Bundle"],["coupon","Coupon code"]],au:[["all","All residents"],["members","Members"],["movein","New move-ins"]],en:[["week","This week"],["month","This month"],["none","No end date"]],bl:[["Building A","Building A"],["Building B","Building B"],["Garage","Garage"]],pb:[["QA Staff PM","QA Staff PM"],["Dana Whitfield","Dana Whitfield"],["Sample","Sample data"]]};
 const FL={st:"Status",ty:"Type",au:"Audience",en:"Ends",bl:"Building",pb:"Published by"};
 const SORTS=[["new","Newest"],["ending","Ending soon"],["views","Most viewed"],["claims","Most claimed"],["az","A–Z"]];
@@ -2137,9 +2130,16 @@ addEventListener("hashchange",()=>{if(/^#\/promotions\?/.test(location.hash)){pf
 const nAct=()=>Object.keys(FL).reduce((a,k)=>a+PF[k].length,0)+(PF.code?1:0);
 const isAct=()=>!!PF.q.trim()||nAct()>0||(res&&PF.sv)||(!res&&PF.tab&&PF.tab!="all");
 function match(m){const d=m.d,q=PF.q.trim().toLowerCase();if(window._pmst&&(_pmst.gone(m)||_pmst.archived(m)))return false;if(q&&!(d[0]+" "+d[1]+" "+d[3]+" "+m.code+" "+CATS.find(c=>c[0]==m.k)[1]).toLowerCase().includes(q))return false;
- for(const k of Object.keys(FL))if(PF[k].length&&!PF[k].includes(k=="st"?({so:"soldout",ex:"expired"})[pmTabOf(m)]||m.st:m[k]))return false;if(PF.code&&!m.code)return false;if(res&&PF.sv&&!SV.has(m.id))return false;if(!res&&PF.tab&&PF.tab!="all"&&pmTabOf(m)!=PF.tab)return false;return true}
+ for(const k of Object.keys(FL))if(PF[k].length&&!PF[k].includes(k=="st"?({so:"soldout",ex:"expired"})[pmTabOf(m)]||m.st:m[k]))return false;if(PF.code&&!m.code)return false;if(res&&PF.sv&&!SV.has(m.id))return false;if(!res&&PF.tab&&PF.tab!="all"&&pmTabOf(m)!=PF.tab)return false;/* only published deals count: a draft shows in the Drafts tab (or when the Status filter asks for it), never in "All", the category counts or the resident view */if(m.st=="draft"&&(res||((!PF.tab||PF.tab=="all")&&!PF.st.includes("draft"))))return false;return true}
+/* The on/off switch of a deal: on = residents see it (live, sold out), scheduled = on, residents see it from its start date, off = a draft they do not see, ended = off and cannot be turned on here. Icon AND words, never colour alone. */
+const PMV_ICON={on:'<path d="M2.06 12.35a1 1 0 0 1 0-.7 10.75 10.75 0 0 1 19.88 0 1 1 0 0 1 0 .7 10.75 10.75 0 0 1-19.88 0"/><circle cx="12" cy="12" r="3"/>',wait:'<circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>',off:'<path d="M10.733 5.076a10.744 10.744 0 0 1 11.205 6.575 1 1 0 0 1 0 .696 10.747 10.747 0 0 1-1.444 2.49"/><path d="M14.084 14.158a3 3 0 0 1-4.242-4.242"/><path d="M17.479 17.499a10.75 10.75 0 0 1-15.417-5.151 1 1 0 0 1 0-.696 10.75 10.75 0 0 1 4.446-5.143"/><path d="m2 2 20 20"/>'};
+const pmVis=m=>{const z=window._pmStock&&_pmStock.state(m);return z=="expired"||m.st=="expired"?"ended":m.st=="draft"?"off":m.st=="scheduled"?"wait":"on"};
+const pmVisBtn=(m,br)=>{const v=pmVis(m),on=v=="on"||v=="wait";const say={on:"Visible to residents",wait:"Scheduled: residents see it from its start date",off:"Hidden from residents",ended:"Ended: residents no longer see it"}[v];const act=v=="ended"?"":on?". Turn off to hide it":". Turn on to publish it";let since="";try{const lg=JSON.parse(localStorage.getItem("eso-pm-vislog")||"[]");for(let i=lg.length-1;i>=0;i--)if(lg[i]&&lg[i].id===m.id){since=". "+(lg[i].to=="off"?"Turned off ":"Turned on ")+new Date(lg[i].at).toLocaleString("en-US",{month:"short",day:"numeric",hour:"numeric",minute:"2-digit"});break}}catch(e){}
+const word={on:"Live",wait:"Scheduled",off:"Off live",ended:"Ended"}[v];return `<button type="button" class="pmv pmv-${v}" data-pmvis="${m.id}" role="switch" aria-checked="${on}" aria-label="${H(say+act)}: ${H(br)}" title="${H(say+act+since)}"${v=="ended"?" disabled":""}><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${v=="off"||v=="ended"?2.75:2.25}" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${PMV_ICON[v=="ended"?"off":v]}</svg><span class="pmv-t">${word}</span></button>`};
+window._pmVisBtn=pmVisBtn;
 const pmTabOf=m=>{const z=window._pmStock&&m.id&&_pmStock.state(m);return z=="expired"?"ex":z=="soldout"?"so":m.st=="draft"?"dr":m.st=="active"?"live":"saved"};
-function pmTabs(){const c={all:0,live:0,so:0,ex:0,saved:0,dr:0};Object.values(META).forEach(m=>{if(!m||!m.st)return;if(window._pmst&&(_pmst.gone(m)||_pmst.archived(m)))return;c.all++;c[pmTabOf(m)]++});const t=PF.tab||"all";return `<div class="pdtabs pmtabs" role="tablist" aria-label="Promotion status">${[["all","All"],["live","Live"],["so","Sold out"],["ex","Expired"],["saved","Saved"],["dr","Drafts"],["claims","Claims"],["store","Storage"]].map(([k,l])=>k=="store"?(window._pmst?`<button role="tab" data-pmtab="store" aria-selected="${t==k}" class="${t==k?"on":""}">Storage <span class="pdc">${_pmst.count()}</span></button>`:""):k=="claims"?(window._pmcl?`<button role="tab" data-pmtab="claims" aria-selected="${t==k}" class="${t==k?"on":""}">${lic("inbox",14)} Claims${_pmcl.pending()?` <span class="pdc pdc-p" title="Pending claims">${_pmcl.pending()}</span>`:""}</button>`:""):`<button role="tab" data-pmtab="${k}" aria-selected="${t==k}" class="${t==k?"on":""}">${l} <span class="pdc">${c[k]}</span></button>`).join("")}</div>`}
+window._pmTabOf=pmTabOf;
+function pmTabs(){const c={all:0,live:0,so:0,ex:0,saved:0,dr:0};Object.values(META).forEach(m=>{if(!m||!m.st)return;if(window._pmst&&(_pmst.gone(m)||_pmst.archived(m)))return;if(m.st!="draft")c.all++;c[pmTabOf(m)]++});const t=PF.tab||"all";return `<div class="pdtabs pmtabs" role="tablist" aria-label="Promotion status">${[["all","All"],["live","Live"],["so","Sold out"],["ex","Expired"],["saved","Saved"],["dr","Drafts"],["claims","Claims"],["store","Storage"]].map(([k,l])=>k=="store"?(window._pmst?`<button role="tab" data-pmtab="store" aria-selected="${t==k}" class="${t==k?"on":""}">Storage <span class="pdc">${_pmst.count()}</span></button>`:""):k=="claims"?(window._pmcl?`<button role="tab" data-pmtab="claims" aria-selected="${t==k}" class="${t==k?"on":""}">${lic("inbox",14)} Claims${_pmcl.pending()?` <span class="pdc pdc-p" title="Pending claims">${_pmcl.pending()}</span>`:""}</button>`:""):`<button role="tab" data-pmtab="${k}" aria-selected="${t==k}" class="${t==k?"on":""}">${l} <span class="pdc">${c[k]}</span></button>`).join("")}</div>`}
 window.addEventListener("click",e=>{const t=e.target.closest&&e.target.closest("[data-pmsv],[data-pmsvf]");if(!t)return;e.preventDefault();e.stopImmediatePropagation();
  if(t.dataset.pmsvf!==undefined){RDP=false;PF.sv=!PF.sv;if(PF.sv){PF.cat="all";cat="all"}pfSave();render();return}
  const id=t.dataset.pmsv,was=SV.has(id);was?SV.delete(id):SV.add(id);svPut();svSync(id);toast(was?"Removed from saved":"Saved — find it under Saved");
@@ -2155,9 +2155,30 @@ function HL(t){const e=H(t),q=PF.q.trim();if(!q)return e;const x=H(q).replace(/[
 const STL={active:"Active",scheduled:"Scheduled",expired:"Expired",draft:"Draft"};
 function card(d,c,k,i){const[br,of,bd,pr,g,em,vw0]=d;const m=META[k+(i??0)]||{};const vw=m.id?(m.views||0):vw0;
  const cv=window._cov&&_cov.get(m.id);
- return `<article class="pd s-${c.style}" data-pmid="${m.id||""}" style="--r:${c.radius}px;--ac:${c.accent};--ratio:${c.ratio}${c.font?";font-family:"+c.font+";--pfh:"+c.fontH:""}"><div class="pi ${cv?"has-cv":""}" style="background:${g}">${cv?`<img class="pcv" src="${cv.src}" alt="${H(cv.alt||"")}" style="object-position:${cv.fx}% ${cv.fy}%">`:`<span class="pic">${lic(k,44,1.5)}</span>`}${c.badge?`<span class="bd">${H(bd)}</span>`:""}${res||!m.id?"":`<button class="pme" data-pmedit="${m.id}" aria-label="Edit card cover for ${H(br)}" title="Edit card cover">${lic("pen",14)}</button>`}${res&&m.id?svBtn(m.id):""}</div><div class="pb"><b>${HL(br)}</b><p>${HL(of)}</p>${c.price?`<span class="pc">${H(pr)}</span>`:""}${c.expiry&&!c.badge?`<span class="ex">${H(bd)}</span>`:""}${m.code?`<span class="pcode">${lic("tag",11)}<span>${HL(m.code)}</span></span>`:""}${window._pmStock?_pmStock.bar(m):""}${window._pmst&&!res?_pmst.sched(m):""}${window._pmStock&&_pmStock.state(m)?`<button class="pbt b-${c.btn} pbt-off" data-pmoff="${_pmStock.state(m)}" disabled>${H(_pmStock.btn(m))}</button>`:`<button class="pbt b-${c.btn}" data-pmdeal="${m.id||""}">${H(c.label)}</button>`}</div>${res?"":`<div class="stf">${window._pmStock&&_pmStock.state(m)?`<span class="pst ${_pmStock.state(m)}" title="${_pmStock.state(m)=="soldout"?"Fully claimed":""}">${_pmStock.state(m)=="soldout"?"Sold out":"Expired"}</span>`:`<span class="pst ${m.st}">${STL[m.st]||""}</span>`}<button type="button" class="stn" data-pmwho="views" data-pmwid="${m.id||""}" aria-label="${vw} views, see who viewed">${lic("eye",12)} ${typeof vw=="number"&&vw>=1e4?(vw/1e3).toFixed(0)+"k":vw}</button><button type="button" class="stn" data-pmwho="claims" data-pmwid="${m.id||""}" aria-label="${window._pmStock?_pmStock.used(m):m.claims||0} claimed, see who claimed">${lic("ticket",12)} ${window._pmStock?_pmStock.used(m):m.claims||0}<span class="stl"> claimed</span></button></div>`}</article>`}
+ return `<article class="pd s-${c.style}" data-pmid="${m.id||""}" style="--r:${c.radius}px;--ac:${c.accent};--ratio:${c.ratio}${c.font?";font-family:"+c.font+";--pfh:"+c.fontH:""}"><div class="pi ${cv?"has-cv":""}" style="background:${g}">${cv?`<img class="pcv" src="${cv.src}" alt="${H(cv.alt||"")}" style="object-position:${cv.fx}% ${cv.fy}%">`:`<span class="pic">${lic(k,44,1.5)}</span>`}${c.badge?`<span class="bd">${H(bd)}</span>`:""}${res||!m.id?"":`<button class="pme" data-pmedit="${m.id}" aria-label="Edit card cover for ${H(br)}" title="Edit card cover">${lic("pen",14)}</button>`}${res||!m.id?"":pmVisBtn(m,br)}${res&&m.id?svBtn(m.id):""}</div><div class="pb"><b>${HL(br)}</b><p>${HL(of)}</p>${c.price?`<span class="pc">${H(pr)}</span>`:""}${c.expiry&&!c.badge?`<span class="ex">${H(bd)}</span>`:""}${m.code?`<span class="pcode">${lic("tag",11)}<span>${HL(m.code)}</span></span>`:""}${window._pmStock?_pmStock.bar(m):""}${window._pmst&&!res?_pmst.sched(m):""}${window._pmStock&&_pmStock.state(m)?`<button class="pbt b-${c.btn} pbt-off" data-pmoff="${_pmStock.state(m)}" disabled>${H(_pmStock.btn(m))}</button>`:`<button class="pbt b-${c.btn}" data-pmdeal="${m.id||""}">${H(c.label)}</button>`}</div>${res?"":`<div class="stf">${window._pmStock&&_pmStock.state(m)?`<span class="pst ${_pmStock.state(m)}" title="${_pmStock.state(m)=="soldout"?"Fully claimed":""}">${_pmStock.state(m)=="soldout"?"Sold out":"Expired"}</span>`:`<span class="pst ${m.st}">${STL[m.st]||""}</span>`}<button type="button" class="stn" data-pmwho="views" data-pmwid="${m.id||""}" aria-label="${vw} views, see who viewed">${lic("eye",12)} ${typeof vw=="number"&&vw>=1e4?(vw/1e3).toFixed(0)+"k":vw}</button><button type="button" class="stn" data-pmwho="claims" data-pmwid="${m.id||""}" aria-label="${window._pmStock?_pmStock.used(m):m.claims||0} claimed, see who claimed">${lic("ticket",12)} ${window._pmStock?_pmStock.used(m):m.claims||0}<span class="stl"> claimed</span></button></div>`}</article>`}
 function sec(k,list){const c0=cfg(k),c=PF.view=="list"?Object.assign({},c0,{style:"list",layout:"list"}):c0,C=CATS.find(x=>x[0]==k);const nm=CF[k]&&CF[k].mode=="custom"?"Custom":c0.follows?"Follows "+c0.follows:TPL[(CF[k]&&CF[k].tpl)||SUG[k]].n;
- return `<section ${CF[k]&&CF[k].mode=="custom"?"data-cm ":""}class="pm-sec ${dOpen&&dCat==k?"sel":""}" id="pms-${k}"><div class="pm-sh"><h2><span class="pm-st">${C[1]}</span> <small>${list.length} ${list.length==1?"deal":"deals"}</small></h2>${res?"":`<button class="ed" data-pmed="${k}" title="Section style · ${nm} (staff-only quick override)" aria-label="Section style: ${nm}">${lic("pen",13)}<span class="edl"> Section style · ${nm}</span></button>`}</div><div class="pr l-${c.layout}" style="--per:${c.per}">${list.map(m=>card(m.d,c,k,m.i)).join("")}</div></section>`}
+ /* "Show more": a category with more than 60 deals draws the first 60 and a button for the next 60 (the counts above stay true). Under 60 nothing changes. Safe by design: the list is
+    never cut by what is on screen but by a count Staff can raise; a filter, search, tab or sort starts it again; follow() and links open the hidden card with window._pmReveal. */
+ const MR=window._pmMore||(window._pmMore={page:60,more:{},shown:{},sig:""});
+ const sig=JSON.stringify([PF.tab,PF.q,PF.st,PF.ty,PF.au,PF.en,PF.bl,PF.pb,PF.code,PF.sort,PF.view,PF.cat]);
+ if(MR.sig!==sig){MR.sig=sig;MR.shown={}}
+ const shown=list.length>MR.page?Math.min(list.length,MR.shown[k]||MR.page):list.length;
+ MR.more[k]={list,c,k,shown};
+ return `<section ${CF[k]&&CF[k].mode=="custom"?"data-cm ":""}class="pm-sec ${dOpen&&dCat==k?"sel":""}" id="pms-${k}"><div class="pm-sh"><h2><span class="pm-st">${C[1]}</span> <small>${list.length} ${list.length==1?"deal":"deals"}</small></h2>${res?"":`<button class="ed" data-pmed="${k}" title="Section style · ${nm} (staff-only quick override)" aria-label="Section style: ${nm}">${lic("pen",13)}<span class="edl"> Section style · ${nm}</span></button>`}</div><div class="pr l-${c.layout}" style="--per:${c.per}">${list.slice(0,shown).map(m=>card(m.d,c,k,m.i)).join("")}</div>${moreHTML(k)}</section>`}
+function moreHTML(k){const s=window._pmMore.more[k];if(!s||s.list.length<=window._pmMore.page)return "";
+const left=s.list.length-s.shown,next=Math.min(window._pmMore.page,left),C=CATS.find(x=>x[0]==k);
+return `<div class="pm-more" data-pmmorebox="${k}">${left?`<button type="button" class="btn o" data-pmmore="${k}" aria-label="Show ${next} more promotions in ${H(C[1])}, ${left} not shown yet">Show ${next} more</button>`:""}<span class="pm-more-n" role="status" aria-live="polite">${left?`Showing ${s.shown} of ${s.list.length}`:`Showing all ${s.list.length}`}</span></div>`}
+/* show more cards of one category: appended to the row, so what is open, selected or scrolled stays as it is */
+function pmMoreTo(k,upto){const s=window._pmMore.more[k];if(!s||upto<=s.shown)return false;
+const to=Math.min(s.list.length,Math.ceil(upto/window._pmMore.page)*window._pmMore.page),row=document.querySelector("#pms-"+k+" .pr");if(!row)return false;
+const html=s.list.slice(s.shown,to).map(m=>card(m.d,s.c,k,m.i)).join("");row.insertAdjacentHTML("beforeend",html);
+const firstNew=row.children[s.shown];s.shown=to;window._pmMore.shown[k]=to;
+const box=document.querySelector('[data-pmmorebox="'+k+'"]');if(box)box.outerHTML=moreHTML(k);return firstNew||true}
+window._pmReveal=function(id){const m=META[id];if(!m)return false;const s=window._pmMore&&window._pmMore.more[m.k];if(!s)return false;const i=s.list.indexOf(m);if(i<0||i<s.shown)return false;return !!pmMoreTo(m.k,i+1)};
+window.addEventListener("click",e=>{const b=e.target.closest&&e.target.closest("[data-pmmore]");if(!b)return;e.preventDefault();e.stopImmediatePropagation();
+const k=b.dataset.pmmore,s=window._pmMore.more[k];if(!s)return;const first=pmMoreTo(k,s.shown+1);
+/* focus goes to the first new card's first control, so a keyboard user continues from there; the button is replaced and would lose it */
+if(first&&first!==true){const t=first.querySelector("button,a[href],[tabindex]");if(t){t.focus({preventScroll:false})}}},true);
 function chips(){const L=[];Object.keys(FL).forEach(k=>PF[k].forEach(v=>L.push([k,v,FL[k]+": "+(FD[k].find(x=>x[0]==v)||[0,v])[1]])));if(PF.code)L.push(["code","1","Has coupon code"]);
  return L.length?`<div class="pmchips" role="list" aria-label="Active filters">${L.map(x=>`<span class="pchip" role="listitem">${H(x[2])}<button data-pmrm="${x[0]}:${H(x[1])}" aria-label="Remove filter ${H(x[2])}">${lic("x",12)}</button></span>`).join("")}<button class="pclr" data-pmclearall>Clear all</button></div>`:""}
 function toolbar(R){const n=nAct(),tot=Object.values(R).reduce((a,l)=>a+l.length,0);
@@ -2707,12 +2728,12 @@ Object.assign(LI,{user:'<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0116 
 window.SICO={secstat:"shield",passkeys:"fingerprint",authenticator:"smartphone",smscodes:"msg2",backup:"filekey",activity:"clock",recemail:"mail",recphone:"phone",wssec:"building",myprofile:"user",general:"user",availability:"activity",notifications:"bell",personalize:"palette",language:"globe",datetime:"clock",security:"shield",password:"key",twostep:"lock",devices:"smartphone",signout:"logout",about:"info",general:"info",access:"users",properties:"building",support:"lifebuoy",platformsec:"shield",property:"building",branding:"image",images:"image",gallery:"grid",details:"info",hours:"calendar",amenities:"sparkles",brandcolors:"droplet",theme:"sun",accent:"palette",text:"type",sidebar:"sidebar",icons:"sparkles",buttons:"square",cards:"cards",gestures:"hand",messenger:"msg",wnotif:"bell",permissions:"key",promodesign:"palette",socialmaster:"social"};
 const ss=window._ss;
 function smPage(){const S2=ss.SS,on=S2.on,p=ss.paused();return `<div class="smp"><div class="card">
-<div class="smr"><span><b>Use Social</b><small>Staff feed, Activity and My Social. Turning it off doesn't affect Community &amp; Announcements, Promotions or residents.</small></span><button class="sw ${on?"on":""}" role="switch" aria-checked="${on}" aria-label="Use Social" data-smon></button></div>
+<div class="smr"><span><b>Use Social</b><small>Turns Social on or off for the whole building, residents included.</small></span><button class="sw ${on?"on":""}" role="switch" aria-checked="${on}" aria-label="Use Social" data-smon></button></div>
 <div class="smr"><span><b>Show in sidebar</b><small>${on?"When hidden, Social is still reachable from search or its URL.":"Turn on Social first."}</small></span><button class="sw ${on&&S2.sidebar?"on":""}" role="switch" aria-checked="${on&&S2.sidebar}" aria-label="Show Social in sidebar" data-smsb ${on?"":"disabled"}></button></div>
 <div class="smr"><span><b>Pause Social</b><small>${p?ss.pauseLabel():"Mute Social badges and alerts for a while (Social DND)."}</small></span><div class="smb smb1">${!on?"":p?`<span class="smpz" role="status">Paused</span><button class="btn" data-smp="off">Resume</button>`:`<label class="smsel"><select data-smpsel aria-label="Pause Social for"><option value="" selected disabled>Pause for…</option><option value="30">30 minutes</option><option value="60">1 hour</option><option value="tom">Until tomorrow 9:00 AM</option><option value="custom">Custom…</option></select><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></label>`}</div></div>
 ${on&&!p?`<div class="smr smcu" id="smcu" hidden><span><b>Pause until</b></span><span class="smcf"><input type="datetime-local" id="smcuv" aria-label="Pause Social until"><button class="btn" data-smcu>Pause</button></span></div>`:""}
 ${on?`<a class="smr smlink" href="#/social/settings"><span><b>More Social settings</b><small>Presence, posts, notifications, quiet hours and muted.</small></span><svg class="smchev" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg></a>`:`<div class="smr"><span><b>More Social settings</b><small>Presence, posts, notifications, quiet hours and muted.</small></span><span class="sm-mut" style="color:var(--muted);font-size:14px;line-height:20px">Unavailable while off</span></div>`}</div></div>`}
-function confirmOff(){const d=document.createElement("div");d.id="smc";d.innerHTML=`<div class="bx" role="dialog" aria-modal="true" aria-labelledby="smct"><h3 id="smct">Turn off Social?</h3><p style="margin:0;font-size:14px;line-height:20px">You'll stop seeing the Social feed, Activity badges and the Social swipe gesture.</p><ul><li>Community &amp; Announcements posting keeps working, and posts are still published.</li><li>Promotions and everything residents see are not affected.</li><li>You can turn Social back on at any time.</li></ul><div class="ft"><button class="btn out2" data-smx>Cancel</button><button class="btn" data-smoff>Turn off Social</button></div></div>`;document.body.appendChild(d);d.querySelector("[data-smoff]").focus()}
+function confirmOff(){const d=document.createElement("div");d.id="smc";d.innerHTML=`<div class="bx" role="dialog" aria-modal="true" aria-labelledby="smct"><h3 id="smct">Turn off Social?</h3><p style="margin:0;font-size:14px;line-height:20px">Social closes for the whole building, including residents.</p><ul><li>Residents see "Social is off". Nothing they wrote is deleted.</li><li>Messages, Promotions and Notifications keep working.</li><li>You can turn Social back on at any time.</li></ul><div class="ft"><button class="btn out2" data-smx>Cancel</button><button class="btn" data-smoff>Turn off Social</button></div></div>`;const from=document.activeElement;document.body.appendChild(d);d.querySelector("[data-smx]").focus();new MutationObserver((_,o)=>{if(!d.isConnected){o.disconnect();if(from&&from.isConnected&&from.focus)from.focus()}}).observe(document.body,{childList:true})}
 document.addEventListener("click",e=>{const t=e.target.closest("[data-smon],[data-smsb],[data-smp],[data-smx],[data-smoff],[data-smcu],#smc");if(!t)return;if(t.id=="smc"&&e.target!==t)return;e.preventDefault();e.stopPropagation();const d=t.dataset,S2=ss.SS;
  if(t.id=="smc"||d.smx!==undefined){document.getElementById("smc")?.remove();return}
  if(d.smon!==undefined){if(S2.on)return confirmOff();S2.on=true;S.swSocial=!!S._soPrev;delete S._soPrev;ss.sss();save();ss.apply();toast("Social turned on");return}
@@ -2863,7 +2884,7 @@ html body .wshead .hdact{flex-basis:100%;display:flex;align-items:center;gap:8px
 /* 4. bottom search (mobile) */
 #bsr{display:none}
 @media(max-width:767px){
- #bsr{display:flex;position:fixed;left:12px;right:12px;bottom:calc(12px + env(safe-area-inset-bottom) + var(--kb,0px));z-index:45;height:44px;align-items:center;gap:8px;padding:0 4px 0 14px;border-radius:999px;background:color-mix(in srgb,var(--card) 94%,transparent);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid var(--border);box-shadow:0 6px 20px rgba(15,23,42,.12);transition:transform .2s ease,opacity .2s;color:var(--muted)}
+ #bsr{display:flex;position:fixed;left:12px;right:12px;bottom:calc(12px + env(safe-area-inset-bottom) + var(--kb,0px));z-index:45;height:44px;align-items:center;gap:8px;padding:0 4px 0 14px;border-radius:999px;background:var(--card);border:1px solid var(--border);box-shadow:0 6px 20px rgba(15,23,42,.12);transition:transform .2s ease,opacity .2s;color:var(--muted)}
  #bsr input{flex:1;min-width:0;height:40px!important;border:0!important;outline:0!important;background:none!important;box-shadow:none!important;padding:0!important;font:400 14px/20px var(--font-sans);color:var(--fg)}
  #bsr .bsr-ai{width:36px;height:36px;border-radius:999px;border:0;background:#0f1b33;color:#fff;display:grid;place-items:center;flex-shrink:0}
  #bsr .bsr-x{width:32px;height:32px;border:0;background:none;color:var(--muted);display:grid;place-items:center}
@@ -4572,7 +4593,7 @@ window.secStatus=()=>{const s=st(),pk=(s.pk||[]).length>0,rec=!!((s.rec||{}).ema
  return `<section class="secst ${ok?"ok":"warn"}" aria-label="Security status"><div class="secst-h"><span class="secst-i">${I("shield",22)}</span><div><h2>${ok?"Your account is protected":!m?"Add 2-step to protect your account":"Add a recovery option"}</h2><p>${done} of ${items.length} security steps complete</p></div></div><div class="secst-bar" role="progressbar" aria-valuemin="0" aria-valuemax="${items.length}" aria-valuenow="${done}"><i style="width:${done/items.length*100}%"></i></div><ul class="secst-l">${items.map(([t,v,id])=>`<li class="${v?"ok":""}"><button data-go="settings/security/${id}"><span class="secst-c" aria-hidden="true">${v?I("check",12):""}</span>${t}<span class="sr">${v?" — done":" — not done"}</span></button></li>`).join("")}</ul>${next?`<button class="btn secst-a" ${next[1]}>${next[0]}</button>`:""}</section>`};
 const card=(t,d,b)=>`<div class="pscard sec2"><div class="hd"><div><h3>${t}</h3><p>${d}</p></div></div>${b}</div>`;
 window.sec2Leaf=()=>{const m=isMfa(),ms=methods();if(!m)return card("2-step verification","After your password, you'll confirm it's you with a code. Choose a method to turn it on.",`<div class="sec-off"><span class="sbadge off">Off</span><span>Your account is protected by your password only.</span></div><div class="wsec-a"><button class="btn" data-sec2on>Get started</button></div>`);
- return card("2-step verification","You'll be asked for a code after entering your password.",`<div class="sec-ok"><b>● On since ${esc(st().mfaAt||"today")}</b><small>Default method: ${esc(ms[0]||"Authenticator app")}</small></div><div class="srows">${[["authenticator","smartphone","Authenticator app",window.secSum&&secSum("auth")=="On"],["smscodes","msg2","SMS or email codes",!!st().sms],["backup","filekey","Backup codes",!!st().bk]].map(([id,ic,t,on])=>`<button class="srow" data-go="settings/security/${id}"><span class="sic" style="--c:#2563eb">${I(ic)}</span><span class="stt">${t}<small class="ousum">${on?"Set up":"Not set up"}</small></span><span class="sbadge ${on?"on":"off"}">${on?"On":"Off"}</span><span class="chev">›</span></button>`).join("")}</div><div class="wsec-a"><button class="btn out2" data-sec2add>Add another method</button><button class="btn out2 dg" data-sec2off>Turn off 2-step</button></div>`)};
+ return card("2-step verification","You'll be asked for a code after entering your password.",`<div class="sec-ok"><b>● On since ${esc(st().mfaAt||"today")}</b><small>Default method: ${esc(ms[0]||"Authenticator app")}</small></div><div class="srows">${[["authenticator","smartphone","Authenticator app",window.secSum&&secSum("auth")=="On"],["smscodes","msg2","SMS or email codes",!!st().sms],["backup","filekey","Backup codes",!!st().bk]].map(([id,ic,t,on])=>`<button class="srow" data-go="settings/security/${id}"><span class="sic" style="--c:#2563eb">${I(ic)}</span><span class="stt">${t}<small class="ousum">${on?"Set up":"Not set up"}</small></span><span class="sbadge ${on?"on":"off"}">${on?"On":"Off"}</span><span class="chev">›</span></button>`).join("")}</div><div class="wsec-a"><button class="btn out2" data-sec2add>Add another method</button>${window._companyMfa&&_companyMfa()?"":`<button class="btn out2 dg" data-sec2off>Turn off 2-step</button>`}</div>${window._companyMfa&&_companyMfa()?`<p class="wsec-n" role="note">Your company requires 2-step verification for everyone, so it cannot be turned off here.</p>`:""}`)};
 window.secSms=()=>{const s=st();return card("SMS or email codes","Get a one-time code by text message or email when you sign in.",s.sms?`<div class="sec-ok"><b>● ${s.sms.t=="email"?"Email":"SMS"} codes on</b><small>Codes go to ${esc(s.sms.v)}</small></div><div class="wsec-a"><button class="btn out2 dg" data-secsmsoff>Remove</button></div>`:`<p class="wsec-n">Not set up.</p><div class="wsec-a"><button class="btn" data-sec2on="sms">Set up</button></div>`)};
 const genCodes=()=>Array.from({length:10},()=>String(Math.floor(1e7+Math.random()*9e7)).replace(/(\d{4})(\d{4})/,"$1-$2"));
 const codesHTML=c=>`<div class="sec-codes">${c.map(x=>`<code>${x}</code>`).join("")}</div><div class="wsec-a"><button class="btn out2" data-secbkdl>${I("download",14)} Download</button><button class="btn out2" data-secbkcp>Copy</button></div>`;
@@ -4595,7 +4616,7 @@ document.addEventListener("sec:auth",()=>{if(T){T.step=2;T.codes=genCodes();tsDr
 const dl=c=>{const a=document.createElement("a");a.href=URL.createObjectURL(new Blob(["EasySpotOps backup codes\nstaff@mail.easyspotops.com\n\n"+c.join("\n")+"\n"],{type:"text/plain"}));a.download="easyspotops-backup-codes.txt";document.body.appendChild(a);a.click();a.remove()};
 document.addEventListener("click",e=>{const t=e.target.closest&&e.target.closest("[data-sec2on],[data-sec2off],[data-sec2add],[data-secsmsoff],[data-secbkgen],[data-secbkdl],[data-secbkcp],[data-secdevout],[data-secdevall],[data-secrecdel],[data-tsx],[data-tsm],[data-tsnext],[data-tsback],[data-tsdone]");if(!t)return;e.preventDefault();e.stopImmediatePropagation();const d=t.dataset,s=st();
  if(d.sec2on!==undefined)return openTs(d.sec2on||null);if(d.sec2add!==undefined)return openTs(null);
- if(d.sec2off!==undefined){if(!confirm("Turn off 2-step verification? Your account will be protected by your password only."))return;setMfa(false);_secLog("2-step verification turned off");toast("2-step verification turned off");return rr()}
+ if(d.sec2off!==undefined){if(window._companyMfa&&_companyMfa()){toast("Your company requires 2-step verification, so it cannot be turned off here.");return}if(!confirm("Turn off 2-step verification? Your account will be protected by your password only."))return;setMfa(false);_secLog("2-step verification turned off");toast("2-step verification turned off");return rr()}
  if(d.secsmsoff!==undefined){delete s.sms;W(s);_secLog("SMS/email codes removed");return rr()}
  if(d.secbkgen!==undefined){s.bk=genCodes();s.bkAt=now();s.bku=0;W(s);_secLog("Backup codes generated");toast("New backup codes generated");return rr()}
  if(d.secbkdl!==undefined){dl(T&&T.codes||s.bk||[]);if(T)T.saved=1;return toast("Backup codes downloaded")}
@@ -5855,7 +5876,7 @@ addEventListener("click",e=>{const t=e.target;if(!t.closest)return;
  if(t.closest("[data-pdx]")&&DS){e.preventDefault();e.stopImmediatePropagation();return history.state&&history.state.pdd?history.back():dclose()}
  const cp=t.closest("[data-pdcopy],[data-pdcta]");if(cp&&DS){e.preventDefault();e.stopImmediatePropagation();const c=(window._pmMETA[DS]||{}).code;if(c)(t=>(navigator.clipboard?navigator.clipboard.writeText(t):Promise.reject()).then(()=>1,()=>0))(c).then(ok=>toast(ok?"Code "+c+" copied":"Couldn't copy code"));else toast("Deal saved to your wallet");return}
  const ed=t.closest(".pd [data-pmedit]");if(ed){e.preventDefault();e.stopImmediatePropagation();const ar=ed.closest(".pd");return open(ed.dataset.pmedit,{title:ar.querySelector(".pb b")?.textContent})}
- const dl=t.closest(".pd[data-pmid]");if(dl&&dl.dataset.pmid&&!t.closest(".stf")&&!t.closest("[data-pmsch]")&&!(window._pmcl&&window._pm&&_pm.res&&t.closest(".pbt[data-pmdeal]"))&&!document.getElementById("lw")){e.preventDefault();e.stopImmediatePropagation();return detail(dl.dataset.pmid)}},true);
+ const dl=t.closest(".pd[data-pmid]");if(dl&&dl.dataset.pmid&&!t.closest("[data-pmvis]")&&!t.closest(".stf")&&!t.closest("[data-pmsch]")&&!(window._pmcl&&window._pm&&_pm.res&&t.closest(".pbt[data-pmdeal]"))&&!document.getElementById("lw")){e.preventDefault();e.stopImmediatePropagation();return detail(dl.dataset.pmid)}},true);
 addEventListener("keydown",e=>{if(e.key=="Escape"){if(S)close();else if(DS)dclose()}});
 if(/#\/promotions/.test(location.hash)&&Object.keys(C).length)setTimeout(()=>dispatchEvent(new HashChangeEvent("hashchange",{oldURL:location.href,newURL:location.href})),0);window._cov={get:id=>C[id],open,detail,set(id,v){C[id]=v;sv()}};})();</script>
 <style id="pmcovercss">
@@ -6168,7 +6189,9 @@ function add(x,st,id){const k=x.cat||"services";if(!DEALS[k])DEALS[k]=[];let i=D
  const d=[x.title||"Untitled draft",x.reward||x.desc.slice(0,60)||"—",st=="scheduled"?"Starts "+x.start.slice(5):"New",offerTxt(x),bg,"🏷️",0];d.pmc=id;if(i<0){DEALS[k].push(d);i=DEALS[k].length-1}else DEALS[k][i]=d;
  const m=META[k+i]||{};Object.assign(m,{id:k+i,k,i,d,st,ty:x.otype=="pct"?"pct":x.otype=="fixed"?"fixed":x.otype=="free"?"trial":"bundle",au:x.au=="seg"&&x.segs[0]?x.segs[0]:"all",en:x.end?"month":"none",bl:x.blds[0]||"Building A",pb:"QA Staff PM",code:x.method=="static"||x.method=="qr"?x.code:"",views:m.views||0,claims:m.claims||0,created:-1e6-(+id),endsDays:x.end?Math.max(0,Math.round((new Date(x.end)-new Date())/864e5)):999,pmc:id,x});META[k+i]=m;return m}
 function saved(){try{return JSON.parse(localStorage.getItem(SK)||"[]")}catch(e){return[]}}
-saved().forEach(s=>{try{const m=add(Object.assign(blank(),s.x),s.st,s.id);m.views=s.views||0;m.claims=s.claims||0}catch(e){}});if(saved().length&&/^#\/promotions/.test(location.hash))setTimeout(()=>PM.upd&&PM.upd(),0);
+/* A deal scheduled for a date is live from that date: the Resident app already shows it then, so this list must too (Saved becomes Live). */
+const todayISO=(()=>{const n=new Date(),p=v=>String(v).padStart(2,"0");return n.getFullYear()+"-"+p(n.getMonth()+1)+"-"+p(n.getDate())})();
+saved().forEach(s=>{try{const m=add(Object.assign(blank(),s.x),s.st==="scheduled"&&s.x&&s.x.start&&s.x.start<=todayISO?"active":s.st,s.id);m.views=s.views||0;m.claims=s.claims||0}catch(e){}});if(saved().length&&/^#\/promotions/.test(location.hash))setTimeout(()=>PM.upd&&PM.upd(),0);
 const NM={title:"Title",cat:"Category",newcat:"New category name",reward:"Short description",desc:"Detailed description",oval:"Offer value",ch:"Delivery channels",code:"Promo code",link:"External link",start:"Start date",end:"End date",alt:"Cover alt text",au:"Audience",limT:"Total claim limit"};
 function errs(x){const E={};if(!x.title.trim())E.title="Add a title residents will recognize.";if(!x.cat)E.cat="Pick a category.";if(x.cat=="__new"&&!x.newcat.trim())E.newcat="Name the new category.";if(!x.reward.trim())E.reward="Add a one-line summary.";if(!x.desc.trim())E.desc="Describe how the offer works.";
  if((x.otype=="pct"||x.otype=="fixed")&&!(+x.oval>0))E.oval=x.otype=="pct"?"Enter a percentage, e.g. 20.":"Enter an amount, e.g. 25.";if(x.otype=="pct"&&+x.oval>100)E.oval="A percentage can’t exceed 100.";
@@ -6190,14 +6213,14 @@ function body(){const x=F.x,o=(a,v)=>a.map(([k,l])=>`<option value="${k}" ${v==k
   ${f("title","Title",inp("title",'maxlength="100" placeholder="e.g. 20% off monthly valet"'),1,`<span id="pmccnt-t">${x.title.length}</span>/100`)}
   ${f("reward","Short description",inp("reward",'maxlength="80" placeholder="Shown on the card, e.g. First 3 months"'),1,"One line on the promotion card.")}
   ${f("desc","Detailed description",`<textarea id="pf-desc" data-pf="desc" maxlength="500" placeholder="Describe the promotion residents will see...">${H(x.desc)}</textarea><span class="pmc-cnt" id="pmccnt">${x.desc.length}/500</span>`,1)}
-  <div class="pmc-r">${f("cat","Category",`<select id="pf-cat" data-pf="cat" ${F.id?"disabled title=\"Category can’t change after publishing\"":""}><option value="">Select category</option>${o(CATS.map(c=>[c[0],c[1]]),x.cat)}<option value="__new" ${x.cat=="__new"?"selected":""}>+ Create new category…</option></select>`,1)}${x.cat=="__new"?f("newcat","New category name",inp("newcat",'placeholder="e.g. Fitness"'),1):"<div></div>"}</div>
-  <div class="pmc-r">${f("partner","Partner / vendor",inp("partner",'placeholder="e.g. Mallard Pointe Valet"'),0,"Optional · shown with the logo on the card.")}<div class="pmc-f"><span class="pmc-l">Partner logo</span><div class="pmc-logo">${x.plogo?`<img src="${x.plogo}" alt="">`:`<span>${L("image",18)}</span>`}<button type="button" class="btn out" data-pmclogo>${x.plogo?"Replace logo":"Upload logo"}</button>${x.plogo?`<button type="button" class="lnk" data-pmclogox>Remove</button>`:""}</div><input type="file" id="pmclogof" accept="image/*" hidden></div></div></section>
+  <div class="pmc-r">${f("cat","Category",`<select id="pf-cat" data-pf="cat" ${F.id?"disabled title=\"Category can’t change after publishing\"":""}><option value="">Select category</option>${o(CATS.map(c=>[c[0],c[1]]),x.cat)}<option value="__new" ${x.cat=="__new"?"selected":""}>+ Create new category…</option></select>`,1,F.id?"Category can’t change after publishing.":"")}${x.cat=="__new"?f("newcat","New category name",inp("newcat",'placeholder="e.g. Fitness"'),1):"<div></div>"}</div>
+  <div class="pmc-r">${f("partner","Partner / vendor",inp("partner",'placeholder="e.g. Mallard Pointe Valet" maxlength="120"'),0,"Optional · shown with the logo on the card.")}<div class="pmc-f"><span class="pmc-l">Partner logo</span><div class="pmc-logo">${x.plogo?`<img src="${x.plogo}" alt="">`:`<span>${L("image",18)}</span>`}<button type="button" class="btn out" data-pmclogo>${x.plogo?"Replace logo":"Upload logo"}</button>${x.plogo?`<button type="button" class="lnk" data-pmclogox>Remove</button>`:""}</div><input type="file" id="pmclogof" accept="image/*" hidden></div></div></section>
  <section class="pmc-sec" id="pmcs-offer"><h3>2 · Offer</h3>
   <div class="pmc-f"><span class="pmc-l">Offer type <span class="rq" aria-hidden="true">*</span></span><div class="pmc-seg" role="radiogroup" aria-label="Offer type">${OT.map(([k,l])=>`<button type="button" role="radio" aria-checked="${x.otype==k}" class="${x.otype==k?"on":""}" data-pmcot="${k}">${l}</button>`).join("")}</div></div>
   ${x.otype=="pct"||x.otype=="fixed"?f("oval",x.otype=="pct"?"Discount (%)":"Amount off ($)",`<div class="pmc-af">${x.otype=="fixed"?"<i>$</i>":""}${inp("oval",'inputmode="decimal" placeholder="'+(x.otype=="pct"?"20":"25")+'"')}${x.otype=="pct"?"<i>%</i>":""}</div>`,1):`<p class="pmc-hp">${x.otype=="free"?"Residents get the item or service at no cost.":"Buy one, get one free."}</p>`}</section>
  <section class="pmc-sec" id="pmcs-claim"><h3>3 · Claiming</h3>
   <div class="pmc-mt" role="radiogroup" aria-label="Claim method">${MT.map(([k,l,s])=>`<label class="${x.method==k?"on":""}"><input type="radio" name="pmcm" data-pmcm="${k}" ${x.method==k?"checked":""}><b>${l}</b><span>${s}</span></label>`).join("")}</div>
-  ${x.method=="static"||x.method=="qr"?f("code",x.method=="qr"?"Code encoded in the QR":"Promo code",inp("code",'placeholder="e.g. RESIDENT10" autocapitalize="characters"'),1):x.method=="unique"?f("prefix","Code prefix",inp("prefix",'maxlength="8"'),0,`Example: <code>${H((x.prefix||"RES").toUpperCase())}-7K2QD</code> · generated when a resident claims.`):f("link","External link",inp("link",'type="url" placeholder="https://partner.com/offer"'),1)}
+  ${x.method=="static"||x.method=="qr"?f("code",x.method=="qr"?"Code encoded in the QR":"Promo code",inp("code",'placeholder="e.g. RESIDENT10" autocapitalize="characters" maxlength="30"'),1):x.method=="unique"?f("prefix","Code prefix",inp("prefix",'maxlength="8"'),0,`Example: <code>${H((x.prefix||"RES").toUpperCase())}-7K2QD</code> · generated when a resident claims.`):f("link","External link",inp("link",'type="url" placeholder="https://partner.com/offer"'),1)}
   <div class="pmc-r">${f("limT","Limit total claims",inp("limT",'type="number" min="1" placeholder="Unlimited"'),0,"Leave empty for unlimited.")}${f("limR",x.limS=="unit"?"Per unit":"Per resident",inp("limR",'type="number" min="1"'),0)}</div>
   <div class="pmc-r">${f("limS","Limit applies to",`<select id="pf-limS" data-pf="limS"><option value="resident" ${x.limS!="unit"?"selected":""}>Each resident</option><option value="unit" ${x.limS=="unit"?"selected":""}>Each unit — one household, one claim</option></select>`,0,x.limS=="unit"?"Once one resident in a unit claims, others in that unit can’t claim.":"")}<div></div></div>${window._pmst?_pmst.autoField(F.x):""}</section>
  <section class="pmc-sec" id="pmcs-sched"><h3>4 · Schedule</h3>
@@ -6379,14 +6402,35 @@ window._pmc={open,analytics,close,get F(){return F}};
 </style>
 <script id="pmclaims-js">(function(){
 const PM=window._pm;if(!PM)return;const {META,H}=PM,L=(n,s)=>window.lic(n,s||16),K="eso-pmclaims";
-const NAMES=[["Maya Chen","214","staff"],["Jordan Ellis","308","me"],["Priya Natarajan","117","all"],["Luis Ortega","402","staff"],["Hannah Park","221","me"],["Omar Haddad","509","staff"],["Grace Kim","133","all"],["Ben Foster","315","staff"],["Sofia Rossi","226","me"],["Daniel Wu","410","staff"],["Aisha Bello","104","staff"],["Noah Brooks","318","all"],["Elena Petrova","207","me"],["Marcus Lee","512","staff"]];
+const NAMES=[["Maya Chen","214","staff"],["Jordan Ellis","308","me"],["Priya Natarajan","117","all"],["Luis Ortega","402","staff"],["Hannah Park","221","me"],["Omar Haddad","509","staff"],["Grace Kim","133","all"],["Ben Foster","315","staff"],["Sofia Rossi","226","me"],["Daniel Wu","410","staff"],["Aisha Bello","104","staff"],["Noah Brooks","318","all"],["Elena Petrova","207","me"],["Victor Lee","512","staff"]];
 const ST=["pending","pending","verified","redeemed","pending","rejected","verified","pending","redeemed","verified","pending","verified","pending","rejected","redeemed","pending","verified","pending"];
 const now=Date.now(),HR=36e5;
 function seed(){const ids=Object.keys(META).filter(k=>META[k].st=="active").slice(0,6);return ST.map((st,i)=>{const n=NAMES[i%NAMES.length],m=META[ids[i%ids.length]];return {id:"c"+(1001+i),deal:m.id,name:n[0],unit:n[1],pv:n[2],t:now-(i*i*.6+i*1.3+.2)*HR,code:(m.code||"RESIDENT10")+"-"+(4821+i*37).toString(36).toUpperCase(),st,sync:(st=="verified"||st=="redeemed")&&i%2==0,note:(st=="verified"||st=="redeemed")&&i%2==0?"Synced to Yardi batch #"+(700+i):"",reason:st=="rejected"?"Not a current resident at this unit":""}})}
 let CL;try{CL=JSON.parse(localStorage.getItem(K)||"null")}catch(e){}if(!Array.isArray(CL)){CL=seed();sv()}
 {const sn=new Set(),n0=CL.length;CL=CL.slice().sort((a,b)=>a.t-b.t).filter(c=>{if(!c.me||(c.st=="rejected"&&!c.lock))return true;if(sn.has(c.deal))return false;sn.add(c.deal);return true}).sort((a,b)=>b.t-a.t);if(CL.length!=n0)sv()}
-{const u=new Set();let ch=0;CL.forEach(c=>{if(c.meth=="link"||c.code=="(external link)")return;if(u.has(c.code)||!/-[A-Z0-9]{3,5}$/.test(c.code)){c.code=c.code.replace(/-[A-Z0-9]{3,5}$/,"")+"-"+(parseInt(String(c.id).replace(/\D/g,"").slice(-6)||"1",10)*7919%1679616).toString(36).toUpperCase().padStart(4,"0");ch=1}u.add(c.code)});if(ch)sv()}
-function sv(){localStorage.setItem(K,JSON.stringify(CL))}
+{const u=new Set();let ch=0;CL.forEach(c=>{if(c.meth=="link"||c.code=="(external link)"||c.rid)return;if(u.has(c.code)||!/-[A-Z0-9]{3,5}$/.test(c.code)){c.code=c.code.replace(/-[A-Z0-9]{3,5}$/,"")+"-"+(parseInt(String(c.id).replace(/\D/g,"").slice(-6)||"1",10)*7919%1679616).toString(36).toUpperCase().padStart(4,"0");ch=1}u.add(c.code)});if(ch)sv()}
+function sv(){localStorage.setItem(K,JSON.stringify(CL));publish()}
+/* What the resident may see of their claim: only its status and, when rejected, the reason Staff typed for them ("The resident sees this reason"). Staff-owned key, the Resident app only reads it. */
+function publish(){
+try{const out={};let prev={};try{prev=JSON.parse(localStorage.getItem("eso-pm-claimstate")||"{}")||{}}catch(e){}
+/* `at` is when the decision was published (kept while the decision stays the same): the resident's notice is dated by it */
+CL.forEach(c=>{if(c.rk&&c.st&&c.st!=="pending"){const o=prev[c.rk];out[c.rk]={st:c.st,reason:c.st==="rejected"?String(c.reason||"").slice(0,200):"",...(c.st==="rejected"&&c.lock?{lock:true}:{}),at:o&&o.st===c.st&&o.at?o.at:Date.now()}}});
+const next=JSON.stringify(out);if(localStorage.getItem("eso-pm-claimstate")!==next)localStorage.setItem("eso-pm-claimstate",next)}catch(e){}}
+/* Claims made in the Resident app (each resident's own record, eso-res-promo:<id>) become claims in this inbox, Pending, once each (rk = resident|promotion|n).
+   A deal Staff made is named by the id it was published with there and by "dining5" here: c.promo keeps the first, c.deal is the second. */
+function fromRes(){
+let ch=0;
+try{for(let i=0;i<localStorage.length;i++){const key=localStorage.key(i);if(!key||key.indexOf("eso-res-promo:")!==0)continue;
+const rid=key.slice(14);let s=null;try{s=JSON.parse(localStorage.getItem(key))}catch(e){}
+const cl=s&&s.claims;if(!cl||typeof cl!=="object")continue;
+for(const pid of Object.keys(cl)){const c=cl[pid],n=c&&+c.count;if(!(n>0))continue;
+const m=META[pid]||Object.values(META).find(z=>z.pmc==pid);if(!m)continue;
+for(let j=1;j<=n;j++){const rk=rid+"|"+pid+"|"+j;if(CL.some(x=>x.rk===rk))continue;
+const who=c.who||{};
+CL.push({id:"r_"+rk.replace(/[^a-zA-Z0-9]/g,"_"),rk,rid,promo:pid,deal:m.id,name:String(who.name||"Resident").slice(0,60),unit:String(who.unit||"—").slice(0,12),pv:"staff",t:Date.parse(c.at)||Date.now(),code:String(c.code||"").slice(0,40),st:"pending",sync:false,note:"",reason:"",meth:"app"});ch=1}}}}catch(e){}
+if(ch){CL.sort((a,b)=>b.t-a.t);sv()}return ch}
+fromRes();
+addEventListener("storage",e=>{if(e.key&&e.key.indexOf("eso-res-promo:")===0&&fromRes()){try{draw()}catch(x){}try{window._pm&&_pm.upd&&_pm.upd()}catch(x){}}});
 const U={tab:"pending",q:"",sort:"new",promo:[],range:"all",sync:"any",sel:new Set(),open:"",col:new Set(),sheet:"",rd:""};
 const dn=id=>(META[id]&&META[id].d[0])||"Deleted promotion";
 const mask=c=>c.pv=="all"?"Unit "+c.unit:"Unit "+c.unit[0]+"••";
@@ -6527,7 +6571,7 @@ document.addEventListener("click",e=>{const t=e.target;if(!t.closest)return;let 
 },true);
 const stats=id=>{const a=CL.filter(c=>c.deal==id),cl=a.filter(c=>c.st!="rejected"),rd=a.filter(c=>c.st=="redeemed").length;return {n:a.length,pend:a.filter(c=>c.st=="pending").length,rd,rate:cl.length?Math.round(rd/cl.length*100)+"%":"—"}};
 const check=code=>{const c=CL.find(x=>x.code==String(code||"").trim().toUpperCase());return !c?{ok:false,s:"invalid"}:{ok:c.st=="verified",s:c.st=="verified"?"valid":c.st=="redeemed"?"used":c.st,claim:c}};
-window._pmcl={syncBtns,check,rdLook,inbox,pending,mine,openFor,claim,rewards,stats,U,get CL(){return CL},reset(){CL=seed();sv()}};if(/^#\/promotions/.test(location.hash))setTimeout(()=>PM.upd&&PM.upd(),0);
+window._pmcl={syncBtns,check,rdLook,inbox,pending,mine,openFor,claim,rewards,stats,U,get CL(){return CL},reset(){CL=seed();sv();fromRes()}};if(/^#\/promotions/.test(location.hash))setTimeout(()=>PM.upd&&PM.upd(),0);
 })();</script>
 <style id="pmlimit">
 .sp2-glr>b{min-width:0;overflow-wrap:anywhere}
@@ -6551,7 +6595,8 @@ window._pmcl={syncBtns,check,rdLook,inbox,pending,mine,openFor,claim,rewards,sta
 const META=window._pmMETA||{},K="eso-pmlim2",NOW=Date.now();
 const NAMES=["Maya Chen","Elena Petrova","Jordan Ellis","Ben Foster","Priya Nair","Lucas Moreau","Aisha Bello","Tom Becker","Sofia Ruiz","Kenji Sato","Grace Kim","Omar Haddad","Nina Novak","Leo Rossi","Hana Ito","Sam Okafor"];
 let LIM={};try{LIM=JSON.parse(localStorage.getItem(K)||"{}")}catch(e){}
-const tracked=id=>((window._pmcl&&_pmcl.CL)||[]).filter(c=>c.deal==id&&c.st!="rejected").length;
+const fromResidents=id=>{let n=0;try{for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(k&&k.indexOf("eso-res-promo:")===0){const s=JSON.parse(localStorage.getItem(k)),c=s&&s.claims&&s.claims[id];if(c&&+c.count>0)n+=+c.count}}}catch(e){}return n};
+const tracked=id=>{const m=META[id],orig=m&&m.pmc?m.pmc:id;/* this page names a promotion "parking<N>"; a resident claims it under the id it was published with */return((window._pmcl&&_pmcl.CL)||[]).filter(c=>c.deal==id&&c.st!="rejected"&&!c.rid).length+fromResidents(id)+(orig!==id?fromResidents(orig):0)-((window._pmcl&&_pmcl.CL)||[]).filter(c=>c.deal==id&&c.rid&&c.st=="rejected").length};
 /* R07: khi gán window.ESO_STOCK_API (URL gốc, vd "/api/v1/resident/promotion-claims/promotions") thì "đã lấy" = taken từ GET <API>/<id>/stock; chưa gán ⇒ giữ nguồn localStorage như cũ. */
 const LIVE={};
 const api=()=>window.ESO_STOCK_API||window.ESO_STOCK_BOARD_API||"";
@@ -7170,7 +7215,7 @@ window._sp3={va:()=>va};run();})();
 <style id="fabd-css">@media (max-width:1023px){.aifab,.fd-fab{transition:transform .2s,opacity .2s}.aifab.fab-dodge,.fd-fab.fab-dodge{transform:translateX(48px)!important;opacity:.9;box-shadow:-2px 2px 8px rgba(15,23,42,.25)!important}}</style>
 <script id="fabd-js">(()=>{const SEL='button,a[href],input,textarea,select,[role=button],[tabindex]:not([tabindex="-1"])';let raf=0;
 function chk(){raf=0;const mob=innerWidth<1024;document.querySelectorAll('.aifab,.fd-fab').forEach(f=>{if(!mob){f.classList.remove('fab-dodge');return}const r0=f.getBoundingClientRect();if(!r0.width){return}const dx=f.classList.contains('fab-dodge')?48:0;const r={left:r0.left-dx,top:r0.top,width:r0.width,height:r0.height};let hit=false;const pts=[];for(const a of [.08,.3,.5,.7,.92])for(const b of [.08,.3,.5,.7,.92])pts.push([a,b]);for(const [a,b] of pts){const x=r.left+r.width*a,y=r.top+r.height*b;for(const e of document.elementsFromPoint(x,y)){if(e===f||f.contains(e)||e.closest('.aifab,.fd-fab,#toast'))continue;if(getComputedStyle(e).position=='fixed')continue;const it=e.closest(SEL);if(it&&!it.closest('.aifab,.fd-fab')){hit=true;break}}if(hit)break}f.classList.toggle('fab-dodge',hit)})}
-const q=()=>{if(!raf)raf=requestAnimationFrame(chk)};addEventListener('scroll',q,{passive:true,capture:true});addEventListener('resize',q);addEventListener('hashchange',()=>setTimeout(q,120));new MutationObserver(q).observe(document.body,{childList:true,subtree:true});setTimeout(q,300);setInterval(()=>{if(innerWidth<1024&&!document.hidden)q()},400)})();</script>
+/* chk hit-tests 25 points around each button: run it once the scrolling or the page change has settled, never on every scroll frame or DOM change (that made scrolling stutter) */let tm=0;const q=()=>{clearTimeout(tm);tm=setTimeout(()=>{if(!raf)raf=requestAnimationFrame(chk)},140)};addEventListener('scroll',q,{passive:true,capture:true});addEventListener('resize',q);addEventListener('hashchange',()=>setTimeout(q,120));new MutationObserver(q).observe(document.body,{childList:true,subtree:true});setTimeout(q,300);setInterval(()=>{if(innerWidth<1024&&!document.hidden)q()},2000)})();</script>
 <style id="qa-fixes">
 /* QA: tree labels wrap instead of ellipsis (names like "Community & Announcements" were cut) */
 .sb .navl a .lbl{white-space:normal;overflow:visible;text-overflow:clip;overflow-wrap:break-word;word-break:normal;hyphens:none;line-height:18px}
@@ -7725,6 +7770,16 @@ const K="eso-pmedits";let ED={};try{ED=JSON.parse(localStorage.getItem(K)||"{}")
 const M=()=>window._pmMETA||{},P=()=>window._lwpb,svE=()=>{try{localStorage.setItem(K,JSON.stringify(ED))}catch(e){}};
 const rr=()=>dispatchEvent(new HashChangeEvent("hashchange",{oldURL:location.href,newURL:location.href}));
 const tst=m=>{if(window.toast)return window.toast(m);let t=document.createElement("div");t.textContent=m;t.setAttribute("role","status");t.style.cssText="position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:#0f172a;color:#fff;padding:10px 16px;border-radius:10px;z-index:10400;font-size:14px";document.body.appendChild(t);setTimeout(()=>t.remove(),2600)};
+/* A deal Staff published has a record (eso-pmc-saved) that the Resident app reads, so "Edit details" changes it too, not only this page's copy of the card.
+   The price is kept as the offer text only when it differs from the original (otherwise the form's own offer type and value stay in charge). */
+const recSync=(m,title,offer,price,code,orig)=>{
+if(!m||!m.pmc)return;
+let a=[];try{a=JSON.parse(localStorage.getItem("eso-pmc-saved")||"[]")}catch(e){return}
+const r=Array.isArray(a)&&a.find(s=>String(s.id)===String(m.pmc));if(!r||!r.x)return;
+r.x.title=title;r.x.reward=offer;
+if(orig&&orig.d&&orig.d[3]===price)delete r.x.offerText;else r.x.offerText=price;
+if(r.x.method==="static"||r.x.method==="qr")r.x.code=code||"";
+try{localStorage.setItem("eso-pmc-saved",JSON.stringify(a))}catch(e){}};
 const applyAll=()=>{const m=M();for(const id in ED){const e=ED[id];if(!m[id])continue;[0,1,3].forEach(i=>{if(e.d&&e.d[i]!=null)m[id].d[i]=e.d[i]});if("code" in e)m[id].code=e.code}};
 applyAll();
 /* ---- card detail: edit content, persisted in eso-pmedits ---- */
@@ -7735,13 +7790,13 @@ document.addEventListener("click",e=>{const t=e.target.closest&&e.target.closest
  if(a=="edit"){const b=t.closest(".gm-b"),id=b.dataset.id,x=m[id];b.innerHTML=`<h2>Edit details</h2><div class="q22-f"><label class="gm-l" for="q22t">Title</label><input id="q22t" class="gm-in" maxlength="60" value="${E(x.d[0])}"><label class="gm-l" for="q22o">Offer</label><input id="q22o" class="gm-in" maxlength="90" value="${E(x.d[1])}"><label class="gm-l" for="q22p">Price / value</label><input id="q22p" class="gm-in" maxlength="30" value="${E(x.d[3])}"><label class="gm-l" for="q22c">Promo code (optional)</label><input id="q22c" class="gm-in" maxlength="20" value="${E(x.code||"")}" style="text-transform:uppercase"><div class="q22-er" role="alert"></div></div><div class="q22-a">${ED[id]?'<button class="bx bx-o" data-q22="revert">Revert to original</button>':""}<button class="bx bx-o" data-q22="cancel">Cancel</button><button class="bx bx-p" data-q22="save">Save</button></div>`;b.dataset.id=id;$("#q22t").focus();return}
  const b=t.closest(".gm-b"),id=b&&b.dataset.id;if(!id)return;
  if(a=="cancel"){window._cov.detail(id);return}
- if(a=="revert"){const o=ED[id]&&ED[id].o;if(o){[0,1,3].forEach(i=>m[id].d[i]=o.d[i]);m[id].code=o.code}delete ED[id];svE();window._cov.detail(id);rr();tst("Restored original content");return}
+ if(a=="revert"){const o=ED[id]&&ED[id].o;if(o){[0,1,3].forEach(i=>m[id].d[i]=o.d[i]);m[id].code=o.code;recSync(m[id],o.d[0],o.d[1],o.d[3],o.code||"",o)}delete ED[id];svE();window._cov.detail(id);rr();tst("Restored original content");return}
  if(a=="save"){const v=k=>$("#"+k).value.trim(),er=$(".q22-er"),title=v("q22t"),offer=v("q22o"),price=v("q22p"),code=v("q22c").toUpperCase();
   if(!title){er.textContent="Title is required.";return}if(!offer){er.textContent="Offer is required.";return}
   if(code&&!/^[A-Z0-9-]{3,20}$/.test(code)){er.textContent="Code: 3-20 letters, numbers or dashes.";return}
   if(code&&Object.keys(m).some(k=>k!=id&&m[k].code==code)){er.textContent="That code is already used by another promotion.";return}
   const x=m[id];if(!ED[id])ED[id]={o:{d:x.d.slice(),code:x.code}};ED[id].d=[title,offer,null,price];ED[id].code=code||undefined;if(!code)ED[id].code="";
-  x.d[0]=title;x.d[1]=offer;x.d[3]=price;x.code=code||undefined;svE();window._cov.detail(id);rr();tst("Promotion updated");return}},true);
+  x.d[0]=title;x.d[1]=offer;x.d[3]=price;x.code=code||undefined;svE();recSync(x,title,offer,price,code,ED[id].o);window._cov.detail(id);rr();tst("Promotion updated");return}},true);
 /* ---- templates: one clear "in use", Edit page opens it ---- */
 const fix=()=>{const p=P();if(!p)return;const S=p.ST,lw=S.lw||{},live=Object.keys(lw).find(x=>x.startsWith("tpl:")&&lw[x].state=="live");if(live&&!S.off){const k=live.slice(4);if(S.def!=k&&p.allT()[k]){S.def=k;p.sv()}}};fix();
 document.addEventListener("click",e=>{const t=e.target.closest&&e.target.closest("[data-tpdef]");if(!t||!P())return;const S=P().ST,lw=S.lw=S.lw||{};Object.keys(lw).forEach(x=>{if(x.startsWith("tpl:")&&lw[x].state=="live")lw[x].state="saved"});S.off=false;P().sv()},true);
@@ -7903,4 +7958,99 @@ addEventListener("click",e=>{const b=e.target.closest&&e.target.closest("[data-f
 
 
 <script>(function(){const go=()=>{if(location.hash=="#/workspace/promodesign")location.replace("#/promotions/templates")};addEventListener("hashchange",go,true);go()})();</script>
+<style id="pmv-css">.pmv{position:absolute;top:8px;right:46px;z-index:3;height:30px;display:inline-flex;align-items:center;gap:5px;padding:0 10px 0 8px;border-radius:999px;border:1px solid transparent;font-family:inherit;font-weight:600;font-size:12px;line-height:16px;cursor:pointer;box-shadow:0 1px 3px rgba(0,0,0,.25)}
+/* 1,000 deals made the list take 3 s to lay out: cards that are off screen are skipped (their size is remembered once drawn). */
+.pd{content-visibility:auto;contain-intrinsic-size:auto 260px 400px}
+.pm-more{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:12px 0 4px}.pm-more-n{font-size:13px;opacity:.75}
+.pmv svg{flex:none}.pmv-off{border-style:dashed}.pmv-on{background:#dcfce7;color:#14532d;border-color:#86efac}.pmv-wait{background:#fef3c7;color:#78350f;border-color:#fcd34d}.pmv-off{background:#f1f5f9;color:#334155;border-color:#cbd5e1}.pmv-ended{background:#f1f5f9;color:#475569;border-color:#e2e8f0;cursor:not-allowed}
+html.dark .pmv-on{background:#14532d;color:#dcfce7;border-color:#166534}html.dark .pmv-wait{background:#78350f;color:#fef3c7;border-color:#92400e}html.dark .pmv-off{background:#1e293b;color:#e2e8f0;border-color:#475569}html.dark .pmv-ended{background:#1e293b;color:#94a3b8;border-color:#334155}
+.pmv:focus-visible{outline:2px solid var(--ring,#2563eb);outline-offset:2px}@media(pointer:coarse){.pmv{height:44px;min-width:44px;justify-content:center;padding:0 14px 0 12px}}
+@media(max-width:480px){.pmv{right:8px;top:46px}}
+.pd.pmv-flash{outline:3px solid #2563eb;outline-offset:3px;animation:pmvf 2.6s ease-out 1}@keyframes pmvf{0%,60%{outline-color:#2563eb}100%{outline-color:transparent}}html.dark .pd.pmv-flash{outline-color:#93c5fd}@media(prefers-reduced-motion:reduce){.pd.pmv-flash{animation:none}}
+.pmv-hist{margin:0 0 12px;font-size:13px}.pmv-hist summary{cursor:pointer;font-weight:600;padding:6px 0}.pmv-hist ul{list-style:none;margin:4px 0 0;padding:0;display:grid;gap:6px}.pmv-hist li{display:grid;grid-template-columns:1fr auto;gap:2px 10px;padding:8px 10px;border-radius:8px;background:rgba(100,116,139,.1);border-left:3px solid #94a3b8}.pmv-hist li.pmv-h-on{border-left-color:#22c55e}.pmv-hist li.pmv-h-scheduled{border-left-color:#f59e0b}.pmv-hist time{font-variant-numeric:tabular-nums;opacity:.8}.pmv-hist em{grid-column:1/-1;font-style:normal;opacity:.7;font-size:12px}.pmv-hist p{margin:4px 0 0;opacity:.75}
+.pmv-row{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:12px 0;font-size:14px}.pmv-row .pmv{position:static;box-shadow:none;min-height:36px;padding:0 12px 0 10px}.pmv-row .pmv-t{display:inline!important}@media(pointer:coarse){.pmv-row .pmv{height:44px;min-width:44px}}</style>
+<script id="pmv-js">(function(){
+/* The on/off switch on a deal's card (Staff only). Off makes the deal a draft: residents do not see it, and it stays in Staff's list (Drafts). On publishes it.
+   A deal Staff made is changed in its own record (eso-pmc-saved); a sample deal is remembered in eso-pm-status, which the Resident app reads too (promotions/catalog.js). */
+var SK='eso-pmc-saved';
+function tst(m,undo){try{window.toast&&window.toast(m,undo)}catch(e){}}
+function local(){var n=new Date(),p=function(x){return String(x).padStart(2,'0')};return n.getFullYear()+'-'+p(n.getMonth()+1)+'-'+p(n.getDate())}
+function toggle(id){
+var M=window._pmMETA,m=M&&M[id];if(!m)return;
+/* the list is drawn again after a change, so the button that had focus is replaced: remember it and give focus to its replacement (a keyboard user keeps their place) */
+var kb=!!(document.activeElement&&document.activeElement.closest&&document.activeElement.closest('[data-pmvis]'));
+var z=window._pmStock&&_pmStock.state(m);if(z==='expired'||m.st==='expired'){tst('This deal has ended, so it cannot be turned on from here.');return}
+var turnOn=m.st==='draft',name=(m.d&&m.d[0])||'This deal';
+if(m.pmc){
+ var list=[];try{list=JSON.parse(localStorage.getItem(SK)||'[]')}catch(e){}
+ var r=list.filter(function(s){return String(s.id)===String(m.pmc)})[0];if(!r)return;
+ r.st=turnOn?((r.x&&r.x.start&&r.x.start>local())?'scheduled':'active'):'draft';
+ try{localStorage.setItem(SK,JSON.stringify(list))}catch(e){tst('Could not save. Try again.');return}
+ m.st=r.st;if(m.d)m.d[2]=r.st==='scheduled'?'Starts '+String(r.x.start).slice(5):r.st==='draft'?'Draft':'New';
+}else{
+ var C=window.PM_CATALOG,ov=C.readOverrides(localStorage);ov[id]=turnOn?'active':'draft';
+ try{localStorage.setItem(C.STATUS_KEY,JSON.stringify(ov))}catch(e){tst('Could not save. Try again.');return}
+ var fresh=C.meta(C.deals(),ov)[id];m.st=fresh.st;m.d[2]=fresh.d[2];m.views=fresh.views;m.claims=fresh.claims;
+}
+note(id,m.st==='draft'?'off':m.st==='scheduled'?'scheduled':'on');
+tst(name+(turnOn?(m.st==='scheduled'?' is scheduled: residents see it from its start date.':' is on: residents can see it now.'):' is off: residents do not see it. It moved to Drafts.'),function(){toggle(id)});
+try{window._pm&&_pm.upd&&_pm.upd()}catch(e){}
+dlg(id);
+if(kb&&document.getElementById('pdd')){var nb=document.querySelector('#pdd .pmv');if(nb)nb.focus()}
+follow(id,kb);
+}
+/* Follow the deal: turning it on or off moves it to another tab (Live to Drafts), so it would vanish from under the pointer. Go with it: open the tab it
+   moved to, scroll to its card and mark it for a moment. It stays where it is when the deal is still in the list being shown (the All tab), and does nothing while the detail box is open. */
+function follow(id,refocus){
+if(document.getElementById('pdd'))return;
+var m=(window._pmMETA||{})[id],tab=m&&window._pmTabOf&&_pmTabOf(m);if(!tab)return;
+setTimeout(function(){
+if(!document.querySelector('.pd[data-pmid="'+id+'"]')){var b=document.querySelector('[data-pmtab="'+tab+'"]');if(b)b.click()}
+/* a long list takes a while to draw: look again every 100 ms for up to 5 s instead of once */
+var tries=0;
+(function look(){
+var c=document.querySelector('.pd[data-pmid="'+id+'"]');
+/* a long category shows its first 60: open the rest of it up to this deal */
+if(!c&&window._pmReveal&&_pmReveal(id))c=document.querySelector('.pd[data-pmid="'+id+'"]');
+if(!c){if(++tries<50)setTimeout(look,100);return}
+try{c.scrollIntoView({block:'center',inline:'center',behavior:refocus||window.matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth'})}catch(e){c.scrollIntoView()}
+if(refocus){var s=c.querySelector('.pmv');if(s)s.focus({preventScroll:true})}
+c.classList.add('pmv-flash');setTimeout(function(){c.classList.remove('pmv-flash')},2600);
+})();
+},60);
+}
+/* The day turns while the page stays open: deals start and end by date, so the list is built again (a page load does it). Never while a box or form is open: try again in 5 minutes. */
+function atMidnight(){
+var n=new Date(),next=new Date(n.getFullYear(),n.getMonth(),n.getDate()+1,0,0,5);
+setTimeout(function again(){
+if(document.getElementById('pdd')||document.querySelector('.pmc-ov,[aria-modal="true"]')){setTimeout(again,300000);return}
+location.reload()},next-n);
+}
+atMidnight();
+/* History of the switch, so Staff can see when a deal went off live and back: one entry each time it is turned on or off, newest last, 300 at most.
+   { id, to: "on" | "scheduled" | "off", at: ms, by }. Kept in eso-pm-vislog; shown in the deal's detail box. Only the switch writes it. */
+var LK='eso-pm-vislog';
+function readLog(){try{var a=JSON.parse(localStorage.getItem(LK)||'[]');return Array.isArray(a)?a.filter(function(x){return x&&typeof x.id==='string'&&typeof x.at==='number'&&(x.to==='on'||x.to==='off'||x.to==='scheduled')}):[]}catch(e){return[]}}
+function note(id,to){var a=readLog();a.push({id:id,to:to,at:Date.now(),by:'Staff'});try{localStorage.setItem(LK,JSON.stringify(a.slice(-300)))}catch(e){}}
+function when(ms){return new Date(ms).toLocaleString('en-US',{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'})}
+function histHTML(id){
+var a=readLog().filter(function(x){return x.id===id}).slice(-10).reverse(),say={on:'Turned on: visible to residents',scheduled:'Turned on: scheduled',off:'Turned off: hidden from residents'};
+return '<details class="pmv-hist"'+(a.length?' open':'')+'><summary>Visibility history ('+a.length+')</summary>'+(a.length?'<ul>'+a.map(function(x){return '<li class="pmv-h-'+x.to+'"><span>'+say[x.to]+'</span><time datetime="'+new Date(x.at).toISOString()+'">'+when(x.at)+'</time><em>'+String(x.by||'Staff').replace(/[<>&"]/g,'')+'</em></li>'}).join('')+'</ul>':'<p>No changes yet. Turn it off or on and the time is kept here.</p>')+'</details>'}
+/* The same switch in the deal's detail box (Staff only), under the price, so a deal can be turned on or off from where Staff read it. */
+var lastId='';
+window.addEventListener('pointerdown',function(e){var c=e.target.closest&&e.target.closest('.pd[data-pmid]');if(c&&c.dataset.pmid)lastId=c.dataset.pmid},true);
+function dlg(id){
+var box=document.querySelector('#pdd .gm-b');if(!box||(window._pm&&_pm.res))return;
+var M=window._pmMETA||{},h=document.getElementById('pddt'),m=M[id||lastId];
+if(!m||!h||!m.d||m.d[0]!==h.textContent){m=null;for(var k in M)if(M[k].d&&M[k].d[0]===(h&&h.textContent)){m=M[k];break}}
+if(!m||!m.id||!window._pmVisBtn)return;
+var old=box.querySelectorAll('.pmv-row,.pmv-hist');for(var i=0;i<old.length;i++)old[i].remove();
+var row=document.createElement('div');row.className='pmv-row';
+row.innerHTML='<span>Shown to residents</span>'+_pmVisBtn(m,m.d[0]);
+var after=box.querySelector('.gm-row');after?after.after(row):box.prepend(row);
+row.insertAdjacentHTML('afterend',histHTML(m.id));
+}
+new MutationObserver(function(){var p=document.getElementById('pdd');if(p&&!p.querySelector('.pmv-row'))dlg()}).observe(document.body,{childList:true,subtree:true});
+window.addEventListener('click',function(e){var b=e.target.closest&&e.target.closest('[data-pmvis]');if(!b)return;e.preventDefault();e.stopImmediatePropagation();if(!b.disabled)toggle(b.dataset.pmvis)},true);
+})();</script>
 </body></html>

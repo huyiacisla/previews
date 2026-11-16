@@ -45,7 +45,7 @@
         <div id="filters" role="group" aria-label="Filter promotions" class="flex flex-wrap items-center gap-step-xs"></div>
       </div>
       <p id="count" role="status" class="text-sm text-muted-foreground tabular-nums"></p>
-      <ul id="grid" role="list" class="grid gap-step-lg sm:grid-cols-2 lg:grid-cols-3"></ul>
+      <ul id="grid" role="list" class="grid grid-cols-1 gap-step-lg sm:grid-cols-2 lg:grid-cols-3"></ul>
       <div id="empty" hidden></div>
     </div>
   </main>
@@ -66,6 +66,7 @@
       <p id="dlg-desc" class="max-w-prose text-sm leading-6 wrap-anywhere whitespace-pre-wrap text-foreground-secondary"></p>
       <div id="dlg-claim" hidden class="flex flex-col gap-step-sm rounded-lg bg-background p-step-md ring-1 ring-foreground/10">
         <p id="dlg-claim-label" class="text-xs text-muted-foreground"></p>
+        <p id="dlg-claim-status" role="status" class="text-sm text-muted-foreground data-[tone=ok]:text-success-text data-[tone=no]:text-danger-text empty:hidden"></p>
         <div class="flex items-center gap-step-sm">
           <output id="dlg-code" class="min-w-0 flex-1 text-lg font-medium tracking-wider wrap-anywhere tabular-nums"></output>
           <button type="button" id="dlg-copy" class="group/button inline-flex h-8 shrink-0 touch-manipulation items-center justify-center gap-step-sm rounded-md border border-transparent bg-background bg-clip-padding px-step-md control-text font-medium whitespace-nowrap text-foreground ring-1 ring-foreground/10 transition outline-none select-none hover:bg-muted focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 active:translate-y-px pointer-coarse:h-11 [&_svg]:size-4"><svg aria-hidden="true"><use href="#i-copy"/></svg>Copy</button>
@@ -85,8 +86,8 @@
 
 <!-- ============ templates ============ -->
 <template id="t-card">
-  <li class="flex">
-    <article class="relative flex min-w-0 flex-1 flex-col overflow-hidden rounded-xl bg-card shadow-lift-xs focus-within:ring-3 focus-within:ring-ring/50">
+  <li class="flex min-w-0">
+    <article class="relative flex min-w-0 flex-1 flex-col overflow-hidden rounded-xl wrap-anywhere bg-card shadow-lift-xs focus-within:ring-3 focus-within:ring-ring">
       <div class="relative aspect-video w-full overflow-hidden bg-muted">
         <img data-cover alt="" hidden loading="lazy" class="size-full object-cover" />
         <span data-nocover class="absolute inset-0 flex items-center justify-center text-muted-foreground [&_svg]:size-8"><svg aria-hidden="true"><use href="#i-tag"/></svg></span>

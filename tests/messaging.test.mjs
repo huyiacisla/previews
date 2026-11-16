@@ -135,7 +135,7 @@ test('a person is requested: chat moves to the queue with a summary for staff', 
   assert.equal(view.conv.status, 'queued');
   assert.equal(view.conv.summary.topic, 'Report a vehicle');
   assert.ok(view.conv.summary.details.some((d) => d.includes('4ABC999')));
-  assert.deepEqual(view.actions, ['claim']);
+  assert.deepEqual(view.actions, ['claim', 'move:platform']);
   assert.deepEqual([view.canPost.ok, view.canPost.takes], [true, true], 'staff may answer straight away: the first reply takes the chat');
   assert.ok(store.listFor('stf-1').find((r) => r.id === convId).tags.includes('queue'));
 });
@@ -254,6 +254,18 @@ test('a note from Admin to a resident is one-way; replies are not allowed', () =
   const r = store.startDirect('adm-2', 'res-1', 'Your account was updated.');
   assert.ok(r.ok);
   assert.equal(store.send(r.convId, 'res-1', 'Why?').reason, 'one_way');
+});
+
+test('Admin can send a resident as many notes as needed: nothing locks it, and a resident can still ask the property team', () => {
+  const { store } = setup();
+  const r = store.startDirect('adm-1', 'res-1', 'First notice.');
+  assert.ok(r.ok);
+  for (const text of ['Second notice.', 'Third notice.', 'Fourth notice.']) assert.ok(store.send(r.convId, 'adm-1', text).ok, text);
+  assert.equal(store.send(r.convId, 'res-1', 'Why?').reason, 'one_way', 'the resident writes to Staff, not to Admin');
+  // Staff keep the one-note-until-they-reply rule (the resident can answer them)
+  const s = store.startDirect('stf-1', 'res-2', 'A note from staff.');
+  assert.equal(store.send(s.convId, 'stf-1', 'And another').reason, 'awaiting_reply');
+  assert.ok(store.send(s.convId, 'res-2', 'Thanks').ok);
 });
 
 test('do-not-disturb silences outreach and announcements but not an active chat', () => {

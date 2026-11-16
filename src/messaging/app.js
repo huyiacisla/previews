@@ -3,11 +3,13 @@
 
 import { createStore, notifies, STAGES, STAGE_LABEL, ticketNo } from './store.js';
 import { parseQuery, matchFilters, matchText, withoutFilter, describeFilters, FILTER_KEYS, isEmptyQuery } from './query.js';
-import { createTransport } from './transport.js';
+import { createTransport, clearSideData } from './transport.js';
 import { PERSONAS, PORTALS, pickPersona, initials } from './personas.js';
 import { formatTime, formatFull, groupByDay, listTime, duration, formatBytes } from './format.js';
 import { EMOJI_CATEGORIES, QUICK_REACTIONS, searchEmoji } from './emoji.js';
 import { exitTarget } from '../exit-target.js';
+import { readPrefs } from '../settings/prefs.js';
+import { companyPrefs } from '../company-prefs.js';
 
 /* ----------------------------------------------------------------- helpers */
 
@@ -27,6 +29,8 @@ const REASONS = {
   not_claimed: 'Take this conversation first.',
   one_way: 'This is a one-way message. To reply, contact the property team.',
   awaiting_reply: 'You can write again once they reply.',
+  emergency_open: 'An open emergency stays with the property team. Acknowledge it first.',
+  role: 'Your role cannot do that. Ask a Property Manager.',
   rate_limited: 'This resident already has recent messages from the team. Try again later.',
   use_assistant: 'Residents start with the assistant.',
   already_taken: 'Someone else already took this conversation.',
@@ -55,18 +59,24 @@ const TABS = {
   resident: [['all', 'All'], ['announcements', 'Announcements'], ['hidden', 'Hidden']],
   staff: [['queue', 'Queue'], ['mine', 'Mine'], ['clients', 'Clients'], ['groups', 'Groups'], ['support', 'Support'], ['all', 'All'], ['hidden', 'Hidden']],
   client: [['all', 'All'], ['staff', 'Staff'], ['groups', 'Groups'], ['support', 'Support'], ['announcements', 'Announcements'], ['hidden', 'Hidden']],
-  admin: [['queue', 'Queue'], ['mine', 'Mine'], ['direct', 'Direct'], ['resolved', 'Resolved'], ['announcements', 'Sent'], ['hidden', 'Hidden']],
+  admin: [['queue', 'Queue'], ['mine', 'Mine'], ['all', 'All'], ['direct', 'Direct'], ['resolved', 'Resolved'], ['announcements', 'Sent'], ['hidden', 'Hidden']],
 };
 const DEFAULT_TAB = { resident: 'all', staff: 'queue', client: 'all', admin: 'queue' };
 
 const CANNED = {
   staff: ['Thanks for reaching out. I am looking into this now.', 'Could you send your plate number and space number?', 'I have updated this and it should show shortly.', 'Thanks for your patience. Is there anything else I can help with?'],
-  admin: ['Thanks for flagging this. I am taking a look now.', 'Could you share the property name and a screenshot if possible?', 'I made a change on our side. Please try again and let me know.', 'Marking this resolved. Reply here any time to reopen it.'],
+  admin: ['Thanks for flagging this. I am taking a look now.', 'Could you share the property name and a screenshot if possible?', 'Which page were you on when this happened, and what did you see?', 'I made a change on our side. Please try again and let me know.', 'This is fixed. Please reload the page and try again.', 'Marking this resolved. Reply here any time to reopen it.'],
 };
 
 const ROLE_LABEL = { resident: 'Resident', staff: 'Staff', client: 'Client', admin: 'Admin', bot: 'Assistant' };
 
 /* ------------------------------------------------------------------- mount */
+
+// What the person chose in Settings > Messages (kept with the settings prototype, one copy for each portal). Every switch starts on.
+const PROTO_KEY = { staff: 'eso-proto', client: 'client:eso-proto', resident: 'resident:eso-proto', admin: 'admin:eso-proto' };
+export function messagePref(portal, key, fallback = true) {
+  try { const s = JSON.parse(localStorage.getItem(PROTO_KEY[portal])); return s && s[key] !== undefined ? !!s[key] : fallback; } catch { return fallback; }
+}
 
 export function mount({ portal }) {
   if (!PORTALS[portal]) throw new Error(`Unknown portal: ${portal}`);
@@ -79,7 +89,19 @@ export function mount({ portal }) {
   let store;
   try {
     transport = createTransport();
-    store = createStore({ transport });
+    store = createStore({
+      transport,
+      config: {
+        // Settings > Messages of the Staff person: the SMS after 3 unacknowledged minutes, and the note a resident gets while the status is Away.
+        smsOn: () => messagePref('staff', 'emSms'),
+        botFirst: () => companyPrefs(localStorage).botFirst,
+        awayReply: () => {
+          let s = null;
+          try { s = JSON.parse(localStorage.getItem('eso-status') || 'null')?.s; } catch { /* no status: available */ }
+          return messagePref('staff', 'msgAway', false) && ['away', 'brb'].includes(s) ? 'The property team is away right now. Someone will answer as soon as they are back.' : null;
+        },
+      },
+    });
   } catch (error) {
     return showError(error);
   }
@@ -119,10 +141,25 @@ export function mount({ portal }) {
 
   /* ---------------------------------------------------------- small widgets */
 
+  // The picture this person saved in Settings (one record for each portal). Only a small image data address is ever used.
+  const ownPhoto = (() => {
+    try {
+      const v = localStorage.getItem(portal === 'staff' ? 'eso-avatar' : `${portal}:eso-avatar`);
+      return typeof v === 'string' && /^data:image\/(png|jpe?g|webp);base64,[A-Za-z0-9+/=]+$/.test(v) ? v : '';
+    } catch { return ''; }
+  })();
+
   function avatar({ name, role, size = 'md' }) {
     const el = tpl('t-avatar');
     el.dataset.role = role;
     el.dataset.size = size;
+    if (ownPhoto && name === me.name && role !== 'bot' && role !== 'group') {
+      $('[data-initials]', el).hidden = true;
+      el.style.backgroundImage = `url("${ownPhoto}")`;
+      el.style.backgroundSize = 'cover';
+      el.style.backgroundPosition = 'center';
+      return el;
+    }
     if (role === 'bot' || role === 'group') {
       $('[data-initials]', el).hidden = true;
       if (role === 'group') setIcon($('[data-bot]', el), 'users');
@@ -166,6 +203,15 @@ export function mount({ portal }) {
     return el;
   }
 
+  // Go to another page of the portal. Inside the portal frame (Messages sits in an iframe there) the whole window goes, not only the frame: otherwise the page
+  // would be loaded inside itself, with two headers on top of each other.
+  function goPage(path, hash = '') {
+    const q = new URLSearchParams(location.search); // the person stays the same (?as, ?dark); "embed" only says this page sits in a frame
+    q.delete('embed');
+    const url = `${path}${q.toString() ? `?${q}` : ''}${hash}`;
+    try { (window.top && window.top !== window ? window.top : window).location.assign(url); } catch { location.assign(url); }
+  }
+
   function toast(text, { action, onAction, ms = 4500 } = {}) {
     const el = tpl('t-toast');
     $('[data-text]', el).textContent = text;
@@ -189,12 +235,36 @@ export function mount({ portal }) {
     setTimeout(() => { a.textContent = text; }, 30);
   };
 
+  /* A long note is one short line plus an (i) that opens the whole text in a small window, so a note never takes the room of the conversation. */
+  const NOTE_MAX = 72;
+  function shortNote(text) {
+    const first = text.split(/(?<=[.!?])\s/)[0];
+    if (first.length <= NOTE_MAX && first.length < text.length) return first;
+    if (text.length <= NOTE_MAX) return text;
+    const cut = text.slice(0, NOTE_MAX - 12);
+    return `${cut.slice(0, cut.lastIndexOf(' ') > 20 ? cut.lastIndexOf(' ') : cut.length)}…`;
+  }
+  let infoOpener = null;
+  function showInfo(opener, title, text) {
+    infoOpener = opener;
+    $('#info-win-title').textContent = title;
+    $('#info-win-text').textContent = text;
+    $('#info-win').showModal();
+    $('#info-win-title').focus({ preventScroll: true });
+  }
+  function infoButton(text, title = 'About this message') {
+    const b = tpl('t-info-btn');
+    b.addEventListener('click', () => showInfo(b, title, text));
+    return b;
+  }
   function banner(tone, text, actions = []) {
     const el = tpl('t-banner');
     el.dataset.tone = tone;
     setIcon($('svg', el), tone === 'warning' ? 'alert' : tone === 'success' ? 'check' : 'info');
-    $('[data-text]', el).textContent = text;
+    const long = text.length > NOTE_MAX;
+    $('[data-text]', el).textContent = long ? shortNote(text) : text;
     const box = $('[data-actions]', el);
+    if (long) box.appendChild(infoButton(text));
     actions.forEach((a) => box.appendChild(a));
     return el;
   }
@@ -232,6 +302,15 @@ export function mount({ portal }) {
 
   $('#portal-label').textContent = `· ${portalInfo.label}`;
   $('#me-avatar').textContent = initials(me.name);
+  if (ownPhoto) { // the picture saved in Settings stands where the initials were
+    const me$ = $('#me-avatar');
+    me$.textContent = '';
+    me$.style.backgroundImage = `url("${ownPhoto}")`;
+    me$.style.backgroundSize = 'cover';
+    me$.style.backgroundPosition = 'center';
+    me$.setAttribute('role', 'img');
+    me$.setAttribute('aria-label', me.name);
+  }
   $('#me-avatar').dataset.role = me.role;
   $('#me-name').textContent = me.name;
   $('#me-role').textContent = me.title;
@@ -239,15 +318,17 @@ export function mount({ portal }) {
   const baseTitle = document.title;
 
   const canCompose = me.role !== 'resident';
-  $('#btn-new').hidden = !canCompose;
+  // Everyone can start something new. A resident starts it with the assistant (who passes it to the property team when asked), never with a person directly.
+  $('#btn-new').hidden = false;
+  if (me.role === 'resident') { $('#btn-new').setAttribute('aria-label', 'New message to the property team'); $('#btn-new').title = 'New message to the property team'; }
   $('#btn-announce').hidden = me.role !== 'admin';
   $('#btn-dnd').hidden = me.role !== 'resident';
 
   // On a phone the list and the thread are two screens: from a thread, Back goes to the list first, even when the page
   // was opened straight onto a thread (link, reload) and there is no history entry of ours to go back to.
-  // Residents land on the assistant by design, so for them there is no step back from a thread.
+  // Everyone, a resident too, has the same step back from a thread to the list from the first moment: it must not appear only after something was opened from the list.
   // Two buttons: Exit (a link, see exit-target.js) always leaves Messages; Back only steps inside it, and shows only when there is a step to take.
-  const threadOverList = () => isMobile() && ui.pane === 'thread' && me.role !== 'resident';
+  const threadOverList = () => isMobile() && ui.pane === 'thread';
   const stepsBack = () => ((history.state && history.state.depth) || 0) > 0 || threadOverList();
   const backLabel = () => {
     const depth = (history.state && history.state.depth) || 0;
@@ -330,7 +411,7 @@ export function mount({ portal }) {
       ui.quickFor = null;
       renderComposerExtras();
     }
-    if (document.visibilityState === 'visible') store.markRead(ui.convId, me.id);
+    if (document.visibilityState === 'visible') store.markRead(ui.convId, me.id, { receipt: messagePref(portal, 'msgReceipts') });
   }
 
   /* ---------------------------------------------------------------- tabs */
@@ -392,6 +473,8 @@ export function mount({ portal }) {
       else chips.push(r.stage === 'resolved' ? badge('Resolved', 'success') : badge('Closed'));
     } else if (r.kind === 'support') {
       if (r.priority === 'high') chips.push(badge('High', 'danger'));
+      // How long a request has waited for its first answer (Support's own clock): the Admin sees it on the row.
+      if (me.role === 'admin' && r.status === 'open' && r.waitingSince) chips.push(badge(`Waiting ${duration(Date.now() - r.waitingSince)}`, 'warning', 'clock'));
       chips.push(badge({ open: 'Open', pending: 'Pending', resolved: 'Resolved' }[r.status], { open: 'info', pending: 'warning', resolved: 'success' }[r.status]));
     } else if (r.kind === 'announcement') {
       chips.push(badge('Announcement', 'neutral', 'megaphone'));
@@ -410,8 +493,10 @@ export function mount({ portal }) {
     const query = ui.query.trim().toLowerCase();
     // Structured search: unit:304 status:open priority:high assignee:jordan tag:permit after:2026-11-01 "water leak"
     const parsed = parseQuery(ui.query);
-    let rows = all.filter((r) => (ui.tab === 'all' ? !r.hidden : r.tags.includes(ui.tab)) && matchFilters(r, parsed) && matchText([r.title, r.subtitle, r.last && r.last.text, r.unit, r.topic].join(' '), parsed));
-    if (ui.tab === 'queue') rows = rows.sort((a, b) => Number(b.emergency) - Number(a.emergency) || (a.waitingSince || a.updatedAt) - (b.waitingSince || b.updatedAt));
+    let rows = all.filter((r) => (ui.tab === 'all' ? !r.hidden : r.tags.includes(ui.tab)) && matchFilters(r, parsed) && matchText([r.no, r.title, r.subtitle, r.last && r.last.text, r.unit, r.topic].join(' '), parsed));
+    // The queue: an emergency first, then High priority, then who has waited longest.
+    const prioRank = (r) => ({ high: 2, normal: 1, low: 0 }[r.priority] ?? 1);
+    if (ui.tab === 'queue') rows = rows.sort((a, b) => Number(b.emergency) - Number(a.emergency) || prioRank(b) - prioRank(a) || (a.waitingSince || a.updatedAt) - (b.waitingSince || b.updatedAt));
     const minute = Math.floor(Date.now() / 60000);
     const hits = query.length >= 2 ? store.search(me.id, query) : [];
     const sig = JSON.stringify([ui.tab, query, ui.convId, minute, offline(), store.pref(me.id).dnd, store.badgeCount(me.id), rows.map((r) => [r.id, r.updatedAt, r.status, r.unread, r.priority, r.pinned, r.muted, r.important]), hits.map((h) => h.msgId), (() => { const hi = store.hiddenItems(me.id); return [hi.conversations.map((r) => r.id), hi.messages.map((m) => m.id)]; })()]);
@@ -432,7 +517,7 @@ export function mount({ portal }) {
         emptyBox.appendChild(empty({ icon: 'search', title: `No matches for “${ui.query.trim()}”`, text: 'Check the spelling or clear the search.', actions: [button('Clear search', { onClick: () => { $('#list-search').value = ''; ui.query = ''; renderList(true); } })] }));
       } else {
         const copy = {
-          queue: ['Queue is clear', 'Residents who ask for a person appear here. Nothing is waiting right now.'],
+          queue: ['Queue is clear', me.role === 'admin' ? 'Support requests from staff and clients appear here. Nothing is waiting right now.' : 'Residents who ask for a person appear here. Nothing is waiting right now.'],
           mine: ['No chats assigned to you', me.role === 'admin' ? 'Requests you pick up from the queue show up here.' : 'Take a conversation from the queue and it moves here.'],
           clients: ['No client conversations', 'Start one with New.'],
           support: ['No support requests', me.role === 'admin' ? 'Nothing from staff or clients right now.' : 'Ask Support for help with New.'],
@@ -441,7 +526,7 @@ export function mount({ portal }) {
           direct: ['No direct messages', 'Start one with New.'],
           staff: ['No messages with staff', 'Start one with New.'],
           hidden: ['Nothing hidden', 'Hide a conversation from its menu, or delete a message for yourself. They wait here until you restore them.'],
-        }[ui.tab] || ['No conversations yet', canCompose ? 'Start one with New.' : 'Open the assistant to ask a question.'];
+        }[ui.tab] || ['No conversations yet', canCompose ? 'Start one with New.' : 'Press New to ask a question or reach the property team.'];
         emptyBox.appendChild(empty({ title: copy[0], text: copy[1], actions: me.role === 'resident' ? [button('Start a conversation', { variant: 'primary', onClick: startResidentSession })] : [] }));
       }
     }
@@ -455,7 +540,7 @@ export function mount({ portal }) {
       if (r.id === ui.convId) b.setAttribute('aria-current', 'true');
       $('[data-avatar]', b).replaceWith(avatar({ name: r.avatar.name, role: r.avatar.role }));
       $('[data-title]', b).textContent = r.title;
-      $('[data-subtitle]', b).textContent = r.subtitle || '';
+      $('[data-subtitle]', b).textContent = `${r.no ? `${r.no} · ` : ''}${r.subtitle || ''}`; // the ticket's own number first, so two tickets of one person are told apart
       const t = $('[data-time]', b);
       t.textContent = listTime(r.last ? r.last.at : r.updatedAt, Date.now());
       t.dateTime = new Date(r.last ? r.last.at : r.updatedAt).toISOString();
@@ -650,16 +735,36 @@ export function mount({ portal }) {
     }
     const online = onlineOthers(conv);
     if (online.length && conv.status !== 'closed') out.push(badge(conv.kind === 'group' ? `${online.length} online` : 'Online', 'success'));
+    // What the other person set as their status in Settings (Busy, Do not disturb, Away…), with their message as the tooltip. Only for a conversation with one other person.
+    if (conv.kind !== 'group' && conv.status !== 'closed') {
+      const peer = othersOf(conv).map(peerStatus).find(Boolean);
+      if (peer) { const b = badge(peer.label, peer.tone); if (peer.msg) b.title = peer.msg; out.push(b); }
+    }
     return out;
   }
 
-  /** People other than me in this conversation who are online right now. */
-  function onlineOthers(conv) {
+  /** The people other than me in this conversation (the ones who are known). */
+  function othersOf(conv) {
     let ids = [];
     if (conv.participants) ids = conv.participants.filter((p) => p !== me.id);
     else if (conv.kind === 'resident_support') ids = conv.status === 'active' ? [me.id === conv.residentId ? conv.assigneeId : conv.residentId] : [];
     else if (conv.kind === 'support') ids = me.role === 'admin' ? [conv.requesterId] : conv.assigneeId ? [conv.assigneeId] : [];
-    return ids.filter((id) => id && store.presenceOf(id).online);
+    return ids.filter(Boolean);
+  }
+  /** People other than me in this conversation who are online right now. */
+  function onlineOthers(conv) {
+    return othersOf(conv).filter((id) => store.presenceOf(id).online);
+  }
+  /** A status the person chose in Settings (the prototype keeps one record for each portal), unless it is Available or has run out. */
+  function peerStatus(id) {
+    const p = PERSONAS.find((x) => x.id === id);
+    if (!p) return null;
+    const key = p.role === 'staff' ? 'eso-status' : p.role === 'client' ? 'client:eso-status' : `${p.role}:eso-status`;
+    let s;
+    try { s = JSON.parse(localStorage.getItem(key)); } catch { return null; }
+    if (!s || !s.s || s.s === 'available' || (s.until && Date.now() > s.until)) return null;
+    const known = { busy: ['Busy', 'danger'], dnd: ['Do not disturb', 'danger'], brb: ['Be right back', 'warning'], away: ['Away', 'warning'], offline: ['Offline', 'neutral'] }[s.s];
+    return known ? { label: known[0], tone: known[1], msg: typeof s.msg === 'string' && s.showMsg !== false ? s.msg : '' } : null;
   }
 
   /* Pin and mute live behind the three dots in the conversation header; their state shows as badges next to the title. */
@@ -738,11 +843,7 @@ export function mount({ portal }) {
     clear(box);
     const { conv, actions } = t;
     closeThreadMenu();
-    if (me.role === 'resident') {
-      const hist = button('', { variant: 'ghost', icon: 'list', ariaLabel: 'Conversations', onClick: () => go({ pane: 'list' }, { push: true }) });
-      hist.classList.add('lg:hidden');
-      box.appendChild(hist);
-    }
+    // (A resident used to have a separate "Conversations" icon here because there was no Back; the Back arrow at the top is now the one way to the list.)
     $('#btn-context')?.remove();
     if (['staff', 'admin'].includes(me.role) && store.contextFor(conv.id, me.id)) {
       const on = contextOpen();
@@ -761,13 +862,41 @@ export function mount({ portal }) {
       mb.title = 'Members';
       $('#thread-flags').insertBefore(mb, threadMore);
     }
+    // A Support thread of the Admin: Take, Resolve (saved in the Ticket box) and Reopen are plain buttons, not only the three lists under the header.
+    if (actions.includes('take')) box.appendChild(button('Take', { variant: 'primary', icon: 'check', onClick: () => act(store.assignSupport(conv.id, me.id, me.id), 'You took this ticket.') }));
+    if (actions.includes('reopen')) box.appendChild(button('Reopen', { variant: 'outline', icon: 'undo', onClick: () => act(store.setSupportStatus(conv.id, me.id, 'open'), 'Ticket reopened.') }));
+    if (['admin', 'staff'].includes(me.role) && (conv.kind === 'support' || conv.ticketNo)) {
+      const tb = button('Ticket box', { variant: 'ghost', icon: 'clipboard', onClick: () => goPage(`/${portal}/tickets.html`, `#/t/${conv.id}`) });
+      tb.title = 'Open this ticket in the Ticket box';
+      box.appendChild(tb);
+    }
     if (actions.includes('claim')) box.appendChild(button('Take conversation', { variant: 'primary', icon: 'check', onClick: () => act(store.claim(conv.id, me.id), 'You took this conversation.') }));
+    for (const route of ['platform', 'property']) {
+      if (!actions.includes(`move:${route}`)) continue;
+      const to = route === 'platform' ? 'EasySpotOps Support' : 'the Property team';
+      const mv = confirmButton(`move:${conv.id}`, route === 'platform' ? 'Move to Support' : 'Move to Property', `Confirm: move to ${route === 'platform' ? 'Support' : 'Property'}`, () => { ui.quiet = conv.id; return act(store.reroute(conv.id, me.id, route), `Moved to ${to}. The summary went with it.`); }, { variant: 'ghost', icon: 'forward' });
+      mv.title = `Sent to the wrong place? Move this request to ${to}. The resident is told and does not start again.`;
+      box.appendChild(mv);
+    }
     if (actions.includes('request_staff')) box.appendChild(button('Talk to a person', { variant: 'soft', icon: 'users', onClick: () => requestStaff(conv.id) }));
     if (actions.includes('ack_emergency')) box.appendChild(button('Acknowledge emergency', { variant: 'primary', icon: 'alert', onClick: () => act(store.acknowledgeEmergency(conv.id, me.id), 'Emergency acknowledged.') }));
     if (actions.includes('wait')) box.appendChild(button('Waiting on resident', { variant: 'outline', icon: 'clock', onClick: () => act(store.setTicketState(conv.id, me.id, 'waiting_on_resident'), 'Marked as waiting on the resident.') }));
     if (actions.includes('resume')) box.appendChild(button('Back to in progress', { variant: 'outline', icon: 'check', onClick: () => act(store.setTicketState(conv.id, me.id, 'in_progress'), 'Back to in progress.') }));
-    if (actions.includes('resolve')) box.appendChild(confirmButton(`resolve:${conv.id}`, 'Resolve', 'Confirm resolve', () => act(store.resolve(conv.id, me.id), 'Conversation resolved.'), { icon: 'check' }));
+    // An Admin resolving a Support thread is one tap, with an Undo in the message that follows: a "Confirm" step for something this easy to take back was a second tap
+    // for every thread (resolving is the last step of nearly every one). Other conversations keep the confirm step: resolving them is saved in the Ticket box for good.
+    if (actions.includes('resolve') && me.role === 'admin' && conv.kind === 'support') {
+      box.appendChild(button('Resolve', { variant: 'outline', icon: 'check', onClick: () => resolveWithUndo(conv) }));
+    } else if (actions.includes('resolve')) box.appendChild(confirmButton(`resolve:${conv.id}`, 'Resolve', 'Confirm resolve', () => act(store.resolve(conv.id, me.id), conv.kind === 'direct' || conv.kind === 'support' || conv.ticketNo ? 'Resolved. It is saved in the Ticket box.' : 'Conversation resolved.'), { icon: 'check' }));
     if (actions.includes('end')) box.appendChild(confirmButton(`end:${conv.id}`, 'End chat', 'Confirm end chat', () => act(store.endChat(conv.id, me.id), 'Chat ended.'), { variant: 'ghost', icon: 'x' }));
+  }
+
+  // Resolve a Support thread (Admin), saying "Resolved." with an Undo. Undo puts back what Resolve changed: the status and, if Resolve picked the thread up, nobody.
+  function resolveWithUndo(conv) {
+    const was = conv.status;
+    const wasAssignee = conv.assigneeId || null;
+    const r = act(store.resolve(conv.id, me.id), null);
+    if (r.ok) toast('Resolved.', { action: 'Undo', ms: 8000, onAction: () => { act(store.setSupportStatus(conv.id, me.id, was), null); act(store.assignSupport(conv.id, me.id, wasAssignee), `Back to ${was}.`); } });
+    return r;
   }
 
   function act(result, okText) {
@@ -778,8 +907,22 @@ export function mount({ portal }) {
       return result;
     }
     if (okText) toast(okText);
+    // A button that did its job leaves the page (Take, Confirm resolve) before this runs, so the keyboard is already dropped on the page.
+    // For somebody using the keyboard, focus goes on to the message box (or the title when it is closed). A mouse click is left alone.
+    if (usingKeyboard && !result.noop) {
+      setTimeout(() => {
+        const now = document.activeElement;
+        if (now && now !== document.body && document.contains(now)) return;
+        const box = $('#msg-input');
+        const target = box && !box.disabled && box.offsetParent !== null ? box : $('#thread-title');
+        target?.focus({ preventScroll: true });
+      }, 150);
+    }
     return result;
   }
+  let usingKeyboard = false;
+  document.addEventListener('keydown', () => { usingKeyboard = true; }, true);
+  document.addEventListener('pointerdown', () => { usingKeyboard = false; }, true);
 
   function requestStaff(convId) {
     if (offline()) return toast('You are offline. Try again when the connection is back.');
@@ -811,6 +954,14 @@ export function mount({ portal }) {
       PERSONAS.filter((p) => p.role === 'admin').forEach((p) => asg.add(new Option(p.id === me.id ? `${p.name} (you)` : p.name, p.id)));
     }
     asg.value = t.conv.assigneeId || '';
+    // The folded line on a phone: what the three choices are now, and one tap to change them (the choice stays open while the agent works in this conversation).
+    const word = (sel) => sel.options[sel.selectedIndex] ? sel.options[sel.selectedIndex].text : '';
+    $('#tools-summary').textContent = `${word(status)} · ${word(prio)} priority · ${word(asg)}`;
+    const fields = $('#tools-fields');
+    const open = ui.toolsOpenFor === t.conv.id;
+    fields.dataset.collapsed = String(!open);
+    $('#tools-toggle').setAttribute('aria-expanded', String(open));
+    $('#tools-toggle').onclick = () => { ui.toolsOpenFor = ui.toolsOpenFor === t.conv.id ? null : t.conv.id; threadTools(t); };
     status.onchange = () => act(store.setSupportStatus(t.conv.id, me.id, status.value), 'Status updated.');
     prio.onchange = () => act(store.setPriority(t.conv.id, me.id, prio.value), 'Priority updated.');
     asg.onchange = () => act(store.assignSupport(t.conv.id, me.id, asg.value || null), 'Assignment updated.');
@@ -875,6 +1026,10 @@ export function mount({ portal }) {
       who.appendChild(dl);
       ctxRow(dl, 'Unit', u.number);
       ctxRow(dl, 'Location', u.building);
+      // How the resident chose to be reached (Settings > My profile): their phone, if they gave one, and the way they prefer to hear from the property team.
+      const reach = readPrefs(localStorage, data.person && data.person.id);
+      if (reach.phone) ctxRow(dl, 'Phone', reach.phone);
+      ctxRow(dl, 'Prefers', { app: 'In the app', email: 'Email', text: 'Text message' }[reach.contact] || 'In the app');
       ctxRow(dl, 'Lease', `${fmtDate(u.leaseStart)} to ${fmtDate(u.leaseEnd)}`);
       const left = u.daysLeft;
       ctxRow(dl, 'Lease status', left < 0 ? `Ended ${-left} days ago` : left <= 60 ? `Ends in ${left} days` : `${left} days left`, left < 0 ? 'danger' : left <= 60 ? 'warning' : 'success');
@@ -912,6 +1067,9 @@ export function mount({ portal }) {
     qa.className += ' items-start';
     const add = (label, icon, run) => qa.appendChild(button(label, { variant: 'outline', icon, onClick: run }));
     if (t.actions.includes('claim')) add('Take conversation', 'check', () => act(store.claim(t.conv.id, me.id), 'You took this conversation.'));
+    for (const route of ['platform', 'property']) {
+      if (t.actions.includes(`move:${route}`)) add(route === 'platform' ? 'Move to EasySpotOps Support' : 'Move to Property team', 'forward', () => { ui.quiet = t.conv.id; return act(store.reroute(t.conv.id, me.id, route), 'Moved. The summary went with it.'); });
+    }
     if (t.actions.includes('ack_emergency')) add('Acknowledge emergency', 'alert', () => act(store.acknowledgeEmergency(t.conv.id, me.id), 'Emergency acknowledged.'));
     if (t.actions.includes('wait')) add('Waiting on resident', 'clock', () => act(store.setTicketState(t.conv.id, me.id, 'waiting_on_resident'), 'Marked as waiting on the resident.'));
     if (t.actions.includes('resume')) add('Back to in progress', 'check', () => act(store.setTicketState(t.conv.id, me.id, 'in_progress'), 'Back to in progress.'));
@@ -968,7 +1126,7 @@ export function mount({ portal }) {
     if (t.emergency && me.role === 'resident') box.appendChild(banner('warning', 'Your emergency report was sent. The property team has been alerted and will respond as soon as they see it.'));
     // A closed ticket is kept in the Ticket box with its whole conversation.
     const closedTicket = (conv.kind === 'resident_support' && conv.status === 'closed' && conv.queuedAt) || (conv.kind === 'support' && conv.status === 'resolved');
-    if (closedTicket) box.appendChild(banner('neutral', `Saved as ${ticketNo(conv)} in the Ticket box.`, [button('Open Ticket box', { variant: 'outline', icon: 'ticket', onClick: () => location.assign(`/${portal}/tickets.html?as=${me.id}#/t/${conv.id}`) })]));
+    if (closedTicket) box.appendChild(banner('neutral', `Saved as ${ticketNo(conv)} in the Ticket box.`, [button('Open Ticket box', { variant: 'outline', icon: 'ticket', onClick: () => goPage(`/${portal}/tickets.html`, `#/t/${conv.id}`) })]));
     if (conv.kind === 'announcement' && t.ack) {
       const names = t.ack.unread.length ? ` Not yet read: ${t.ack.unread.join(', ')}.` : ' Everyone has read it.';
       box.appendChild(banner('info', `${t.ack.pct}% read (${t.ack.read} of ${t.ack.total}).${names}`));
@@ -1022,6 +1180,7 @@ export function mount({ portal }) {
     if (!canEmergency && ui.emergency) { ui.emergency = false; renderComposerExtras(); }
     const showCanned = t.canPost.ok && (me.role === 'staff' || me.role === 'admin');
     $('#btn-canned').hidden = !showCanned;
+    $('#btn-send-resolve').hidden = !(t.canPost.ok && me.role === 'admin' && t.conv.kind === 'support' && t.conv.status !== 'resolved' && !ui.edit);
     $('#canned-menu').hidden = !(showCanned && ui.cannedOpen);
     $('#btn-canned').setAttribute('aria-expanded', String(showCanned && ui.cannedOpen));
     if (showCanned && !$('#canned-menu').children.length) {
@@ -1047,6 +1206,7 @@ export function mount({ portal }) {
     }
     const t = store.get(ui.convId, me.id);
     if (!t.ok) {
+      const lostId = ui.convId;
       ui.convId = null;
       ui.lastConv = null;
       none.hidden = false;
@@ -1056,7 +1216,9 @@ export function mount({ portal }) {
         ui.pane = 'list';
         root.dataset.pane = 'list';
       }
-      toast(me.role === 'staff' ? 'That conversation was taken by another team member.' : reasonText(t.reason));
+      // (a request this person just passed to the other team is not "taken by someone": the move already said what happened)
+      if (ui.quiet !== lostId) toast(me.role === 'staff' ? 'That conversation was taken by another team member.' : reasonText(t.reason));
+      ui.quiet = null;
       renderList(true);
       return;
     }
@@ -1081,7 +1243,16 @@ export function mount({ portal }) {
       $('#thread-title').textContent = row.title;
       renderMarks(row);
       renderStage(t);
-      $('#thread-sub').textContent = row.kind === 'group' ? (row.subtitle || '').replace(/^\d+ people · /, '') : row.subtitle || '';
+      // The ticket's number leads and stands out (it is how two tickets of one person are told apart); the rest of the line follows quietly.
+      const subEl = $('#thread-sub');
+      subEl.textContent = '';
+      if (row.no) {
+        const id = document.createElement('span');
+        id.className = 'font-medium tabular-nums text-foreground';
+        id.textContent = row.no;
+        subEl.append(id, ' · ');
+      }
+      subEl.append(row.kind === 'group' ? (row.subtitle || '').replace(/^\d+ people · /, '') : row.subtitle || '');
       const bx = $('#thread-badges');
       clear(bx);
       threadStatusBadges(row, t.conv).forEach((b) => bx.appendChild(b));
@@ -1118,9 +1289,10 @@ export function mount({ portal }) {
     const prevCount = log.dataset.count ? Number(log.dataset.count) : 0;
     clear(log);
 
-    if (me.role === 'staff' && t.conv.kind === 'resident_support' && t.conv.summary) {
+    if (['staff', 'admin'].includes(me.role) && t.conv.kind === 'resident_support' && t.conv.summary) {
       const s = tpl('t-summary');
-      $('[data-topic]', s).textContent = t.conv.summary.topic;
+      // the topic, and where the resident chose to send it (the team that does not have it is never shown it)
+      $('[data-topic]', s).textContent = `${t.conv.summary.topic} · Sent to ${t.conv.route === 'platform' ? 'EasySpotOps Support' : 'Property team'}`;
       const asked = t.conv.summary.asked || [];
       $('[data-asked-row]', s).hidden = !asked.length;
       $('[data-asked]', s).textContent = asked.join(' · ');
@@ -1155,9 +1327,13 @@ export function mount({ portal }) {
           // Immutable audit card: what changed, who did it (id and name), when (ISO, UTC).
           const a = tpl('t-audit');
           $('[data-change]', a).textContent = `${m.audit.field}: ${m.audit.from} → ${m.audit.to}`;
-          $('[data-actor]', a).textContent = m.audit.actorId === 'system' ? 'System' : `${m.audit.actorName} (${m.audit.actorId})`;
+          // Staff and Admin read the full record (id, ISO time in UTC). A resident or a client reads it as a sentence: the name and the time.
+          const full = me.role === 'staff' || me.role === 'admin';
+          $('[data-actor]', a).textContent = m.audit.actorId === 'system' ? 'System' : full ? `${m.audit.actorName} (${m.audit.actorId})` : m.audit.actorName;
           const tm = $('[data-time]', a);
-          tm.textContent = m.audit.at;
+          // A date and time people can read; Staff and Admin still get the exact record (ISO, UTC) on hover and for assistive tech, and in the element's datetime.
+          tm.textContent = formatFull(new Date(m.audit.at).getTime());
+          if (full) { tm.title = `Recorded ${m.audit.at} (UTC)`; tm.setAttribute('aria-label', `${tm.textContent}, recorded ${m.audit.at} UTC`); }
           tm.dateTime = m.audit.at;
           log.appendChild(a);
           return;
@@ -1371,8 +1547,9 @@ export function mount({ portal }) {
       items.push({ label: 'Edit message', icon: 'pencil', disabled: !ok, hint: ok ? '' : `Only within ${mins(store.config.editMs)} of sending`, run: () => startEdit(m) });
     }
     if (m.mine) {
-      const ok = age < store.config.unsendMs;
-      items.push({ label: 'Unsend for everyone', icon: 'undo', disabled: !ok, hint: ok ? '' : `Only within ${mins(store.config.unsendMs)} of sending`, confirm: ok, tone: 'danger', run: () => { act(store.unsend(t.conv.id, me.id, m.id), 'Message unsent.'); } });
+      const open = t.canPost.ok; // a closed chat is a record: nothing in it is taken back
+      const ok = open && age < store.config.unsendMs;
+      items.push({ label: 'Unsend for everyone', icon: 'undo', disabled: !ok, hint: ok ? '' : open ? `Only within ${mins(store.config.unsendMs)} of sending` : 'This conversation is closed', confirm: ok, tone: 'danger', run: () => { act(store.unsend(t.conv.id, me.id, m.id), 'Message unsent.'); } });
     }
     items.push({ label: 'Delete for me', icon: 'trash', tone: 'danger', run: () => {
       const r = store.hideMessage(t.conv.id, me.id, m.id);
@@ -1525,7 +1702,7 @@ export function mount({ portal }) {
     if (m.deleted) { body.textContent = 'This message was removed'; body.dataset.state = 'deleted'; }
     else if (m.text) renderText(body, m.text); else body.hidden = true;
     const a = m.author || { name: 'Assistant', role: 'bot' };
-    const who = m.kind === 'bot' ? 'EasySpotOps Assistant' : `${a.name}${a.role && a.role !== 'bot' ? ` · ${ROLE_LABEL[a.role]}` : ''}`;
+    const who = m.kind === 'bot' ? 'EasySpotOps Assistant' : `${a.name}${a.role && a.role !== 'bot' && !(me.role === 'resident' && a.role === 'admin') ? ` · ${ROLE_LABEL[a.role]}` : ''}`; // (a resident reads "EasySpotOps Support", not "… · Admin")
     if (first) $('[data-author]', el).textContent = who; else $('[data-author]', el).hidden = true;
     if (last) $('[data-avatar]', el).replaceWith(avatar({ name: a.name, role: a.role === 'bot' ? 'bot' : a.role, size: 'sm' }));
     const tm = $('[data-time]', el);
@@ -1582,6 +1759,15 @@ export function mount({ portal }) {
       err.textContent = p.error || 'Message not sent.';
       box.appendChild(err);
       box.appendChild(button('Retry', { variant: 'soft', onClick: () => deliver(p) }));
+      if (me.role === 'resident') {
+        // Messages itself may be what is broken: a way to reach people that does not go through it. The text stays here to be copied.
+        const help = document.createElement('a');
+        help.className = 'text-xs text-primary underline underline-offset-2';
+        help.href = `mailto:support@easyspotops.example?subject=${encodeURIComponent('My message will not send')}`;
+        help.textContent = 'Still not sending? Email EasySpotOps Support';
+        help.dataset.contactSupport = '';
+        box.appendChild(help);
+      }
       box.appendChild(button('Discard', { variant: 'ghost', onClick: () => { ui.pending = ui.pending.filter((x) => x !== p); renderThread(true); } }));
     }
     return el;
@@ -1613,7 +1799,9 @@ export function mount({ portal }) {
   const outboxKey = () => `eso-msg-outbox:${me.id}`;
   function saveOutbox() {
     try {
-      const items = ui.pending.filter((p) => p.state === 'queued').map(({ cid, convId, text, at, attachments, replyTo, emergency }) => ({ cid, convId, text, at, attachments, replyTo, emergency }));
+      // A message still going out is kept too, not only one waiting for the connection: leaving the page in that moment must not lose it (the store never
+      // keeps the same clientId twice, so sending it again on the next visit is safe).
+      const items = ui.pending.filter((p) => p.state === 'queued' || p.state === 'sending').map(({ cid, convId, text, at, attachments, replyTo, emergency }) => ({ cid, convId, text, at, attachments, replyTo, emergency }));
       if (items.length) localStorage.setItem(outboxKey(), JSON.stringify(items)); else localStorage.removeItem(outboxKey());
     } catch { /* storage full: the message stays queued in memory for this visit */ }
   }
@@ -1729,6 +1917,7 @@ export function mount({ portal }) {
     updateCount();
     store.setTyping(ui.convId, me.id, false);
     ui.pending.push(p);
+    saveOutbox();
     ui.stick = true;
     deliver(p);
     input.focus();
@@ -1738,7 +1927,9 @@ export function mount({ portal }) {
   form.addEventListener('submit', (e) => { e.preventDefault(); send(); });
   const input = $('#msg-input');
   input.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter' && !e.shiftKey && !e.isComposing && !matchMedia('(pointer: coarse)').matches) { e.preventDefault(); send(); }
+    // "Press Enter to send" (Settings > Messages): on, Enter sends and Shift+Enter adds a line; off, Enter adds a line and Ctrl or Cmd + Enter (or the Send button) sends.
+    const enterSends = messagePref(portal, 'msgEnter');
+    if (e.key === 'Enter' && !e.isComposing && !matchMedia('(pointer: coarse)').matches && (enterSends ? !e.shiftKey : (e.ctrlKey || e.metaKey))) { e.preventDefault(); send(); }
     if (e.key === 'Escape' && ui.edit) { e.preventDefault(); endEdit(); return; }
     if (e.key === 'Escape' && isMobile() && ui.pane === 'thread') leave();
   });
@@ -1749,7 +1940,7 @@ export function mount({ portal }) {
     updateCount();
     if (ui.edit) return; // an edit is not a draft and is not "typing a new message"
     const t = ui.convId && Date.now() - typingSent > 2000 && input.value.trim();
-    if (t && !(ui.lastKind === 'resident_support' && ui.lastStatus === 'bot')) { typingSent = Date.now(); store.setTyping(ui.convId, me.id, true); }
+    if (t && messagePref(portal, 'msgTyping') && !(ui.lastKind === 'resident_support' && ui.lastStatus === 'bot')) { typingSent = Date.now(); store.setTyping(ui.convId, me.id, true); }
     clearTimeout(draftTimer);
     draftTimer = setTimeout(() => { if (ui.convId) { if (input.value) localStorage.setItem(draftKey(ui.convId), input.value); else localStorage.removeItem(draftKey(ui.convId)); } }, 250);
   });
@@ -1760,7 +1951,26 @@ export function mount({ portal }) {
     const ready = ui.attach.some((a) => a.state === 'ready');
     const busy = ui.attach.some((a) => a.state === 'processing');
     $('#btn-send').disabled = busy || (!input.value.trim() && !ready);
+    $('#btn-send-resolve').disabled = $('#btn-send').disabled;
   }
+  // Send & resolve (Admin, Support thread): the message goes first; when it has been delivered the thread is resolved, with the same Undo as Resolve.
+  $('#btn-send-resolve').addEventListener('click', () => {
+    const t = ui.convId && store.get(ui.convId, me.id);
+    if (!t || !t.ok || ui.edit) return;
+    const conv = t.conv;
+    const before = ui.pending.length;
+    send();
+    if (ui.pending.length === before) return; // nothing was sent (a message too long, a photo still preparing): do not resolve
+    const started = Date.now();
+    const timer = setInterval(() => {
+      const waiting = ui.pending.some((p) => p.convId === conv.id);
+      if (waiting && Date.now() - started < 5000) return;
+      clearInterval(timer);
+      if (waiting) return toast('The message is still sending, so the thread was not resolved.');
+      const now = store.get(conv.id, me.id);
+      if (now.ok && now.conv.status !== 'resolved') resolveWithUndo({ ...now.conv, status: conv.status, assigneeId: conv.assigneeId });
+    }, 120);
+  });
   function insertText(text) {
     const s = input.selectionStart ?? input.value.length;
     input.value = `${input.value.slice(0, s)}${input.value && !/\s$/.test(input.value.slice(0, s)) ? ' ' : ''}${text}${input.value.slice(input.selectionEnd ?? s)}`;
@@ -1958,11 +2168,37 @@ export function mount({ portal }) {
     line.hidden = !text;
     if (text && line.dataset.text !== text) { line.textContent = `${text}…`; line.dataset.text = text; }
     if (!text) line.dataset.text = '';
+    // The same three dots the assistant has, at the end of the conversation, with the face of the person who is typing. The line above says who (for a screen reader
+    // it is the status; the dots are only for the eye).
+    const log = $('#log');
+    let dots = log && log.querySelector('[data-typing-person]');
+    if (log && people.length && !log.querySelector('[data-typing]:not([data-typing-person])')) {
+      const stick = log.scrollHeight - log.scrollTop - log.clientHeight < 48;
+      if (!dots) {
+        dots = tpl('t-typing');
+        dots.setAttribute('data-typing-person', '');
+        $('[data-avatar]', dots).replaceWith(avatar({ name: people[0].name, role: people[0].role, size: 'sm' }));
+        log.appendChild(dots);
+        if (stick) log.scrollTop = log.scrollHeight;
+      }
+      $('[role=status]', dots).setAttribute('aria-label', `${text}`);
+    } else if (dots) dots.remove();
     clearTimeout(typingTimer);
     if (text) typingTimer = setTimeout(renderTyping, store.config.typingMs + 200);
   }
   window.addEventListener('pagehide', () => { store.goOffline(me.id); if (ui.convId) store.setTyping(ui.convId, me.id, false); });
   input.addEventListener('blur', () => { if (ui.convId) store.setTyping(ui.convId, me.id, false); });
+
+  /* -------------------------------------------------------------- the (i) window */
+  $('#info-win-ok').addEventListener('click', () => $('#info-win').close());
+  $('#info-win').addEventListener('click', (e) => { if (e.target === e.currentTarget) e.currentTarget.close(); }); // the backdrop
+  $('#info-win').addEventListener('close', () => {
+    // the banner that held the (i) may have been drawn again meanwhile: go back to the conversation then
+    if (infoOpener && infoOpener.isConnected) infoOpener.focus({ preventScroll: true });
+    else ($('#thread-title') || $('#msg-input')).focus({ preventScroll: true });
+    infoOpener = null;
+  });
+  $('#emergency-info').addEventListener('click', (e) => showInfo(e.currentTarget, 'Emergency', 'Managers are alerted right away, and it gets through Do Not Disturb. Use it for water, fire or gas.'));
 
   /* -------------------------------------------------------------- dialogs */
 
@@ -1987,6 +2223,7 @@ export function mount({ portal }) {
   $$('#new-mode [data-mode]').forEach((b) => b.addEventListener('click', () => setNewMode(b.dataset.mode)));
 
   function openNew() {
+    if (me.role === 'resident') return startResidentSession();
     const d = dlg('dlg-new');
     const box = $('#new-recipients');
     clear(box);
@@ -2206,8 +2443,8 @@ export function mount({ portal }) {
     });
   };
   const afterReset = () => { ui.convId = null; ui.lastConv = null; ui.pending = []; ui.seen.clear(); dlg('dlg-preview').close(); boot(); toast('Demo data reset.'); };
-  twoStep($('#pv-reset'), 'Reset demo data', () => { store.reset(); afterReset(); });
-  twoStep($('#pv-empty'), 'Start empty', () => { store.reset({ empty: true }); afterReset(); });
+  twoStep($('#pv-reset'), 'Reset demo data', () => { store.reset(); clearSideData(); afterReset(); });
+  twoStep($('#pv-empty'), 'Start empty', () => { store.reset({ empty: true }); clearSideData(); afterReset(); });
 
   $('#btn-dnd').addEventListener('click', () => {
     const on = !store.pref(me.id).dnd;
@@ -2227,8 +2464,33 @@ export function mount({ portal }) {
     renderThread(force);
   }
 
+  let audio = null;
+  /** One short, quiet tone (no sound file). Browsers may refuse until the page has been used: then it stays silent. */
+  function ping() {
+    try {
+      const Ctx = window.AudioContext || window.webkitAudioContext;
+      if (!Ctx) return;
+      audio = audio || new Ctx();
+      const o = audio.createOscillator();
+      const g = audio.createGain();
+      o.type = 'sine';
+      o.frequency.value = 880;
+      g.gain.setValueAtTime(0.0001, audio.currentTime);
+      g.gain.exponentialRampToValueAtTime(0.08, audio.currentTime + 0.02);
+      g.gain.exponentialRampToValueAtTime(0.0001, audio.currentTime + 0.22);
+      o.connect(g).connect(audio.destination);
+      o.start();
+      o.stop(audio.currentTime + 0.25);
+      window.__esoPings = (window.__esoPings || 0) + 1; // lets a check see that it was asked to play
+    } catch { /* no audio available: silent */ }
+  }
+
   function onStore(source) {
     if (source === 'live') { renderThread(false); renderList(false); return; } // presence or typing only
+    // "Sound for new messages" (Settings > Messages): a short soft tone when something new arrives for this person from elsewhere (another tab or document).
+    const unreadNow = store.badgeCount(me.id);
+    if (source === 'remote' && ui.lastBadge !== undefined && unreadNow > ui.lastBadge && messagePref(portal, 'msgSound')) ping();
+    ui.lastBadge = unreadNow;
     if (ui.convId && document.visibilityState === 'visible' && (!isMobile() || ui.pane === 'thread')) {
       const before = store.unreadCount(ui.convId, me.id);
       if (before > 0) {
@@ -2236,7 +2498,7 @@ export function mount({ portal }) {
         const last = t.ok && [...t.messages].reverse().find((m) => !m.mine && notifies(m, me.role));
         if (last && !ui.seen.has(last.id) && source === 'remote') announce(`${last.author ? last.author.name : 'Assistant'}: ${last.text || (last.attachments && last.attachments.length ? 'sent an attachment' : '')}`);
         // keep unread dividers visible while the person is scrolled up
-        if (ui.stick) store.markRead(ui.convId, me.id);
+        if (ui.stick) store.markRead(ui.convId, me.id, { receipt: messagePref(portal, 'msgReceipts') });
         else if (source === 'remote') { /* leave unread until they scroll down */ }
       }
     }
@@ -2250,8 +2512,14 @@ export function mount({ portal }) {
     $('#view-boot').hidden = true;
     $('#view-app').hidden = true;
     $('#view-error').hidden = false;
-    $('#error-text').textContent = reasonText('storage');
+    $('#error-text').textContent = 'Your messages could not be opened. They are safe. Try again, or reach EasySpotOps Support below.';
     $('#btn-retry').onclick = () => location.reload();
+    // The reference is the kind of error and the time, so Support can find it; it carries nothing about the person.
+    const ref = `${(error && error.name) || 'Error'} at ${new Date().toISOString().slice(0, 16).replace('T', ' ')} UTC`;
+    const refEl = $('#error-ref');
+    if (refEl) refEl.textContent = `Reference: ${ref}`;
+    const mail = $('#error-mail');
+    if (mail) mail.href = `mailto:support@easyspotops.example?subject=${encodeURIComponent('Messages could not load')}&body=${encodeURIComponent(`Reference: ${ref}\nWhat I was doing: `)}`;
   }
 
   function boot() {
@@ -2261,6 +2529,7 @@ export function mount({ portal }) {
       $('#view-boot').hidden = true;
       $('#view-app').hidden = false;
       store.tick();
+      ui.lastBadge = store.badgeCount(me.id); // what is already unread when the page opens is not "new"
       let conv = routeConv();
       if (conv && !store.get(conv, me.id).ok) conv = null;
       if (me.role === 'resident' && !conv) {

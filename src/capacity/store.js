@@ -1,6 +1,7 @@
 // Capacity (Client): what the plan includes, what can be added, and what it costs. No page in here, so it can be tested.
-// The prices and the "using X of Y" figures are the ones Billing & Plan shows for the Client (Starter): Parking spaces +$5.00/mo per unit, 261 of 500;
-// Resident accounts +$2.00/mo per unit, 0 of 0; Staff members +$10.00/mo per unit, 0 of 0; Additional property $25.00/mo; current recurring total $50.00.
+// The ONE place the plan's limits live (every card, page and notification reads them from here). The owner's standard plan: Resident accounts 800, Staff members 10,
+// Parking spaces at least 300. The "used" figures are sample data (202 residents and 261 spaces are what the dashboards already said; 7 staff seats is a sample).
+// Prices: Parking spaces +$5.00/mo per unit; Resident accounts +$2.00/mo per unit; Staff members +$10.00/mo per unit; Additional property $25.00/mo; current recurring total $50.00.
 // Document storage is new: 10 GB included, and +20 GB for $15.00/mo when it runs out. Demo only: nothing is charged; what is "bought" is kept in this browser.
 
 export const BASE = { plan: 'Starter', recurring: 50 };
@@ -8,9 +9,9 @@ export const STORAGE_BLOCK_GB = 20;
 
 /** The resources that are added by the unit. `included` is what the plan covers; `used` is what is in use now. */
 export const ITEMS = [
-  { id: 'parking', name: 'Parking spaces', unit: 'space', unitPlural: 'spaces', price: 5, per: 'per unit', included: 500, used: 261, max: 5000, step: 1, hint: 'Spaces your properties can hold.' },
-  { id: 'residents', name: 'Resident accounts', unit: 'account', unitPlural: 'accounts', price: 2, per: 'per unit', included: 0, used: 0, max: 5000, step: 1, hint: 'Residents who sign in to their portal.' },
-  { id: 'staff', name: 'Staff members', unit: 'seat', unitPlural: 'seats', price: 10, per: 'per unit', included: 0, used: 0, max: 200, step: 1, hint: 'People who work in your properties.' },
+  { id: 'parking', name: 'Parking spaces', unit: 'space', unitPlural: 'spaces', price: 5, per: 'per unit', included: 300, used: 261, max: 5000, step: 1, hint: 'Spaces your properties can hold.' },
+  { id: 'residents', name: 'Resident accounts', unit: 'account', unitPlural: 'accounts', price: 2, per: 'per unit', included: 800, used: 202, max: 5000, step: 1, hint: 'Residents who sign in to their portal.' },
+  { id: 'staff', name: 'Staff members', unit: 'seat', unitPlural: 'seats', price: 10, per: 'per unit', included: 10, used: 7, max: 200, step: 1, hint: 'People who work in your properties.' },
   { id: 'storage', name: 'Document storage', unit: 'GB', unitPlural: 'GB', price: 15, per: 'per 20 GB', included: 10, used: 9.4, max: 20, step: 1, block: STORAGE_BLOCK_GB, hint: 'Where contracts, insurance and the W-9 are kept.' },
 ];
 export const PROPERTY = { id: 'property', name: 'Additional property', price: 25, inPortfolio: 1, maxUnits: 5000 };
@@ -22,9 +23,20 @@ export function normalizePurchased(raw) {
   const out = emptyPurchased();
   if (!raw || typeof raw !== 'object') return out;
   for (const it of ITEMS) out[it.id] = num(raw[it.id], it.max);
-  out.properties = Array.isArray(raw.properties) ? raw.properties.filter((p) => p && typeof p.name === 'string').slice(0, 50).map((p) => ({ name: String(p.name).slice(0, 80), units: num(p.units, PROPERTY.maxUnits), address: String(p.address || '').slice(0, 120) })) : [];
+  out.properties = Array.isArray(raw.properties) ? raw.properties.filter((p) => p && typeof p.name === 'string').slice(0, 50).map((p, i) => ({
+    // A property keeps one id for as long as it is in the account (a new owner of the same place is a new property with a new id). One saved
+    // before ids existed is named by its place in the list, once: the next save keeps it.
+    id: PROPERTY_ID.test(p.id) ? p.id : `extra-${i + 1}`,
+    name: String(p.name).slice(0, 80), units: num(p.units, PROPERTY.maxUnits), address: String(p.address || '').slice(0, 120),
+    ...(p.status === 'ended' ? { status: 'ended', endedAt: Number(p.endedAt) || null } : {}),
+  })) : [];
+  if (raw.primaryEnded === true) out.primaryEnded = true; // the property the company started with has been removed from the portfolio
   return out;
 }
+// A regular expression's test() turns undefined into the word "undefined", which fits this pattern: the type is checked first.
+const PROPERTY_ID = { test: (v) => typeof v === 'string' && /^[a-z0-9-]{3,40}$/.test(v) };
+/** A new id for a property being added: it never repeats, and never depends on what else is in the list (so removing one cannot move another's data). */
+export const newPropertyId = (now = Date.now(), rand = Math.random) => `p${now.toString(36)}${Math.floor(rand() * 36 ** 4).toString(36).padStart(4, '0')}`;
 export const clampQty = (id, n) => num(n, (ITEMS.find((i) => i.id === id) || { max: 0 }).max);
 
 const item = (id) => ITEMS.find((i) => i.id === id);
@@ -32,8 +44,10 @@ const item = (id) => ITEMS.find((i) => i.id === id);
 export const perUnit = (id) => item(id).block || 1;
 /** The limit after what has been bought. */
 export const limitFor = (id, purchased) => item(id).included + (purchased[id] || 0) * perUnit(id);
-export const propertiesCount = (purchased) => PROPERTY.inPortfolio + purchased.properties.length;
-export const addOnsTotal = (purchased) => ITEMS.reduce((s, it) => s + it.price * (purchased[it.id] || 0), 0) + PROPERTY.price * purchased.properties.length;
+/** A property that ended is no longer in the account: it is neither counted nor charged. */
+export const activeProperties = (purchased) => purchased.properties.filter((p) => p.status !== 'ended');
+export const propertiesCount = (purchased) => (purchased.primaryEnded ? 0 : PROPERTY.inPortfolio) + activeProperties(purchased).length;
+export const addOnsTotal = (purchased) => ITEMS.reduce((s, it) => s + it.price * (purchased[it.id] || 0), 0) + PROPERTY.price * activeProperties(purchased).length;
 /** What the account pays each month now. */
 export const recurring = (purchased) => BASE.recurring + addOnsTotal(purchased);
 
@@ -59,7 +73,7 @@ export function buildSummary(purchased, cart, budget = null) {
 export function applyCart(purchased, cart) {
   const out = normalizePurchased(purchased);
   for (const it of ITEMS) out[it.id] = Math.min(it.max, out[it.id] + clampQty(it.id, cart[it.id]));
-  out.properties = [...out.properties, ...(cart.properties || [])];
+  out.properties = [...out.properties, ...(cart.properties || []).map((p) => ({ ...p, id: PROPERTY_ID.test(p.id) ? p.id : newPropertyId() }))];
   return out;
 }
 

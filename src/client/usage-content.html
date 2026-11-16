@@ -49,6 +49,19 @@
         <ul id="items" class="flex flex-col gap-step-md"></ul>
       </section>
 
+      <section id="portfolio" aria-labelledby="pf-h" class="flex flex-col gap-step-md rounded-xl bg-card p-step-md shadow-lift-xs">
+        <div class="min-w-0">
+          <h2 id="pf-h" class="text-base leading-6 font-medium">Your properties</h2>
+          <p class="text-sm text-muted-foreground">Remove a property you no longer work with. Its people are signed out, its Social is disconnected, and it is no longer charged.</p>
+        </div>
+        <ul id="pf-list" class="flex flex-col divide-y divide-border"></ul>
+        <p id="pf-last" role="note" hidden class="text-xs leading-4 text-muted-foreground">This is your only property, so it cannot be removed here. To close your account, contact Support.</p>
+        <div id="pf-removed-wrap" hidden class="flex flex-col gap-step-xs border-t border-border pt-step-sm">
+          <h3 class="text-sm leading-5 font-medium text-foreground-secondary">Removed</h3>
+          <ul id="pf-removed" class="flex flex-col gap-step-xs"></ul>
+        </div>
+      </section>
+
       <section id="property" aria-labelledby="prop-h" class="flex flex-col gap-step-md rounded-xl bg-card p-step-md shadow-lift-xs">
         <div class="flex flex-wrap items-start justify-between gap-step-md">
           <div class="min-w-0">
@@ -167,6 +180,40 @@
     <button type="button" data-act="remove" class="inline-flex h-8 shrink-0 touch-manipulation items-center justify-center gap-step-xs rounded-md px-step-sm text-xs font-medium text-foreground-secondary outline-none transition hover:bg-muted hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50 pointer-coarse:h-11 [&_svg]:size-4"><svg aria-hidden="true"><use href="#i-x"/></svg>Remove</button>
   </li>
 </template>
+
+<template id="t-pf">
+  <li class="flex items-center justify-between gap-step-md py-step-sm first:pt-0 last:pb-0">
+    <div class="min-w-0">
+      <p data-f="name" class="truncate text-sm leading-5 font-medium"></p>
+      <p data-f="meta" class="text-xs leading-4 text-muted-foreground"></p>
+    </div>
+    <button type="button" data-act="remove-property" class="inline-flex h-8 shrink-0 touch-manipulation items-center justify-center rounded-md px-step-sm text-xs font-medium text-danger-text outline-none transition hover:bg-danger-bg focus-visible:ring-3 focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-50 pointer-coarse:h-11">Remove</button>
+  </li>
+</template>
+<template id="t-pf-removed">
+  <li class="text-xs leading-4 text-muted-foreground"><span data-f="name" class="font-medium text-foreground-secondary"></span><span data-f="meta"></span></li>
+</template>
+
+<dialog id="dlg-remove" aria-labelledby="dlg-remove-title" class="m-auto max-h-dvh w-full max-w-md overflow-y-auto rounded-xl bg-card p-0 text-foreground shadow-lift-lg backdrop:bg-foreground/40 max-sm:mb-0 max-sm:max-w-none max-sm:rounded-b-none">
+  <form id="remove-form" class="flex flex-col gap-step-md p-step-lg">
+    <h2 id="dlg-remove-title" class="text-base leading-6 font-medium">Remove this property?</h2>
+    <ul class="flex list-disc flex-col gap-step-xs pl-step-lg text-sm leading-5 text-foreground-secondary">
+      <li>Every Resident and Staff account of this property is signed out and cannot get in again.</li>
+      <li>Its Social data is disconnected and does not come back.</li>
+      <li>It leaves your portfolio and is no longer charged.</li>
+      <li>If a new owner takes the property over later, it starts from nothing.</li>
+    </ul>
+    <div class="flex flex-col gap-step-xs">
+      <label for="rm-name" class="text-sm leading-5 font-medium">Type <span id="rm-name-label" class="font-semibold"></span> to confirm</label>
+      <input id="rm-name" type="text" autocomplete="off" spellcheck="false" class="h-8 w-full min-w-0 rounded-md border border-input bg-card px-2.5 text-base outline-none transition-colors focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 md:text-sm pointer-coarse:h-11" />
+    </div>
+    <p id="rm-err" role="alert" hidden class="text-xs leading-4 text-danger-text"></p>
+    <div class="flex justify-end gap-step-sm">
+      <button type="button" id="rm-cancel" class="group/button inline-flex h-8 shrink-0 touch-manipulation items-center justify-center rounded-md border border-transparent bg-clip-padding px-step-md control-text font-medium whitespace-nowrap text-foreground-secondary transition outline-none select-none hover:bg-muted hover:text-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 pointer-coarse:h-11">Cancel</button>
+      <button type="submit" id="rm-go" disabled class="group/button inline-flex h-8 shrink-0 touch-manipulation items-center justify-center rounded-md border border-transparent bg-danger-bg bg-clip-padding px-step-md control-text font-medium whitespace-nowrap text-danger-text transition outline-none select-none hover:opacity-90 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 active:translate-y-px disabled:pointer-events-none disabled:opacity-50 pointer-coarse:h-11">Remove property</button>
+    </div>
+  </form>
+</dialog>
 
 <dialog id="dlg-review" aria-labelledby="dlg-review-title" class="m-auto max-h-dvh w-full max-w-md overflow-y-auto rounded-xl bg-card p-0 text-foreground shadow-lift-lg backdrop:bg-foreground/40 max-sm:mb-0 max-sm:max-w-none max-sm:rounded-b-none">
   <form id="review-form" class="flex flex-col gap-step-md p-step-lg">

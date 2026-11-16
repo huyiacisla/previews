@@ -82,8 +82,8 @@ test('reply: trimmed, limited, only on visible posts, off when Staff restrict re
   assert.equal(r.ok, true);
   assert.equal(r.reply.text, 'Thanks!');
   const replies = timeline(s, 'res-1')[0].replies;
-  assert.deepEqual(replies.map((x) => [x.name, x.text]), [['Dana Whitfield', 'Hello'], ['You', 'Thanks!']]);
-  assert.deepEqual(timeline(s, 'res-2')[0].replies.map((x) => [x.name, x.mine]), [['Dana Whitfield', false], ['Alex Rivera', false]], 'another resident reads it, by name, and it is not theirs');
+  assert.deepEqual(replies.map((x) => [x.name, x.text]), [['Property team', 'Hello'], ['You', 'Thanks!']]);
+  assert.deepEqual(timeline(s, 'res-2')[0].replies.map((x) => [x.name, x.mine]), [['Property team', false], ['Alex Rivera', false]], 'another resident reads it, by name, and it is not theirs');
   assert.equal(s.getItem(KEY.feed), before, 'the Staff feed is never written to');
   assert.equal(addReply(s, 'res-1', '1', '   ').ok, false);
   assert.equal(addReply(s, 'res-1', '1', 'x'.repeat(MAX_REPLY + 1)).ok, false);

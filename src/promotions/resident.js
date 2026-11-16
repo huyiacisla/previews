@@ -3,7 +3,7 @@
 // toggles hidden / data-* / aria-*. The data comes from promotions/store.js (what Staff published).
 
 import { PORTALS, pickPersona, initials } from '../messaging/personas.js';
-import { listPromotions, categoriesIn, readConfig, residentState, toggleSaved, claim, KEY } from './store.js';
+import { listPromotions, categoriesIn, readConfig, residentState, toggleSaved, claim, claimStatus, activeClaims, KEY } from './store.js';
 import { exitTarget } from '../exit-target.js';
 
 const $ = (sel, root = document) => root.querySelector(sel);
@@ -49,7 +49,7 @@ function badge(text, tone = 'neutral') {
 const fmtDate = (iso) => new Intl.DateTimeFormat('en-US', { dateStyle: 'medium', timeZone: 'UTC' }).format(new Date(`${iso}T00:00:00Z`));
 const endText = (p) => (p.end ? `Ends ${fmtDate(p.end)}` : '');
 
-function setCover(img, none, cover) {
+function setCover(img, none, cover, visual) {
   if (cover) {
     img.src = cover.src;
     img.alt = cover.alt;
@@ -58,6 +58,19 @@ function setCover(img, none, cover) {
   }
   img.hidden = !cover;
   none.hidden = !!cover;
+  // No picture: a sample deal shows its colour and symbol, any other the tag icon (the dialog's placeholder is reused, so it is put back each time).
+  if (none._icon === undefined) none._icon = none.innerHTML;
+  if (!cover && visual) {
+    none.style.background = visual.gradient;
+    const sym = document.createElement('span');
+    sym.setAttribute('aria-hidden', 'true');
+    sym.style.fontSize = '2.25rem';
+    sym.textContent = visual.emoji;
+    none.replaceChildren(sym);
+  } else {
+    none.style.background = '';
+    if (none.innerHTML !== none._icon) none.innerHTML = none._icon;
+  }
 }
 
 /* --------------------------------------------------------------------- list */
@@ -117,7 +130,7 @@ function emptyText(cfg, total) {
 function card(p, mine, cfg) {
   const li = tpl('t-card');
   li.dataset.promo = p.id;
-  setCover($('[data-cover]', li), $('[data-nocover]', li), p.cover);
+  setCover($('[data-cover]', li), $('[data-nocover]', li), p.cover, p.visual);
   $('[data-partner]', li).textContent = p.partner;
   const open = $('[data-open]', li);
   open.textContent = p.title;
@@ -129,7 +142,10 @@ function card(p, mine, cfg) {
   badges.appendChild(badge(p.category.name));
   if (p.audience) badges.appendChild(badge(p.audience, 'warning'));
   if (p.full) badges.appendChild(badge('Fully claimed', 'danger'));
-  if (mine.claims[p.id]) badges.appendChild(badge('Claimed', 'success'));
+  if (mine.claims[p.id]) {
+    const own = activeClaims(storage, me.id, p.id);
+    badges.appendChild(own.active > 0 ? badge('Claimed', 'success') : badge(own.locked ? 'Closed' : 'Not approved', 'warning'));
+  }
   $('[data-end]', li).textContent = endText(p);
   const save = $('[data-save]', li);
   save.hidden = !cfg.save;
@@ -177,7 +193,7 @@ function refreshDialog() {
   if (!p) { closeDialog(true); toast('That promotion is no longer available.'); return; }
   const cfg = readConfig(storage);
   const mine = residentState(storage, me.id);
-  setCover($('#dlg-cover'), $('#dlg-nocover'), p.cover);
+  setCover($('#dlg-cover'), $('#dlg-nocover'), p.cover, p.visual);
   const partner = $('#dlg-partner');
   clear(partner);
   if (p.partnerLogo) { const im = Object.assign(document.createElement('img'), { src: p.partnerLogo, alt: '' }); im.className = 'size-6 rounded-md object-cover'; partner.appendChild(im); }
@@ -198,11 +214,19 @@ function refreshDialog() {
   if (!box.hidden) {
     $('#dlg-claim-label').textContent = p.method === 'qr' ? 'Show this code at the partner' : 'Your code';
     $('#dlg-code').textContent = claimed.code;
+    // what the property staff decided about this claim (words, not colour alone)
+    const cs = claimStatus(storage, me.id, p.id);
+    const say = { pending: 'Waiting for the property team to confirm.', verified: 'Confirmed by the property team.', redeemed: 'Used. Thank you.', rejected: `Not approved by the property team.${cs && cs.reason ? ` ${cs.reason}` : ''}` };
+    const line = $('#dlg-claim-status');
+    line.textContent = cs ? say[cs.st] : '';
+    line.dataset.tone = cs && (cs.st === 'verified' || cs.st === 'redeemed') ? 'ok' : cs && cs.st === 'rejected' ? 'no' : '';
   }
   const btn = $('#dlg-claim-btn');
-  const done = claimed && claimed.count >= p.perResident;
-  btn.disabled = p.full || (done && p.method !== 'link');
-  $('#dlg-claim-text').textContent = p.full ? 'Fully claimed' : p.method === 'link' ? 'Get offer' : done ? 'Claimed' : p.method === 'unique' ? 'Get my code' : 'Claim';
+  // claims Staff rejected do not count: the resident can claim again, unless Staff locked it
+  const own = activeClaims(storage, me.id, p.id);
+  const done = claimed && own.active >= p.perResident;
+  btn.disabled = p.full || own.locked || (done && p.method !== 'link');
+  $('#dlg-claim-text').textContent = p.full ? 'Fully claimed' : own.locked ? 'Closed' : p.method === 'link' ? 'Get offer' : done ? 'Claimed' : own.rejected ? 'Claim again' : p.method === 'unique' ? 'Get my code' : 'Claim';
   $('#dlg-claim-ext').hidden = p.method !== 'link' || p.full;
   const save = $('#dlg-save');
   save.hidden = !cfg.save;
@@ -258,9 +282,18 @@ $('#search').addEventListener('input', (e) => {
 
 // A promotion published, edited or switched off in the Staff tab arrives here.
 addEventListener('storage', (e) => {
-  if (!e.key || e.key === KEY.published || e.key === KEY.cats || e.key === KEY.settings || e.key === KEY.mine(me.id)) render();
+  // (STATUS_KEY: what Staff turned on or off on a sample deal)
+  if (e.key === KEY.claimState) { render(); return; } // Staff decided a claim: the open details say so
+  if (!e.key || e.key === KEY.published || e.key === KEY.cats || e.key === KEY.settings || e.key === KEY.mine(me.id) || e.key === globalThis.PM_CATALOG.STATUS_KEY || e.key === globalThis.PM_CATALOG.EDITS_KEY) render();
 });
-// Promotions start and end by date: look again when the tab comes back.
+// Promotions start and end by date: look again when the tab comes back, and when the day turns while the page stays open.
 document.addEventListener('visibilitychange', () => { if (!document.hidden) render(); });
+function renderAtMidnight() {
+  const n = new Date();
+  const next = new Date(n.getFullYear(), n.getMonth(), n.getDate() + 1, 0, 0, 5);
+  // a timer longer than ~24 days overflows, and one day never does
+  setTimeout(() => { render(); renderAtMidnight(); }, next - n);
+}
+renderAtMidnight();
 
 render();

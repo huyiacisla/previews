@@ -1,7 +1,30 @@
 // Date and time helpers. Always Intl with en-US (DESIGN.md: no hand-formatted dates).
 // `tz` is optional so tests are deterministic.
 
-const fmt = (opts, tz) => new Intl.DateTimeFormat('en-US', tz ? { ...opts, timeZone: tz } : opts);
+// What the person chose in Settings > Date and time (24-hour clock, a time zone) is published by Settings as `ui-prefs:<portal>`.time = { h24, tz }.
+// Every time shown here follows it, unless a caller passes its own `tz` (the tests do, so they stay the same on every machine).
+let seen = { raw: undefined, prefs: { h24: false, tz: '' } };
+export function timePrefs(storage = globalThis.localStorage, path = globalThis.location && globalThis.location.pathname) {
+  try {
+    const portal = String(path || '').split('/')[1];
+    if (!storage || !/^(staff|client|resident|admin)$/.test(portal)) return { h24: false, tz: '' };
+    const raw = storage.getItem(`ui-prefs:${portal}`);
+    if (raw === seen.raw) return seen.prefs;
+    const t = (JSON.parse(raw || 'null') || {}).time || {};
+    let tz = typeof t.tz === 'string' ? t.tz : '';
+    try { if (tz) new Intl.DateTimeFormat('en-US', { timeZone: tz }); } catch { tz = ''; } // a time zone that does not exist is ignored
+    seen = { raw, prefs: { h24: t.h24 === true, tz } };
+    return seen.prefs;
+  } catch { return { h24: false, tz: '' }; }
+}
+
+const fmt = (opts, tz) => {
+  const p = tz ? { h24: false, tz: '' } : timePrefs();
+  const o = { ...opts };
+  if (p.h24 && o.hour) { o.hour = '2-digit'; o.hourCycle = 'h23'; }
+  const zone = tz || p.tz;
+  return new Intl.DateTimeFormat('en-US', zone ? { ...o, timeZone: zone } : o);
+};
 
 export const formatTime = (ts, tz) => fmt({ hour: 'numeric', minute: '2-digit' }, tz).format(ts);
 export const formatFull = (ts, tz) => fmt({ weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }, tz).format(ts);

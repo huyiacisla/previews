@@ -1,5 +1,6 @@
-<!-- Notifications page (Client). Shell and templates only: every Tailwind class lives here, notifications/app.js clones templates,
-     fills text and toggles hidden / data-* / aria-*. Same tokens and patterns as the Ticket box and Messages pages. -->
+<!-- Notifications page (Client, Staff, Resident, Admin), an Alpine.js component. Structure and every Tailwind class live here;
+     notifications/view.js works out what is shown (pure, tested), notifications/app.js keeps the person's choices and does what a
+     click asks for. Hiding uses :hidden (not x-show), so it takes effect at once. Same tokens and patterns as the other pages. -->
 
 <svg aria-hidden="true" focusable="false" style="position:absolute;width:0;height:0;overflow:hidden">
   <defs>
@@ -31,17 +32,18 @@
 
 <noscript><p class="bg-warning-bg px-step-lg py-step-md text-sm text-warning-text">Notifications need JavaScript. Turn it on in your browser settings and reload this page.</p></noscript>
 
-<main id="main-content" tabindex="-1" class="mx-auto flex min-h-dvh w-full max-w-4xl flex-col gap-step-lg px-step-lg py-step-lg outline-none lg:px-step-xl">
+<!-- An Alpine.js component (registered in notifications/app.js). `v` is what notifications/view.js worked out; `ui` is what the person chose. -->
+<main id="main-content" tabindex="-1" x-data="notificationsPage" x-cloak @keydown.window="slash($event)" class="mx-auto flex min-h-dvh w-full max-w-4xl flex-col gap-step-lg px-step-lg py-step-lg outline-none lg:px-step-xl">
   <header class="flex flex-wrap items-start justify-between gap-step-md">
     <div class="min-w-0">
       <h1 class="text-2xl leading-8 font-semibold tracking-tight text-foreground">Notifications</h1>
-      <p id="summary" role="status" class="text-sm text-muted-foreground tabular-nums"></p>
+      <p id="summary" role="status" class="text-sm text-muted-foreground tabular-nums" x-text="v.summary"></p>
     </div>
     <div class="flex flex-wrap items-center gap-step-sm">
-      <button type="button" id="mark-all" data-variant="outline" class="group/button inline-flex h-8 shrink-0 touch-manipulation items-center justify-center gap-step-sm rounded-md border border-transparent bg-background bg-clip-padding px-step-md control-text font-medium whitespace-nowrap text-foreground ring-1 ring-foreground/10 transition outline-none select-none hover:bg-muted focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 active:translate-y-px disabled:pointer-events-none disabled:opacity-50 pointer-coarse:h-11 [&_svg]:size-4 [&_svg]:shrink-0">
-        <svg aria-hidden="true"><use href="#i-check-all"/></svg><span id="mark-all-label">Mark all as read</span>
+      <button type="button" id="mark-all" data-variant="outline" @click="markAll()" :disabled="v.markAll.disabled" :title="v.markAll.title" class="group/button inline-flex h-8 shrink-0 touch-manipulation items-center justify-center gap-step-sm rounded-md border border-transparent bg-background bg-clip-padding px-step-md control-text font-medium whitespace-nowrap text-foreground ring-1 ring-foreground/10 transition outline-none select-none hover:bg-muted focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 active:translate-y-px disabled:pointer-events-none disabled:opacity-50 pointer-coarse:h-11 [&_svg]:size-4 [&_svg]:shrink-0">
+        <svg aria-hidden="true"><use href="#i-check-all"/></svg><span id="mark-all-label" x-text="v.markAll.label">Mark all as read</span>
       </button>
-      <a id="settings-link" href="/client/settings/notifications.html" class="group/button inline-flex h-8 shrink-0 touch-manipulation items-center justify-center gap-step-sm rounded-md border border-transparent bg-clip-padding px-step-md control-text font-medium whitespace-nowrap text-foreground-secondary transition outline-none select-none hover:bg-muted hover:text-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 active:translate-y-px pointer-coarse:h-11 [&_svg]:size-4 [&_svg]:shrink-0">
+      <a id="settings-link" :href="settingsHref" target="_top" class="group/button inline-flex h-8 shrink-0 touch-manipulation items-center justify-center gap-step-sm rounded-md border border-transparent bg-clip-padding px-step-md control-text font-medium whitespace-nowrap text-foreground-secondary transition outline-none select-none hover:bg-muted hover:text-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 active:translate-y-px pointer-coarse:h-11 [&_svg]:size-4 [&_svg]:shrink-0">
         <svg aria-hidden="true"><use href="#i-settings"/></svg>Notification settings
       </a>
     </div>
@@ -54,100 +56,105 @@
       <div class="relative min-w-0 flex-1">
         <label for="search" class="sr-only">Search notifications</label>
         <svg aria-hidden="true" class="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground"><use href="#i-search"/></svg>
-        <input id="search" type="search" autocomplete="off" spellcheck="false" placeholder="Search notifications…" class="h-8 w-full min-w-0 rounded-md border border-input bg-card pr-2.5 pl-8 text-base text-ellipsis outline-none transition-colors placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 md:text-sm pointer-coarse:h-11" />
+        <input id="search" type="search" autocomplete="off" spellcheck="false" placeholder="Search notifications…" x-model.debounce.120ms="ui.q" @keydown.escape="clearSearch($event)" class="h-8 w-full min-w-0 rounded-md border border-input bg-card pr-2.5 pl-8 text-base text-ellipsis outline-none transition-colors placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 md:text-sm pointer-coarse:h-11" />
       </div>
-      <div class="relative shrink-0">
-        <button type="button" id="filters-btn" aria-haspopup="dialog" aria-expanded="false" aria-controls="filters-panel" data-variant="outline" class="group/button inline-flex h-8 touch-manipulation items-center justify-center gap-step-sm rounded-md border border-transparent bg-background bg-clip-padding px-step-md control-text font-medium whitespace-nowrap text-foreground ring-1 ring-foreground/10 transition outline-none select-none hover:bg-muted focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 active:translate-y-px aria-expanded:bg-muted pointer-coarse:h-11 [&_svg]:size-4 [&_svg]:shrink-0">
-          <svg aria-hidden="true"><use href="#i-filter"/></svg><span class="max-sm:sr-only">Filters</span><span id="filters-count" hidden class="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-accent px-step-xs text-xs font-medium text-primary tabular-nums"></span>
+      <div class="relative shrink-0" @pointerdown.outside="closeFilters(false)">
+        <button type="button" id="filters-btn" aria-haspopup="dialog" aria-controls="filters-panel" data-variant="outline" @click="toggleFilters()" :aria-expanded="filtersOpen ? 'true' : 'false'" :aria-label="v.filtersLabel" class="group/button inline-flex h-8 touch-manipulation items-center justify-center gap-step-sm rounded-md border border-transparent bg-background bg-clip-padding px-step-md control-text font-medium whitespace-nowrap text-foreground ring-1 ring-foreground/10 transition outline-none select-none hover:bg-muted focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 active:translate-y-px aria-expanded:bg-muted pointer-coarse:h-11 [&_svg]:size-4 [&_svg]:shrink-0">
+          <svg aria-hidden="true"><use href="#i-filter"/></svg><span class="max-sm:sr-only">Filters</span><span id="filters-count" :hidden="!(v.filterCount)" x-text="v.filterCount" class="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-accent px-step-xs text-xs font-medium text-primary tabular-nums"></span>
         </button>
-        <div id="filters-panel" role="dialog" aria-label="Filters" hidden class="absolute top-full right-0 z-popup mt-step-xs flex w-72 max-w-[calc(100vw-2rem)] flex-col gap-step-md rounded-xl bg-card p-step-md shadow-lift-md ring-1 ring-foreground/10">
+        <div id="filters-panel" role="dialog" aria-label="Filters" :hidden="!(filtersOpen)" @keydown.escape.stop.prevent="closeFilters(true)" class="absolute top-full right-0 z-popup mt-step-xs flex w-72 max-w-[calc(100vw-2rem)] flex-col gap-step-md rounded-xl bg-card p-step-md shadow-lift-md ring-1 ring-foreground/10">
           <div class="flex flex-col gap-step-xs">
             <label for="f-cat" class="text-xs font-medium text-muted-foreground">Category</label>
-            <select id="f-cat" class="h-8 w-full min-w-0 rounded-md border border-input bg-card px-2.5 text-sm outline-none transition-colors focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 pointer-coarse:h-11"></select>
+            <select id="f-cat" x-model="ui.cat" class="h-8 w-full min-w-0 rounded-md border border-input bg-card px-2.5 text-sm outline-none transition-colors focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 pointer-coarse:h-11">
+              <template x-for="o in catOptions" :key="o.value"><option :value="o.value" x-text="o.label" :selected="ui.cat === o.value"></option></template>
+            </select>
           </div>
-          <div id="f-prop-wrap" class="flex flex-col gap-step-xs">
+          <div id="f-prop-wrap" :hidden="!(showProp)" class="flex flex-col gap-step-xs">
             <label for="f-prop" class="text-xs font-medium text-muted-foreground">Property</label>
-            <select id="f-prop" class="h-8 w-full min-w-0 rounded-md border border-input bg-card px-2.5 text-sm outline-none transition-colors focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 pointer-coarse:h-11"></select>
+            <select id="f-prop" x-model="ui.prop" class="h-8 w-full min-w-0 rounded-md border border-input bg-card px-2.5 text-sm outline-none transition-colors focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 pointer-coarse:h-11">
+              <template x-for="o in propOptions" :key="o.value"><option :value="o.value" x-text="o.label" :selected="ui.prop === o.value"></option></template>
+            </select>
           </div>
           <div class="flex flex-col gap-step-xs">
             <label for="f-sort" class="text-xs font-medium text-muted-foreground">Sort by</label>
-            <select id="f-sort" class="h-8 w-full min-w-0 rounded-md border border-input bg-card px-2.5 text-sm outline-none transition-colors focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 pointer-coarse:h-11">
+            <select id="f-sort" x-model="ui.sort" class="h-8 w-full min-w-0 rounded-md border border-input bg-card px-2.5 text-sm outline-none transition-colors focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 pointer-coarse:h-11">
               <option value="newest">Newest first</option>
               <option value="oldest">Oldest first</option>
               <option value="unread">Unread first</option>
             </select>
           </div>
-          <button type="button" id="clear" hidden class="group/button inline-flex h-8 shrink-0 touch-manipulation items-center justify-center gap-step-xs self-start rounded-md border border-transparent bg-clip-padding px-step-sm control-text font-medium whitespace-nowrap text-foreground-secondary transition outline-none select-none hover:bg-muted hover:text-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 pointer-coarse:h-11 [&_svg]:size-4"><svg aria-hidden="true"><use href="#i-x"/></svg>Clear all filters</button>
+          <button type="button" id="clear" :hidden="!(v.isFiltered)" @click="reset()" class="group/button inline-flex h-8 shrink-0 touch-manipulation items-center justify-center gap-step-xs self-start rounded-md border border-transparent bg-clip-padding px-step-sm control-text font-medium whitespace-nowrap text-foreground-secondary transition outline-none select-none hover:bg-muted hover:text-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 pointer-coarse:h-11 [&_svg]:size-4"><svg aria-hidden="true"><use href="#i-x"/></svg>Clear all filters</button>
         </div>
       </div>
     </div>
     <div class="flex flex-wrap items-center justify-between gap-x-step-md gap-y-step-sm">
-      <div id="tabs" role="tablist" aria-label="Show notifications" class="flex flex-wrap gap-step-xs"></div>
-      <div id="chips" class="flex flex-wrap items-center gap-step-xs empty:hidden"></div>
+      <div id="tabs" role="tablist" aria-label="Show notifications" class="flex flex-wrap gap-step-xs" @keydown.arrow-right.prevent="moveTab(1)" @keydown.arrow-left.prevent="moveTab(-1)">
+        <template x-for="t in v.tabs" :key="t.id">
+          <button type="button" role="tab" :data-tab="t.id" :aria-selected="t.selected ? 'true' : 'false'" :tabindex="t.selected ? 0 : -1" :aria-label="t.aria" @click="setTab(t.id)" class="group/button inline-flex h-8 shrink-0 touch-manipulation items-center justify-center gap-step-xs rounded-md border border-transparent bg-clip-padding px-step-md control-text font-medium whitespace-nowrap text-foreground-secondary transition outline-none select-none hover:bg-muted focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 aria-selected:bg-accent aria-selected:text-primary pointer-coarse:h-11"><span x-text="t.label"></span><span class="text-xs text-muted-foreground tabular-nums" x-text="t.n"></span></button>
+        </template>
+      </div>
+      <!-- a chip for each filter in use: a click takes that filter off -->
+      <div id="chips" class="flex flex-wrap items-center gap-step-xs" :hidden="!(v.chips.length)">
+        <template x-for="c in v.chips" :key="c.key">
+          <button type="button" :aria-label="'Remove filter: ' + c.label" @click="dropFilter(c.key)" class="inline-flex h-6 items-center gap-step-xs rounded-md bg-secondary px-step-sm text-xs text-secondary-foreground outline-none transition-colors hover:bg-secondary/80 focus-visible:ring-3 focus-visible:ring-ring/50 pointer-coarse:h-8 [&_svg]:size-3"><span x-text="c.label"></span><svg aria-hidden="true"><use href="#i-x"/></svg></button>
+        </template>
+      </div>
     </div>
   </section>
 
   <!-- the list, grouped by day -->
   <section aria-label="Notifications" class="flex min-h-0 flex-col gap-step-md">
-    <p id="count" role="status" class="px-step-xs text-xs text-muted-foreground tabular-nums"></p>
-    <div id="list" class="overflow-hidden rounded-xl bg-card shadow-lift-xs"></div>
-    <div id="empty" hidden class="flex flex-col items-center gap-step-md rounded-xl bg-card p-step-xl text-center shadow-lift-xs">
-      <span class="inline-flex size-10 items-center justify-center rounded-full bg-muted text-muted-foreground [&_svg]:size-5"><svg aria-hidden="true"><use id="empty-icon" href="#i-bell"/></svg></span>
-      <h2 id="empty-title" class="text-base leading-snug font-medium"></h2>
-      <p id="empty-text" class="max-w-sm text-sm text-muted-foreground"></p>
-      <button type="button" id="empty-clear" hidden data-variant="outline" class="group/button inline-flex h-8 shrink-0 touch-manipulation items-center justify-center gap-step-sm rounded-md border border-transparent bg-background bg-clip-padding px-step-md control-text font-medium whitespace-nowrap text-foreground ring-1 ring-foreground/10 transition outline-none select-none hover:bg-muted focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 active:translate-y-px pointer-coarse:h-11">Clear filters</button>
+    <p id="count" role="status" class="px-step-xs text-xs text-muted-foreground tabular-nums" x-text="v.count"></p>
+    <div id="list" class="overflow-hidden rounded-xl bg-card shadow-lift-xs" :hidden="!(v.rows > 0)">
+      <template x-for="g in v.groups" :key="g.label">
+        <div data-group>
+          <h2 class="sticky top-0 z-raised flex items-center justify-between border-b border-border bg-card px-step-md py-step-xs text-xs font-medium text-muted-foreground"><span x-text="g.label"></span><span class="font-normal tabular-nums" x-text="g.n"></span></h2>
+          <ul role="list" class="divide-y divide-border">
+            <!-- One notification. Unread: tinted row, medium title, a dot on the icon. Read: plain row, softer icon.
+                 Line 1 title and time, line 2 what happened, line 3 the category (in its colour) and the property. -->
+            <template x-for="n in g.items" :key="n.id">
+              <li data-row :data-id="n.id" :data-read="n.read ? 'true' : 'false'" class="relative flex items-start gap-step-md px-step-md py-step-md transition-colors hover:bg-muted/60 data-[read=false]:bg-accent/50">
+                <span class="relative shrink-0">
+                  <span :data-read="n.read ? 'true' : 'false'" :data-tone="n.tone" class="inline-flex size-9 items-center justify-center rounded-lg bg-secondary text-secondary-foreground data-[read=true]:opacity-60 data-[tone=danger]:bg-danger-bg data-[tone=danger]:text-danger-text data-[tone=info]:bg-info-bg data-[tone=info]:text-info-text data-[tone=success]:bg-success-bg data-[tone=success]:text-success-text data-[tone=warning]:bg-warning-bg data-[tone=warning]:text-warning-text [&_svg]:size-4"><svg aria-hidden="true"><use :href="'#' + n.icon"/></svg></span>
+                  <span :data-read="n.read ? 'true' : 'false'" aria-hidden="true" class="absolute -top-0.5 -right-0.5 size-2.5 rounded-full bg-primary ring-2 ring-card data-[read=true]:hidden"></span>
+                </span>
+                <div class="flex min-w-0 flex-1 flex-col gap-0.5">
+                  <div class="flex items-start justify-between gap-step-md">
+                    <p class="min-w-0 text-sm leading-5 wrap-anywhere text-foreground" :class="n.read ? '' : 'font-medium'"><span class="sr-only" x-text="n.read ? '' : 'Unread: '"></span><a data-link :hidden="!(n.href)" :href="n.href" target="_top" @click="open(n)" x-text="n.title" class="-my-1 inline-block rounded-sm py-1 underline-offset-2 outline-none hover:underline focus-visible:ring-3 focus-visible:ring-ring/50"></a><span :hidden="!(!n.href)" x-text="n.title"></span></p>
+                    <time :datetime="n.iso" :title="n.timeTitle" x-text="n.time" class="shrink-0 text-xs leading-5 whitespace-nowrap text-muted-foreground tabular-nums"></time>
+                  </div>
+                  <p class="max-w-prose text-sm leading-5 wrap-anywhere text-muted-foreground" x-text="n.detail"></p>
+                  <p class="flex flex-wrap items-center gap-x-step-md gap-y-0 text-xs leading-5 text-muted-foreground">
+                    <span class="font-medium text-foreground-secondary" x-text="n.cat"></span>
+                    <span class="min-w-0 truncate" :hidden="!(n.prop)" x-text="n.prop"></span>
+                  </p>
+                </div>
+                <button type="button" data-toggle :aria-pressed="n.read ? 'true' : 'false'" :aria-label="n.toggleLabel" :title="n.toggleTitle" @click="toggle(n, $el)" class="group/button inline-flex size-8 shrink-0 touch-manipulation items-center justify-center rounded-md border border-transparent bg-clip-padding text-muted-foreground transition outline-none select-none hover:bg-foreground/8 hover:text-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 active:translate-y-px pointer-coarse:size-11 [&_svg]:size-4"><svg aria-hidden="true"><use :href="'#' + n.toggleIcon"/></svg></button>
+              </li>
+            </template>
+          </ul>
+        </div>
+      </template>
     </div>
-    <div id="more-wrap" hidden class="flex flex-col items-center gap-step-sm">
-      <button type="button" id="more" data-variant="outline" class="group/button inline-flex h-8 shrink-0 touch-manipulation items-center justify-center gap-step-sm rounded-md border border-transparent bg-background bg-clip-padding px-step-md control-text font-medium whitespace-nowrap text-foreground ring-1 ring-foreground/10 transition outline-none select-none hover:bg-muted focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 active:translate-y-px pointer-coarse:h-11"></button>
+    <div id="empty" :hidden="!(v.empty.show)" class="flex flex-col items-center gap-step-md rounded-xl bg-card p-step-xl text-center shadow-lift-xs">
+      <span class="inline-flex size-10 items-center justify-center rounded-full bg-muted text-muted-foreground [&_svg]:size-5"><svg aria-hidden="true"><use id="empty-icon" :href="'#' + v.empty.icon"/></svg></span>
+      <h2 id="empty-title" class="text-base leading-snug font-medium" x-text="v.empty.title"></h2>
+      <p id="empty-text" class="max-w-sm text-sm text-muted-foreground" x-text="v.empty.text"></p>
+      <button type="button" id="empty-clear" :hidden="!(v.empty.clearable)" @click="reset()" data-variant="outline" class="group/button inline-flex h-8 shrink-0 touch-manipulation items-center justify-center gap-step-sm rounded-md border border-transparent bg-background bg-clip-padding px-step-md control-text font-medium whitespace-nowrap text-foreground ring-1 ring-foreground/10 transition outline-none select-none hover:bg-muted focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 active:translate-y-px pointer-coarse:h-11">Clear filters</button>
     </div>
-    <p id="sample-note" class="text-center text-xs text-muted-foreground">Sample data. This preview has no notification service, so these examples follow what the Client pages show.</p>
+    <div id="more-wrap" :hidden="!(v.more.show)" class="flex flex-col items-center gap-step-sm">
+      <button type="button" id="more" data-variant="outline" @click="showMore()" x-text="v.more.label" class="group/button inline-flex h-8 shrink-0 touch-manipulation items-center justify-center gap-step-sm rounded-md border border-transparent bg-background bg-clip-padding px-step-md control-text font-medium whitespace-nowrap text-foreground ring-1 ring-foreground/10 transition outline-none select-none hover:bg-muted focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 active:translate-y-px pointer-coarse:h-11"></button>
+    </div>
+    <p id="sample-note" class="text-center text-xs text-muted-foreground" x-text="sampleNote"></p>
   </section>
-</main>
 
-<div id="toasts" aria-live="polite" class="pointer-events-none fixed inset-x-0 bottom-step-lg z-toast flex flex-col items-center gap-step-sm px-step-lg"></div>
-
-<!-- Templates -->
-<template id="t-tab">
-  <button type="button" role="tab" aria-selected="false" class="group/button inline-flex h-8 shrink-0 touch-manipulation items-center justify-center gap-step-xs rounded-md border border-transparent bg-clip-padding px-step-md control-text font-medium whitespace-nowrap text-foreground-secondary transition outline-none select-none hover:bg-muted focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 aria-selected:bg-accent aria-selected:text-primary pointer-coarse:h-11"><span data-label></span><span data-count class="text-xs text-muted-foreground tabular-nums"></span></button>
-</template>
-
-<template id="t-chip">
-  <button type="button" class="inline-flex h-6 items-center gap-step-xs rounded-md bg-secondary px-step-sm text-xs text-secondary-foreground outline-none transition-colors hover:bg-secondary/80 focus-visible:ring-3 focus-visible:ring-ring/50 pointer-coarse:h-8 [&_svg]:size-3"><span data-label></span><svg aria-hidden="true"><use href="#i-x"/></svg></button>
-</template>
-
-<template id="t-day">
-  <div data-group>
-    <h2 class="sticky top-0 z-raised flex items-center justify-between border-b border-border bg-card px-step-md py-step-xs text-xs font-medium text-muted-foreground"><span data-day></span><span data-n class="font-normal tabular-nums"></span></h2>
-    <ul data-items role="list" class="divide-y divide-border"></ul>
-  </div>
-</template>
-
-<!-- One notification. Unread: tinted row, medium title, a dot on the icon. Read: plain row, softer icon.
-     Line 1 title and time, line 2 what happened, line 3 the category (in its colour) and the property. -->
-<template id="t-row">
-  <li data-row data-read="false" class="relative flex items-start gap-step-md px-step-md py-step-md transition-colors hover:bg-muted/60 data-[read=false]:bg-accent/50">
-    <span class="relative shrink-0">
-      <span data-chip data-read="false" data-tone="neutral" class="inline-flex size-9 items-center justify-center rounded-lg bg-secondary text-secondary-foreground data-[read=true]:opacity-60 data-[tone=danger]:bg-danger-bg data-[tone=danger]:text-danger-text data-[tone=info]:bg-info-bg data-[tone=info]:text-info-text data-[tone=success]:bg-success-bg data-[tone=success]:text-success-text data-[tone=warning]:bg-warning-bg data-[tone=warning]:text-warning-text [&_svg]:size-4"><svg aria-hidden="true"><use data-icon href="#i-bell"/></svg></span>
-      <span data-dot data-read="false" aria-hidden="true" class="absolute -top-0.5 -right-0.5 size-2.5 rounded-full bg-primary ring-2 ring-card data-[read=true]:hidden"></span>
-    </span>
-    <div class="flex min-w-0 flex-1 flex-col gap-0.5">
-      <div class="flex items-start justify-between gap-step-md">
-        <p class="min-w-0 text-sm leading-5 wrap-anywhere text-foreground"><span data-state class="sr-only"></span><a data-link hidden target="_top" class="-my-1 inline-block rounded-sm py-1 underline-offset-2 outline-none hover:underline focus-visible:ring-3 focus-visible:ring-ring/50"></a><span data-title></span></p>
-        <time data-time class="shrink-0 text-xs leading-5 whitespace-nowrap text-muted-foreground tabular-nums"></time>
+  <!-- one toast at a time; "Undo" puts the read state back -->
+  <div id="toasts" aria-live="polite" class="pointer-events-none fixed inset-x-0 bottom-step-lg z-toast flex flex-col items-center gap-step-sm px-step-lg">
+    <template x-if="toast">
+      <div role="status" class="pointer-events-auto flex max-w-md items-center gap-step-md rounded-lg bg-foreground px-step-lg py-step-md text-sm text-background shadow-lift-md">
+        <span x-text="toast.text"></span>
+        <button type="button" :hidden="!(toast.undo)" @click="undo()" class="rounded-sm font-medium underline underline-offset-2 outline-none focus-visible:ring-3 focus-visible:ring-ring/50 pointer-coarse:min-h-11">Undo</button>
       </div>
-      <p data-detail class="text-sm leading-5 wrap-anywhere text-muted-foreground"></p>
-      <p class="flex flex-wrap items-center gap-x-step-md gap-y-0 text-xs leading-5 text-muted-foreground">
-        <span data-cat class="font-medium text-foreground-secondary"></span>
-        <span data-prop class="min-w-0 truncate"></span>
-      </p>
-    </div>
-    <button type="button" data-toggle aria-pressed="false" class="group/button inline-flex size-8 shrink-0 touch-manipulation items-center justify-center rounded-md border border-transparent bg-clip-padding text-muted-foreground transition outline-none select-none hover:bg-foreground/8 hover:text-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 active:translate-y-px pointer-coarse:size-11 [&_svg]:size-4"><svg aria-hidden="true"><use data-toggle-icon href="#i-check"/></svg></button>
-  </li>
-</template>
-
-<template id="t-toast">
-  <div role="status" class="pointer-events-auto flex max-w-md items-center gap-step-md rounded-lg bg-foreground px-step-lg py-step-md text-sm text-background shadow-lift-md">
-    <span data-text></span>
-    <button type="button" data-undo hidden class="rounded-sm font-medium underline underline-offset-2 outline-none focus-visible:ring-3 focus-visible:ring-ring/50 pointer-coarse:min-h-11">Undo</button>
+    </template>
   </div>
-</template>
+</main>

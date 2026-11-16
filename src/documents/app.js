@@ -8,7 +8,7 @@
 import {
   CATEGORIES, SHARES, PROPERTIES, W9_CLASSES, RANGES, SORTS, seed, sortDocs, filterDocs, counts, expiryState, daysLeft, validateUpload, categoryLabel, propertyLabel, shareLabel, sizeLabel,
   rangeLabel, sortLabel, hasUploadTime, migrateDocs, normalizeDocPrefs,
-  isW9, findW9, w9State, validateW9, w9ClassLabel,
+  isW9, findW9, w9State, validateW9, w9ClassLabel, MAX_TRIES,
   maskEmail, generateUnused, rememberIssued, makePending, checkPending, isLive, keyWaitMs, clock, isUnlocked, recordAccess, UNLOCK_MS,
 } from './store.js';
 import { ITEMS, normalizePurchased, limitFor, storageUsedGb, storageState, fits, gbLabel, money } from '../capacity/store.js';
@@ -31,8 +31,13 @@ const ME = { name: 'Dana Whitfield', email: 'dana.whitfield@amcllc.example', com
 
 const read = (k, fallback) => { try { const v = JSON.parse(localStorage.getItem(k)); if (v !== null && v !== undefined) return v; } catch { /* first visit, or storage blocked */ } return fallback; };
 const write = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch { /* storage full or blocked: it lasts until the page closes */ } };
-let docs = (() => { const v = read(KEY, null); return Array.isArray(v) ? migrateDocs(v) : seed(); })();
+const stored = read(KEY, null);
+let docs = Array.isArray(stored) ? migrateDocs(stored) : seed();
+if (Array.isArray(stored) && stored.length && !docs.length) docs = seed(); // a saved list with nothing usable in it is the same as none
 const save = () => write(KEY, docs);
+// The sample documents are kept as soon as the page opens: the sidebar and Capacity read the same key, and they saw an empty list
+// (0 files, 0 storage used) while this page showed seven documents.
+if (!Array.isArray(stored)) save();
 // What Workspace settings > Documents chose: how early an ending document is called "expiring", who sees a new document, whether to warn about storage.
 const PREFS_KEY = 'docs-prefs:client';
 let prefs = normalizeDocPrefs(read(PREFS_KEY, null));
@@ -367,6 +372,8 @@ function paintUnlock() {
   code.disabled = !p;
   const sent = $('#unlock-sent'); const hint = $('#unlock-demo');
   sent.hidden = !p; hint.hidden = !(p && demo && demo.digest === p.digest);
+  // The preview's key is written into the page only while it is shown, and taken out again as soon as it is not (Cancel, a used or an expired key).
+  hint.textContent = hint.hidden ? '' : (p.via === 'email' ? `Preview only: no email is sent. Your key is ${demo.key}.` : `Preview only: your authenticator app shows ${demo.key}.`);
   if (p) {
     sent.textContent = p.via === 'settings' ? 'A key made in Workspace settings is ready.' : p.via === 'app' ? 'Shown in your authenticator app.' : `Sent to ${maskEmail(ME.email)}.`;
     sent.textContent += ` It works once, and for ${clock(p.expiresAt - Date.now())} more.`;
@@ -404,13 +411,15 @@ function openUnlock() {
   udlg.showModal();
   $('input[name=method]:checked', uform).focus();
 }
-udlg.addEventListener('close', () => { clearInterval(windowTick); windowTick = null; });
+udlg.addEventListener('close', () => { clearInterval(windowTick); windowTick = null; const h = $('#unlock-demo'); if (h) { h.hidden = true; h.textContent = ''; } });
 $('#unlock-cancel').addEventListener('click', () => udlg.close());
 $('#unlock-send').addEventListener('click', () => sendKey());
 uform.addEventListener('submit', async (e) => {
   e.preventDefault();
   setCodeErr('');
   const p = live();
+  const stale = read(PENDING_KEY, null);
+  if (!p && stale && Number(stale.expiresAt) <= Date.now() && stale.tries < MAX_TRIES) { setCodeErr('That key has expired. Send a new key.'); paintUnlock(); return; }
   if (!p) { setCodeErr(waitMs() > 0 ? `No key is active. A new one can be made in ${clock(waitMs())}.` : 'Send a key first, or generate one in Workspace settings.'); return; }
   const r = await checkPending(p, $('#unlock-code').value);
   write(PENDING_KEY, r.pending); // a wrong key uses a try; the right one is used up
@@ -427,6 +436,7 @@ uform.addEventListener('submit', async (e) => {
   }
   write(LOG_KEY, recordAccess(read(LOG_KEY, []), { at: Date.now(), by: ME.name, how: p.via === 'settings' ? 'key generated in settings' : `${p.via === 'app' ? 'authenticator app' : 'email'} key` }));
   demo = null;
+  $('#unlock-demo').textContent = ''; // the preview's key must not stay in the page once it has been used
   until = Date.now() + UNLOCK_MS;
   udlg.close();
   render();
@@ -448,6 +458,16 @@ const showErrors = (errors) => {
 };
 $('#open-upload').addEventListener('click', () => { form.reset(); $('#u-share').value = prefs.share; showErrors({}); dlg.showModal(); $('#u-file').focus(); }); // "Who can see it" starts at the default chosen in Workspace settings
 $('#upload-cancel').addEventListener('click', () => dlg.close());
+// Inside the portal frame a native modal does not keep Tab in the box (focus leaves to the parent page), so wrap it by hand in every open dialog.
+document.addEventListener('keydown', (e) => {
+  if (e.key !== 'Tab') return;
+  const open = document.querySelector('dialog[open]'); if (!open) return;
+  const f = [...open.querySelectorAll('a[href],button,input,select,textarea,[tabindex]')].filter((x) => !x.disabled && x.tabIndex >= 0 && !x.hidden && x.getClientRects().length);
+  if (!f.length) return;
+  const first = f[0], last = f[f.length - 1], at = document.activeElement;
+  if (e.shiftKey && (at === first || !open.contains(at))) { e.preventDefault(); last.focus(); }
+  else if (!e.shiftKey && (at === last || !open.contains(at))) { e.preventDefault(); first.focus(); }
+});
 $('#u-file').addEventListener('change', (e) => {
   const file = e.target.files[0];
   if (file && !$('#u-name').value.trim()) $('#u-name').value = file.name.replace(/\.[a-z0-9]+$/i, '');

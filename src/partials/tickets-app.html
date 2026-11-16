@@ -90,7 +90,7 @@
             <span id="d-count" class="text-xs text-muted-foreground tabular-nums"></span>
             <span id="d-mode" class="ml-auto text-xs text-muted-foreground">Read only</span>
           </div>
-          <div id="record" tabindex="0" aria-label="Conversation record" class="min-h-0 flex-1 outline-none focus-visible:ring-3 focus-visible:ring-inset focus-visible:ring-ring/50 lg:overflow-y-auto"></div>
+          <div id="record" tabindex="0" aria-label="Conversation record" class="min-h-0 flex-1 outline-none focus-visible:ring-3 focus-visible:ring-inset focus-visible:ring-ring/50 max-lg:flex-none lg:overflow-y-auto"></div>
           <!-- Reply: only for a support ticket the person opened (or that Admin answers). Enter sends, Shift+Enter adds a line. -->
           <form id="reply-form" hidden novalidate class="shrink-0 border-t border-border p-step-md">
             <label for="reply-text" class="sr-only">Reply to this ticket</label>
@@ -171,7 +171,7 @@
 </template>
 
 <template id="t-btn">
-  <button type="button" data-variant="outline" class="group/button inline-flex h-8 shrink-0 touch-manipulation items-center justify-center gap-step-sm rounded-md border border-transparent bg-background bg-clip-padding px-step-md control-text font-medium whitespace-nowrap text-foreground ring-1 ring-foreground/10 transition outline-none select-none hover:bg-muted focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 active:translate-y-px disabled:pointer-events-none disabled:opacity-50 data-[variant=primary]:bg-primary data-[variant=primary]:text-primary-foreground data-[variant=primary]:ring-0 data-[variant=primary]:hover:bg-primary/90 pointer-coarse:h-11 [&_svg]:size-4 [&_svg]:shrink-0"><svg data-icon hidden aria-hidden="true"><use href="#i-download"/></svg><span data-label></span></button>
+  <button type="button" data-variant="outline" class="group/button inline-flex h-8 shrink-0 touch-manipulation items-center justify-center gap-step-sm rounded-md border border-transparent bg-background bg-clip-padding px-step-md control-text font-medium whitespace-nowrap text-foreground ring-1 ring-foreground/10 transition outline-none select-none hover:bg-muted focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 active:translate-y-px disabled:pointer-events-none disabled:opacity-50 data-[variant=primary]:bg-primary data-[variant=primary]:text-primary-foreground data-[variant=primary]:ring-0 data-[variant=primary]:hover:bg-primary/90 data-[variant=primary]:focus-visible:ring-3 pointer-coarse:h-11 [&_svg]:size-4 [&_svg]:shrink-0"><svg data-icon hidden aria-hidden="true"><use href="#i-download"/></svg><span data-label></span></button>
 </template>
 
 <template id="t-meta">

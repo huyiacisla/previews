@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="en" class="light">
+<head>
+<!--include:partials/head.html-->
+<title>Social management | Admin Portal · admin preview</title>
+</head>
+<body class="bg-background font-sans text-foreground" data-portal="admin">
+<svg aria-hidden="true" focusable="false" style="position:absolute;width:0;height:0;overflow:hidden">
+  <defs>
+    <symbol id="i-search" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21 21-4.34-4.34"/><circle cx="11" cy="11" r="8"/></symbol>
+    <symbol id="i-building" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M9 7h1M14 7h1M9 11h1M14 11h1M9 15h1M14 15h1"/></symbol>
+    <symbol id="i-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></symbol>
+    <symbol id="i-more" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="5" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="12" cy="19" r="1"/></symbol>
+    <symbol id="i-x" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></symbol>
+  </defs>
+</svg>
+
+<!-- Social management (Admin). One card for each property of the company; "Open social" shows that property's Social (Social monitoring).
+     A list to pick from, not a hub: it keeps no data of its own. social/monitor.js works out the cards (pure, tested); social-management.js keeps
+     what the person typed and chose. Same tokens and patterns as the other pages. -->
+<main id="main-content" tabindex="-1" x-data="socialManagement" x-cloak class="mx-auto flex min-h-dvh w-full max-w-5xl flex-col gap-step-lg px-step-lg py-step-lg outline-none lg:px-step-xl">
+  <header class="min-w-0">
+    <h1 class="text-2xl leading-8 font-semibold tracking-tight text-foreground">Social management</h1>
+    <p class="text-sm text-muted-foreground">Pick a property to see its Social. Each property keeps its own.</p>
+  </header>
+
+  <section aria-label="Search and filter properties" class="flex flex-col gap-step-sm rounded-xl bg-card p-step-md shadow-lift-xs sm:flex-row sm:items-center">
+    <div class="relative min-w-0 flex-1">
+      <label for="search" class="sr-only">Search properties</label>
+      <svg aria-hidden="true" class="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground"><use href="#i-search"/></svg>
+      <input id="search" type="search" autocomplete="off" spellcheck="false" placeholder="Search properties…" x-model.debounce.120ms="q" @keydown.escape="q = ''" class="h-8 w-full min-w-0 rounded-md border border-input bg-card pr-2.5 pl-8 text-base outline-none transition-colors placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 md:text-sm pointer-coarse:h-11" />
+    </div>
+    <div class="flex items-center gap-step-sm">
+      <label for="show" class="sr-only">Show</label>
+      <select id="show" x-model="show" class="h-8 w-full min-w-40 rounded-md border border-input bg-card px-2.5 text-sm outline-none transition-colors focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 sm:w-auto pointer-coarse:h-11">
+        <option value="all">Active properties</option>
+        <option value="active">With posts</option>
+        <option value="quiet">No posts yet</option>
+        <option value="attention">Needs attention</option>
+        <option value="ended">Ended</option>
+      </select>
+      <button type="button" id="clear" :hidden="!filtered" @click="reset()" class="group/button inline-flex h-8 shrink-0 touch-manipulation items-center justify-center gap-step-xs rounded-md border border-transparent bg-clip-padding px-step-sm control-text font-medium whitespace-nowrap text-foreground-secondary transition outline-none select-none hover:bg-muted hover:text-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 pointer-coarse:h-11 [&_svg]:size-4"><svg aria-hidden="true"><use href="#i-x"/></svg>Clear</button>
+    </div>
+  </section>
+
+  <p id="count" role="status" class="text-sm text-muted-foreground tabular-nums" x-text="countText"></p>
+
+  <ul class="grid grid-cols-1 gap-step-md sm:grid-cols-2">
+    <template x-for="c in cards" :key="c.id">
+      <li class="flex flex-col gap-step-md rounded-xl bg-card p-step-md shadow-lift-xs">
+        <div class="flex items-start gap-step-sm">
+          <span class="flex size-10 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground" aria-hidden="true"><svg class="size-5"><use href="#i-building"/></svg></span>
+          <div class="min-w-0 flex-1">
+            <h2 class="text-base leading-6 font-medium text-foreground" x-text="c.name"></h2>
+            <p class="text-sm text-muted-foreground tabular-nums" x-text="summary(c)"></p>
+          </div>
+          <span :hidden="!c.attention" class="inline-flex h-5 shrink-0 items-center rounded-full bg-warning-bg px-step-sm text-xs font-medium text-warning-text">Needs attention</span>
+          <span :hidden="!c.ended" class="inline-flex h-5 shrink-0 items-center rounded-full bg-muted px-step-sm text-xs font-medium text-muted-foreground">Ended</span>
+        </div>
+        <div class="relative flex items-center justify-between gap-step-sm">
+          <span :hidden="!c.ended" class="text-sm text-muted-foreground">Data disconnected</span>
+          <a :hidden="c.ended" :href="openHref(c)" target="_top" :aria-label="'Open social for ' + c.name" class="group/button inline-flex h-8 touch-manipulation items-center justify-center gap-step-sm rounded-md border border-transparent bg-background bg-clip-padding px-step-md control-text font-medium whitespace-nowrap text-foreground ring-1 ring-foreground/10 transition outline-none select-none hover:bg-muted focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 active:translate-y-px pointer-coarse:h-11 [&_svg]:size-4 [&_svg]:shrink-0">Open social<svg aria-hidden="true"><use href="#i-arrow"/></svg></a>
+          <button type="button" :hidden="c.ended && c.id !== 'main'" :id="'more-' + c.id" aria-haspopup="menu" :aria-expanded="menuFor === c.id ? 'true' : 'false'" :aria-controls="'menu-' + c.id" :aria-label="'More for ' + c.name" @click="toggleMenu(c.id)" @keydown.arrow-down.prevent="openMenu(c.id)" class="group/button inline-flex size-8 shrink-0 touch-manipulation items-center justify-center rounded-md border border-transparent bg-clip-padding text-foreground-secondary transition outline-none select-none hover:bg-muted hover:text-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 aria-expanded:bg-muted pointer-coarse:size-11">
+            <svg aria-hidden="true" width="16" height="16"><use href="#i-more"/></svg>
+          </button>
+          <div :id="'menu-' + c.id" role="menu" :aria-label="'More for ' + c.name" :hidden="menuFor !== c.id" @keydown="menuKey($event, c.id)" @pointerdown.outside="closeMenu(false)" :class="menuUp ? 'bottom-full mb-step-xs' : 'top-full mt-step-xs'" class="absolute right-0 z-popup flex w-56 flex-col rounded-xl bg-card p-step-xs shadow-lift-md ring-1 ring-foreground/10">
+            <button type="button" role="menuitem" tabindex="-1" :hidden="!c.ended" @click="askEnd(c, 'startover')" class="flex h-8 items-center rounded-md px-step-sm text-left text-sm text-foreground outline-none hover:bg-muted focus-visible:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50 pointer-coarse:h-11">Start over as a new property</button>
+            <a :hidden="c.ended" role="menuitem" tabindex="-1" :href="tabHref(c, 'activity')" target="_top" class="flex h-8 items-center rounded-md px-step-sm text-sm text-foreground outline-none hover:bg-muted focus-visible:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50 pointer-coarse:h-11">See activity</a>
+            <a :hidden="c.ended" role="menuitem" tabindex="-1" :href="tabHref(c, 'checks')" target="_top" class="flex h-8 items-center justify-between gap-step-sm rounded-md px-step-sm text-sm text-foreground outline-none hover:bg-muted focus-visible:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50 pointer-coarse:h-11"><span>See data checks</span><span :hidden="!c.problems" class="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-warning-bg px-step-xs text-xs font-medium text-warning-text tabular-nums" x-text="c.problems"></span></a>
+            <button type="button" role="menuitem" tabindex="-1" :hidden="c.ended" @click="reportFrom(c)" class="flex h-8 items-center rounded-md px-step-sm text-left text-sm text-foreground outline-none hover:bg-muted focus-visible:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50 pointer-coarse:h-11">Report to property team</button>
+            <button type="button" role="menuitem" tabindex="-1" :hidden="c.ended" @click="copyText(checksText(c), 'Checks report copied.')" class="flex h-8 items-center rounded-md px-step-sm text-left text-sm text-foreground outline-none hover:bg-muted focus-visible:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50 pointer-coarse:h-11">Copy checks report</button>
+            <button type="button" role="menuitem" tabindex="-1" :hidden="c.ended" @click="copyText(openUrl(c), 'Link copied.')" class="flex h-8 items-center rounded-md px-step-sm text-left text-sm text-foreground outline-none hover:bg-muted focus-visible:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50 pointer-coarse:h-11">Copy link</button>
+            <button type="button" role="menuitem" tabindex="-1" :hidden="c.ended" @click="askEnd(c, 'end')" class="mt-step-xs flex h-8 items-center rounded-md border-t border-border px-step-sm pt-step-xs text-left text-sm text-danger-text outline-none hover:bg-danger-bg focus-visible:bg-danger-bg focus-visible:ring-3 focus-visible:ring-ring/50 pointer-coarse:h-11">End property…</button>
+          </div>
+        </div>
+      </li>
+    </template>
+  </ul>
+  <p id="copied" role="status" class="text-sm text-muted-foreground" x-text="copied"></p>
+  <!--include:partials/report-dialog.html-->
+
+  <!-- End a property, or let a new owner start over. Ending cannot be undone by the person who ends it, so the name has to be typed. -->
+  <dialog x-ref="endDlg" aria-labelledby="end-title" @keydown="endKey($event)" @close="endClosed()" class="m-auto w-full max-w-lg rounded-xl bg-card p-0 text-foreground shadow-lift-lg backdrop:bg-foreground/40 max-h-dvh overflow-y-auto max-sm:mb-0 max-sm:max-w-none max-sm:rounded-b-none">
+    <form method="dialog" @submit.prevent="confirmEnd()" class="flex flex-col gap-step-md p-step-lg">
+      <h2 id="end-title" class="text-lg leading-7 font-medium text-foreground" x-text="ed.mode === 'end' ? 'End ' + ed.name + '?' : 'Start ' + ed.name + ' over as a new property?'"></h2>
+      <div :hidden="ed.mode !== 'end'" class="flex flex-col gap-step-sm text-sm text-foreground-secondary">
+        <p>This property stops working with EasySpotOps.</p>
+        <ul class="flex list-disc flex-col gap-step-xs pl-step-lg">
+          <li>Every Resident and Staff account of this property is signed out and cannot get in again.</li>
+          <li>Its Social data is disconnected: no page reads it any more, and it does not come back.</li>
+          <li>It leaves the client's properties, and is no longer counted or charged.</li>
+          <li>A new owner who takes it over starts from nothing, with a new property.</li>
+        </ul>
+      </div>
+      <div :hidden="ed.mode !== 'startover'" class="flex flex-col gap-step-sm text-sm text-foreground-secondary">
+        <p>A new owner takes this property over. It opens again with an empty Social: nothing of the old data comes back, and the old accounts stay cut.</p>
+      </div>
+      <div :hidden="ed.mode !== 'end'" class="flex flex-col gap-step-xs">
+        <label for="end-name" class="text-sm font-medium text-foreground">Type <span class="font-semibold" x-text="ed.name"></span> to confirm</label>
+        <input id="end-name" type="text" autocomplete="off" spellcheck="false" x-model="ed.typed" class="h-8 w-full rounded-md border border-input bg-card px-2.5 text-base outline-none transition-colors focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 md:text-sm pointer-coarse:h-11" />
+      </div>
+      <p id="end-error" role="alert" :hidden="!ed.error" class="rounded-md bg-danger-bg px-step-sm py-step-xs text-sm text-danger-text" x-text="ed.error"></p>
+      <div class="flex flex-wrap items-center justify-end gap-step-sm">
+        <button type="button" id="end-cancel" @click="$refs.endDlg.close()" data-variant="outline" class="group/button inline-flex h-8 touch-manipulation items-center justify-center rounded-md border border-transparent bg-background bg-clip-padding px-step-md control-text font-medium whitespace-nowrap text-foreground ring-1 ring-foreground/10 transition outline-none select-none hover:bg-muted focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 pointer-coarse:h-11">Cancel</button>
+        <button type="submit" id="end-confirm" :disabled="!endReady" class="group/button inline-flex h-8 touch-manipulation items-center justify-center rounded-md border border-transparent bg-danger-bg bg-clip-padding px-step-md control-text font-medium whitespace-nowrap text-danger-text transition outline-none select-none hover:opacity-90 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 active:translate-y-px disabled:pointer-events-none disabled:opacity-50 pointer-coarse:h-11" x-text="ed.mode === 'end' ? 'End property' : 'Start over'"></button>
+      </div>
+    </form>
+  </dialog>
+  <p id="none" :hidden="cards.length" class="rounded-xl bg-card p-step-lg text-sm text-muted-foreground shadow-lift-xs">No property matches. <button type="button" @click="reset()" class="rounded-sm font-medium text-primary underline-offset-2 outline-none hover:underline focus-visible:ring-3 focus-visible:ring-ring/50">Clear the search and filter</button></p>
+</main>
+<script type="module" src="/admin/social-management.js"></script>
+</body>
+</html>

@@ -6,11 +6,12 @@
 //   priority:<p>     low | normal | high | emergency
 //   assignee:<name>  part of the assigned person's name
 //   tag:<text>       topic or subject
+//   route:<where>    property | platform (a resident request sent to the Property team, or to EasySpotOps Support; "support" means platform)
 //   after:<date>     YYYY-MM-DD, last activity on or after that day (UTC)
 //   before:<date>    YYYY-MM-DD, last activity before the end of that day (UTC)
 // Anything else is free text: every word and every "quoted phrase" must appear.
 
-export const FILTER_KEYS = ['unit', 'status', 'priority', 'assignee', 'tag', 'after', 'before'];
+export const FILTER_KEYS = ['unit', 'status', 'priority', 'assignee', 'tag', 'route', 'after', 'before'];
 
 const norm = (s) => String(s ?? '').toLowerCase().replace(/[\s_-]+/g, '');
 const DAY = 24 * 60 * 60 * 1000;
@@ -57,6 +58,11 @@ export function matchFilters(row, q) {
   if (f.priority && norm(row.priority || 'normal') !== norm(f.priority)) return false;
   if (f.assignee && !String(row.assigneeName || '').toLowerCase().includes(f.assignee.toLowerCase())) return false;
   if (f.tag && !`${row.topic || ''} ${row.subject || ''}`.toLowerCase().includes(f.tag.toLowerCase())) return false;
+  if (f.route) {
+    const want = norm(f.route) === 'support' ? 'platform' : norm(f.route);
+    const have = row.route || (row.kind === 'support' ? 'platform' : row.kind === 'resident_support' ? 'property' : '');
+    if (have !== want) return false;
+  }
   if (f.after) {
     const t = dayStart(f.after);
     if (t === null || row.updatedAt < t) return false;

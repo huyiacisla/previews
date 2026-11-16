@@ -152,8 +152,12 @@ function run(seed, steps) {
       for (const t of box) {
         assert.ok(store.ticketRecord(u, t.id).ok, `${u} cannot open ${t.no} that is listed for them`);
         if (role(u) === 'resident') assert.equal(t.requester.id, u, `resident ${u} lists someone else's ticket ${t.no}`);
-        if (role(u) === 'client') assert.ok(t.kind === 'support' && t.requester.id === u, `client ${u} lists ${t.no}`);
-        if (role(u) === 'admin') assert.equal(t.kind, 'support', `admin ${u} lists a resident ticket ${t.no}`);
+        // (a Client's tickets are their Support requests, and the chats with Staff that Staff resolved: both are their own)
+        if (role(u) === 'client') assert.ok((t.kind === 'support' || t.kind === 'direct') && t.requester.id === u, `client ${u} lists ${t.no}`);
+        if (t.kind === 'direct') assert.ok(store.get(t.id, u).ok, `${u} lists a resolved chat ${t.no} they are not part of`);
+        // Admin lists Support threads, and the resident requests that were sent to EasySpotOps Support (never the property's own)
+        if (role(u) === 'admin') assert.ok(t.kind === 'support' || (t.kind === 'resident' && t.route === 'platform'), `admin ${u} lists a resident ticket ${t.no} of the property`);
+        if (role(u) === 'staff' && t.kind === 'resident') assert.notEqual(t.route, 'platform', `staff ${u} lists a platform support request ${t.no}`);
         if (role(u) === 'staff' && t.kind === 'support') assert.equal(t.requester.id, u, `staff ${u} lists another person's support thread`);
         assert.ok(t.isOpen === (t.stage !== 'resolved' && t.stage !== 'closed'), `${t.no}: isOpen disagrees with stage ${t.stage}`);
       }
