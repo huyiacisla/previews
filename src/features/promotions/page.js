@@ -237,6 +237,7 @@ export function themeVars(snap) {
       "--foreground": fg,
       "--card": card,
       "--card-foreground": fg,
+      "--foreground-secondary": mix(fg, 82, bg), // the description text of a promotion: the template's own ink, a little softer (the portal's light value was unreadable on a light template in dark mode)
       "--popover": bg,
       "--popover-foreground": fg,
       "--muted": muted,

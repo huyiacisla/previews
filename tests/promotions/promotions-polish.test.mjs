@@ -51,3 +51,9 @@ test("the page looks at its width again when it has loaded and on every resize, 
   for (const hook of ['addEventListener("resize", syncDevice);', 'addEventListener("load", syncDevice);', "requestAnimationFrame(syncDevice);"]) assert.ok(res.includes(hook), hook);
   assert.ok(res.includes('matchMedia(q).addEventListener("change", syncDevice)'));
 });
+
+test("a template's colours include the secondary text colour, so a promotion's description is readable on a light template in dark mode", () => {
+  const page = read("src/features/promotions/page.js");
+  assert.ok(page.includes('"--foreground-secondary": mix(fg, 82, bg),'));
+  assert.ok(html.includes("text-foreground-secondary"), "the description uses it");
+});
