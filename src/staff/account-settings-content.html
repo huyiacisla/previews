@@ -7987,49 +7987,59 @@ html.dark .pmvs button[aria-checked="true"].pmvs-on{background:#14532d;color:#dc
 .pmvs button:focus-visible{outline:2px solid var(--ring,#2563eb);outline-offset:2px}@media(pointer:coarse){.pmvs button{min-height:44px}}
 .pmv-hint{font-size:12px;opacity:.75;line-height:1.4}
 .q22-img{display:grid;gap:8px}.q22-prev{aspect-ratio:16/7;max-height:132px;border-radius:10px;overflow:hidden;display:grid;place-items:center;color:#fff;font-size:12px;text-shadow:0 1px 2px rgba(0,0,0,.4)}.q22-prev img{width:100%;height:100%;object-fit:cover}.q22-ia{display:flex;gap:8px;flex-wrap:wrap}.q22-ia [hidden]{display:none}
-/* the status pill and the pen on a card cover never touch: a clear gap, and the same height on touch screens */
-@media(min-width:481px){.pd .pi .pmv{right:60px}}
-@media(pointer:coarse){.pd .pi .pme{width:40px!important;height:40px!important}}
-@media(pointer:coarse) and (max-width:480px){.pd .pi .pmv{top:54px}}
-/* Staff cards on tablet and phone: a slim banner in ONE row (badge left; status and pen right), no big icon: the category is named under it */
-@media(max-width:1099px){
-.pmx .pd.s-card:has(.pi .pmv) .pi{aspect-ratio:auto!important;height:52px!important;min-height:0!important;padding:0 8px!important;display:flex!important;align-items:center;justify-content:flex-start;gap:6px}
-.pmx .pd.s-card:has(.pi .pmv) .pi .pic{display:none}
-.pmx .pd.s-card:has(.pi .pmv) .pi .bd{position:static!important;left:auto!important;top:auto!important;order:1;margin:0;flex:0 1 auto;min-width:0;max-width:60%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.pmx .pd.s-card:has(.pi .pmv) .pi .pmv{position:static!important;order:2;flex:none;margin:0 0 0 auto}
-.pmx .pd.s-card:has(.pi .pmv) .pi .pme{position:static!important;order:3;flex:none;margin:0}
-.pmx .pd.s-card:has(.pi .pmv) .pb{padding:12px 14px 14px;gap:6px}
-.pmx .pd.s-card:has(.pi .pmv) .stf{padding:8px 14px}
-}
-@media(max-width:1099px) and (pointer:coarse){.pmx .pd.s-card:has(.pi .pmv) .pi{height:60px!important}}
-@media(max-width:600px){.pmx .pd.s-card:has(.pi .pmv) .pi .pmv{padding:0 8px 0 6px}.pmx .pd.s-card:has(.pi .pmv) .pb{padding:10px 12px 12px}.pmx .pd.s-card:has(.pi .pmv) .stf{padding:8px 12px}}
-/* a phone is one column: the badge, the status and the pen all fit in the banner */
-@media(max-width:440px){.pmx .pr.l-grid:has(.pmv),.pmx .pm-sec.pm-flat .pr.l-grid:not(:has(>.s-hero)){grid-template-columns:minmax(0,1fr)!important}.pmx .pr.l-grid:has(.pmv)>:only-child{max-width:none}}
-/* tablet and phone: the status is an icon (eye / clock / crossed eye); its word stays for screen readers and the tooltip. A taller cover, so the image can be seen */
-@media(max-width:1099px){
-.pmx .pd.s-card:has(.pi .pmv) .pi{height:88px!important;padding:8px!important;align-items:flex-start!important}
-.pmx .pd.s-card:has(.pi .pmv) .pi .pic{display:none!important}
-.pmx .pd.s-card:has(.pi .pmv) .pi .bd{margin-top:3px}
-.pmx .pd.s-card:has(.pi .pmv) .pi .pmv{width:30px;height:30px;min-width:30px;min-height:0;padding:0;gap:0;justify-content:center}
-.pmx .pd.s-card:has(.pi .pmv) .pi .pmv svg{width:15px;height:15px}
-.pmx .pd.s-card:has(.pi .pmv) .pi .pmv .pmv-t{position:absolute;display:block!important;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
-.pmx .pd.s-card:has(.pi .pmv) .pi .pme{width:30px!important;height:30px!important;min-height:0!important}
-}
-@media(max-width:1099px) and (pointer:coarse){.pmx .pd.s-card:has(.pi .pmv) .pi{height:96px!important}.pmx .pd.s-card:has(.pi .pmv) .pi .bd{margin-top:8px}.pmx .pd.s-card:has(.pi .pmv) .pi .pmv,.pmx .pd.s-card:has(.pi .pmv) .pi .pme{width:40px!important;height:40px!important;min-width:40px;min-height:40px!important}.pmx .pd.s-card:has(.pi .pmv) .pi .pmv svg{width:17px;height:17px}}
 @media(max-width:1099px){.pcs-d{max-height:90vh}.pcs-d .gm-h{padding:10px 14px}.pcs-d .gm-b{padding:10px 14px 14px;gap:10px}.pcs-drop{min-height:72px}}
-/* a narrowed list (Drafts, Scheduled, Live…) has many cards side by side: a short cover keeps them small */
-.pmx .pm-flat .pd .pi{aspect-ratio:auto!important;height:clamp(80px,17vw,120px)!important;min-height:0!important}
-.pmx .pm-flat .pd .pi .pic{transform:scale(.72)}
-.pmx .pm-flat .pd .pb{padding:10px 12px 12px;gap:6px}
-.pmx .pm-flat .pd .stf{padding:8px 12px}
-@media(max-width:600px){.pmx .pm-flat .pd .pi{height:96px!important}.pmx .pm-flat .pd .pb{padding:8px 10px 10px}}
 .pcat{display:inline-flex;align-items:center;gap:4px;align-self:flex-start;max-width:100%;margin:0 0 4px;padding:2px 8px;border-radius:99px;background:rgba(100,116,139,.16);color:inherit;font-size:11px;font-weight:600;line-height:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .pdd-cat{align-self:flex-start;display:inline-block;padding:2px 10px;border-radius:99px;background:rgba(100,116,139,.16);font-size:12px;font-weight:600;line-height:18px}
-.pmx .pm-flat .pr.l-grid:not(:has(>.s-hero)){grid-template-columns:repeat(auto-fill,minmax(min(100%,220px),1fr))!important}
-.pmx .pm-flat .pr.l-grid>:only-child{max-width:none;margin-inline:0}
-@media(max-width:600px){.pmx .pm-flat .pr.l-grid:not(:has(>.s-hero)){grid-template-columns:repeat(2,minmax(0,1fr))!important}}
 @media(max-width:767px){#pdd .pdd-d{max-height:88vh}#pdd .pdd-cv{aspect-ratio:auto;height:clamp(88px,16vh,128px)}#pdd .pdd-d>.gm-b{overflow:auto;min-height:0;padding:14px 16px 18px;gap:10px}#pdd .pdd-d h2{font-size:18px}}
 @media(min-width:768px) and (max-width:1099px){#pdd .pdd-d{display:flex;flex-direction:column;grid-template-columns:none;width:min(560px,92vw);height:auto;max-height:86vh}#pdd .pdd-cv{aspect-ratio:auto;height:140px;flex:none}#pdd .pdd-d>.gm-b{padding:18px 22px 20px;gap:10px;overflow:auto;min-height:0}}
+/* ===== Promotions: UI/UX spec (PromotionsUIUXDesignSpec.pdf). Grid 1 / 2 / 3 / 4 columns, card = cover 120-140 + body + footer ===== */
+.pmx .pr.l-grid.l-grid.l-grid:has(.pmv){grid-template-columns:minmax(0,1fr)!important;gap:16px}
+.pmx .pr.l-grid.l-grid.l-grid:has(.pmv)>:only-child{max-width:none;margin-inline:0}
+@media(min-width:640px){.pmx .pr.l-grid.l-grid.l-grid:has(.pmv){grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:20px}}
+@media(min-width:1024px){.pmx .pr.l-grid.l-grid.l-grid:has(.pmv){grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:24px}}
+@media(min-width:1160px){.pmx .pr.l-grid.l-grid.l-grid:has(.pmv){grid-template-columns:repeat(4,minmax(0,1fr))!important}}
+.pmx .pr.l-carousel:has(.pmv)>.pd{flex:0 0 min(calc(100% - 32px),300px)!important;max-width:none}
+.pmx .pd.s-card:has(.pi .pmv){border:1px solid #e2e8f0;overflow:hidden;display:flex;flex-direction:column;height:100%}
+html.dark .pmx .pd.s-card:has(.pi .pmv){border-color:var(--border)}
+/* [tier 1] cover 120px (140px on desktop), 12px padding: status badge top-left, icon buttons top-right */
+.pmx .pd.s-card:has(.pi .pmv) .pi{aspect-ratio:auto!important;height:120px!important;min-height:0!important;padding:12px!important;display:flex!important;align-items:flex-start!important;justify-content:flex-start;gap:8px}
+.pmx .pd.s-card:has(.pi .pmv) .pi .pic{display:none!important}
+.pmx .pd.s-card:has(.pi .pmv) .pi .bd{position:static!important;left:auto!important;top:auto!important;order:1;margin:0;height:24px;padding:0 10px;display:inline-flex;align-items:center;flex:0 1 auto;min-width:0;max-width:60%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;line-height:24px}
+.pmx .pd.s-card:has(.pi .pmv) .pi .pmv{position:static!important;order:2;flex:none;margin:0 0 0 auto;width:36px;height:36px;min-width:36px;min-height:0;padding:0;gap:0;justify-content:center}
+.pmx .pd.s-card:has(.pi .pmv) .pi .pmv svg{width:16px;height:16px}
+.pmx .pd.s-card:has(.pi .pmv) .pi .pmv .pmv-t{position:absolute;display:block!important;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+.pmx .pd.s-card:has(.pi .pmv) .pi .pme{position:static!important;order:3;flex:none;margin:0;width:36px!important;height:36px!important;min-height:0!important}
+@media(min-width:1024px){.pmx .pd.s-card:has(.pi .pmv) .pi{height:140px!important}}
+@media(max-width:639px),(pointer:coarse){.pmx .pd.s-card:has(.pi .pmv) .pi .pmv,.pmx .pd.s-card:has(.pi .pmv) .pi .pme{width:40px!important;height:40px!important;min-width:40px;min-height:40px!important}}
+/* [tier 2] body: 16px padding on phone, 20px from tablet up */
+.pmx .pd.s-card:has(.pi .pmv) .pb{padding:16px;display:flex;flex-direction:column;gap:0;flex:1 1 auto}
+@media(min-width:640px){.pmx .pd.s-card:has(.pi .pmv) .pb{padding:20px}}
+.pmx .pd.s-card:has(.pi .pmv) .pcat{height:22px;margin:0 0 8px;padding:0 8px;font-size:11px;font-weight:500;line-height:22px}
+.pmx .pd.s-card:has(.pi .pmv) .pb>b{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;font-size:15px;font-weight:700;line-height:22px}
+.pmx .pd.s-card:has(.pi .pmv) .pb>p{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;margin:2px 0 0;font-size:13px;font-weight:400;line-height:18px;color:var(--muted,#64748b)}
+.pmx .pd.s-card:has(.pi .pmv) .pb .pc{margin:10px 0 14px;font-size:18px;font-weight:700;line-height:24px;font-variant-numeric:tabular-nums}
+@media(min-width:1024px){.pmx .pd.s-card:has(.pi .pmv) .pb>b{font-size:16px}.pmx .pd.s-card:has(.pi .pmv) .pb .pc{font-size:20px}}
+.pmx .pd.s-card:has(.pi .pmv) .pbt{width:100%;height:44px!important;min-height:44px!important;margin-top:auto;border-radius:10px;font-size:14px;font-weight:600}
+@media(min-width:1024px) and (pointer:fine){.pmx .pd.s-card:has(.pi .pmv) .pbt{height:40px!important;min-height:40px!important}}
+.pmx .pd.s-card:has(.pi .pmv) .pbt:not(.pbt-off){background:#eef2ff;color:#4338ca;border-color:transparent}
+html.dark .pmx .pd.s-card:has(.pi .pmv) .pbt:not(.pbt-off){background:#312e81;color:#e0e7ff}
+@media(hover:hover){.pmx .pd.s-card:has(.pi .pmv) .pbt:not(.pbt-off):hover{background:#4f46e5;color:#fff}}
+/* [tier 3] footer 44px (40px on desktop), 1px divider, tabular numbers */
+.pmx .pd.s-card:has(.pi .pmv) .stf{min-height:44px;padding:0 16px;border-top:1px solid #f1f5f9;display:flex;align-items:center;gap:8px;font-variant-numeric:tabular-nums}
+html.dark .pmx .pd.s-card:has(.pi .pmv) .stf{border-top-color:var(--border)}
+@media(min-width:640px){.pmx .pd.s-card:has(.pi .pmv) .stf{padding:0 20px}}
+@media(min-width:1024px){.pmx .pd.s-card:has(.pi .pmv) .stf{min-height:40px}}
+.pst.active{background:#dcfce7;color:#15803d}.pst.draft{background:#f1f5f9;color:#475569}.pst.expired{background:#fee2e2;color:#b91c1c}
+html.dark .pst.active{background:#14532d;color:#bbf7d0}html.dark .pst.draft{background:#1e293b;color:#cbd5e1}html.dark .pst.expired{background:#7f1d1d;color:#fecaca}
+/* hover lift only where there is a mouse */
+@media(hover:hover){.pmx .pd.s-card:has(.pi .pmv){transition:transform 250ms cubic-bezier(.4,0,.2,1),box-shadow 250ms cubic-bezier(.4,0,.2,1)}.pmx .pd.s-card:has(.pi .pmv):hover{transform:translateY(-4px);box-shadow:0 10px 25px -5px rgba(15,23,42,.08)}}
+@media(prefers-reduced-motion:reduce){.pmx .pd.s-card:has(.pi .pmv){transition:none}.pmx .pd.s-card:has(.pi .pmv):hover{transform:none}}
+/* toolbar: 40px controls, 36px category pills that scroll sideways, section title 18px bold */
+.pmx .pmt-s,.pmx .pmt-b,.pmx .pmt-sel select,.pmx .pmt-v button{min-height:40px;height:40px}
+.pmx .pmt-b{min-width:40px}
+.pmx .pm-nav{gap:8px;overflow-x:auto;scrollbar-width:none}.pmx .pm-nav::-webkit-scrollbar{display:none}
+.pmx .pm-nav button{height:36px;min-height:36px;padding:6px 14px;font-size:13px;font-weight:500}
+.pmx .pm-sh{margin-top:20px;margin-bottom:12px}.pmx .pm-sh h2{font-size:18px;font-weight:700}.pmx .pm-sh h2 small{font-size:13px;font-weight:400}
 </style>
 <script id="pmv-js">(function(){
 /* The on/off switch on a deal's card (Staff only). Off makes the deal a draft: residents do not see it, and it stays in Staff's list (Drafts). On publishes it.
