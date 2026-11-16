@@ -8005,6 +8005,18 @@ html.dark .pmvs button[aria-checked="true"].pmvs-on{background:#14532d;color:#dc
 @media(max-width:600px){.pmx .pd.s-card:has(.pi .pmv) .pi .pmv{padding:0 8px 0 6px}.pmx .pd.s-card:has(.pi .pmv) .pb{padding:10px 12px 12px}.pmx .pd.s-card:has(.pi .pmv) .stf{padding:8px 12px}}
 /* a phone is one column: the badge, the status and the pen all fit in the banner */
 @media(max-width:440px){.pmx .pr.l-grid:has(.pmv),.pmx .pm-sec.pm-flat .pr.l-grid:not(:has(>.s-hero)){grid-template-columns:minmax(0,1fr)!important}.pmx .pr.l-grid:has(.pmv)>:only-child{max-width:none}}
+/* tablet and phone: the status is an icon (eye / clock / crossed eye); its word stays for screen readers and the tooltip. A taller cover, so the image can be seen */
+@media(max-width:1099px){
+.pmx .pd.s-card:has(.pi .pmv) .pi{height:104px!important;padding:8px!important;align-items:flex-start!important}
+.pmx .pd.s-card:has(.pi .pmv) .pi .pic{display:grid!important;position:absolute!important;left:50%!important;right:auto!important;top:auto!important;bottom:8px!important;transform:translateX(-50%)!important;width:44px;height:44px;margin:0!important}
+.pmx .pd.s-card:has(.pi .pmv) .pi .pic svg{width:24px;height:24px}
+.pmx .pd.s-card:has(.pi .pmv) .pi.has-cv .pic{display:none!important}
+.pmx .pd.s-card:has(.pi .pmv) .pi .bd{margin-top:6px}
+.pmx .pd.s-card:has(.pi .pmv) .pi .pmv{width:36px;height:36px;min-width:36px;padding:0;gap:0;justify-content:center}
+.pmx .pd.s-card:has(.pi .pmv) .pi .pmv .pmv-t{position:absolute;display:block!important;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+.pmx .pd.s-card:has(.pi .pmv) .pi .pme{width:36px!important;height:36px!important}
+}
+@media(max-width:1099px) and (pointer:coarse){.pmx .pd.s-card:has(.pi .pmv) .pi{height:112px!important}.pmx .pd.s-card:has(.pi .pmv) .pi .bd{margin-top:10px}.pmx .pd.s-card:has(.pi .pmv) .pi .pmv,.pmx .pd.s-card:has(.pi .pmv) .pi .pme{width:44px!important;height:44px!important;min-width:44px}}
 @media(max-width:1099px){.pcs-d{max-height:90vh}.pcs-d .gm-h{padding:10px 14px}.pcs-d .gm-b{padding:10px 14px 14px;gap:10px}.pcs-drop{min-height:72px}}
 /* a narrowed list (Drafts, Scheduled, Live…) has many cards side by side: a short cover keeps them small */
 .pmx .pm-flat .pd .pi{aspect-ratio:auto!important;height:clamp(80px,17vw,120px)!important;min-height:0!important}

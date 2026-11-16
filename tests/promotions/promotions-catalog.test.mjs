@@ -147,6 +147,9 @@ test('Staff\'s switch is a Staff-only button at the top of the card, with words,
   assert.ok(staff.includes("var nb=document.querySelector('#pdd [data-pmvset][aria-checked=\"true\"]');if(nb)nb.focus()"), "focus returns to the chosen option in the box");
   assert.ok(staff.includes("if(refocus){var s=c.querySelector('.pmv');if(s)s.focus({preventScroll:true})}"), "focus follows the card to its new tab");
   assert.ok(!/@media\(pointer:coarse\)\{\.pmv\{[^}]*\}\.pmv-t\{display:none\}\}/.test(staff), "no icon-only switch on touch screens: Live / Off live must be readable");
+  // by decision (Staff, 2026-11-16): on tablet and phone the card shows the status as an icon only; the word stays for screen readers (clipped, not hidden) and in the aria-label and tooltip
+  assert.ok(staff.includes(".pmv .pmv-t{position:absolute;display:block!important;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}"), "the word is clipped, not display:none");
+  assert.ok(staff.includes('aria-label="${H(word+". "+say+". Open to change")}'), "the full status is still the accessible name");
   // 1,000 deals: off-screen cards are skipped, and the follow looks again until a long list is drawn (and scrolls at once before it focuses)
   assert.ok(staff.includes(".pd{content-visibility:auto;contain-intrinsic-size:auto 260px 400px}"));
   assert.ok(staff.includes("if(++tries<50)setTimeout(look,100)"), "follow waits for a long list");
