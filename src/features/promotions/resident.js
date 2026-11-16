@@ -185,8 +185,13 @@ function wearInFrame(css) {
     /* a portal of another origin: left alone */
   }
 }
+// The top bar's height, for the search bar that sticks right under it. It tucks 1px under the top bar, so no seam shows between them (heights are fractions of a pixel).
+const topBar = $("#toolbar");
+const fitBar = () => document.documentElement.style.setProperty("--bar-h", `${Math.floor(topBar.getBoundingClientRect().height) - 1}px`);
+new ResizeObserver(fitBar).observe(topBar);
+fitBar();
 function scrollToCatalog() {
-  $("#filters").scrollIntoView({ block: "start", behavior: "smooth" });
+  $("#browse").scrollIntoView({ block: "start", behavior: "smooth" });
 }
 function pickCategory(key) {
   ui.category = key || "all";
@@ -206,7 +211,6 @@ function paintPage(all, mine, cfg, hot, cats) {
     ? renderPage(snap, {
         promos: all,
         cats,
-        category: ui.category,
         makeCard: (p) => card(p, mine, cfg, hot),
         toCatalog: scrollToCatalog,
         pickCategory,
@@ -316,6 +320,7 @@ function render() {
         render();
       });
   }
+  filters.hidden = !filters.childElementCount;
 
   const grid = $("#grid");
   clear(grid);
@@ -632,7 +637,7 @@ $("#btn-saved").addEventListener("click", () => {
   ui.savedOnly = !ui.savedOnly;
   ui.category = "all";
   render();
-  if (ui.savedOnly) $("#filters").scrollIntoView({ block: "start", behavior: "smooth" });
+  if (ui.savedOnly) $("#browse").scrollIntoView({ block: "start", behavior: "smooth" });
 });
 
 // ---- Redeem a code and My rewards ----

@@ -388,7 +388,7 @@ function remove(id){
  tst((m.d[0]||'The card')+' was removed.',function(){m.st=prev.st;if(m.pmc){var q=rec(m);if(q){q.r.st=prev.rst;wr(SK,q.a)}}else setSample(id,prev.ov===undefined?null:prev.ov,undefined);after(id,false)})}
 function csvOf(id){
  var m=M()[id],r=[['Claim ID','Resident','Unit','Claimed','Code','Status']];
- ((window._pmcl&&_pmcl.CL)||[]).filter(function(c){return c.deal==id}).forEach(function(c){r.push([c.id,c.name,c.pv=='all'?c.unit:String(c.unit)[0]+'••',new Date(c.t).toISOString(),c.code,c.st])});
+ ((window._pmcl&&_pmcl.CL)||[]).filter(function(c){return c.deal==id&&(!m||!m.pmc||!c.promo||String(c.promo)===String(m.pmc))}).forEach(function(c){r.push([c.id,c.name,c.pv=='all'?c.unit:String(c.unit)[0]+'••',new Date(c.t).toISOString(),c.code,c.st])});
  return{rows:r.length-1,text:r.map(function(l){return l.map(function(v){v=String(v==null?'':v);return /[",\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v}).join(',')}).join('\n')}}
 function download(id){
  var m=M()[id],c=csvOf(id),name=String((m&&m.d[0])||id).toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'')+'-claimers.csv';
@@ -6310,7 +6310,7 @@ const offerTxt=x=>x.otype=="pct"?(x.oval||"?")+"% off":x.otype=="fixed"?"$"+(x.o
 function catKey(x){if(x.cat!="__new")return x.cat;const n=x.newcat.trim(),k="c_"+n.toLowerCase().replace(/[^a-z0-9]+/g,"").slice(0,16);if(!CATS.find(c=>c[0]==k)){CATS.push([k,n,"🏷️"]);DEALS[k]=[];const a=JSON.parse(localStorage.getItem(CK)||"[]");a.push([k,n,"🏷️"]);localStorage.setItem(CK,JSON.stringify(a))}x.cat=k;return k}
 function add(x,st,id){const k=x.cat||"services";if(!DEALS[k])DEALS[k]=[];let i=DEALS[k].findIndex(d=>d.pmc==id);const bg=x.cover?`url("${x.cover}") ${x.cx}% ${x.cy}%/cover`:`linear-gradient(135deg,#1f5d4c,#2f8f6f)`;
  const d=[x.title||"Untitled draft",x.reward||x.desc.slice(0,60)||"—",st=="scheduled"?"Starts "+x.start.slice(5):"New",offerTxt(x),bg,"🏷️",0];d.pmc=id;if(i<0){DEALS[k].push(d);i=DEALS[k].length-1}else DEALS[k][i]=d;
- const m=META[k+i]||{};Object.assign(m,{id:k+i,k,i,d,st,ty:x.otype=="pct"?"pct":x.otype=="fixed"?"fixed":x.otype=="free"?"trial":"bundle",au:x.au=="seg"&&x.segs[0]?x.segs[0]:"all",en:x.end?"month":"none",bl:x.blds[0]||"Building A",pb:"QA Staff PM",code:x.method=="static"||x.method=="qr"?x.code:"",views:m.views||0,claims:m.claims||0,created:-1e6-(+id),endsDays:x.end?Math.max(0,Math.round((new Date(x.end)-new Date())/864e5)):999,pmc:id,x});META[k+i]=m;return m}
+ const m=META[k+i]||{};Object.assign(m,{id:k+i,k,i,d,st,ty:x.otype=="pct"?"pct":x.otype=="fixed"?"fixed":x.otype=="free"?"trial":"bundle",au:x.au=="seg"&&x.segs[0]?x.segs[0]:"all",en:x.end?"month":"none",bl:x.blds[0]||"Building A",pb:"QA Staff PM",code:x.method=="static"||x.method=="qr"?x.code:"",views:m.views||0,claims:m.claims||0,created:-1e6-(+id),endsDays:x.end?Math.max(0,Math.round((new Date(x.end+"T00:00:00")-new Date())/864e5)):999,pmc:id,x});META[k+i]=m;return m}
 function saved(){try{return JSON.parse(localStorage.getItem(SK)||"[]")}catch(e){return[]}}
 /* A deal scheduled for a date is live from that date: the Resident app already shows it then, so this list must too (Saved becomes Live). */
 const todayISO=(()=>{const n=new Date(),p=v=>String(v).padStart(2,"0");return n.getFullYear()+"-"+p(n.getMonth()+1)+"-"+p(n.getDate())})();
@@ -6543,6 +6543,7 @@ const next=JSON.stringify(out);if(localStorage.getItem("eso-pm-claimstate")!==ne
    A deal Staff made is named by the id it was published with there and by "dining5" here: c.promo keeps the first, c.deal is the second. */
 function fromRes(){
 let ch=0;
+CL.forEach(function(x){if(!x.promo)return;var m2=META[x.promo]||Object.values(META).find(function(z){return z.pmc==x.promo}),d=m2?m2.id:"gone:"+x.promo;if(x.deal!==d){x.deal=d;ch=1}});
 try{for(let i=0;i<localStorage.length;i++){const key=localStorage.key(i);if(!key||key.indexOf("eso-res-promo:")!==0)continue;
 const rid=key.slice(14);let s=null;try{s=JSON.parse(localStorage.getItem(key))}catch(e){}
 const cl=s&&s.claims;if(!cl||typeof cl!=="object")continue;
@@ -6734,7 +6735,7 @@ const lim=m=>{const x=m.x||{};return +(x.limT||LIM[m.id]||0)};
 // demo seeds: one healthy, one low stock, one sold out (persisted so a claim really decrements)
 const act=Object.values(META).filter(m=>m.st=="active");
 [[act[0],23],[act[1],3],[act[2],0]].forEach(([m,l])=>{if(m&&!LIM[m.id]&&!(m.x&&m.x.limT))LIM[m.id]=used(m)+l});localStorage.setItem(K,JSON.stringify(LIM));
-const endD=m=>{const x=m.x||{};if(x.end)return new Date(x.end);if(m.ext)return new Date(m.ext+"T00:00:00");if(m.st=="expired")return PM_CATALOG.day(-((m.endsDays||3)%20+1));return null};
+const endD=m=>{const x=m.x||{};if(x.end)return new Date(x.end+"T00:00:00");if(m.ext)return new Date(m.ext+"T00:00:00");if(m.st=="expired")return PM_CATALOG.day(-((m.endsDays||3)%20+1));return null};
 const expired=m=>m.st=="expired"||(!!endD(m)&&endD(m)<new Date());
 const left=m=>{const L=lim(m);return L?Math.max(0,L-used(m)):null};
 const state=m=>!m||!m.id?"":expired(m)?"expired":left(m)===0?"soldout":"";

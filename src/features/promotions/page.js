@@ -96,7 +96,6 @@ export function themeVars(snap) {
  * Draw the page. ctx:
  *  promos        the live promotions, in the order the app lists them
  *  cats          [{ key, name, count }]
- *  category      the category the list is showing now ("all" for none)
  *  makeCard(p)   one of the app's own cards (a <li>)
  *  toCatalog()   scroll to the full list
  *  pickCategory(key | null)
@@ -240,22 +239,8 @@ export function renderPage(snap, ctx) {
       const row = h("div", `display:flex;flex-wrap:wrap;align-items:center;gap:24px;flex-direction:${p.flip ? "row-reverse" : "row"}`, txt, photo(p.img, p.shape));
       node = sec(b.type, row);
     } else if (b.type === "tiles") {
-      const keys = Array.isArray(p.items) ? p.items : [];
-      const grid = h("div", `display:grid;grid-template-columns:repeat(auto-fill,minmax(${mobile ? 120 : 140}px,1fr));gap:12px`);
-      for (const k of keys) {
-        const c = ctx.cats.find((x) => x.key === k || x.name.toLowerCase().startsWith(text(k).toLowerCase()));
-        if (!c) continue;
-        const t = h("button", `font:inherit;text-align:left;cursor:pointer;padding:16px;border:1px solid rgba(100,116,139,.35);border-radius:${T.radius}px;background:${T.bg === bg ? T.alt : T.bg};color:${T.fg}`, h("strong", "display:block;font-size:15px", c.name), h("span", "font-size:13px;opacity:.7", `${c.count} ${c.count === 1 ? "offer" : "offers"}`));
-        t.type = "button";
-        if (ctx.category === c.key) {
-          t.setAttribute("aria-pressed", "true");
-          t.style.borderColor = T.accent;
-          t.style.boxShadow = `inset 0 0 0 1px ${T.accent}`;
-        } else t.setAttribute("aria-pressed", "false");
-        t.addEventListener("click", () => ctx.pickCategory(ctx.category === c.key ? "all" : c.key));
-        grid.append(t);
-      }
-      node = sec("tiles", title(sub(p.title), s), grid);
+      // not drawn: the chips under the search bar already are the category list
+      continue;
     } else if (b.type === "grid") {
       const list = pick(p.cat).slice(0, num(p.count, 1, 12, 4));
       if (!list.length) continue;

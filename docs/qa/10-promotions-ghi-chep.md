@@ -102,3 +102,25 @@ Bẫy gặp lần này:
 - Màu brand luôn thắng màu template: dữ liệu test của tôi (primary xanh lá) làm cả app xanh sau khi đổi template. Phải trả lại sau khi test.
 - Cuộn trong tab giả lập: đổi độ rộng khung trình duyệt làm mất kích cỡ giả lập, đặt lại trước mỗi ảnh.
 - `z-raised` (60) của đồng hồ trên thẻ cao hơn thanh dính; giải bằng `isolate` ở lưới, không dùng `z-[N]`.
+
+## Đợt 6 (xong): bố cục "Split", vòng tạo deal → claim → đóng → xuất CSV
+
+Người dùng chụp lại: ô "Browse categories" ở trên rồi hàng chip danh mục lặp lại ở giữa trang, chip nằm tách khỏi ô tìm kiếm. Họ dán thêm một bản đặc tả; phần đặc tả đặt thanh công cụ sau hero làm Redeem/Search không thấy khi mở trang trên điện thoại (trái với yêu cầu trước), nên đã hỏi và họ chọn **Split**:
+
+- **Trên cùng, luôn dính (`#toolbar`)**: Redeem, My rewards, Saved.
+- **Ngay trên danh sách (`#browse`)**: ô tìm kiếm + nút lọc + hàng chip danh mục (một hàng cuộn ngang, `shrink-0`), dính ngay dưới thanh trên cùng khi cuộn tới (`--bar-h` đo bằng JS, chui xuống 1px để không hở đường nối). Dưới nó là "17 of 17 promotions" rồi lưới thẻ (1, 2, 3, 4 cột: `sm`, `lg`, `xl`).
+- Khối **Browse categories** (tiles) của template không còn vẽ cho Resident: hàng chip là danh sách danh mục duy nhất. Khối vẫn còn trong trình dựng của Staff.
+- Chip luôn có (bỏ nhánh "chỉ hiện chip đang chọn" của đợt trước).
+- Hàng My rewards trên 375: mã `MALLA10` không còn bị bẻ thành "MALLA / 10", nút View xuống dòng.
+
+Vòng test thật (Staff tab thứ hai, Alex rồi Jamie):
+- Form New promotion: tạo "QA Test Detailing 25% off", giới hạn theo **unit**, 1 mỗi unit, tổng 2, hết hạn sau 10 ngày. Resident thấy ngay, "Exp: Nov 26, 2026".
+- Alex claim → Staff thấy "1 claimed", "1 left · 1/2". Jamie (`?as=res-4`) thấy nút "Claimed by your unit" (khoá) và dòng "One claim per unit: Alex Rivera already claimed this on Nov 16." Nút bị khoá nên History không có "Could not claim" từ giao diện; dòng đó chỉ có khi trạng thái đổi giữa lúc mở và lúc bấm. Gọi `claim()` cho Jamie bằng tay: History ghi "Could not claim" kèm ngày giờ và lý do.
+- Staff đặt ngày kết thúc mới (Set date → Dec 26) và Resident đọc đúng; End now → deal biến khỏi danh sách Resident, claim của Alex vẫn ở My rewards (không có nút View vì deal đã đóng), Cancel claim vẫn dùng được.
+- Đã dọn: deal QA, claim, nhật ký, mục Claims.
+
+Lỗi thật tìm thấy và đã sửa:
+1. **CSV lẫn claim của deal khác.** Claim của Staff inbox gắn vào deal theo vị trí trong danh mục (`services0`...); khi deal cũ bị xoá, deal mới lấy vị trí đó và nhận luôn claim của deal cũ. Giờ mỗi claim gắn theo id của promotion (`promo`), claim của deal đã xoá thành "Deleted promotion", và CSV chỉ lấy đúng claimer của deal.
+2. **"Expired on Nov 15" cho deal kết thúc ngày 16.** `new Date("2026-11-16")` là nửa đêm UTC nên lùi một ngày ở múi giờ phía tây. Đọc ngày dạng `YYYY-MM-DD` phải thêm `T00:00:00` (giờ địa phương). Đã sửa chỗ hiển thị và chỗ tính ngày còn lại.
+
+Bài học: ngày dạng chuỗi và khoá theo vị trí là hai nguồn lỗi lặp lại. Khi người dùng đưa đặc tả mâu thuẫn với yêu cầu trước, hỏi một câu với phương án rõ thay vì chọn bừa.

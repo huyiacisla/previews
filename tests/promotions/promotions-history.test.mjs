@@ -75,16 +75,24 @@ test("the Resident page shows History with the year and time, and long help sits
   assert.ok(js.includes('year: "numeric"'), "date and time include the year");
 });
 
-test("Redeem, My rewards, Saved and Search sit in a bar pinned above whatever page Staff designed", () => {
+test("Redeem, My rewards and Saved are pinned at the very top; Search and the category chips sit right above the results", () => {
   const html = readFileSync(new URL("../../src/partials/promotions-app.html", import.meta.url), "utf8");
   const bar = html.indexOf('id="toolbar"');
   const page = html.indexOf('id="page-top"');
   assert.ok(bar > 0 && page > bar, "the bar comes before the designed page");
-  for (const id of ["btn-redeem", "btn-rewards", "btn-saved", 'id="search"']) {
-    const at = html.indexOf(id.startsWith("id=") ? id : `id="${id}"`);
-    assert.ok(at > bar && at < page, `${id} is inside the bar`);
+  for (const id of ["btn-redeem", "btn-rewards", "btn-saved"]) {
+    const at = html.indexOf(`id="${id}"`);
+    assert.ok(at > bar && at < page, `${id} is inside the top bar`);
   }
   assert.match(html.slice(bar - 20, bar + 120), /sticky top-0/);
+  const browse = html.indexOf('id="browse"');
+  const grid = html.indexOf('id="grid"');
+  for (const id of ['id="search"', 'id="btn-filter"', 'id="filters"']) {
+    const at = html.indexOf(id);
+    assert.ok(at > browse && at < grid && browse > page, `${id} is in the bar right above the results, after the designed page`);
+  }
+  assert.ok(html.indexOf('id="count"') < grid && html.indexOf('id="count"') > browse, "the count sits under the chips");
+  assert.match(html.slice(browse - 20, browse + 200), /sticky[^"]*"[^>]*top:var\(--bar-h/, "it sticks right under the top bar");
 });
 
 test("the template's colours, corners and fonts replace the portal's tokens, so no old look is left", () => {
@@ -106,16 +114,23 @@ test("the template's colours, corners and fonts replace the portal's tokens, so 
 test("the design of the page holds together: bands edge to edge, one search, one Redeem, the portal around it dressed too", () => {
   const html = readFileSync(new URL("../../src/partials/promotions-app.html", import.meta.url), "utf8");
   const pageAt = html.indexOf('id="page-top"');
-  const listAt = html.indexOf('id="filters"');
   assert.ok(html.slice(html.indexOf('id="toolbar"'), pageAt).includes("max-w-6xl"), "the bar keeps its width in the middle");
   assert.ok(!html.slice(html.lastIndexOf("<main"), pageAt).includes("max-w-6xl\" id=\"page-top\""), "the designed page is not boxed in");
-  assert.ok(pageAt < listAt, "the designed page comes before the list");
+  assert.ok(html.includes("xl:grid-cols-4") && html.includes("sm:grid-cols-2") && html.includes("lg:grid-cols-3"), "2, 3 and 4 columns as the screen grows");
   const page = readFileSync(new URL("../../src/features/promotions/page.js", import.meta.url), "utf8");
   assert.ok(page.includes("padding-inline:${GUTTER}"), "bands run to the edges, their words stay in the middle");
   assert.ok(page.includes('btn("Use code"') && !page.includes('btn("Redeem"'), "the coupon says Use code, so there are not two Redeem buttons");
-  assert.ok(page.includes('aria-pressed') && page.includes("ctx.category === c.key"), "the tile of the category on show is marked");
+  assert.match(page, /b\.type === "tiles"\) \{[^}]*continue;/, "the category tiles are not drawn: the chips under the search are the one category list");
   const js = readFileSync(new URL("../../src/features/promotions/resident.js", import.meta.url), "utf8");
   assert.ok(js.includes("window.parent.document") && js.includes("desktopSearch"), "the portal around the page wears the theme and its own page search steps aside");
   assert.ok(js.includes("h1,h2,h3{font-family:"), "the heading font reaches every heading");
   assert.ok(themeVars({ theme: { accent: "#123456" } }).vars["--sidebar-primary"] === "#123456", "the portal's selected item follows the accent");
+});
+
+test("the CSV and the Claims inbox follow the promotion a claim was made for, not the list position it once had", () => {
+  const staff = readFileSync(new URL("../../src/staff/account-settings-content.html", import.meta.url), "utf8");
+  assert.ok(staff.includes('"gone:"+x.promo'), "a claim of a removed promotion no longer lands on the promotion that took its place");
+  assert.ok(staff.includes("String(c.promo)===String(m.pmc)"), "the export lists only the claimers of that promotion");
+  const res = readFileSync(new URL("../../src/features/promotions/resident.js", import.meta.url), "utf8");
+  assert.ok(!res.includes("hasTiles"), "the chips are always the category list");
 });

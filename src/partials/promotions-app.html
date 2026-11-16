@@ -41,9 +41,9 @@
   </header>
 
   <main id="main-content" tabindex="-1" class="min-h-0 flex-1 overflow-y-auto outline-none">
-    <!-- Redeem, My rewards, Saved and Search stay at the top and stay put whatever page Staff designed below them -->
-    <div id="toolbar" class="sticky top-0 z-10 border-b border-border bg-background">
-      <div class="mx-auto flex w-full max-w-6xl flex-col gap-step-md px-step-lg py-step-md lg:px-step-xl">
+    <!-- Redeem, My rewards and Saved stay at the very top whatever page Staff designed below them -->
+    <div id="toolbar" class="sticky top-0 z-20 border-b border-border bg-background">
+      <div class="mx-auto flex w-full max-w-6xl flex-col px-step-lg py-step-sm lg:px-step-xl">
         <div class="flex flex-wrap items-center gap-step-sm">
           <button type="button" id="btn-redeem" class="group/button inline-flex h-8 shrink-0 touch-manipulation items-center justify-center gap-step-sm rounded-md border border-input bg-card px-step-md text-sm font-medium text-foreground transition outline-none select-none hover:bg-muted focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 active:translate-y-px pointer-coarse:h-11 [&_svg]:size-4"><svg aria-hidden="true"><use href="#i-ticket"/></svg>Redeem<span class="max-sm:sr-only"> a code</span></button>
           <button type="button" id="btn-rewards" class="group/button inline-flex h-8 shrink-0 touch-manipulation items-center justify-center gap-step-sm rounded-md border border-input bg-card px-step-md text-sm font-medium text-foreground transition outline-none select-none hover:bg-muted focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 active:translate-y-px pointer-coarse:h-11 [&_svg]:size-4"><svg aria-hidden="true"><use href="#i-check"/></svg>My rewards<span id="rewards-count" hidden class="inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] leading-none font-medium text-primary-foreground tabular-nums"></span></button>
@@ -53,6 +53,13 @@
             <span id="saved-count" hidden class="absolute -top-1.5 -right-1.5 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] leading-none font-medium text-primary-foreground tabular-nums"></span>
           </button>
         </div>
+      </div>
+    </div>
+    <!-- the page Staff designed in Templates & brand (drawn by page.js), when they published one: full width -->
+    <div id="page-top" hidden class="isolate"></div>
+    <!-- Search and the category chips sit right above the results, and stick under the top bar once scrolled to -->
+    <div id="browse" class="sticky z-10 border-b border-border bg-background" style="top:var(--bar-h,3.5rem);scroll-margin-top:var(--bar-h,3.5rem)">
+      <div class="mx-auto flex w-full max-w-6xl flex-col gap-step-sm px-step-lg py-step-sm lg:px-step-xl">
         <div class="flex items-center gap-step-sm">
         <div class="relative min-w-0 flex-1">
           <label for="search" class="sr-only">Search promotions</label>
@@ -64,6 +71,7 @@
             <span id="filter-count" hidden class="absolute -top-1.5 -right-1.5 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] leading-none font-medium text-primary-foreground tabular-nums"></span>
           </button>
         </div>
+        <div id="filters" role="group" aria-label="Filter promotions" hidden class="flex flex-nowrap items-center gap-step-xs overflow-x-auto pb-px [scrollbar-width:none] [&::-webkit-scrollbar]:hidden [&>*]:shrink-0"></div>
         <div id="filter-panel" hidden class="flex max-h-[55dvh] flex-col overflow-y-auto gap-step-md rounded-lg bg-card p-step-md ring-1 ring-foreground/10">
           <div>
             <p id="tag-label" class="text-xs font-medium text-muted-foreground">Show only</p>
@@ -81,13 +89,10 @@
           </div>
         </div>
       </div>
-      </div>
-    <!-- the page Staff designed in Templates & brand (drawn by page.js), when they published one: full width -->
-    <div id="page-top" hidden class="isolate"></div>
+    </div>
     <div class="mx-auto flex w-full max-w-6xl flex-col gap-step-lg px-step-lg py-step-lg lg:px-step-xl">
-      <div id="filters" role="group" aria-label="Filter promotions" class="flex scroll-mt-32 flex-wrap items-center gap-step-xs"></div>
-      <p id="count" role="status" class="text-sm text-muted-foreground tabular-nums"></p>
-      <ul id="grid" role="list" class="isolate grid grid-cols-1 gap-step-lg sm:grid-cols-2 lg:grid-cols-3"></ul>
+      <p id="count" role="status" class="scroll-mt-40 text-sm text-muted-foreground tabular-nums"></p>
+      <ul id="grid" role="list" class="isolate grid grid-cols-1 gap-step-lg sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"></ul>
       <div id="empty" hidden></div>
     </div>
   </main>
@@ -190,7 +195,7 @@
     <p data-note class="text-xs text-muted-foreground empty:hidden"></p>
     <ol data-timeline aria-label="History" class="my-step-xs flex flex-col gap-step-sm border-l border-border pl-step-md"></ol>
     <div class="flex flex-wrap items-center gap-step-sm">
-      <output data-code class="min-w-0 flex-1 text-base font-medium tracking-wider wrap-anywhere tabular-nums"></output>
+      <output data-code class="shrink-0 flex-1 text-base font-medium tracking-wider whitespace-nowrap tabular-nums"></output>
       <button type="button" data-copy class="group/button inline-flex h-8 shrink-0 touch-manipulation items-center justify-center gap-step-sm rounded-md border border-input bg-card px-step-md text-sm font-medium text-foreground transition outline-none select-none hover:bg-muted focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 active:translate-y-px pointer-coarse:h-11 [&_svg]:size-4">Copy</button>
       <button type="button" data-cancel hidden class="group/button inline-flex h-8 shrink-0 touch-manipulation items-center justify-center gap-step-sm rounded-md border border-input bg-card px-step-md text-sm font-medium text-foreground transition outline-none select-none hover:bg-muted focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 active:translate-y-px pointer-coarse:h-11 [&_svg]:size-4">Cancel claim</button>
       <button type="button" data-view class="group/button inline-flex h-8 shrink-0 touch-manipulation items-center justify-center gap-step-sm rounded-md border border-input bg-card px-step-md text-sm font-medium text-foreground transition outline-none select-none hover:bg-muted focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 active:translate-y-px pointer-coarse:h-11 [&_svg]:size-4">View</button>
