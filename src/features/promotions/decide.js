@@ -1,6 +1,7 @@
 // What Staff decide about a claim, from the chat or from the Claims inbox: confirm it, apply it by hand (Override, with a reason) or reject it (with a reason).
 // One place writes it, so the resident, the chat and the inbox always say the same thing. Pure functions over a storage object.
 
+import { appendAudit, auditRaw, restoreAudit } from "./audit.js";
 import { claimStatus, KEY, residentState } from "./store.js";
 
 const INBOX = "eso-pmclaims"; // Staff's Claims inbox (the inbox page keeps it and publishes what the resident may see into KEY.claimState)
@@ -21,9 +22,28 @@ export function decisionText(action, title, reason) {
   return null;
 }
 
+// Put a key back as it was (raw is what getItem gave: null = it did not exist).
+const setRaw = (storage, key, raw) => {
+  try {
+    if (raw === null || raw === undefined) storage.removeItem(key);
+    else storage.setItem(key, raw);
+  } catch {
+    /* nothing more can be done */
+  }
+};
+const getRaw = (storage, key) => {
+  try {
+    return storage.getItem(key);
+  } catch {
+    return null;
+  }
+};
+
 /**
  * action: "verify" | "apply" | "reject". apply and reject need a reason (what the resident is told).
  * Returns { ok, noop?, rk, st, reason? }. A claim that is already in the state asked for is a no-op, one that cannot go there says why.
+ * `by` (who decided) is kept in the decision and in the audit log. The decision is written in an order that cannot leave the inbox and the resident disagreeing:
+ * the inbox, then what the resident reads, then the audit log; if a later write fails the earlier ones are put back and nothing has changed.
  */
 export function decideClaim(storage, { rid, promoId, action, reason = "", by = "Property team", now = Date.now() }) {
   const claim = residentState(storage, rid).claims[promoId];
@@ -51,14 +71,11 @@ export function decideClaim(storage, { rid, promoId, action, reason = "", by = "
     all[rk] = { st: "rejected", reason: why, at: now, jt: now };
   } else return { ok: false, reason: "Unknown action." };
 
-  // what the resident reads
-  try {
-    storage.setItem(KEY.claimState, JSON.stringify(all));
-  } catch {
-    return { ok: false, reason: "Could not save. Try again." };
-  }
+  const actor = String(by || "Property team").slice(0, 60);
+  all[rk].by = actor; // who decided: the resident's notice does not show it, a dispute does
 
   // Staff's inbox keeps the same decision (and makes the record if the inbox page has not been opened since the claim)
+  let inboxText = null;
   const inbox = readJson(storage, INBOX, null);
   if (Array.isArray(inbox)) {
     let c = inbox.find((x) => x && x.rk === rk);
@@ -83,11 +100,30 @@ export function decideClaim(storage, { rid, promoId, action, reason = "", by = "
       delete c.lock;
     }
     if (noteText) c.notes = (Array.isArray(c.notes) ? c.notes : []).concat({ by, at: now, text: noteText }).slice(-20);
-    try {
-      storage.setItem(INBOX, JSON.stringify(inbox));
-    } catch {
-      /* the resident's side is saved; the inbox catches up from it */
-    }
+    inboxText = JSON.stringify(inbox);
+  }
+
+  // what the audit log says about it: a reject also gives the place back (a rejected claim does not count against the total)
+  const entry = (type, text) => ({ type, promoId, residentId: rid, n: claim.count, actor, reason: text, code: claim.code, at: now });
+  const entries = action === "reject" ? [entry("reject", why), entry("give_back", `Rejected: ${why}`)] : [entry("verify", action === "apply" ? `Applied by hand: ${why}` : "")];
+
+  const was = { inbox: getRaw(storage, INBOX), state: getRaw(storage, KEY.claimState), audit: auditRaw(storage) };
+  const undo = () => {
+    setRaw(storage, INBOX, was.inbox);
+    setRaw(storage, KEY.claimState, was.state);
+    restoreAudit(storage, was.audit);
+  };
+  const failed = { ok: false, reason: "Could not save. Try again." };
+  try {
+    if (inboxText !== null) storage.setItem(INBOX, inboxText);
+    storage.setItem(KEY.claimState, JSON.stringify(all)); // what the resident reads
+  } catch {
+    undo();
+    return failed;
+  }
+  if (!appendAudit(storage, ...entries).ok) {
+    undo();
+    return failed;
   }
   return { ok: true, rk, st: all[rk].st };
 }

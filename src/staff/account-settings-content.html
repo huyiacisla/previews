@@ -6556,14 +6556,30 @@ let CL;try{CL=JSON.parse(localStorage.getItem(K)||"null")}catch(e){}if(!Array.is
 {const sn=new Set(),n0=CL.length;CL=CL.slice().sort((a,b)=>a.t-b.t).filter(c=>{if(!c.me||(c.st=="rejected"&&!c.lock))return true;if(sn.has(c.deal))return false;sn.add(c.deal);return true}).sort((a,b)=>b.t-a.t);if(CL.length!=n0)sv()}
 {const u=new Set();let ch=0;CL.forEach(c=>{if(c.meth=="link"||c.code=="(external link)"||c.rid)return;if(u.has(c.code)||!/-[A-Z0-9]{3,5}$/.test(c.code)){c.code=c.code.replace(/-[A-Z0-9]{3,5}$/,"")+"-"+(parseInt(String(c.id).replace(/\D/g,"").slice(-6)||"1",10)*7919%1679616).toString(36).toUpperCase().padStart(4,"0");ch=1}u.add(c.code)});if(ch)sv()}
 function sv(){localStorage.setItem(K,JSON.stringify(CL));publish()}
+/* Who is deciding: what the audit log and the decision record. The same log (eso-pm-audit-v1, see src/features/promotions/audit.js) is written by the Resident app and by Messages. */
+const actor=()=>window._wsRole!="staff"?"Property Manager":"Staff";
+function auditAdd(list){if(!list.length)return;try{let a;try{a=JSON.parse(localStorage.getItem("eso-pm-audit-v1"))}catch(e){}
+const ev=a&&!Array.isArray(a)&&Array.isArray(a.events)?a.events:[],t=Date.now();
+list.forEach((x,i)=>ev.push({id:"a_"+t.toString(36)+"_"+Math.random().toString(16).slice(2,10)+i,type:x.type,promoId:String(x.promoId),residentId:String(x.rid||""),n:x.n||0,actor:String(x.actor||"").slice(0,60),reason:String(x.reason||"").replace(/\s+/g," ").trim().slice(0,200),spotDelta:x.type==="give_back"?1:x.type==="claim"?-1:0,...(x.code?{code:String(x.code).slice(0,40)}:{}),at:new Date(x.at||t).toISOString()}));
+localStorage.setItem("eso-pm-audit-v1",JSON.stringify({v:1,events:ev.slice(-5000)}))}catch(e){}}
 /* What the resident may see of their claim: only its status and, when rejected, the reason Staff typed for them ("The resident sees this reason"). Staff-owned key, the Resident app only reads it. */
 function publish(){
+const evs=[];
 try{const out={};let prev={};try{prev=JSON.parse(localStorage.getItem("eso-pm-claimstate")||"{}")||{}}catch(e){}
 /* a decision made from the chat on a claim this page has not imported yet is kept (it is taken over when the claim is imported) */
 {const known=new Set(CL.map(c=>c.rk).filter(Boolean));Object.keys(prev).forEach(k=>{if(!known.has(k)&&prev[k]&&prev[k].st)out[k]=prev[k]})}
 /* `at` is when the decision was published (kept while the decision stays the same): the resident's notice is dated by it */
-CL.forEach(c=>{if(c.rk&&c.st&&c.st!=="pending"){const o=prev[c.rk];out[c.rk]={st:c.st,reason:c.st==="rejected"?String(c.reason||"").slice(0,200):"",...(c.st==="rejected"&&c.lock?{lock:true}:{}),at:o&&o.st===c.st&&o.at?o.at:Date.now(),...(c.vt?{vt:c.vt}:{}),...(c.rt?{rt:c.rt}:{}),...(c.jt?{jt:c.jt}:{}),...((c.st==="verified"||c.st==="redeemed")&&c.manual&&c.manual.reason?{manual:String(c.manual.reason).slice(0,200)}:{})}}});
-const next=JSON.stringify(out);if(localStorage.getItem("eso-pm-claimstate")!==next)localStorage.setItem("eso-pm-claimstate",next)}catch(e){}}
+CL.forEach(c=>{if(c.rk&&c.st&&c.st!=="pending"){const o=prev[c.rk];const rec=out[c.rk]={st:c.st,reason:c.st==="rejected"?String(c.reason||"").slice(0,200):"",...(c.st==="rejected"&&c.lock?{lock:true}:{}),at:o&&o.st===c.st&&o.at?o.at:Date.now(),...(c.vt?{vt:c.vt}:{}),...(c.rt?{rt:c.rt}:{}),...(c.jt?{jt:c.jt}:{}),...((c.st==="verified"||c.st==="redeemed")&&c.manual&&c.manual.reason?{manual:String(c.manual.reason).slice(0,200)}:{}),by:o&&o.st===c.st&&o.by?o.by:actor()};
+/* a decision that is new here is an event in the audit log (one decided from the chat is already there: its state is the same, so it is not added twice) */
+if(!o||o.st!==c.st){const a={promoId:c.promo,rid:c.rid,n:+String(c.rk).split("|").pop()||0,code:c.code,actor:rec.by,at:c.vt||c.jt||c.rt||Date.now()};
+if(o&&o.st==="rejected")evs.push({...a,type:"claim",reason:"Reinstated by Staff: the place is taken again"});
+if(c.st==="verified")evs.push({...a,type:"verify",reason:c.manual&&c.manual.reason?"Applied by hand: "+c.manual.reason:""});
+else if(c.st==="redeemed")evs.push({...a,type:"redeem"});
+else if(c.st==="rejected"&&!/^Cancelled by resident/.test(c.reason||"")){evs.push({...a,type:"reject",reason:c.reason});evs.push({...a,type:"give_back",reason:"Rejected: "+(c.reason||"")})}}}});
+/* a rejected claim moved back to Pending takes its place again */
+CL.forEach(c=>{const o=c.rk&&prev[c.rk];if(o&&o.st==="rejected"&&c.st==="pending")evs.push({type:"claim",promoId:c.promo,rid:c.rid,n:+String(c.rk).split("|").pop()||0,code:c.code,actor:actor(),reason:"Moved back to Pending: the place is taken again"})});
+const next=JSON.stringify(out);if(localStorage.getItem("eso-pm-claimstate")!==next)localStorage.setItem("eso-pm-claimstate",next)}catch(e){evs.length=0}
+auditAdd(evs)}
 /* Claims made in the Resident app (each resident's own record, eso-res-promo:<id>) become claims in this inbox, Pending, once each (rk = resident|promotion|n).
    A deal Staff made is named by the id it was published with there and by "dining5" here: c.promo keeps the first, c.deal is the second. */
 function fromRes(){
@@ -6576,7 +6592,7 @@ for(const pid of Object.keys(cl)){const c=cl[pid],n=c&&+c.count;if(!(n>0))contin
 const m=META[pid]||Object.values(META).find(z=>z.pmc==pid);if(!m)continue;
 for(let j=1;j<=n;j++){const rk=rid+"|"+pid+"|"+j;const ex=CL.find(x=>x.rk===rk);if(ex){if(ex.st==="pending"&&Array.isArray(c.cancelled)&&c.cancelled.includes(j)){ex.st="rejected";ex.reason="Cancelled by resident";ex.jt=Date.parse(c.cancelledAt&&c.cancelledAt[j])||Date.now();ch=1}continue}
 const who=c.who||{};
-CL.push({id:"r_"+rk.replace(/[^a-zA-Z0-9]/g,"_"),rk,rid,promo:pid,deal:m.id,name:String(who.name||"Resident").slice(0,60),unit:String(who.unit||"—").slice(0,12),pv:"staff",t:Date.parse(c.at)||Date.now(),code:String(c.code||"").slice(0,40),st:"pending",sync:false,note:"",reason:"",meth:"app"});ch=1}}}}catch(e){}
+CL.push({id:"r_"+rk.replace(/[^a-zA-Z0-9]/g,"_"),rk,rid,promo:pid,deal:m.id,name:String(who.name||"Resident").slice(0,60),unit:String(who.unit||"—").slice(0,12),pv:"staff",t:Date.parse(c.at)||Date.now(),code:String((c.codes&&c.codes[j])||c.code||"").slice(0,40),st:"pending",sync:false,note:"",reason:"",meth:"app"});ch=1}}}}catch(e){}
 /* a decision made from the chat (Messages) before this page knew the claim: the claim takes it over */
 try{const cs=JSON.parse(localStorage.getItem("eso-pm-claimstate")||"{}")||{};CL.forEach(c=>{const d=c.rk&&cs[c.rk];if(d&&c.st==="pending"&&(d.st==="verified"||d.st==="rejected")){c.st=d.st;if(d.vt)c.vt=d.vt;if(d.jt)c.jt=d.jt;if(d.st==="rejected")c.reason=String(d.reason||"");if(d.manual)c.manual={by:"Property team",at:d.vt||d.at||Date.now(),reason:String(d.manual)};ch=1}})}catch(e){}
 if(ch){CL.sort((a,b)=>b.t-a.t);sv()}return ch}

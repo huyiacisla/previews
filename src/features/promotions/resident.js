@@ -170,12 +170,23 @@ function paintSavedButton(n, on) {
 
 // The page Staff designed (Templates & brand), drawn above the list. It is drawn again only when what it shows changed.
 let pageKey = "";
-// a block can be hidden on phones or tablets: the page is drawn again when the screen crosses those widths
-for (const q of ["(max-width: 639px)", "(max-width: 1023px)"])
-  matchMedia(q).addEventListener("change", () => {
-    pageKey = "";
-    render();
-  });
+// a block can be hidden on phones or tablets, and the page's titles are smaller there: the page is drawn again when the screen crosses those widths.
+// The width is looked at again when the page has loaded and its first frame is drawn too: a page that is opened in a frame which is laid out a moment later (Staff's Resident view,
+// a frame not yet on screen) must not keep the look of a phone it was first measured as.
+const deviceNow = () => (matchMedia("(max-width: 639px)").matches ? "phone" : matchMedia("(max-width: 1023px)").matches ? "tablet" : "desktop");
+let lastDevice = deviceNow();
+function syncDevice() {
+  const now = deviceNow();
+  fitBar();
+  if (now === lastDevice) return;
+  lastDevice = now;
+  pageKey = "";
+  render();
+}
+for (const q of ["(max-width: 639px)", "(max-width: 1023px)"]) matchMedia(q).addEventListener("change", syncDevice);
+addEventListener("resize", syncDevice);
+addEventListener("load", syncDevice);
+requestAnimationFrame(syncDevice);
 // The template covers the whole app (see themeVars). Its tokens go in a stylesheet marked !important, so neither the dark/light class nor the portal's own accent
 // (which the shell copies into this frame) can bring back the old look; with no template the sheet is removed and the portal's own look returns.
 function wearTheme(snap) {
@@ -662,16 +673,39 @@ dlg.addEventListener("close", () => {
   } else returnFocus();
 });
 
+// One press on Claim is handled once: the button is off while it is, and a second press that arrives at once (a double click) is ignored. (claim() ignores it too, so two tabs
+// or a stuck key cannot make a second claim of the same press.) The button comes back, in the state the promotion is really in, a moment after.
+let claimBusy = false;
 $("#dlg-claim-btn").addEventListener("click", () => {
-  const p = find(ui.openId);
-  if (!p) return;
-  const r = claim(storage, me.id, p);
-  $("#dlg-error").textContent = r.ok ? "" : r.reason;
-  if (!r.ok) return;
-  if (p.method === "link" && r.link) window.open(r.link, "_blank", "noopener,noreferrer");
-  else toast(r.again ? "You already claimed this" : "Claimed. Your code is below.");
-  if (!r.again) bumpUnseen("rewards", 1);
-  render();
+  if (claimBusy) return;
+  claimBusy = true;
+  $("#dlg-claim-btn").disabled = true;
+  try {
+    const p = find(ui.openId);
+    if (!p) {
+      // Staff paused, ended or removed it while the details were open: say so, and close them
+      closeDialog(true);
+      toast("This promotion is no longer available. It was paused or has ended.");
+      render();
+      return;
+    }
+    const r = claim(storage, me.id, p); // looks at what is stored now: still running, not paused, a place left
+    $("#dlg-error").textContent = r.ok ? "" : r.reason;
+    if (!r.ok) {
+      toast(r.reason);
+      render(); // the card and the details show what is true now (Sold out, gone)
+      return;
+    }
+    if (p.method === "link" && r.link) window.open(r.link, "_blank", "noopener,noreferrer");
+    else toast(r.again ? "You already claimed this" : "Claimed. Your code is below.");
+    if (!r.again) bumpUnseen("rewards", 1);
+    render();
+  } finally {
+    setTimeout(() => {
+      claimBusy = false;
+      if (ui.openId) refreshDialog();
+    }, 700);
+  }
 });
 
 $("#dlg-save").addEventListener("click", () => {
@@ -1139,8 +1173,10 @@ addEventListener("storage", (e) => {
     e.key === KEY.cats ||
     e.key === KEY.settings ||
     e.key === KEY.mine(me.id) ||
+    e.key.startsWith("eso-res-promo:") || // another resident's claim (or this resident in another tab) changes how many places are left
     e.key === globalThis.PM_CATALOG.STATUS_KEY ||
-    e.key === globalThis.PM_CATALOG.EDITS_KEY
+    e.key === globalThis.PM_CATALOG.EDITS_KEY ||
+    e.key === globalThis.PM_CATALOG.ENDS_KEY // Staff moved a deal's end
   )
     render();
 });

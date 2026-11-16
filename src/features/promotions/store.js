@@ -16,6 +16,7 @@ import { HOUSEHOLD, PERSONAS } from "../messaging/personas.js";
 // People who live with a resident (Jamie shares Alex's unit, so a promotion limited per unit counts them once): kept with the other people, in messaging/personas.js
 export { HOUSEHOLD };
 const PEOPLE = [...PERSONAS, ...HOUSEHOLD];
+import { appendAudit, auditRaw, readAudit, restoreAudit } from "./audit.js";
 import "./catalog.js"; // defines globalThis.PM_CATALOG: the sample deals Staff's page shows too (the Resident sees the running ones)
 
 // `claimState` is written by Staff's Claims inbox: { "<residentId>|<promotionId>|<n>": { st: verified | redeemed | rejected, reason } }. Only a status; the Resident app never writes it.
@@ -32,10 +33,18 @@ const BUILTIN = [
 ];
 const SEGMENTS = { members: "Members", movein: "New move-ins", pet: "Pet owners", ev: "EV drivers" };
 
+// What a resident's record looks like on disk: { v, saved, claims, log }. `v` is the version of that shape; a record without one is the first shape and reads the same.
+// A newer version is read for the fields known here and is not rewritten by an older page: put() only writes this version.
+const SCHEMA = 1;
+const isObj = (v) => !!v && typeof v === "object" && !Array.isArray(v);
+// A value that is not the kind of thing the caller expects (the fallback tells which: a list or a plain object) reads as the fallback, so a broken or edited key can never throw later.
 const read = (storage, key, fallback) => {
   try {
     const v = JSON.parse(storage.getItem(key));
-    return v ?? fallback;
+    if (v === null || v === undefined) return fallback;
+    if (Array.isArray(fallback)) return Array.isArray(v) ? v : fallback;
+    if (isObj(fallback)) return isObj(v) ? v : fallback;
+    return v;
   } catch {
     return fallback;
   }
@@ -324,9 +333,22 @@ export function categoriesIn(storage, today = todayISO(), viewer, samples = true
 
 /* -------------------------------------------------------------- what a resident has done */
 
+// One claim record as the code uses it: count is a whole number, cancelled a list of them, cancelledAt a plain object; anything else that is there is kept as it is.
+function claimRecord(c) {
+  const out = { ...c, count: Math.max(0, Math.floor(Number(c.count)) || 0) };
+  if (c.cancelled !== undefined) out.cancelled = Array.isArray(c.cancelled) ? c.cancelled.filter((n) => Number.isInteger(n)) : [];
+  if (c.cancelledAt !== undefined && !isObj(c.cancelledAt)) delete out.cancelledAt;
+  return out;
+}
 export function residentState(storage, residentId) {
-  const s = read(storage, KEY.mine(residentId), {}) || {};
-  return { saved: new Set(Array.isArray(s.saved) ? s.saved : []), claims: s.claims && typeof s.claims === "object" ? s.claims : {}, log: Array.isArray(s.log) ? s.log : [] };
+  const s = read(storage, KEY.mine(residentId), {});
+  const claims = {};
+  if (isObj(s.claims)) for (const [id, c] of Object.entries(s.claims)) if (isObj(c)) claims[id] = claimRecord(c);
+  return {
+    saved: new Set(Array.isArray(s.saved) ? s.saved.filter((x) => typeof x === "string" || typeof x === "number") : []),
+    claims,
+    log: Array.isArray(s.log) ? s.log.filter((e) => isObj(e)) : [],
+  };
 }
 
 /**
@@ -348,10 +370,14 @@ export function claimStatus(storage, residentId, promoId) {
 
 // The resident's own record of what they did, oldest first, kept apart from the claims so that nothing is lost when a claim is made again:
 // { t: ISO time, p: promotion id, k: "claimed" | "failed" | "cancelled", n: which claim, note }. The newest 200 are kept.
+// Returns false when nothing was added: a failure that says what the newest entry of this promotion already says (a full deal tried again and again) is one row, not a row per click.
 function note(st, ev) {
-  const last = st.log[st.log.length - 1];
-  if (last && ev.k === "failed" && last.k === "failed" && last.p === ev.p && last.note === ev.note && Date.parse(ev.t) - Date.parse(last.t) < 60000) return;
+  if (ev.k === "failed") {
+    const newest = [...st.log].reverse().find((e) => e && e.p === ev.p);
+    if (newest && newest.k === "failed" && newest.note === ev.note) return false;
+  }
   st.log = [...st.log, ev].slice(-200);
+  return true;
 }
 
 /** The resident cancels a claim that is still waiting. It gives its place back (and the unit's). Staff's inbox shows it as cancelled by the resident. */
@@ -364,7 +390,12 @@ export function cancelClaim(storage, residentId, promoId, now = new Date()) {
   c.cancelled = [...(Array.isArray(c.cancelled) ? c.cancelled : []), c.count];
   c.cancelledAt = { ...(c.cancelledAt || {}), [c.count]: now.toISOString() };
   note(st, { t: now.toISOString(), p: String(promoId), k: "cancelled", n: c.count, note: "You cancelled this claim" });
-  return put(storage, residentId, st) ? { ok: true } : { ok: false, reason: "Could not save. Try again." };
+  const before = auditRaw(storage);
+  const logged = appendAudit(storage, { type: "give_back", promoId, residentId, n: c.count, actor: `resident:${residentId}`, reason: "Cancelled by the resident", code: c.code, at: now });
+  if (!logged.ok) return { ok: false, reason: "Could not save. Try again." };
+  if (put(storage, residentId, st)) return { ok: true };
+  restoreAudit(storage, before);
+  return { ok: false, reason: "Could not save. Try again." };
 }
 
 /**
@@ -430,48 +461,91 @@ export function claimDecidedAt(storage, residentId, promoId) {
 }
 
 function put(storage, residentId, st) {
-  return write(storage, KEY.mine(residentId), { saved: [...st.saved], claims: st.claims, log: st.log });
+  return write(storage, KEY.mine(residentId), { v: SCHEMA, saved: [...st.saved], claims: st.claims, log: st.log });
 }
 
 /** Save or unsave. Returns the new saved state, or null when the Staff turned saving off. */
 export function toggleSaved(storage, residentId, id) {
   if (!readConfig(storage).save) return null;
   const st = residentState(storage, residentId);
-  const now = !st.saved.has(id);
-  if (now) st.saved.add(id);
-  else st.saved.delete(id);
-  put(storage, residentId, st);
-  return now;
+  const was = st.saved.has(id);
+  if (was) st.saved.delete(id);
+  else st.saved.add(id);
+  // the browser would not store it: the star stays as it was (the page shows what is really kept)
+  return put(storage, residentId, st) ? !was : was;
 }
 
-// 5 characters, no look-alikes, the same for the same resident and promotion.
-function uniqueCode(prefix, residentId, id) {
-  let h = 2166136261;
-  for (const ch of `${residentId}|${id}`) h = Math.imul(h ^ ch.charCodeAt(0), 16777619) >>> 0;
-  const A = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
+// A code that belongs to one claim: random characters (no look-alikes) from the browser's secure generator, so nobody can work it out from a resident or a promotion.
+const CODE_ALPHABET = "ABCDEFGHJKMNPQRSTUVWXYZ23456789"; // 31 characters
+function randomToken(len) {
+  const c = globalThis.crypto;
   let out = "";
-  for (let i = 0; i < 5; i += 1) {
-    out += A[h % A.length];
-    h = Math.imul(h ^ (h >>> 7), 2654435761) >>> 0;
+  while (out.length < len) {
+    const bytes = c && c.getRandomValues ? c.getRandomValues(new Uint8Array(len * 2)) : Array.from({ length: len * 2 }, () => Math.floor(Math.random() * 256));
+    for (const b of bytes) {
+      if (b < 248 && out.length < len) out += CODE_ALPHABET[b % 31]; // 248 = 8 x 31: no character is likelier than another
+    }
   }
-  return `${prefix}-${out}`;
+  return out;
 }
+/** A new code for `prefix` that no claim in this app (kept in a resident's record or in the audit log) has ever had. */
+export function newUniqueCode(storage, prefix) {
+  const used = new Set(readAudit(storage).map((e) => e.code).filter(Boolean));
+  for (const p of PEOPLE) if (p.role === "resident") for (const c of Object.values(residentState(storage, p.id).claims)) if (c.code) used.add(c.code);
+  for (let i = 0; i < 20; i += 1) {
+    const code = `${prefix}-${randomToken(6)}`;
+    if (!used.has(code)) return code;
+  }
+  return `${prefix}-${randomToken(10)}`;
+}
+
+/**
+ * Can this promotion be claimed right now? Looked at again from what is stored, at the moment of the claim, and not from the card the resident was looking at:
+ * Staff may have paused, ended or removed it, or the last place may have gone, while the details were open.
+ * Returns { block: { why, reason } } when it cannot, or { fresh } with the promotion as it is now (its limits and codes too).
+ */
+export function claimCheck(storage, promoId, now = new Date()) {
+  const no = (why, reason) => ({ block: { why, reason } });
+  if (!readConfig(storage).show) return no("off", "Promotions are not available right now.");
+  const rec = allRecords(storage).find((r) => r && r.x && String(r.id) === String(promoId));
+  if (!rec || rec.st === "removed") return no("gone", "This promotion is no longer available.");
+  if (rec.st === "draft") return no("paused", "This promotion is paused right now. Try again later.");
+  const today = todayISO(now);
+  const x = rec.x;
+  if (rec.st === "closed") return no("ended", "This promotion has ended.");
+  if (x.start && x.start > today) return no("soon", "This promotion has not started yet.");
+  if (Array.isArray(x.ch) && x.ch.length && !x.ch.includes("In-App")) return no("gone", "This promotion is no longer available.");
+  const fresh = toPromo(rec, categoryNames(storage), claimedByResidents(storage, rec.id), today);
+  if (fresh.endsAt !== null && fresh.endsAt <= now.getTime()) return no("ended", "This promotion has ended.");
+  if (fresh.full) return no("full", "This promotion has been fully claimed.");
+  return { fresh };
+}
+
+// Two claims of one promotion by one resident closer together than this are one press that arrived twice (a double click), not two claims.
+const SAME_PRESS_MS = 1500;
 
 /**
  * Claim a promotion. Static and QR promotions reveal the shared code, unique ones make a code for this resident,
  * link ones hand back the partner address. Returns { ok, code?, link?, reason? }. Claiming again returns the same result.
  */
-export function claim(storage, residentId, promo, now = new Date()) {
-  const st = residentState(storage, residentId);
-  // a claim that did not go through is part of the history too, with the reason
+export function claim(storage, residentId, shown, now = new Date()) {
+  const st = residentState(storage, residentId); // read again here: what is stored now decides, not what the page showed
+  // a claim that did not go through is part of the history too, with the reason (said once, not once per click)
   const fail = (reason, extra) => {
-    note(st, { t: now.toISOString(), p: String(promo.id), k: "failed", note: reason });
-    put(storage, residentId, st);
+    if (note(st, { t: now.toISOString(), p: String(shown.id), k: "failed", note: reason })) put(storage, residentId, st);
     return { ok: false, reason, ...extra };
   };
-  if (promo.full) return fail("This promotion has been fully claimed.");
+  const checked = claimCheck(storage, shown.id, now);
+  if (checked.block) return fail(checked.block.reason, { why: checked.block.why });
+  const promo = checked.fresh;
+  if (shown.full) return fail("This promotion has been fully claimed.", { why: "full" });
   const prev = st.claims[promo.id];
-  const code = promo.method === "unique" ? uniqueCode(promo.prefix, residentId, promo.id) : promo.code;
+  const code = promo.method === "unique" ? "" : promo.code; // a unique code is made only when a claim is really made
+  if (prev && prev.count > 0 && prev.at) {
+    const since = now.getTime() - Date.parse(prev.at);
+    const standing = (claimStatus(storage, residentId, promo.id) || {}).st !== "rejected"; // a claim Staff rejected or the resident cancelled is over: claiming again is real
+    if (since >= 0 && since < SAME_PRESS_MS && standing) return { ok: true, again: true, code: prev.code || code, link: promo.link };
+  }
   if (prev) {
     const own = activeClaims(storage, residentId, promo.id);
     if (own.locked) return fail("The property team closed this claim. Contact them if you think this is a mistake.");
@@ -493,8 +567,18 @@ export function claim(storage, residentId, promo, now = new Date()) {
   // `who` is what Staff's Claims inbox shows for this claim (a real app sends the resident's profile with the claim).
   const person = PEOPLE.find((p) => p.id === residentId);
   const who = person ? { name: person.name, unit: (person.unit && person.unit.number) || "" } : undefined;
-  st.claims[promo.id] = { count: (prev ? prev.count : 0) + 1, code, at: now.toISOString(), ...(who ? { who } : {}) };
-  note(st, { t: now.toISOString(), p: String(promo.id), k: "claimed", n: st.claims[promo.id].count, note: code ? `Code issued: ${code}` : "" });
-  if (!put(storage, residentId, st)) return { ok: false, reason: "Could not save your claim. Try again." };
-  return { ok: true, code, link: promo.link };
+  const issued = promo.method === "unique" ? newUniqueCode(storage, promo.prefix) : code;
+  // `code` is the newest claim's; `codes` keeps the code of each claim by its number (a second claim has a code of its own)
+  const num = (prev ? prev.count : 0) + 1;
+  st.claims[promo.id] = { count: num, code: issued, codes: { ...(prev && isObj(prev.codes) ? prev.codes : {}), [num]: issued }, at: now.toISOString(), ...(who ? { who } : {}) };
+  note(st, { t: now.toISOString(), p: String(promo.id), k: "claimed", n: st.claims[promo.id].count, note: issued ? `Code issued: ${issued}` : "" });
+  // the audit log first, the record second: if the record cannot be saved the log is put back, so the two never disagree
+  const before = auditRaw(storage);
+  const logged = appendAudit(storage, { type: "claim", promoId: promo.id, residentId, n: st.claims[promo.id].count, actor: `resident:${residentId}`, code: issued, at: now });
+  if (!logged.ok) return { ok: false, reason: "Could not save your claim. Try again." };
+  if (!put(storage, residentId, st)) {
+    restoreAudit(storage, before);
+    return { ok: false, reason: "Could not save your claim. Try again." };
+  }
+  return { ok: true, code: issued, link: promo.link };
 }

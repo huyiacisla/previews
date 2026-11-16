@@ -150,12 +150,18 @@ test("claiming: shared code, unique code per resident, per-resident limit, total
   assert.equal(claim(atLimit, "res-3", full).ok, false);
   assert.equal(listPromotions(s, { samples: false, today: TODAY })[0].full, false, "below the limit it stays open");
 
-  // unique codes: same resident gets the same code, different residents differ, prefix is upper-cased
+  // unique codes: random, one for each claim, nobody can work one out from the resident or the promotion, prefix is upper-cased
   const u1 = claim(s, "res-1", p2).code;
   const u2 = claim(s, "res-2", p2).code;
-  assert.match(u1, /^RES-[A-Z2-9]{5}$/);
+  assert.match(u1, /^RES-[A-Z2-9]{6}$/);
   assert.notEqual(u1, u2);
-  assert.equal(claim(s, "res-1", listPromotions(s, { samples: false, today: TODAY })[1]).code, u1, "second claim (limit 2) keeps the code");
+  assert.equal(claim(s, "res-1", listPromotions(s, { samples: false, today: TODAY })[1]).code, u1, "a second press right after the first is the same press: it shows the same code");
+  const later = claim(s, "res-1", listPromotions(s, { samples: false, today: TODAY })[1], new Date(Date.now() + 5000));
+  assert.equal(later.ok, true);
+  assert.notEqual(later.code, u1, "a real second claim (limit 2) has a code of its own");
+  assert.deepEqual(JSON.parse(s.getItem(KEY.mine("res-1"))).claims["2"].codes, { 1: u1, 2: later.code }, "and each claim's code is kept by its number");
+  const other = memory({ [KEY.published]: [rec("2", "active", { method: "unique", prefix: "res", code: "", limR: "2" })] });
+  assert.notEqual(claim(other, "res-1", listPromotions(other, { samples: false, today: TODAY })[0]).code, u1, "the same resident and promotion elsewhere do not give the same code");
 
   // link promotions hand back the partner address, only for http(s)
   assert.equal(claim(s, "res-1", p3).link, "https://partner.example/offer");

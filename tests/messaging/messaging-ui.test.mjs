@@ -5,7 +5,7 @@ import { has } from "../has.mjs";
 
 const app = readFileSync(new URL("../../src/features/messaging/app.js", import.meta.url), "utf8");
 const html = readFileSync(new URL("../../src/partials/messages-app.html", import.meta.url), "utf8");
-const css = readFileSync(new URL("../../src/shared/css/styles.css", import.meta.url), "utf8");
+const css = readFileSync(new URL("../../src/shared/css/styles.css", import.meta.url), "utf8").replace(/\r\n/g, "\n"); // a Windows checkout has CRLF; the checks below look for "\n"
 const social = readFileSync(new URL("../../src/partials/social-app.html", import.meta.url), "utf8");
 const socialJs = readFileSync(new URL("../../src/features/social/resident.js", import.meta.url), "utf8");
 
