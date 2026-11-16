@@ -431,7 +431,7 @@ if ((portalNow === "staff" || portalNow === "resident" || portalNow === "admin")
                   ["clipboard", "Ticket box", `/resident/tickets.html${q}`],
                 ]; // (a person opens the avatar for their own settings first: Staff's menu has "View profile" too)
         const extras = await import("./portal-frame-extras.js");
-        extras.addProfileMenu({ me, initials, portal, account, hasStatus: portal === "staff" });
+        extras.addProfileMenu({ me, initials, portal, account, hasStatus: portal === "staff" || portal === "resident" });
         if (portal === "admin") extras.addBell({ me, portal }); // the captured Admin bell opened nothing and showed no count
       } catch {
         /* the header stays as captured */

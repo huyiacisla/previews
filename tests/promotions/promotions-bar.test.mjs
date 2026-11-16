@@ -41,8 +41,9 @@ test("the claims to decide in the chat panel scroll inside a box of their own he
   assert.ok(app.includes("decideList.tabIndex = 0;"), "the box can be scrolled with the keyboard");
 });
 
-test("the Resident header has no dropdown arrow beside the avatar: pressing the avatar is enough", () => {
+test("the Resident and Staff headers have no dropdown arrow beside the avatar, and the Resident menu has a Status like Staff's", () => {
   const frame = read("src/shared/js/portal-frame-extras.js");
-  assert.ok(frame.includes('if (portal === "resident") trigger.querySelector(":scope > svg.lucide-chevron-down")?.remove();'));
+  assert.ok(frame.includes('if (portal === "resident" || portal === "staff") trigger.querySelector(":scope > svg.lucide-chevron-down")?.remove();'));
+  assert.ok(read("src/shared/js/preview.js").includes('hasStatus: portal === "staff" || portal === "resident"'), "the green dot on the avatar has a Status in the menu to explain it");
   assert.ok(frame.includes('trigger.setAttribute("aria-haspopup", "dialog");'), "the button still opens the profile menu and keeps its accessible name");
 });

@@ -898,8 +898,8 @@ export function addProfileMenu({ me, initials, portal = "client", account = null
   trigger.setAttribute("data-frame-profile", "");
   // The Client's header shows the avatar alone: the dropdown arrow and the name and role the Staff header has are taken off, because the menu it opens
   // starts with them. The button keeps its accessible name ("Open profile menu for …") and still opens the menu.
-  // The Resident header has no dropdown arrow either: pressing the avatar is enough, the arrow was one icon too many.
-  if (portal === "resident") trigger.querySelector(":scope > svg.lucide-chevron-down")?.remove();
+  // The Resident and Staff headers have no dropdown arrow either: pressing the avatar is enough, the arrow was one icon too many.
+  if (portal === "resident" || portal === "staff") trigger.querySelector(":scope > svg.lucide-chevron-down")?.remove();
   if (portal === "client") {
     trigger.querySelector(":scope > svg.lucide-chevron-down")?.remove();
     trigger.querySelector(":scope > span:not(.relative)")?.remove();
