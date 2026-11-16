@@ -780,6 +780,29 @@ document.addEventListener("click", (e) => {
   if (!b) return;
   openInfo(b.dataset.info === "rewards" && rwHistory ? "history" : b.dataset.info);
 });
+// Focus stays inside an open box. This page lives in a frame, so without this Tab leaves the box for the portal's header behind it (and Escape then no longer closes it).
+document.addEventListener("keydown", (e) => {
+  if (e.key !== "Tab") return;
+  const open = [...document.querySelectorAll("dialog[open]")];
+  if (!open.length) return;
+  const inside = document.activeElement && document.activeElement.closest ? document.activeElement.closest("dialog[open]") : null;
+  const box = inside || open[open.length - 1];
+  const items = [...box.querySelectorAll('a[href], button, input, select, textarea, [tabindex]:not([tabindex="-1"])')].filter((el) => !el.disabled && el.getClientRects().length > 0);
+  if (!items.length) {
+    e.preventDefault();
+    return;
+  }
+  const first = items[0];
+  const last = items[items.length - 1];
+  const at = document.activeElement;
+  if (e.shiftKey && (at === first || at === box || !inside)) {
+    e.preventDefault();
+    last.focus();
+  } else if (!e.shiftKey && (at === last || !inside)) {
+    e.preventDefault();
+    first.focus();
+  }
+});
 infoDlg.addEventListener("click", (e) => {
   if (e.target === infoDlg || e.target.closest("[data-close]")) infoDlg.close();
 });

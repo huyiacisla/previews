@@ -242,3 +242,12 @@ test("a deal that ends today is live until the end of today in Staff too, and th
   assert.ok(!/\/\{\{s\*codes\*\}\}\//.test(staff), "the coupon check keeps its backslashes: {{ code }} with spaces counts too");
   assert.ok(staff.includes("\\{\\{\\s*code\\s*\\}\\}"));
 });
+
+test("keyboard: focus stays inside an open box, and a card title is a big enough target", () => {
+  const js = readFileSync(new URL("../../src/features/promotions/resident.js", import.meta.url), "utf8");
+  assert.ok(js.includes('if (e.key !== "Tab") return;') && js.includes('document.querySelectorAll("dialog[open]")'), "Tab and Shift+Tab wrap inside the open box instead of leaving the frame for the portal header");
+  assert.ok(js.includes("last.focus()") && js.includes("first.focus()"));
+  const html = readFileSync(new URL("../../src/partials/promotions-app.html", import.meta.url), "utf8");
+  assert.ok(html.includes('class="min-h-6 text-left wrap-anywhere outline-none'), "the title that opens the details is at least 24px high");
+  for (const id of ["dlg-redeem", "dlg-rewards", "dlg-saved", "dlg-info", "dlg"]) assert.ok(html.includes('<dialog id="' + id + '" aria-labelledby='), id + " is named");
+});

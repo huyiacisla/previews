@@ -158,7 +158,7 @@ Người dùng: khối "Offer ends in" / "Use this code at checkout" / `MALLA10`
 - [x] **Phần 3: Tạo và sửa deal.** Form New promotion (ảnh bìa, logo đối tác, mã tĩnh/duy nhất/QR/link, giới hạn tổng/mỗi người/mỗi unit, hẹn lịch, nháp); Edit details (đổi tiêu đề, giá, mã, danh mục) hiện đúng ở Resident.
 - [x] **Phần 4: Claim.** Alex và Jamie cùng unit, giới hạn theo unit/theo người, hết suất, đã claim, Cancel, claim lại, History; Staff xác nhận/đổi/từ chối ở Claims và Resident thấy đúng trạng thái và giờ.
 - [x] **Phần 5: Vòng đời.** Đóng, gia hạn, tạm tắt/Off live, hẹn lịch, xoá, xuất CSV; ngày thật 16/11/2026, đồng hồ, "Expired on" đúng; sample deal và deal do Staff tạo.
-- [ ] **Phần 6: Truy cập và dọn.** Bàn phím, focus, (i), Redeem; vùng bấm; không có hai điều khiển cho một việc; dọn dữ liệu test; ghi tổng kết, hỏi người dùng về push.
+- [x] **Phần 6: Truy cập và dọn.** Bàn phím, focus, (i), Redeem; vùng bấm; không có hai điều khiển cho một việc; dọn dữ liệu test; ghi tổng kết, hỏi người dùng về push.
 
 ### Saved: một màn hình riêng, sao tô vàng
 
@@ -271,3 +271,30 @@ Chưa sửa: "Scheduled" chỉ đặt ngày bắt đầu là ngày mai, Staff kh
 Dọn dữ liệu: xoá hai deal QA5, trạng thái và ngày kết thúc của "Green Bowl" (`eso-pm-status`, `eso-pm-ends`), khoá `qa-*`.
 
 Test: `promotions-history.test.mjs` (hết hạn cuối ngày, hộp Manage vẽ lại, biểu thức chính quy).
+
+## Phần 6 (xong): Truy cập và dọn
+
+Cách làm (Resident ở 830, bàn phím thật qua công cụ nhấn phím, đọc phần tử đang giữ focus sau mỗi phím): Redeem, My rewards, History, hộp (i), Saved, chi tiết deal: focus vào đâu khi mở, Tab, Shift+Tab, Escape trả focus về đâu. Kiểm tra tự động: tên của mọi nút và ô, kích cỡ vùng bấm, id trùng, `aria-controls` và `aria-labelledby` trỏ đúng, tương phản trong các hộp thoại.
+
+Chạy đúng: mở Redeem thì focus vào ô nhập; My rewards, Saved thì vào tiêu đề; chi tiết deal vào tiêu đề; Escape đóng đúng một lớp (hộp (i) đóng thì về nút (i) trong My rewards, rồi Escape nữa về nút My rewards) và trả focus đúng nút đã mở (Redeem, My rewards, Saved, nút mở chi tiết trên thẻ). Mọi nút có tên; không id trùng; không tham chiếu aria hỏng; `lang="en"`, một `h1`; 0 chữ thiếu tương phản trong Redeem, My rewards, History, (i), Saved, chi tiết deal.
+
+Lỗi tìm thấy và đã sửa:
+1. **Tab đẩy focus ra khỏi hộp thoại.** Trang này nằm trong khung (iframe), nên khi hộp mở, Tab sau nút cuối cùng nhảy ra thanh trên cùng của portal phía sau hộp, và Escape lúc đó không còn đóng được hộp. Giờ Tab và Shift+Tab xoay vòng bên trong hộp đang mở (ô nhập, Check code, (i), Close).
+2. **Tiêu đề thẻ (nút mở chi tiết) cao 22px**, dưới mức 24px của WCAG 2.5.8. Thêm `min-h-6`. (Trên thiết bị cảm ứng portal đã ép 44px.)
+
+Lỗi Phần 4 chưa tái hiện: lần đầu hai trong bốn claim liền nhau không ghi nhận (không có dòng "Could not claim", nên `claim()` không được gọi), sau đó 15 lần thử với cùng thao tác (mở deal khoá, đóng, mở deal khác, bấm Claim sau 50 đến 400 ms) đều ghi nhận. Chưa có giả thuyết đứng vững. Ghi lại để người dùng báo nếu gặp, kèm deal và thời điểm.
+
+Dọn dữ liệu cuối: `eso-pmc-saved` rỗng, `eso-pm-status`, `eso-pm-ends`, `eso-pmedits`, `eso-covers-v1` rỗng, brand mặc định, template Deals, bản ghi Resident chỉ còn claim Mallard cũ của Alex (như người dùng đã thấy), mục Claims và trạng thái claim của các deal QA đã xoá, nhật ký hiển thị `eso-pm-vislog` xoá, bộ lọc Staff về tab "All", không còn khoá `qa-*`.
+
+## Tổng kết 6 phần
+
+| Phần | Lỗi thật tìm thấy và sửa |
+|---|---|
+| 1 Template | chữ vô hình trên template nền trong suốt (Modern); màu trạng thái theo nền template; mã giảm giá không thuộc deal nào |
+| 2 Brand kit | màu phụ không tác dụng; kiểu ảnh bị bỏ qua; nút chữ/viền không đọc được trên một số màu |
+| 3 Tạo và sửa deal | ảnh bìa Staff tải lên không hiện trên thẻ Staff; thêm cảnh báo mã Coupon không khớp deal |
+| 4 Claim | claim đã huỷ biến thành "Not approved"; deal cho nhiều claim hiện như một |
+| 5 Vòng đời | Staff coi deal kết thúc hôm nay là đã hết từ 0 giờ; hộp Manage không theo trạng thái; biểu thức chính quy mất `\` |
+| 6 Truy cập | focus thoát khỏi hộp thoại; tiêu đề thẻ nhỏ hơn 24px |
+
+Cả sáu phần: `npm test` 495 test, 494 qua, 1 lỗi cũ của messaging-ui (không thuộc Promotions). Còn mở: lỗi Phần 4 chưa tái hiện; "Scheduled" trong Manage chỉ đặt ngày bắt đầu là ngày mai; Edit details "Price / value" chỉ đổi chữ hiển thị; canvas trình dựng Staff vẫn vẽ đếm ngược và mã giảm giá riêng trong khi Resident gộp vào hero; chữ trắng trên indigo đạt 4.47:1.
