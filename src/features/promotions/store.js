@@ -313,7 +313,7 @@ export function categoriesIn(storage, today = todayISO(), viewer, samples = true
 
 export function residentState(storage, residentId) {
   const s = read(storage, KEY.mine(residentId), {}) || {};
-  return { saved: new Set(Array.isArray(s.saved) ? s.saved : []), claims: s.claims && typeof s.claims === "object" ? s.claims : {} };
+  return { saved: new Set(Array.isArray(s.saved) ? s.saved : []), claims: s.claims && typeof s.claims === "object" ? s.claims : {}, log: Array.isArray(s.log) ? s.log : [] };
 }
 
 /**
@@ -333,6 +333,14 @@ export function claimStatus(storage, residentId, promoId) {
   return { st: "pending", reason: "", locked: false };
 }
 
+// The resident's own record of what they did, oldest first, kept apart from the claims so that nothing is lost when a claim is made again:
+// { t: ISO time, p: promotion id, k: "claimed" | "failed" | "cancelled", n: which claim, note }. The newest 200 are kept.
+function note(st, ev) {
+  const last = st.log[st.log.length - 1];
+  if (last && ev.k === "failed" && last.k === "failed" && last.p === ev.p && last.note === ev.note && Date.parse(ev.t) - Date.parse(last.t) < 60000) return;
+  st.log = [...st.log, ev].slice(-200);
+}
+
 /** The resident cancels a claim that is still waiting. It gives its place back (and the unit's). Staff's inbox shows it as cancelled by the resident. */
 export function cancelClaim(storage, residentId, promoId, now = new Date()) {
   const st = residentState(storage, residentId);
@@ -342,6 +350,7 @@ export function cancelClaim(storage, residentId, promoId, now = new Date()) {
   if (status && status.st !== "pending") return { ok: false, reason: "Only a claim that is waiting can be cancelled." };
   c.cancelled = [...(Array.isArray(c.cancelled) ? c.cancelled : []), c.count];
   c.cancelledAt = { ...(c.cancelledAt || {}), [c.count]: now.toISOString() };
+  note(st, { t: now.toISOString(), p: String(promoId), k: "cancelled", n: c.count, note: "You cancelled this claim" });
   return put(storage, residentId, st) ? { ok: true } : { ok: false, reason: "Could not save. Try again." };
 }
 
@@ -363,6 +372,42 @@ export function claimTimeline(storage, residentId, promoId) {
   return out;
 }
 
+/**
+ * Everything this resident did about promotions and what came of it, newest first: [{ at, promoId, title, label, note, tone }].
+ * Claims that went through, claims that did not (with the reason), cancellations, and what Staff decided (Verified, Redeemed, Rejected) with the time they decided.
+ * Claims made before the record existed are rebuilt from the claim itself. titleOf(promoId) names a promotion.
+ */
+export function historyFor(storage, residentId, titleOf = () => "") {
+  const st = residentState(storage, residentId);
+  const states = read(storage, KEY.claimState, {}) || {};
+  const ms = (v) => (Number(v) > 0 ? new Date(Number(v)).toISOString() : "");
+  const ev = [];
+  const has = new Set(st.log.filter((e) => e && e.k === "claimed").map((e) => `${e.p}|${e.n}`));
+  const rows = st.log.filter((e) => e && typeof e.t === "string" && typeof e.p === "string");
+  // claims from before the record: the newest claim of each promotion
+  for (const [p, c] of Object.entries(st.claims)) {
+    if (!c || !c.count || has.has(`${p}|${c.count}`)) continue;
+    if (c.at) rows.push({ t: c.at, p, k: "claimed", n: c.count, note: c.code ? `Code issued: ${c.code}` : "" });
+    if (Array.isArray(c.cancelled) && c.cancelled.includes(c.count)) rows.push({ t: (c.cancelledAt && c.cancelledAt[c.count]) || "", p, k: "cancelled", n: c.count, note: "You cancelled this claim" });
+  }
+  // Staff's inbox records a cancellation by the resident as a rejection: it is the same event, so it is shown once, as Cancelled
+  const mine = new Set(rows.filter((e) => e.k === "cancelled").map((e) => `${e.p}|${e.n}`));
+  const LABEL = { claimed: ["Claimed", "wait"], failed: ["Could not claim", "no"], cancelled: ["Cancelled", "no"] };
+  for (const e of rows) {
+    const [label, tone] = LABEL[e.k] || [];
+    if (!label) continue;
+    const title = titleOf(e.p) || "Promotion";
+    ev.push({ at: e.t, promoId: e.p, title, label, note: String(e.note || "").slice(0, 200), tone });
+    if (e.k !== "claimed") continue;
+    const s = states[`${residentId}|${e.p}|${e.n}`];
+    if (!s) continue;
+    if (s.st === "verified" || s.st === "redeemed") ev.push({ at: ms(s.vt) || (s.st === "verified" ? ms(s.at) : ""), promoId: e.p, title, label: "Verified", note: "The property team confirmed your claim", tone: "ok" });
+    if (s.st === "redeemed") ev.push({ at: ms(s.rt) || ms(s.at), promoId: e.p, title, label: "Redeemed", note: "The code was used", tone: "ok" });
+    if (s.st === "rejected" && !mine.has(`${e.p}|${e.n}`)) ev.push({ at: ms(s.jt) || ms(s.at), promoId: e.p, title, label: "Rejected", note: String(s.reason || "No reason given").slice(0, 200), tone: "no" });
+  }
+  return ev.sort((a, b) => (Date.parse(b.at) || 0) - (Date.parse(a.at) || 0));
+}
+
 /** When Staff decided about this resident's newest claim of the promotion (milliseconds), or 0 while it waits. */
 export function claimDecidedAt(storage, residentId, promoId) {
   const count = Number(residentState(storage, residentId).claims[promoId]?.count) || 0;
@@ -371,7 +416,7 @@ export function claimDecidedAt(storage, residentId, promoId) {
 }
 
 function put(storage, residentId, st) {
-  return write(storage, KEY.mine(residentId), { saved: [...st.saved], claims: st.claims });
+  return write(storage, KEY.mine(residentId), { saved: [...st.saved], claims: st.claims, log: st.log });
 }
 
 /** Save or unsave. Returns the new saved state, or null when the Staff turned saving off. */
@@ -403,13 +448,19 @@ function uniqueCode(prefix, residentId, id) {
  * link ones hand back the partner address. Returns { ok, code?, link?, reason? }. Claiming again returns the same result.
  */
 export function claim(storage, residentId, promo, now = new Date()) {
-  if (promo.full) return { ok: false, reason: "This promotion has been fully claimed." };
   const st = residentState(storage, residentId);
+  // a claim that did not go through is part of the history too, with the reason
+  const fail = (reason, extra) => {
+    note(st, { t: now.toISOString(), p: String(promo.id), k: "failed", note: reason });
+    put(storage, residentId, st);
+    return { ok: false, reason, ...extra };
+  };
+  if (promo.full) return fail("This promotion has been fully claimed.");
   const prev = st.claims[promo.id];
   const code = promo.method === "unique" ? uniqueCode(promo.prefix, residentId, promo.id) : promo.code;
   if (prev) {
     const own = activeClaims(storage, residentId, promo.id);
-    if (own.locked) return { ok: false, reason: "The property team closed this claim. Contact them if you think this is a mistake." };
+    if (own.locked) return fail("The property team closed this claim. Contact them if you think this is a mistake.");
     // a claim Staff rejected does not count against the limit: the resident may claim again
     if (own.active >= promo.perResident && promo.scope !== "unit") return { ok: true, again: true, code: prev.code || code, link: promo.link };
   }
@@ -422,13 +473,14 @@ export function claim(storage, residentId, promo, now = new Date()) {
       if (own.active > 0) return { ok: true, again: true, code: (prev && prev.code) || code, link: promo.link };
       const by = mates[0];
       const when = by && by.at ? new Date(by.at).toLocaleDateString("en-US", { month: "short", day: "numeric" }) : "";
-      return { ok: false, reason: `Your unit already claimed this${by ? `: ${by.name}${when ? ` claimed it on ${when}` : " claimed it"}` : ""}.`, unit: by ? { by: by.name, at: by.at, code: by.code } : undefined };
+      return fail(`Your unit already claimed this${by ? `: ${by.name}${when ? ` claimed it on ${when}` : " claimed it"}` : ""}.`, { unit: by ? { by: by.name, at: by.at, code: by.code } : undefined });
     }
   }
   // `who` is what Staff's Claims inbox shows for this claim (a real app sends the resident's profile with the claim).
   const person = PEOPLE.find((p) => p.id === residentId);
   const who = person ? { name: person.name, unit: (person.unit && person.unit.number) || "" } : undefined;
   st.claims[promo.id] = { count: (prev ? prev.count : 0) + 1, code, at: now.toISOString(), ...(who ? { who } : {}) };
+  note(st, { t: now.toISOString(), p: String(promo.id), k: "claimed", n: st.claims[promo.id].count, note: code ? `Code issued: ${code}` : "" });
   if (!put(storage, residentId, st)) return { ok: false, reason: "Could not save your claim. Try again." };
   return { ok: true, code, link: promo.link };
 }

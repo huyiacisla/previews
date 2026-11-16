@@ -54,3 +54,32 @@ Test: `promotions-resident-view.test.mjs` có thêm 2 test (lịch sử, hủy).
 Lỗi tôi gây ra và đã sửa (để khỏi lặp lại):
 - Một lần xóa mã bằng cách cắt từ mốc này đến mốc kia: đoạn đó chứa luôn mã Redeem và My rewards nên mất cả hai. Phải cắt trong phạm vi đúng, rồi chạy trang thật ngay.
 - Thuộc tính `data-count` bị dùng cho hai việc (số đếm của chip lọc và đồng hồ đếm ngược) nên đồng hồ đọc nhầm chip. Đồng hồ đổi thành `data-countdown`.
+
+## Đợt 4 (xong): trang Staff thiết kế đến tay Resident, phủ kín cả trang
+
+Staff công bố một ảnh chụp trang (`eso-pm-page`) và Resident vẽ nó (`page.js`, đủ 16 loại block). Người dùng chấm điểm theo hai tiêu chí, ghi lại để khỏi sai nữa:
+
+1. **Theme phải bao quát hết, không chừa nửa nửa.** Trước đây chỉ vùng các block đổi màu, còn thanh trên, ô tìm kiếm, chip lọc, thẻ deal, hộp My rewards/Redeem vẫn là diện mạo cũ. Giờ `themeVars()` đổi chính các token của portal (nền, chữ, thẻ, viền, màu nhấn, góc bo, font) bằng một `<style id="pm-theme">` có `!important`, nên cả trang và các hộp thoại cùng một diện mạo. Phải dùng stylesheet `!important`: shell của portal chép `--primary` vào khung và class `dark` đổi theo, inline style bị xoá/ghi đè. Khi theme có, nút sáng/tối của trang bị ẩn (theme tự quyết).
+2. **Dù theme nào, Resident phải tìm thấy Redeem, My rewards, Saved, Search.** Trước đây chúng nằm dưới hero/countdown/coupon nên phải cuộn mới thấy. Giờ chúng ở một thanh `#toolbar` dính trên cùng (sticky) và nằm trước trang thiết kế. Thẻ trong lưới và trang thiết kế có `isolate` để `z-raised` của đồng hồ trên thẻ không đè thanh.
+
+Thêm theo yêu cầu:
+- **History trong My rewards** (nút History cạnh dấu X, bấm lại là My rewards): mọi việc Resident đã làm, mới nhất trước, có ngày, giờ và năm: Claimed, Could not claim (kèm lý do), Cancelled, và quyết định của Staff (Verified, Redeemed, Rejected) kèm giờ Staff. Lưu trong record của Resident (`log`, 200 mục mới nhất) nên claim lần hai không làm mất lần một. Claim cũ chưa có `log` thì dựng lại từ claim. Staff ghi "Cancelled by resident" như một lần từ chối: chỉ hiện một lần, là Cancelled.
+- Thẻ deal của claim đã huỷ ghi **Cancelled** (trước ghi "Not approved").
+- **Chữ giải thích dài thành (i)**: My rewards, History, Redeem có dấu (i) mở hộp ngắn (`#dlg-info`); trang chỉ giữ một dòng ngắn hoặc không giữ gì.
+- Đồng hồ đếm ngược của block Countdown đếm tới một thời điểm cố định (`eso-pm-page-clock`), Staff sửa trang không làm nó chạy lại.
+- Đóng chi tiết từ My rewards/Redeem quay về đúng hộp đó (`ui.back`).
+
+Cách test lần này (theo lời người dùng: test mà không kéo xuống xem thì không phải test thật): cuộn hết trang, nhìn ảnh chụp thật, ở 375/830/1440, sáng và tối, ngày thật 16/11/2026. Test DOM một mình không bắt được: chữ tối trên nền tối, lưới 1 cột, trang quá dài, đồng hồ chạy lại, hàng nút bị gãy dòng, thanh công cụ bị thẻ đè.
+
+Test: `promotions-history.test.mjs` (7 test: lịch sử, lý do thất bại, quyết định Staff, claim cũ, (i), thanh dính, theme), `promotions-page.test.mjs`. `npm test`: 483 test, 482 qua, 1 lỗi cũ (menu cards của messaging-ui, không thuộc Promotions).
+
+Bài học thêm:
+- Một tính năng "áp dụng được" chỉ khi không còn dấu vết cũ: kiểm tra từng chỗ Resident phải tìm thấy (Redeem, My rewards, Saved, Search), không chỉ vùng mới vẽ.
+- Thanh công cụ dính: kiểm tra thứ tự chồng lớp với `z-raised` (60) của thẻ; không dùng `z-[N]` tuỳ ý.
+- Regex trong test viết bằng sed làm mất `/` đóng; sửa test bằng Edit, không bằng sed.
+
+## Việc kế
+
+- Test hình ảnh tiếp ở 1440 và 375 thật (khung trình duyệt đổi chiều rộng thì kích cỡ giả lập bị xoá): trang đã có theme tối (nền #0b1020) trên Resident, hộp My rewards và History ở chế độ tối.
+- Test lặp: tạo deal bằng form New promotion, claim bằng Alex (res-1) và Jamie (`?as=res-4`) cùng unit để xem History có dòng "Could not claim"; đóng, gia hạn, xuất CSV.
+- Hỏi người dùng: có push các commit trong máy lên `origin/main` chưa.

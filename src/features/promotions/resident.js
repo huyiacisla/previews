@@ -3,7 +3,8 @@
 // toggles hidden / data-* / aria-*. The data comes from promotions/store.js (what Staff published).
 
 import { initials, PORTALS, pickPersona } from "../messaging/personas.js";
-import { activeClaims, allRecords, cancelClaim, categoriesIn, claim, claimStatus, claimDecidedAt, claimTimeline, householdClaims, HOUSEHOLD, KEY, listPromotions, lookupCode, readConfig, residentState, toggleSaved, unitMates } from "./store.js";
+import { PAGE_KEY, readPage, renderPage, themeVars } from "./page.js";
+import { activeClaims, allRecords, cancelClaim, categoriesIn, claim, claimStatus, claimDecidedAt, claimTimeline, historyFor, householdClaims, HOUSEHOLD, KEY, listPromotions, lookupCode, readConfig, residentState, toggleSaved, unitMates } from "./store.js";
 
 const $ = (sel, root = document) => root.querySelector(sel);
 const tpl = (id) => document.getElementById(id).content.firstElementChild.cloneNode(true);
@@ -135,6 +136,77 @@ function paintSavedButton(n, on) {
   c.textContent = String(n);
 }
 
+// The page Staff designed (Templates & brand), drawn above the list. It is drawn again only when what it shows changed.
+let pageKey = "";
+// The template covers the whole app (see themeVars). Its tokens go in a stylesheet marked !important, so neither the dark/light class nor the portal's own accent
+// (which the shell copies into this frame) can bring back the old look; with no template the sheet is removed and the portal's own look returns.
+function wearTheme(snap) {
+  let el = document.getElementById("pm-theme");
+  const t = themeVars(snap);
+  $("[data-theme-toggle]")?.toggleAttribute("hidden", !!t);
+  if (!t) {
+    el?.remove();
+    return;
+  }
+  if (!el) {
+    el = document.createElement("style");
+    el.id = "pm-theme";
+    document.head.append(el);
+  }
+  const decl = Object.entries(t.vars).map(([k, v]) => k + ":" + v + " !important").join(";");
+  el.textContent = ":root,:root.dark,:root.light{" + decl + ";color-scheme:" + t.scheme + (t.font ? ";font-family:" + t.font : "") + "}";
+}
+function scrollToCatalog() {
+  $("#filters").scrollIntoView({ block: "start", behavior: "smooth" });
+}
+function pickCategory(key) {
+  ui.category = key || "all";
+  ui.savedOnly = false;
+  render();
+  scrollToCatalog();
+}
+function paintPage(all, mine, cfg, hot, cats) {
+  const host = $("#page-top");
+  const snap = cfg.show ? readPage(storage) : null;
+  const key = snap ? `${snap.at}|${all.map((p) => `${p.id}:${p.claimed}`).join(",")}|${[...mine.saved].join(",")}|${ui.category}` : "";
+  if (key === pageKey) return;
+  pageKey = key;
+  wearTheme(snap);
+  clear(host);
+  const el = snap
+    ? renderPage(snap, {
+        promos: all,
+        cats,
+        makeCard: (p) => card(p, mine, cfg, hot),
+        toCatalog: scrollToCatalog,
+        pickCategory,
+        goLink: (label) => {
+          const l = label.toLowerCase();
+          const c = cats.find((x) => x.name.toLowerCase().includes(l) || l.includes(x.name.toLowerCase()));
+          if (/^(deals?|all|home|shop|store)/.test(l)) pickCategory("all");
+          else if (c) pickCategory(c.key);
+          else scrollToCatalog();
+        },
+        redeem: (code) => {
+          clear($("#rd-out"));
+          $("#rd-input").value = code;
+          rdDlg.showModal();
+          checkCode(code);
+        },
+        copy: async (code) => {
+          try {
+            await navigator.clipboard.writeText(code);
+            toast("Code copied");
+          } catch {
+            toast("Could not copy. Select the code and copy it.");
+          }
+        },
+      })
+    : null;
+  host.hidden = !el;
+  if (el) host.appendChild(el);
+}
+
 function paintRewardsBadge() {
   const n = rewardRows().filter((r) => ["pending", "verified", "redeemed"].includes(r.key)).length;
   const c = $("#rewards-count");
@@ -187,6 +259,7 @@ function render() {
   if (SORTS[ui.sort]) list = [...list].sort(SORTS[ui.sort]);
   paintFilterPanel(counts);
   paintRewardsBadge();
+  paintPage(all, mine, cfg, hot, cats);
   paintSavedButton(all.filter((p) => mine.saved.has(p.id)).length, cfg.save);
 
   // filter row: All, one per category, Saved
@@ -335,7 +408,9 @@ function card(p, mine, cfg, hot = new Set()) {
   if (mateOnCard) badges.appendChild(badge("Claimed by your unit", "success"));
   if (mine.claims[p.id]) {
     const own = activeClaims(storage, me.id, p.id);
-    badges.appendChild(own.active > 0 ? badge("Claimed", "success") : badge(own.locked ? "Closed" : "Not approved", "warning"));
+    const mineC = mine.claims[p.id];
+    const byMe = Array.isArray(mineC.cancelled) && mineC.cancelled.includes(mineC.count);
+    badges.appendChild(own.active > 0 ? badge("Claimed", "success") : badge(own.locked ? "Closed" : byMe ? "Cancelled" : "Not approved", "warning"));
   }
   $("[data-end]", li).textContent = expText(p);
   $("[data-foot-left]", li).textContent = p.claimed > 0 ? `${p.claimed} claimed` : "";
@@ -370,10 +445,12 @@ function find(id) {
   return listPromotions(storage, { viewer }).find((p) => p.id === id);
 }
 
-function openDialog(id, from) {
+// `back` is the box the details were opened from ("rewards" or "redeem"): closing the details returns to it instead of leaving the page.
+function openDialog(id, from, back) {
   const p = find(id);
   if (!p) return;
   opener = from || document.activeElement; // focus returns here when the details close
+  ui.back = back || null;
   ui.openId = id;
   ui.lastId = id;
   $("#dlg-error").textContent = "";
@@ -430,7 +507,7 @@ function refreshDialog() {
       pending: "Waiting for the property team to confirm.",
       verified: "Confirmed by the property team.",
       redeemed: "Used. Thank you.",
-      rejected: `Not approved by the property team.${cs && cs.reason ? ` ${cs.reason}` : ""}`,
+      rejected: cs && /cancelled/i.test(cs.reason || "") ? "You cancelled this claim." : `Not approved by the property team.${cs && cs.reason ? ` ${cs.reason}` : ""}`,
     };
     const line = $("#dlg-claim-status");
     line.textContent = mate ? `One claim per unit: ${mate.name} already claimed this${mate.at ? ` on ${new Date(mate.at).toLocaleDateString("en-US", { month: "short", day: "numeric" })}` : ""}.` : cs ? say[cs.st] : "";
@@ -482,7 +559,15 @@ dlg.addEventListener("click", (e) => {
 }); // the backdrop
 dlg.addEventListener("close", () => {
   ui.openId = null;
-  returnFocus();
+  const back = ui.back;
+  ui.back = null;
+  if (back === "rewards") {
+    paintRewards();
+    rwDlg.showModal();
+    $("#rw-title").focus({ preventScroll: true });
+  } else if (back === "redeem") {
+    rdDlg.showModal();
+  } else returnFocus();
 });
 
 $("#dlg-claim-btn").addEventListener("click", () => {
@@ -517,7 +602,7 @@ $("#btn-saved").addEventListener("click", () => {
   ui.savedOnly = !ui.savedOnly;
   ui.category = "all";
   render();
-  if (ui.savedOnly) $("#count").scrollIntoView({ block: "start", behavior: "smooth" });
+  if (ui.savedOnly) $("#filters").scrollIntoView({ block: "start", behavior: "smooth" });
 });
 
 // ---- Redeem a code and My rewards ----
@@ -541,7 +626,7 @@ function redeemOut(title, text, openId) {
   open.hidden = !openId;
   open.addEventListener("click", () => {
     rdDlg.close();
-    openDialog(openId);
+    openDialog(openId, null, "redeem");
   });
   out.appendChild(el);
 }
@@ -595,6 +680,38 @@ const TABS = [
   ["cancelled", "Cancelled"],
 ];
 let rwTab = "all";
+let rwHistory = false;
+
+// The long explanations live behind an (i), in a short window (the page keeps one short line or none).
+const INFO = {
+  rewards: ["My rewards", ["The offers you claimed.", "Show the code to the partner.", "The property team marks it used."]],
+  history: ["History", ["Everything you did here, newest first, with date and time.", "It includes claims that did not go through and claims you cancelled."]],
+  redeem: ["Redeem a code", ["Use a code from a partner, a flyer or an email.", "It is checked here, then you can claim the offer."]],
+};
+const infoDlg = $("#dlg-info");
+function openInfo(key) {
+  const [title, lines] = INFO[key] || INFO.rewards;
+  $("#info-title").textContent = title;
+  const ul = $("#info-lines");
+  clear(ul);
+  for (const l of lines) {
+    const li = document.createElement("li");
+    li.textContent = l;
+    ul.appendChild(li);
+  }
+  infoDlg.showModal();
+  $("#info-title").focus({ preventScroll: true });
+}
+document.addEventListener("click", (e) => {
+  const b = e.target.closest && e.target.closest("[data-info]");
+  if (!b) return;
+  openInfo(b.dataset.info === "rewards" && rwHistory ? "history" : b.dataset.info);
+});
+infoDlg.addEventListener("click", (e) => {
+  if (e.target === infoDlg || e.target.closest("[data-close]")) infoDlg.close();
+});
+// date and time with the year: the history is a record
+const whenFull = (iso) => (iso && !Number.isNaN(Date.parse(iso)) ? new Date(iso).toLocaleString("en-US", { month: "short", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit" }) : "Time not recorded");
 const when = (iso) => (iso ? new Date(iso).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }) : "");
 const ago = (iso) => {
   const m = Math.max(0, (Date.now() - new Date(iso).getTime()) / 60000);
@@ -615,7 +732,41 @@ function rewardRows() {
     .sort((x, y) => String(y.at || "").localeCompare(String(x.at || "")));
 }
 
+function paintHistory() {
+  const events = historyFor(storage, me.id, (id) => {
+    const r = allRecords(storage).find((x) => String(x.id) === String(id));
+    return r ? r.x.title : "";
+  });
+  const list = $("#rw-history-list");
+  clear(list);
+  $("#rw-history-empty").hidden = events.length > 0;
+  for (const e of events) {
+    const li = tpl("t-hist");
+    $("[data-title]", li).textContent = e.title;
+    const lab = $("[data-label]", li);
+    lab.textContent = e.label;
+    lab.dataset.tone = e.tone;
+    const t = $("[data-when]", li);
+    t.textContent = whenFull(e.at);
+    if (e.at) t.dateTime = e.at;
+    $("[data-text]", li).textContent = e.note;
+    list.appendChild(li);
+  }
+}
+
 function paintRewards() {
+  $("#rw-history-btn").setAttribute("aria-pressed", String(rwHistory));
+  $("#rw-history-label").textContent = rwHistory ? "My rewards" : "History";
+  $("#rw-title").textContent = rwHistory ? "History" : "My rewards";
+  $("#rw-history").hidden = !rwHistory;
+  $("#rw-tabs").hidden = rwHistory;
+  $("#rw-list").hidden = rwHistory;
+  if (rwHistory) {
+    $("#rw-empty").hidden = true;
+    $("#rw-unit").hidden = true;
+    paintHistory();
+    return;
+  }
   const rows = rewardRows();
   const count = (k) => (k === "all" ? rows.length : rows.filter((r) => tabOf(r.key) === k).length);
   const tabs = $("#rw-tabs");
@@ -677,7 +828,7 @@ function paintRewards() {
     view.hidden = !rec || !find(r.id);
     view.addEventListener("click", () => {
       rwDlg.close();
-      openDialog(r.id);
+      openDialog(r.id, null, "rewards");
     });
     list.appendChild(li);
   }
@@ -710,7 +861,7 @@ function paintRewards() {
     view.hidden = !find(u.id);
     view.addEventListener("click", () => {
       rwDlg.close();
-      openDialog(u.id);
+      openDialog(u.id, null, "rewards");
     });
     ul.appendChild(li);
   }
@@ -719,8 +870,14 @@ function paintRewards() {
   c.hidden = n === 0;
   c.textContent = String(n);
 }
+$("#rw-history-btn").addEventListener("click", () => {
+  rwHistory = !rwHistory;
+  paintRewards();
+  $("#rw-title").focus({ preventScroll: true });
+});
 $("#btn-rewards").addEventListener("click", () => {
   rwTab = "all";
+  rwHistory = false;
   paintRewards();
   rwDlg.showModal();
   $("#rw-title").focus({ preventScroll: true });
@@ -758,6 +915,7 @@ addEventListener("storage", (e) => {
   if (
     !e.key ||
     e.key === KEY.published ||
+    e.key === PAGE_KEY ||
     e.key === KEY.cats ||
     e.key === KEY.settings ||
     e.key === KEY.mine(me.id) ||

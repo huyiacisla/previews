@@ -8352,4 +8352,37 @@ lastId=b.dataset.pmvis;if(window._cov&&_cov.detail)_cov.detail(b.dataset.pmvis)}
 window.addEventListener('keydown',function(e){var t=e.target.closest&&e.target.closest('[data-pmvset]');if(!t||!/^Arrow(Left|Right|Up|Down)$/.test(e.key))return;
 var all=[].slice.call(t.parentNode.querySelectorAll('[data-pmvset]:not([disabled])')),i=all.indexOf(t),n=all[(i+(/Left|Up/.test(e.key)?all.length-1:1))%all.length];if(n){e.preventDefault();n.focus();n.click()}},true);
 })();</script>
+<script id="pm-page-js">(function(){
+/* Staff's promotion page, published for the Resident: a snapshot of the template in use (Templates & brand, and what Customize changed), with the brand kit applied.
+   Written to eso-pm-page each time the page builder (eso-pb) or the brand kit (eso-brand) is saved, and once when this page opens. The Resident app draws it above its list. */
+var K='eso-pm-page',timer=0;
+function build(){
+ var P=window._lwpb;if(!P||!P.ST||!P.allT||!P.getL)return null;
+ var ST=P.ST,BK=P.BK||{},key=ST.def,T=P.allT();
+ if(ST.off||!key||!T[key])return{v:1,off:true,at:0};
+ var L=P.getL('tpl:'+key);if(!L||!Array.isArray(L.blocks))return{v:1,off:true,at:0};
+ var th=L.theme||{},F=P.FONTS[BK.font||th.font]||P.FONTS.sans||['inherit','inherit'];
+ return{v:1,at:0,off:false,key:key,name:T[key].n,
+  brand:{logo:BK.logo||'',primary:BK.primary||'',secondary:BK.secondary||'',btn:BK.btn||th.btn||'pill',img:BK.img||'rounded'},
+  theme:{accent:BK.primary||th.accent,bg:th.bg,fg:th.fg,alt:th.alt,radius:th.radius,density:th.density,btn:BK.btn||th.btn,card:th.card,font:{h:F[0],b:F[1]}},
+  blocks:stamp(JSON.parse(JSON.stringify(L.blocks)))}}
+/* A "Countdown" block (Offer ends in N days) counts to one moment, fixed the first time it is published (eso-pm-page-clock), so Staff editing the page does not restart it. */
+function stamp(blocks){
+ var C={};try{C=JSON.parse(localStorage.getItem('eso-pm-page-clock')||'{}')||{}}catch(e){}var ch=false;
+ blocks.forEach(function(b){if(b.type!=='countdown')return;var d=Math.max(0,Math.min(365,+((b.props||{}).days)||0)),k=b.id+'|'+d;if(!C[k]){C[k]=Date.now()+d*864e5;ch=true}b.props=Object.assign({},b.props,{endsAt:C[k]})});
+ if(ch)try{localStorage.setItem('eso-pm-page-clock',JSON.stringify(C))}catch(e){}
+ return blocks}
+function publish(){
+ var s=build();if(!s)return false;
+ var old=null;try{old=JSON.parse(localStorage.getItem(K)||'null')}catch(e){}
+ if(old&&JSON.stringify(Object.assign({},old,{at:0}))===JSON.stringify(s))return true;
+ s.at=Date.now();
+ try{localStorage.setItem(K,JSON.stringify(s))}catch(e){return false}
+ return true}
+function later(){clearTimeout(timer);timer=setTimeout(publish,250)}
+var SI=Storage.prototype.setItem;
+Storage.prototype.setItem=function(k){var r=SI.apply(this,arguments);if(this===window.localStorage&&(k==='eso-pb'||k==='eso-brand'))later();return r};
+var tries=0;(function boot(){if(publish()||++tries>40)return;setTimeout(boot,250)})();
+window._pmPage={publish:publish,build:build};
+})();</script>
 </body></html>

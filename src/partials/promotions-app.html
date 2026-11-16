@@ -12,6 +12,7 @@
     <symbol id="i-tag" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.586 2.586A2 2 0 0 0 11.172 2H4a2 2 0 0 0-2 2v7.172a2 2 0 0 0 .586 1.414l8.704 8.704a2.426 2.426 0 0 0 3.42 0l6.58-6.58a2.426 2.426 0 0 0 0-3.42z"/><circle cx="7.5" cy="7.5" r=".5" fill="currentColor"/></symbol>
     <symbol id="i-external" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 7h10v10"/><path d="M7 17 17 7"/></symbol>
     <symbol id="i-filter" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 5h18"/><path d="M6 12h12"/><path d="M10 19h4"/></symbol>
+    <symbol id="i-info" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></symbol>
     <symbol id="i-clock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></symbol>
     <symbol id="i-more" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="5" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="12" cy="19" r="1"/></symbol>
     <symbol id="i-ticket" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z"/><path d="M13 5v2"/><path d="M13 11v2"/><path d="M13 17v2"/></symbol>
@@ -41,9 +42,11 @@
 
   <main id="main-content" tabindex="-1" class="min-h-0 flex-1 overflow-y-auto outline-none">
     <div class="mx-auto flex w-full max-w-6xl flex-col gap-step-lg px-step-lg py-step-lg lg:px-step-xl">
-      <div class="flex flex-col gap-step-md">
+      <!-- the page Staff designed in Templates & brand (drawn by page.js), when they published one -->
+      <!-- Redeem, My rewards, Saved and Search stay at the top and stay put whatever page Staff designed below them -->
+      <div id="toolbar" class="sticky top-0 z-10 -mt-step-lg flex flex-col gap-step-md bg-background pt-step-lg pb-step-sm">
         <div class="flex flex-wrap items-center gap-step-sm">
-          <button type="button" id="btn-redeem" class="group/button inline-flex h-8 shrink-0 touch-manipulation items-center justify-center gap-step-sm rounded-md border border-input bg-card px-step-md text-sm font-medium text-foreground transition outline-none select-none hover:bg-muted focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 active:translate-y-px pointer-coarse:h-11 [&_svg]:size-4"><svg aria-hidden="true"><use href="#i-ticket"/></svg>Redeem a code</button>
+          <button type="button" id="btn-redeem" class="group/button inline-flex h-8 shrink-0 touch-manipulation items-center justify-center gap-step-sm rounded-md border border-input bg-card px-step-md text-sm font-medium text-foreground transition outline-none select-none hover:bg-muted focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 active:translate-y-px pointer-coarse:h-11 [&_svg]:size-4"><svg aria-hidden="true"><use href="#i-ticket"/></svg>Redeem<span class="max-sm:sr-only"> a code</span></button>
           <button type="button" id="btn-rewards" class="group/button inline-flex h-8 shrink-0 touch-manipulation items-center justify-center gap-step-sm rounded-md border border-input bg-card px-step-md text-sm font-medium text-foreground transition outline-none select-none hover:bg-muted focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 active:translate-y-px pointer-coarse:h-11 [&_svg]:size-4"><svg aria-hidden="true"><use href="#i-check"/></svg>My rewards<span id="rewards-count" hidden class="inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] leading-none font-medium text-primary-foreground tabular-nums"></span></button>
           <button type="button" id="btn-saved" aria-pressed="false" aria-label="Saved promotions" class="group/button relative ml-auto inline-flex h-8 shrink-0 touch-manipulation items-center justify-center gap-step-sm rounded-md border border-input bg-card px-step-sm text-sm font-medium text-foreground transition outline-none select-none hover:bg-muted focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 active:translate-y-px aria-pressed:bg-muted pointer-coarse:h-11 [&_svg]:size-4">
             <svg aria-hidden="true"><use href="#i-star"/></svg>
@@ -62,7 +65,7 @@
             <span id="filter-count" hidden class="absolute -top-1.5 -right-1.5 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] leading-none font-medium text-primary-foreground tabular-nums"></span>
           </button>
         </div>
-        <div id="filter-panel" hidden class="flex flex-col gap-step-md rounded-lg bg-card p-step-md ring-1 ring-foreground/10">
+        <div id="filter-panel" hidden class="flex max-h-[55dvh] flex-col overflow-y-auto gap-step-md rounded-lg bg-card p-step-md ring-1 ring-foreground/10">
           <div>
             <p id="tag-label" class="text-xs font-medium text-muted-foreground">Show only</p>
             <div id="tag-filters" role="group" aria-labelledby="tag-label" class="mt-step-xs flex flex-wrap gap-step-xs"></div>
@@ -78,14 +81,26 @@
             <button type="button" id="filter-clear" class="ml-auto text-sm text-muted-foreground underline underline-offset-2 outline-none hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50">Clear filters</button>
           </div>
         </div>
-        <div id="filters" role="group" aria-label="Filter promotions" class="flex flex-wrap items-center gap-step-xs"></div>
       </div>
+      <div id="page-top" hidden class="isolate"></div>
+      <div id="filters" role="group" aria-label="Filter promotions" class="flex scroll-mt-32 flex-wrap items-center gap-step-xs"></div>
       <p id="count" role="status" class="text-sm text-muted-foreground tabular-nums"></p>
-      <ul id="grid" role="list" class="grid grid-cols-1 gap-step-lg sm:grid-cols-2 lg:grid-cols-3"></ul>
+      <ul id="grid" role="list" class="isolate grid grid-cols-1 gap-step-lg sm:grid-cols-2 lg:grid-cols-3"></ul>
       <div id="empty" hidden></div>
     </div>
   </main>
 </div>
+
+<!-- a short explanation behind an (i) -->
+<dialog id="dlg-info" aria-labelledby="info-title" class="m-auto max-h-dvh w-full max-w-sm overflow-y-auto rounded-xl bg-card p-0 text-foreground shadow-lift-md backdrop:bg-foreground/40">
+  <div class="flex flex-col gap-step-md p-step-lg">
+    <div class="flex items-start justify-between gap-step-md">
+      <h2 id="info-title" tabindex="-1" class="text-lg leading-6 font-semibold tracking-tight outline-none"></h2>
+      <button type="button" data-close aria-label="Close" class="group/button inline-flex size-8 shrink-0 touch-manipulation items-center justify-center rounded-md border border-transparent bg-foreground/8 text-secondary-foreground transition outline-none select-none hover:bg-foreground/12 focus-visible:ring-3 focus-visible:ring-ring/50 pointer-coarse:size-11 [&_svg]:size-4"><svg aria-hidden="true"><use href="#i-x"/></svg></button>
+    </div>
+    <ul id="info-lines" role="list" class="flex flex-col gap-step-sm text-sm text-muted-foreground"></ul>
+  </div>
+</dialog>
 
 <!-- details -->
 <dialog id="dlg" aria-labelledby="dlg-title" class="m-auto max-h-dvh w-full max-w-lg overflow-y-auto rounded-xl bg-card p-0 text-foreground shadow-lift-md backdrop:bg-foreground/40">
@@ -126,10 +141,10 @@
 <dialog id="dlg-redeem" aria-labelledby="rd-title" class="m-auto max-h-dvh w-full max-w-md overflow-y-auto rounded-xl bg-card p-0 text-foreground shadow-lift-md backdrop:bg-foreground/40">
   <form id="rd-form" class="flex flex-col gap-step-md p-step-lg" novalidate>
     <div class="flex items-start justify-between gap-step-md">
-      <h2 id="rd-title" tabindex="-1" class="text-xl leading-7 font-semibold tracking-tight outline-none">Redeem a code</h2>
+      <div class="flex min-w-0 items-center gap-step-xs"><h2 id="rd-title" tabindex="-1" class="text-xl leading-7 font-semibold tracking-tight outline-none">Redeem a code</h2><button type="button" data-info="redeem" aria-label="About Redeem a code" class="group/button inline-flex size-6 shrink-0 touch-manipulation items-center justify-center rounded-full text-muted-foreground transition outline-none select-none hover:bg-muted hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50 pointer-coarse:size-9 [&_svg]:size-4"><svg aria-hidden="true"><use href="#i-info"/></svg></button></div>
       <button type="button" data-close aria-label="Close" class="group/button inline-flex size-8 shrink-0 touch-manipulation items-center justify-center rounded-md border border-transparent bg-foreground/8 text-secondary-foreground transition outline-none select-none hover:bg-foreground/12 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 pointer-coarse:size-11 [&_svg]:size-4"><svg aria-hidden="true"><use href="#i-x"/></svg></button>
     </div>
-    <p class="text-sm text-muted-foreground">Enter a promotion code from a partner, a flyer or an email to check it and claim the offer.</p>
+    <p class="text-sm text-muted-foreground">Enter a code to check it and claim the offer.</p>
     <div class="flex gap-step-sm">
       <label for="rd-input" class="sr-only">Promotion code</label>
       <input id="rd-input" type="text" autocomplete="off" autocapitalize="characters" spellcheck="false" maxlength="30" placeholder="e.g. VALET20" class="h-8 min-w-0 flex-1 rounded-md border border-input bg-card px-step-sm text-base tracking-wider uppercase outline-none placeholder:normal-case placeholder:tracking-normal focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 pointer-coarse:h-11" />
@@ -143,13 +158,19 @@
 <dialog id="dlg-rewards" aria-labelledby="rw-title" class="m-auto max-h-dvh w-full max-w-md overflow-y-auto rounded-xl bg-card p-0 text-foreground shadow-lift-md backdrop:bg-foreground/40">
   <div class="flex flex-col gap-step-md p-step-lg">
     <div class="flex items-start justify-between gap-step-md">
-      <h2 id="rw-title" tabindex="-1" class="text-xl leading-7 font-semibold tracking-tight outline-none">My rewards</h2>
+      <div class="flex min-w-0 items-center gap-step-xs"><h2 id="rw-title" tabindex="-1" class="text-xl leading-7 font-semibold tracking-tight outline-none">My rewards</h2><button type="button" data-info="rewards" aria-label="About My rewards" class="group/button inline-flex size-6 shrink-0 touch-manipulation items-center justify-center rounded-full text-muted-foreground transition outline-none select-none hover:bg-muted hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50 pointer-coarse:size-9 [&_svg]:size-4"><svg aria-hidden="true"><use href="#i-info"/></svg></button></div>
+      <div class="ml-auto flex items-center gap-step-xs">
+        <button type="button" id="rw-history-btn" aria-pressed="false" class="group/button inline-flex h-8 shrink-0 touch-manipulation items-center justify-center gap-step-xs rounded-md border border-input bg-card px-step-sm text-sm font-medium text-foreground transition outline-none select-none hover:bg-muted focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 active:translate-y-px aria-pressed:bg-muted pointer-coarse:h-11 [&_svg]:size-4"><svg aria-hidden="true"><use href="#i-clock"/></svg><span id="rw-history-label">History</span></button>
       <button type="button" data-close aria-label="Close" class="group/button inline-flex size-8 shrink-0 touch-manipulation items-center justify-center rounded-md border border-transparent bg-foreground/8 text-secondary-foreground transition outline-none select-none hover:bg-foreground/12 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 pointer-coarse:size-11 [&_svg]:size-4"><svg aria-hidden="true"><use href="#i-x"/></svg></button>
+      </div>
     </div>
-    <p class="text-sm text-muted-foreground">The offers you claimed. Show the code to the partner; the property team marks it used.</p>
     <div id="rw-tabs" role="group" aria-label="Reward status" class="flex flex-wrap gap-step-xs"></div>
     <ul id="rw-list" role="list" class="flex flex-col gap-step-sm"></ul>
     <p id="rw-empty" hidden class="rounded-lg bg-background p-step-md text-sm text-muted-foreground ring-1 ring-foreground/10"></p>
+    <section id="rw-history" hidden aria-label="History" class="flex flex-col gap-step-sm">
+      <ul id="rw-history-list" role="list" class="flex flex-col gap-step-sm"></ul>
+      <p id="rw-history-empty" hidden class="rounded-lg bg-background p-step-md text-sm text-muted-foreground ring-1 ring-foreground/10">Nothing yet. When you claim an offer it is recorded here.</p>
+    </section>
     <section id="rw-unit" hidden aria-labelledby="rw-unit-h" class="flex flex-col gap-step-sm">
       <h3 id="rw-unit-h" class="text-sm font-medium">Your unit's claims</h3>
       <p class="text-xs text-muted-foreground">Shared with everyone who lives in your unit.</p>
@@ -172,6 +193,17 @@
       <button type="button" data-cancel hidden class="group/button inline-flex h-8 shrink-0 touch-manipulation items-center justify-center gap-step-sm rounded-md border border-input bg-card px-step-md text-sm font-medium text-foreground transition outline-none select-none hover:bg-muted focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 active:translate-y-px pointer-coarse:h-11 [&_svg]:size-4">Cancel claim</button>
       <button type="button" data-view class="group/button inline-flex h-8 shrink-0 touch-manipulation items-center justify-center gap-step-sm rounded-md border border-input bg-card px-step-md text-sm font-medium text-foreground transition outline-none select-none hover:bg-muted focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 active:translate-y-px pointer-coarse:h-11 [&_svg]:size-4">View</button>
     </div>
+  </li>
+</template>
+
+<template id="t-hist">
+  <li class="flex flex-col gap-0.5 rounded-lg bg-background p-step-md ring-1 ring-foreground/10">
+    <div class="flex items-start justify-between gap-step-sm">
+      <p data-title class="text-sm font-medium wrap-anywhere"></p>
+      <span data-label data-tone="neutral" class="inline-flex h-5 shrink-0 items-center rounded-full bg-secondary px-step-sm text-xs whitespace-nowrap text-secondary-foreground data-[tone=ok]:bg-success-bg data-[tone=ok]:text-success-text data-[tone=wait]:bg-warning-bg data-[tone=wait]:text-warning-text data-[tone=no]:bg-danger-bg data-[tone=no]:text-danger-text"></span>
+    </div>
+    <time data-when class="text-xs text-muted-foreground tabular-nums"></time>
+    <p data-text class="text-xs text-muted-foreground empty:hidden wrap-anywhere"></p>
   </li>
 </template>
 
