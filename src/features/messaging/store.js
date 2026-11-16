@@ -644,6 +644,23 @@ export function createStore({ transport, now = Date.now, config = {} } = {}) {
       });
     },
 
+    /**
+     * What Staff decided about the resident's promotion claim, said in the chat by the system so both sides read the same words (Override with its reason, Reject with its reason).
+     * Only Staff or Admin, only in a resident's chat with the team; the resident is notified.
+     */
+    noteClaimDecision(convId, userId, text) {
+      const u = user(userId);
+      if (!u || !["staff", "admin"].includes(u.role)) return { ok: false, reason: "not_allowed" };
+      const said = String(text ?? "").replace(/[\r\n\t]+/g, " ").trim().slice(0, 300);
+      if (!said) return { ok: false, reason: "empty" };
+      return act((d) => {
+        const conv = d.convs[convId];
+        if (!conv || conv.kind !== "resident_support") return { ok: false, reason: "not_allowed" };
+        sys(d, conv, said, { notify: true });
+        return { ok: true };
+      });
+    },
+
     /** Resident taps a quick reply offered by the assistant. */
     choose(convId, userId, choiceId) {
       return act((d) => {

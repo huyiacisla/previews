@@ -448,7 +448,7 @@ Lỗ hổng thấy khi dựng ca: (1) bot trả lời câu hỏi giảm giá b�
 - [x] **R4-4: Staff xử lý ngay từ claim.** Ghi chú nội bộ trên claim, "Nhắn cư dân" (mở trả lời trong đúng cuộc trò chuyện), cấp bù hoặc cộng ưu đãi tay (ghi rõ lý do, ai làm, khi nào) và cư dân thấy kết quả ở My rewards và thông báo.
 - [x] **R4-5: Quy tắc 1 căn hộ / 1 ưu đãi thật + Jamie + panel theo căn hộ (BIZ-01).** (a) deal mẫu ghi "One per household" phải bị chặn thật theo căn hộ: tài khoản thứ hai của căn hộ thấy nút Disabled kèm lời giải thích rõ ngay từ đầu; (b) Jamie Rivera (res-4, cùng Unit 02-291 với Alex) nhắn được Staff qua Messages; (c) panel của Staff gom theo căn hộ: claim của cả căn hộ, và cảnh báo ĐỎ "Căn hộ này đã nhận ưu đãi qua tài khoản [Tên] vào ngày [Ngày]" khi người đang hỏi bị chặn vì người cùng căn hộ.
 - [x] **R4-6: Context Card và panel tự mở (UX-01, UX-02).** "Ask about this claim" chèn sẵn một thẻ ngữ cảnh gọn (Claim ID, deal, mã, trạng thái, giờ claim, số ticket) vào tin nhắn gửi đi, cả hai bên thấy thẻ trong khung chat; Staff mở cuộc trò chuyện có thẻ thì panel bên phải tự mở và làm nổi bật claim đó (không bắt bấm icon (i)); nút mở panel có chữ "Details" thay vì icon (i) trần.
-- [ ] **R4-7: Quick Actions tại chat và dấu vết hệ thống (UX-03, Audit Trail).** Trong panel chat: "Confirm claim", "Apply by hand (Override)" (bắt buộc lý do), "Reject" (lý do) và "View unit history" xong trong tối đa 2 click, không đổi tab; mỗi Override tự chèn một System Message vào khung chat để hai bên đối soát; Claims inbox và chat luôn khớp nhau.
+- [x] **R4-7: Quick Actions tại chat và dấu vết hệ thống (UX-03, Audit Trail).** Trong panel chat: "Confirm claim", "Apply by hand (Override)" (bắt buộc lý do), "Reject" (lý do) và "View unit history" xong trong tối đa 2 click, không đổi tab; mỗi Override tự chèn một System Message vào khung chat để hai bên đối soát; Claims inbox và chat luôn khớp nhau.
 - [ ] **R4-8: Ma trận trường hợp.** Claim 2 lần, huỷ rồi claim lại, hai Staff cùng xử lý một claim, Verify hai lần, deal bị Off live hoặc hết hạn khi claim đang Pending, hết suất giữa chừng, cư dân A xem claim của B, Staff property khác, cư dân đã chuyển đi, hỏi sau khi claim Redeemed, tài khoản thứ hai cùng căn hộ nhắn khiếu nại (ca Jamie), checklist UX-01, UX-02, UX-03, BIZ-01 của tài liệu hướng dẫn. Ghi kết quả từng ca.
 - [ ] **R4-9: Tổng kết vòng 4.** Dọn dữ liệu (claim của res-1, ticket T-1086 và các ticket thử), cập nhật ghi chép, hỏi push.
 
@@ -542,3 +542,19 @@ Còn lại: thanh đầu chat vẫn có nút "Details" cả khi panel đang mở
 Dọn dữ liệu: tin nhắn và claim của Morgan trả về như trước; T-1086 và T-1087 không bị đụng.
 
 Test: `promotions-ask.test.mjs` (thêm 3 test). `npm test` 522 test, 521 qua, 1 lỗi cũ.
+
+### R4-7 (xong): Quick Actions tại chat và dấu vết hệ thống (UX-03, Audit Trail)
+
+Đã làm:
+- **`src/features/promotions/decide.js`** (một nơi duy nhất ghi quyết định về claim): `decideClaim` cho Confirm, Apply by hand, Reject; Apply và Reject bắt buộc lý do; làm lại cùng quyết định là no-op (Verify hai lần, Apply hai lần không tạo gì thêm); claim đã Redeemed không Reject hay Apply được; claim đã Reject phải "Move back to Pending" ở inbox trước; claim cư dân đã huỷ thì từ chối. Ghi vào trạng thái cư dân đọc (`eso-pm-claimstate`) và vào Claims inbox (`eso-pmclaims`, kèm ghi chú nội bộ "Applied by hand (from the chat): lý do" có tên Staff).
+- **Panel chat có mục "Decide"** cho từng claim đang chờ hoặc đã xác nhận của cư dân: "Confirm claim", "Apply by hand", "Reject". **2 click**: click 1 mở các lý do có sẵn (cấp bù: credited to invoice, refunded, added to account, already applied; từ chối: not a current resident, already claimed in this unit, limit reached, expired), click 2 chọn lý do là xong; hoặc gõ lý do khác rồi bấm Apply hoặc Reject; bấm khi chưa có lý do thì báo "Say why, so the resident knows.". Confirm là 1 click.
+- **System Message (Audit Trail)**: Apply và Reject tự chèn một dòng hệ thống vào khung chat, cư dân được báo: *The property team applied your promotion "X" by hand: lý do* / *The property team did not approve your claim for "X": lý do* (`noteClaimDecision` trong `store.js`, chỉ Staff hoặc Admin, chỉ trong chat của cư dân). Confirm thường không cần dòng này.
+- **Inbox khớp chat**: Claims inbox nạp lại khi `eso-pmclaims` đổi ở tab khác; claim chưa từng được inbox nhập mà đã được quyết định từ chat thì inbox nhận quyết định khi nhập; publish của inbox không còn xoá quyết định của claim chưa nhập (lỗi tìm thấy khi viết test, chưa gây hại vì chưa có luồng nào đi trước).
+
+Kiểm bằng giao diện thật (ca mới, Morgan Ellis res-3 claim Covered Spot Upgrade và CubeSmart, Staff 1440): panel hiện "Decide"; Apply (2 click) thấy panel đổi "Applied by the property team: ...", trạng thái cư dân `verified` với `manual`, dòng hệ thống trong chat; Reject với "Claim limit reached" (2 click) thấy "Rejected" ở panel, dòng hệ thống thứ hai trong chat; Claims inbox (tab All) có đủ hai claim: một "Verified, Applied by hand, Jordan Lee" và một "Rejected, Claim limit reached", mỗi cái kèm ghi chú nội bộ "(from the chat)"; Resident res-3 thấy ngay trong My rewards: "Verified, Applied by the property team: ..." và "Not approved, Claim limit reached" (đã chụp hình hai bên).
+
+Chưa kiểm: các nút ở 375, 830 và chế độ tối; Confirm claim chỉ kiểm bằng test; "Xem lịch sử căn hộ" (mục "Same unit" của R4-5 hiện sẵn, không cần bấm); ca Jamie chưa xử lý (người dùng đang tập).
+
+Dọn dữ liệu: claim, trạng thái, tin nhắn hệ thống của Morgan gỡ sạch; T-1086, T-1087 và claim Pending của Alex không đổi.
+
+Test: `tests/promotions/promotions-decide.test.mjs` (7 test). `npm test` 529 test, 528 qua, 1 lỗi cũ.

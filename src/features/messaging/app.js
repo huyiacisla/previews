@@ -8,7 +8,8 @@ import { EMOJI_CATEGORIES, QUICK_REACTIONS, searchEmoji } from "./emoji.js";
 import { duration, formatBytes, formatFull, formatTime, groupByDay, listTime } from "./format.js";
 import { initials, PERSONAS, PORTALS, pickPersona } from "./personas.js";
 import { describeFilters, FILTER_KEYS, isEmptyQuery, matchFilters, matchText, parseQuery, withoutFilter } from "./query.js";
-import { allRecords, historyFor, unitBlocks, unitHistory } from "../promotions/store.js";
+import { decideClaim, decisionText } from "../promotions/decide.js";
+import { allRecords, claimStatus, historyFor, residentState, unitBlocks, unitHistory } from "../promotions/store.js";
 import { createStore, notifies, STAGE_LABEL, STAGES, ticketNo } from "./store.js";
 import { clearSideData, createTransport } from "./transport.js";
 
@@ -1294,6 +1295,78 @@ export function mount({ portal }) {
     }
   }
 
+  // The claims of this resident that wait for Staff (or are confirmed and can still be applied by hand): [{ promoId, title, st, manual, n }]
+  function decidable(residentId) {
+    try {
+      const st = residentState(localStorage, residentId);
+      return Object.keys(st.claims)
+        .filter((id) => st.claims[id] && st.claims[id].code)
+        .map((id) => {
+          const cs = claimStatus(localStorage, residentId, id);
+          const r = allRecords(localStorage).find((x) => String(x.id) === id);
+          return { promoId: id, title: r ? r.x.title : "Promotion", st: cs ? cs.st : "pending", manual: cs && cs.manual ? cs.manual : "", cancelled: !!(cs && cs.cancelled), n: st.claims[id].count };
+        })
+        .filter((c) => !c.cancelled && (c.st === "pending" || c.st === "verified"));
+    } catch {
+      return [];
+    }
+  }
+
+  // Confirm, Apply by hand and Reject without leaving the chat: one click opens the reasons, the second picks one (or types another and presses Apply or Reject)
+  const APPLY_WHY = ["Discount credited to this month's invoice", "Difference refunded to the resident", "Deal added to the resident's account", "Checked: the deal was already applied"];
+  const REJECT_WHY = ["Not a current resident at this unit", "Already claimed on another account in this unit", "Claim limit reached", "Promotion expired before the claim"];
+  function decide(conv, c, action, reason) {
+    const r = decideClaim(localStorage, { rid: conv.residentId, promoId: c.promoId, action, reason, by: me.name });
+    if (!r.ok) {
+      toast(r.reason);
+      return;
+    }
+    ui.decide = null;
+    if (r.noop) toast("Already done.");
+    else {
+      const text = decisionText(action, c.title, reason);
+      if (text) store.noteClaimDecision(conv.id, me.id, text);
+      toast(action === "verify" ? "Claim confirmed." : action === "apply" ? "Applied. The resident was told in the chat." : "Claim rejected. The resident was told in the chat.");
+    }
+    ui.sigCtx = "";
+    renderAll(true);
+  }
+  function decisionBox(conv, c) {
+    const box = document.createElement("div");
+    box.className = "mt-step-xs flex flex-col gap-step-xs rounded-md bg-muted p-step-sm";
+    const mine = ui.decide && ui.decide.promoId === c.promoId ? ui.decide.kind : null;
+    const row = document.createElement("div");
+    row.className = "flex flex-wrap gap-step-xs";
+    if (c.st === "pending") row.appendChild(button("Confirm claim", { variant: "primary", onClick: () => decide(conv, c, "verify", "") }));
+    if (!c.manual) {
+      row.appendChild(button("Apply by hand", { variant: mine === "apply" ? "soft" : "outline", onClick: () => { ui.decide = mine === "apply" ? null : { promoId: c.promoId, kind: "apply" }; ui.sigCtx = ""; renderContext(store.get(conv.id, me.id)); } }));
+    }
+    row.appendChild(button("Reject", { variant: mine === "reject" ? "soft" : "outline", onClick: () => { ui.decide = mine === "reject" ? null : { promoId: c.promoId, kind: "reject" }; ui.sigCtx = ""; renderContext(store.get(conv.id, me.id)); } }));
+    box.appendChild(row);
+    if (mine) {
+      const label = document.createElement("p");
+      label.className = "text-xs text-muted-foreground";
+      label.textContent = mine === "apply" ? "What you did (the resident is told in the chat):" : "Why (the resident is told in the chat):";
+      box.appendChild(label);
+      for (const why of mine === "apply" ? APPLY_WHY : REJECT_WHY) box.appendChild(button(why, { variant: "outline", onClick: () => decide(conv, c, mine, why) }));
+      const other = document.createElement("input");
+      other.type = "text";
+      other.maxLength = 200;
+      other.placeholder = "Another reason…";
+      other.setAttribute("aria-label", "Another reason");
+      other.className = "h-8 w-full rounded-md border border-input bg-card px-step-sm text-sm";
+      const go = button(mine === "apply" ? "Apply" : "Reject", { variant: "primary", onClick: () => decide(conv, c, mine, other.value) });
+      other.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") {
+          e.preventDefault();
+          go.click();
+        }
+      });
+      box.append(other, go);
+    }
+    return box;
+  }
+
   function hideContext() {
     $("#context-pane").hidden = true;
     $("#view-app").dataset.context = "closed";
@@ -1308,7 +1381,8 @@ export function mount({ portal }) {
     const promoEv = data && data.kind === "resident" && data.person ? promoEvents(data.person.id) : [];
     const unitEv = data && data.kind === "resident" && data.person ? unitPromo(data.person.id) : { blocks: [], mates: [] };
     const asked = askedCard(t);
-    const sig = JSON.stringify([t.conv.id, data, promoEv, unitEv, asked && asked.promoId, t.actions, t.row.pinned, t.row.important, t.row.muted, Math.floor(Date.now() / 3600000)]);
+    const toDecide = data && data.kind === "resident" && data.person && ["staff", "admin"].includes(me.role) && t.conv.kind === "resident_support" ? decidable(data.person.id) : [];
+    const sig = JSON.stringify([t.conv.id, data, promoEv, unitEv, asked && asked.promoId, toDecide, ui.decide, t.actions, t.row.pinned, t.row.important, t.row.muted, Math.floor(Date.now() / 3600000)]);
     if (sig === ui.sigCtx) return;
     ui.sigCtx = sig;
     clear($("#context-body"));
@@ -1393,6 +1467,24 @@ export function mount({ portal }) {
           meta.textContent = [lit ? "Asked about" : "", listTime(Date.parse(e.at) || 0, Date.now()), e.note].filter(Boolean).join(" · ");
           li.append(head, meta);
           ul.appendChild(li);
+        }
+      }
+      if (toDecide.length) {
+        const sub = document.createElement("p");
+        sub.className = "mt-step-sm text-xs font-medium text-muted-foreground";
+        sub.textContent = "Decide";
+        promo.appendChild(sub);
+        for (const c of toDecide) {
+          const wrap = document.createElement("div");
+          wrap.className = "flex flex-col gap-step-xs";
+          const head = document.createElement("div");
+          head.className = "flex items-center justify-between gap-step-sm";
+          const name = document.createElement("span");
+          name.className = "text-sm font-medium text-foreground";
+          name.textContent = c.title;
+          head.append(name, badge(c.manual ? "Applied by hand" : c.st === "verified" ? "Confirmed" : "Waiting", c.manual || c.st === "verified" ? "success" : "warning"));
+          wrap.append(head, decisionBox(t.conv, c));
+          promo.appendChild(wrap);
         }
       }
       if (unitEv.mates.length) {
