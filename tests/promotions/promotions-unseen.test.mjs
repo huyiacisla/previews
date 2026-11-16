@@ -29,7 +29,7 @@ test("claiming adds one (not when the claim already existed), cancelling takes o
 
 test("the panels say the totals in their headings; no extra toggle was added", () => {
   assert.ok(html.includes('<span id="rw-count" class="text-base font-normal text-muted-foreground tabular-nums"></span>'));
-  assert.ok(res.includes('$("#rw-count").textContent = rwHistory || !rewardRows().length ? "" : String(rewardRows().length);'));
+  assert.ok(res.includes('$("#rw-count").textContent = rwHistory || !rewardRows().length ? "" : `${rewardRows().length} in total`;'));
   assert.ok(html.includes('id="sv-count"'), "Saved already says how many");
 });
 

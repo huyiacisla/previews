@@ -57,11 +57,17 @@
         #toolbar[data-condensed="true"] #btn-saved { order: 5; margin-left: 0; }
         #toolbar[data-condensed="true"] #filter-panel { order: 9; flex-basis: 100%; }
         #toolbar[data-condensed="true"] #btn-redeem,
-        #toolbar[data-condensed="true"] #btn-rewards { position: relative; width: 2rem; padding-inline: 0; }
+        #toolbar[data-condensed="true"] #btn-rewards { position: relative; width: 2.5rem; padding-inline: 0; }
         #toolbar[data-condensed="true"] #rewards-count { position: absolute; top: -0.375rem; right: -0.375rem; }
         #toolbar[data-condensed="true"] #btn-saved { margin-right: 0.375rem; }
         #toolbar[data-condensed="true"] .lbl { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+        /* Pressing is easy on a phone: every icon button of the bar and of the windows is at least 40 px each way (the bar stays one row, the search takes what is left) */
+        #toolbar #btn-redeem, #toolbar #btn-rewards, #toolbar #btn-saved, #toolbar #btn-filter, #toolbar #search, #toolbar #sort, [data-theme-toggle], dialog button, dialog input, dialog select { min-height: 2.5rem; }
+        #toolbar #btn-filter, #toolbar #btn-saved, #toolbar #btn-redeem, #toolbar #btn-rewards, [data-theme-toggle], dialog [data-close], #dlg-close { min-width: 2.5rem; }
       }
+      /* While a window is open the page behind it does not scroll (a touch or the wheel on the backdrop stays on the window) */
+      body:has(dialog[open]) #main-content { overflow: hidden; }
+      dialog { overscroll-behavior: contain; }
     </style>
     <!-- Redeem, My rewards, Saved, Search and the category chips stay at the very top, found at once whatever page Staff designed below them -->
     <div id="toolbar" class="sticky top-0 z-20 border-b border-border bg-background">

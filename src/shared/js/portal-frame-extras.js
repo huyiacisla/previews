@@ -542,16 +542,23 @@ function wireBell(header, me) {
       markAll.title = "Mark all read";
       markAll.addEventListener("click", () => {
         const cur = state();
-        setRead(
-          localStorage,
-          personId,
-          list()
-            .filter((r) => !isRead(r, cur))
-            .map((r) => r.id),
-          true,
-        );
+        const ids = list()
+          .filter((r) => !isRead(r, cur))
+          .map((r) => r.id);
+        setRead(localStorage, personId, ids, true);
         emitNotif();
-        openPanel?.node?.querySelector(".eso-np-link")?.focus(); // the panel is drawn again: keep the keyboard in it
+        const node = openPanel?.node;
+        node?.querySelector(".eso-np-link")?.focus(); // the panel is drawn again: keep the keyboard in it
+        // a quiet confirmation under the heading, gone in two seconds (the heading itself already says "all caught up" to a screen reader, so this one is for the eyes only)
+        const head = node?.querySelector(".eso-np-head");
+        if (head) {
+          const done = document.createElement("div");
+          done.className = "eso-np-toast";
+          done.setAttribute("aria-hidden", "true");
+          done.innerHTML = `${ICON.mailCheck}<span>${ids.length === 1 ? "1 notification" : `${ids.length} notifications`} marked as read</span>`;
+          head.after(done);
+          setTimeout(() => done.remove(), 2200);
+        }
       });
       actions.append(markAll);
     }

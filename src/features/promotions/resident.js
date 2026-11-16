@@ -148,6 +148,7 @@ function setUnseen(kind, n) {
 }
 // +1 for something new; -1 (never below 0, and never a new badge) when it is taken away
 const bumpUnseen = (kind, d) => setUnseen(kind, readUnseen(kind) + d);
+let savedTotal = 0; // how many are saved in all (the badge counts only the new ones)
 function paintUnseen() {
   for (const [kind, id] of [
     ["saved", "#saved-count"],
@@ -157,14 +158,19 @@ function paintUnseen() {
     const c = $(id);
     c.hidden = n === 0;
     c.textContent = String(n);
+    c.title = n ? `${n} new` : ""; // the number on the corner is what is NEW since the window was last opened; the window's heading says how many there are in total
   }
+  const nr = readUnseen("rewards");
+  const ns = readUnseen("saved");
+  $("#btn-rewards").setAttribute("aria-label", nr ? `My rewards, ${nr} new` : "My rewards");
+  $("#btn-saved").setAttribute("aria-label", `Saved promotions, ${savedTotal} in total${ns ? `, ${ns} new` : ""}`);
 }
 
 function paintSavedButton(n, on) {
   const b = $("#btn-saved");
   b.hidden = !on;
   b.setAttribute("aria-haspopup", "dialog");
-  b.setAttribute("aria-label", `Saved promotions, ${n}`);
+  savedTotal = n;
   paintUnseen();
 }
 
@@ -501,10 +507,10 @@ function card(p, mine, cfg, hot = new Set()) {
     const own = activeClaims(storage, me.id, p.id);
     const mineC = mine.claims[p.id];
     const byMe = Array.isArray(mineC.cancelled) && mineC.cancelled.includes(mineC.count);
-    badges.appendChild(own.active > 0 ? badge("Claimed", "success") : badge(own.locked ? "Closed" : byMe ? "Cancelled" : "Not approved", "warning"));
+    badges.appendChild(own.active > 0 ? badge("Claimed by you", "success") : badge(own.locked ? "Closed" : byMe ? "Cancelled" : "Not approved", "warning"));
   }
   $("[data-end]", li).textContent = expText(p);
-  $("[data-foot-left]", li).textContent = p.claimed > 0 ? `${p.claimed} claimed` : "";
+  $("[data-foot-left]", li).textContent = p.claimed > 0 ? `${p.claimed} ${p.claimed === 1 ? "resident has" : "residents have"} claimed` : ""; // everyone's total, apart from the "Claimed by you / by your unit" badge
   const save = $("[data-save]", li);
   save.hidden = !cfg.save;
   save.dataset.id = p.id;
@@ -627,7 +633,7 @@ function refreshDialog() {
       : p.method === "link"
         ? "Get offer"
         : done
-          ? "Claimed"
+          ? "Claimed by you"
           : own.rejected
             ? "Claim again"
             : p.method === "unique"
@@ -759,7 +765,7 @@ function goToCard(id) {
 function paintSaved() {
   const mine = residentState(storage, me.id);
   const rows = listPromotions(storage, { viewer }).filter((p) => mine.saved.has(p.id));
-  $("#sv-count").textContent = rows.length ? String(rows.length) : "";
+  $("#sv-count").textContent = rows.length ? `${rows.length} in total` : "";
   $("#sv-empty").hidden = rows.length > 0;
   const list = $("#sv-list");
   clear(list);
@@ -1001,7 +1007,7 @@ function paintRewards() {
   $("#rw-history-btn").setAttribute("aria-pressed", String(rwHistory));
   $("#rw-history-label").textContent = rwHistory ? "My rewards" : "History";
   $("#rw-title").textContent = rwHistory ? "History" : "My rewards";
-  $("#rw-count").textContent = rwHistory || !rewardRows().length ? "" : String(rewardRows().length);
+  $("#rw-count").textContent = rwHistory || !rewardRows().length ? "" : `${rewardRows().length} in total`;
   $("#rw-history").hidden = !rwHistory;
   $("#rw-tabs").hidden = rwHistory;
   $("#rw-list").hidden = rwHistory;

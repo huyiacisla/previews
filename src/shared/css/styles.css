@@ -62,6 +62,9 @@ html.dark { --primary-text: var(--primary-text-d, var(--primary)); }
   dialog[open] { animation: sheet-up 220ms ease-out; }
 }
 @keyframes sheet-up { from { transform: translateY(100%); } to { transform: none; } }
+/* A window (native dialog) that is open keeps the page behind it still: no scrolling through the backdrop, on a phone or anywhere. */
+html:has(dialog[open]) { overflow: hidden; }
+dialog { overscroll-behavior: contain; }
 @media (prefers-reduced-motion: reduce) {
   dialog[open] { animation: none; }
 }
@@ -217,6 +220,10 @@ a[data-slot="sidebar-menu-button"][data-soon="1"] { pointer-events: auto; cursor
 .eso-np-actions { display: flex; flex: none; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 0.125rem; }
 .eso-np-quiet { color: var(--muted-foreground); font-weight: 400; }
 .eso-np-icon { width: 1.75rem; padding: 0; justify-content: center; }
+.eso-np-toast { display: flex; align-items: center; gap: 0.375rem; margin: 0 0.25rem 0.5rem; padding: 0.375rem 0.625rem; border-radius: 0.5rem; font-size: 0.75rem; line-height: 1rem; color: var(--foreground); background: color-mix(in oklab, var(--primary) 10%, transparent); animation: eso-np-toast 2.2s ease forwards; }
+.eso-np-toast svg { flex: none; color: var(--primary); }
+@keyframes eso-np-toast { 0% { opacity: 0; transform: translateY(-3px); } 12%, 80% { opacity: 1; transform: none; } 100% { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .eso-np-toast { animation: none; } }
 .eso-np-quiet:hover { color: var(--foreground); background: color-mix(in oklab, var(--foreground) 8%, transparent); }
 .eso-np-row { display: flex; align-items: center; gap: 0.625rem; width: 100%; min-height: 2.75rem; padding: 0.5rem; border: 0; border-radius: 0.5rem; background: none; color: inherit; font: inherit; text-align: left; text-decoration: none; cursor: pointer; }
 .eso-np-row:hover { background: color-mix(in oklab, var(--foreground) 6%, transparent); }

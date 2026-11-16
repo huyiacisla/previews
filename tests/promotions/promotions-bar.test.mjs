@@ -14,7 +14,7 @@ test("on a phone the bar is always the compact one: one row of the same square i
   assert.ok(res.includes('const want = matchMedia("(max-width: 639px)").matches;') && res.includes("\nfitBar();\n"), "compact from the first paint, not only after a scroll");
   assert.ok(html.includes('#toolbar[data-condensed="true"] #filters { order: 10; flex-basis: 100%; }'), "the chips stay in the bar");
   assert.ok(!html.includes('#toolbar[data-condensed="true"] #filters { display: none'), "the chips are never hidden");
-  assert.ok(html.includes('#toolbar[data-condensed="true"] #btn-rewards { position: relative; width: 2rem; padding-inline: 0; }'), "Redeem and My rewards are square like Saved");
+  assert.ok(html.includes('#toolbar[data-condensed="true"] #btn-rewards { position: relative; width: 2.5rem; padding-inline: 0; }'), "Redeem and My rewards are square like Saved, 40 px to press");
   assert.ok(html.includes('#toolbar[data-condensed="true"] #rewards-count { position: absolute;'), "the count sits on the corner like Saved's");
 });
 
