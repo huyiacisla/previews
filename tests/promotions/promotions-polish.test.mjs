@@ -57,3 +57,11 @@ test("a template's colours include the secondary text colour, so a promotion's d
   assert.ok(page.includes('"--foreground-secondary": mix(fg, 82, bg),'));
   assert.ok(html.includes("text-foreground-secondary"), "the description uses it");
 });
+
+test("on a phone and a tablet the reward cards are smaller to look at and still 44 px to press (an invisible area around each button)", () => {
+  const block = html.slice(html.indexOf("@media (max-width: 1023px) {\n        #dlg-rewards > div"), html.indexOf('/* On a touch screen with "Larger tap targets" on'));
+  assert.ok(block.includes("#rw-list > li { padding: 0.625rem 0.75rem; gap: 0.375rem; }"), "less padding");
+  assert.ok(block.includes("#rw-list [data-code], #cl-code { font-size: 1rem; line-height: 1.5rem; }"), "a smaller code");
+  assert.ok(block.includes("height: 2.25rem; min-height: 0;"), "buttons 36 px tall");
+  assert.ok(block.includes("#rw-list button::after, #dlg-steps button:not([data-close])::after { content: \"\"; position: absolute; inset: -0.25rem -0.125rem; }"), "36 + 4 + 4 = 44 px to press");
+});
