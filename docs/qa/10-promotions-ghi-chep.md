@@ -433,3 +433,18 @@ Lưu ý ghi lại: Resident view của Staff hành động như cư dân res-1 (
 Chưa so: các template khác Deals (đưa vào R3-1b), và chế độ tối.
 
 Dọn dữ liệu: xoá toàn bộ claim của res-1 (gồm 2 claim thử cũ lúc 8:43 sáng nay) khỏi `eso-res-promo:res-1`, `eso-pmclaims`, `eso-pm-claimstate` (giữ ngôi sao đã lưu của Mallard Pointe Valet); tắt Resident view, đóng tab Staff, viewport desktop.
+
+## Vòng 4: tương tác Staff ↔ Resident và hội thoại quanh claim (goal mới của người dùng, 16/11/2026)
+
+Goal: cư dân claim deal rồi hỏi Staff qua chat ("đã nhận deal nhưng vẫn bị tính tiền", "claim vẫn chờ", "không thấy trong ví"); Staff phải mở chat, thấy lịch sử claim của đúng cư dân đó, kiểm tra, xử lý (Verify, Reject kèm lý do, cấp bù, giải thích) và cư dân nhận được kết quả. Cần nhiều trường hợp (trùng lặp, phân quyền, hết hạn, deal bị tắt, chuyển đi).
+
+Ca thật dùng để tập: Alex Rivera (res-1) claim Mallard Pointe Valet (MALLA10, Pending), ticket T-1086 trong hàng đợi Messages của Staff.
+
+Lỗ hổng thấy khi dựng ca: (1) bot trả lời câu hỏi giảm giá bằng nội dung xe lạ ("do not confront the driver") và xếp "General question"; (2) panel "Resident and unit" của Staff không có claim; (3) không có đường từ claim sang chat hay ngược lại; (4) Claims inbox chỉ có Verify, Reject, Redeem: không có ghi chú nội bộ hay cấp bù.
+
+- [ ] **R4-1: Panel Promotions trong chat của Staff.** Trong panel "Resident and unit": danh sách claim của cư dân đó (deal, mã, trạng thái, thời điểm, lý do nếu bị từ chối), nút "Open in Claims inbox" mở đúng claim. Chỉ hiện claim của cư dân trong cuộc trò chuyện (phân quyền). Thử với T-1086 và nhiều cư dân, 375/830/1440, sáng và tối.
+- [ ] **R4-2: Resident "Ask about this claim".** Ở My rewards và hộp thoại deal đã claim: nút mở Messages với nội dung soạn sẵn (deal, mã, giờ claim, trạng thái), chuyển thẳng cho property team, không qua bot; ticket gắn nhãn Promotions.
+- [ ] **R4-3: Bot nhận ra câu hỏi về deal, claim, giảm giá, tính tiền.** Trả lời đúng ngữ cảnh (không dùng nội dung xe lạ), đưa nút "Talk to a person" và ghi nhãn Promotions cho ticket.
+- [ ] **R4-4: Staff xử lý ngay từ claim.** Ghi chú nội bộ trên claim, "Nhắn cư dân" (mở trả lời trong đúng cuộc trò chuyện), cấp bù hoặc cộng ưu đãi tay (ghi rõ lý do, ai làm, khi nào) và cư dân thấy kết quả ở My rewards và thông báo.
+- [ ] **R4-5: Ma trận trường hợp.** Claim 2 lần, huỷ rồi claim lại, hai Staff cùng xử lý một claim, Verify hai lần, deal bị Off live hoặc hết hạn khi claim đang Pending, hết suất giữa chừng, cư dân A xem claim của B, Staff property khác, cư dân đã chuyển đi, hỏi sau khi claim Redeemed. Ghi kết quả từng ca.
+- [ ] **R4-6: Tổng kết vòng 4.** Dọn dữ liệu (claim của res-1, ticket T-1086 và các ticket thử), cập nhật ghi chép, hỏi push.
