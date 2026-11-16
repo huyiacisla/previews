@@ -155,3 +155,11 @@ test("the Staff Claims inbox holds only real claims: no demo generator, old demo
   assert.ok(staff.includes("filter(c=>c.deal==id):[],"), "the Viewed by list adds no invented viewers");
   assert.ok(staff.includes('"Who viewed is not recorded."'));
 });
+
+test("Staff see who claimed and the whole unit: the claimant's unit is never cut to its first digit in the inbox, the lists or the exports", () => {
+  const staff = readFileSync(new URL("../../src/staff/account-settings-content.html", import.meta.url), "utf8").replace(/\r\n/g, "\n");
+  assert.ok(staff.includes('const mask=c=>"Unit "+c.unit;'));
+  assert.ok(!/\.pv\s*==\s*["']all["']\s*\?[^;]{0,40}\+\s*["']••["']/.test(staff), "no claimant's unit is shortened any more");
+  assert.ok(!staff.includes("units are masked"));
+  assert.ok(staff.includes('<span>${mask(c)}${c.rid?" · "+H(c.rid):""}</span>'), "the claim's detail names the resident by id too");
+});
