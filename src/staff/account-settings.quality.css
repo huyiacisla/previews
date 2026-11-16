@@ -45,7 +45,9 @@ html.dark .sup-st.w,html.dark .sup-sl em.w{color:#fbbf24!important}
 
 /* Role previews are not part of the product. This prototype once let a person look at the page "as" another role
    (View as Manager / Staff, Resident view of Promotions and of the guidelines). Each role has its own portal now, so those controls are removed. */
-.wsc-d,.wsc-v,[data-pmres],[data-gprev]{display:none!important}
+.wsc-d,.wsc-v,[data-gprev]{display:none!important}
+/* The Resident view switch of Promotions is back, but only on Staff's own page (html.eso-staff): the Client and Resident copies of this page keep it removed. */
+html:not(.eso-staff) [data-pmres]{display:none!important}
 /* Client only (html.client-portal is set by account-settings.staff.js): a Client runs many properties, so the one-property card at the top of Workspace settings does not fit. Staff keeps its page as it was. */
 html.client-portal .wshead{display:none!important}
 

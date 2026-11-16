@@ -158,6 +158,11 @@ test('Staff\'s switch is a Staff-only button at the top of the card, with words,
   assert.ok(staff.includes('${res||!m.id?"":pmAv(m,br,"pav")}'), "avatar on the card cover (Staff only)");
   assert.ok(staff.includes('data-q22="lpick">Choose logo</button>'), "Edit details has a partner logo field");
   assert.ok(staff.includes('if(m.partner!==undefined)r.x.partner=m.partner;if(m.__plogo!==undefined){r.x.plogo=m.__plogo;delete m.__plogo}'), "a deal made by Staff keeps the edited partner and logo in its record (the Resident app reads them)");
+  // the Resident view switch is back on Staff's own page only (html.eso-staff); the Client and Resident copies keep it hidden
+  assert.ok(staff.includes('document.documentElement.classList.add("eso-staff")'), "Staff's page marks itself");
+  const qcss = readFileSync(new URL("../../src/staff/account-settings.quality.css", import.meta.url), "utf8");
+  assert.ok(qcss.includes("html:not(.eso-staff) [data-pmres]{display:none!important}"), "hidden everywhere but Staff");
+  assert.ok(!/\.wsc-v,\[data-pmres\]/.test(qcss), "no longer hidden for everyone");
   assert.ok(staff.includes('aria-label="${H(word+". "+say+". Open to change")}'), "the full status is still the accessible name");
   // 1,000 deals: off-screen cards are skipped, and the follow looks again until a long list is drawn (and scrolls at once before it focuses)
   assert.ok(staff.includes(".pd{content-visibility:auto;contain-intrinsic-size:auto 260px 400px}"));
