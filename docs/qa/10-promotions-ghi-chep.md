@@ -442,9 +442,23 @@ Ca thật dùng để tập: Alex Rivera (res-1) claim Mallard Pointe Valet (MAL
 
 Lỗ hổng thấy khi dựng ca: (1) bot trả lời câu hỏi giảm giá bằng nội dung xe lạ ("do not confront the driver") và xếp "General question"; (2) panel "Resident and unit" của Staff không có claim; (3) không có đường từ claim sang chat hay ngược lại; (4) Claims inbox chỉ có Verify, Reject, Redeem: không có ghi chú nội bộ hay cấp bù.
 
-- [ ] **R4-1: Panel Promotions trong chat của Staff.** Trong panel "Resident and unit": danh sách claim của cư dân đó (deal, mã, trạng thái, thời điểm, lý do nếu bị từ chối), nút "Open in Claims inbox" mở đúng claim. Chỉ hiện claim của cư dân trong cuộc trò chuyện (phân quyền). Thử với T-1086 và nhiều cư dân, 375/830/1440, sáng và tối.
+- [x] **R4-1: Panel Promotions trong chat của Staff.** Trong panel "Resident and unit": danh sách claim của cư dân đó (deal, mã, trạng thái, thời điểm, lý do nếu bị từ chối), nút "Open in Claims inbox" mở đúng claim. Chỉ hiện claim của cư dân trong cuộc trò chuyện (phân quyền). Thử với T-1086 và nhiều cư dân, 375/830/1440, sáng và tối.
 - [ ] **R4-2: Resident "Ask about this claim".** Ở My rewards và hộp thoại deal đã claim: nút mở Messages với nội dung soạn sẵn (deal, mã, giờ claim, trạng thái), chuyển thẳng cho property team, không qua bot; ticket gắn nhãn Promotions.
 - [ ] **R4-3: Bot nhận ra câu hỏi về deal, claim, giảm giá, tính tiền.** Trả lời đúng ngữ cảnh (không dùng nội dung xe lạ), đưa nút "Talk to a person" và ghi nhãn Promotions cho ticket.
 - [ ] **R4-4: Staff xử lý ngay từ claim.** Ghi chú nội bộ trên claim, "Nhắn cư dân" (mở trả lời trong đúng cuộc trò chuyện), cấp bù hoặc cộng ưu đãi tay (ghi rõ lý do, ai làm, khi nào) và cư dân thấy kết quả ở My rewards và thông báo.
 - [ ] **R4-5: Ma trận trường hợp.** Claim 2 lần, huỷ rồi claim lại, hai Staff cùng xử lý một claim, Verify hai lần, deal bị Off live hoặc hết hạn khi claim đang Pending, hết suất giữa chừng, cư dân A xem claim của B, Staff property khác, cư dân đã chuyển đi, hỏi sau khi claim Redeemed. Ghi kết quả từng ca.
 - [ ] **R4-6: Tổng kết vòng 4.** Dọn dữ liệu (claim của res-1, ticket T-1086 và các ticket thử), cập nhật ghi chép, hỏi push.
+
+### R4-1 (xong): panel Promotions trong chat của Staff
+
+Đã làm (`src/features/messaging/app.js`): panel "Resident and unit" có thêm mục **Promotions** sau "Recent tickets": tối đa 6 sự kiện mới nhất của đúng cư dân trong cuộc trò chuyện (tên deal, nhãn Claimed, Verified, Redeemed, Cancelled, Rejected, Could not claim, giờ, ghi chú hoặc lý do Staff đã nhập), nút "Open Claims inbox" (chỉ ở portal Staff) mở `/staff/promotions.html#/promotions/claims`. Cư dân không có claim thì ghi "No promotion claims from this resident." Dữ liệu lấy từ `historyFor` của Promotions nên Staff và Resident thấy cùng một lịch sử; ghi chú viết cho cư dân ("your claim") được nói lại cho Staff ("Confirmed by the property team", "Cancelled by the resident"). Panel vẽ lại khi claim đổi ở tab khác (sự kiện `storage` cho `eso-res-promo:*`, `eso-pm-claimstate`, `eso-pmclaims`).
+
+Đã thử trên ca thật T-1086 (Alex Rivera): thấy "Mallard Pointe Valet, Claimed, 9:13 AM, Code issued: MALLA10"; Priya Nair không có claim thấy câu rỗng; Resident claim thêm "Covered Spot Upgrade" ở tab khác thì xuất hiện ngay không cần tải lại; ghi trạng thái Rejected kèm lý do và Verified ở tab khác thì panel đổi sau 1 đến 2 giây.
+
+Lỗi tìm thấy và đã sửa: panel không tự đổi khi claim thay đổi (chỉ đổi khi chọn lại cuộc trò chuyện) → thêm lắng nghe `storage`.
+
+Chưa kiểm bằng hình: 375 và 830 (phiên chụp ở chế độ giả lập điện thoại cho ảnh lệch nên chưa có ảnh đáng tin), chế độ tối. Đo bằng mã: không tràn ngang ở 375 (369 = 369). Cần xem lại ở R4-5 hoặc phần cuối.
+
+Dữ liệu ca tập: sau khi thử, trạng thái claim của res-1 đã trả về chỉ còn claim Pending Mallard Pointe Valet (MALLA10) và ticket T-1086. Khi mở Claims inbox của Staff, claim này được nhập vào hộp thư như một claim Pending.
+
+Test: `tests/promotions/promotions-chat.test.mjs` (2 test). `npm test` 505 test, 504 qua, 1 lỗi cũ.

@@ -8,6 +8,7 @@ import { EMOJI_CATEGORIES, QUICK_REACTIONS, searchEmoji } from "./emoji.js";
 import { duration, formatBytes, formatFull, formatTime, groupByDay, listTime } from "./format.js";
 import { initials, PERSONAS, PORTALS, pickPersona } from "./personas.js";
 import { describeFilters, FILTER_KEYS, isEmptyQuery, matchFilters, matchText, parseQuery, withoutFilter } from "./query.js";
+import { allRecords, historyFor } from "../promotions/store.js";
 import { createStore, notifies, STAGE_LABEL, STAGES, ticketNo } from "./store.js";
 import { clearSideData, createTransport } from "./transport.js";
 
@@ -1262,6 +1263,22 @@ export function mount({ portal }) {
     dl.appendChild(r);
   }
 
+  // What this resident did with promotions (claimed, verified, redeemed, cancelled, rejected, could not claim), newest first: what Staff need to answer "I claimed it but..."
+  function promoEvents(residentId) {
+    try {
+      // the notes are written for the resident ("your claim"): here they are said to Staff
+      const SAID = { Verified: "Confirmed by the property team", Redeemed: "The code was used", Cancelled: "Cancelled by the resident" };
+      return historyFor(localStorage, residentId, (id) => {
+        const r = allRecords(localStorage).find((x) => String(x.id) === String(id));
+        return r ? r.x.title : "";
+      })
+        .slice(0, 6)
+        .map((e) => ({ ...e, note: SAID[e.label] || e.note }));
+    } catch {
+      return [];
+    }
+  }
+
   function hideContext() {
     $("#context-pane").hidden = true;
     $("#view-app").dataset.context = "closed";
@@ -1273,7 +1290,8 @@ export function mount({ portal }) {
     if (!data || !contextOpen()) return hideContext();
     $("#context-pane").hidden = false;
     $("#view-app").dataset.context = "open";
-    const sig = JSON.stringify([t.conv.id, data, t.actions, t.row.pinned, t.row.important, t.row.muted, Math.floor(Date.now() / 3600000)]);
+    const promoEv = data && data.kind === "resident" && data.person ? promoEvents(data.person.id) : [];
+    const sig = JSON.stringify([t.conv.id, data, promoEv, t.actions, t.row.pinned, t.row.important, t.row.muted, Math.floor(Date.now() / 3600000)]);
     if (sig === ui.sigCtx) return;
     ui.sigCtx = sig;
     clear($("#context-body"));
@@ -1321,6 +1339,35 @@ export function mount({ portal }) {
           ul.appendChild(li);
         }
       }
+      const promo = ctxSection("Promotions");
+      if (!promoEv.length) {
+        const none = document.createElement("p");
+        none.className = "text-sm text-muted-foreground";
+        none.textContent = "No promotion claims from this resident.";
+        promo.appendChild(none);
+      } else {
+        const ul = document.createElement("ul");
+        ul.setAttribute("role", "list");
+        ul.className = "flex flex-col gap-step-sm";
+        promo.appendChild(ul);
+        const TONE = { Claimed: "warning", Verified: "info", Redeemed: "success", Rejected: "danger", "Could not claim": "danger", Cancelled: "neutral" };
+        for (const e of promoEv) {
+          const li = document.createElement("li");
+          li.className = "flex flex-col gap-step-xs";
+          const head = document.createElement("div");
+          head.className = "flex items-center justify-between gap-step-sm";
+          const name = document.createElement("span");
+          name.className = "text-sm font-medium text-foreground";
+          name.textContent = e.title;
+          head.append(name, badge(e.label, TONE[e.label] || "neutral"));
+          const meta = document.createElement("span");
+          meta.className = "text-xs text-muted-foreground";
+          meta.textContent = [listTime(Date.parse(e.at) || 0, Date.now()), e.note].filter(Boolean).join(" · ");
+          li.append(head, meta);
+          ul.appendChild(li);
+        }
+      }
+      if (portal === "staff") promo.appendChild(button("Open Claims inbox", { variant: "outline", icon: "forward", onClick: () => goPage("/staff/promotions.html", "#/promotions/claims") }));
     } else {
       const ppl = ctxSection("In this conversation");
       data.people.forEach((p) => ctxWho(ppl, p));
@@ -3268,6 +3315,13 @@ export function mount({ portal }) {
     }
   });
 
+  // A promotion claim changed in another tab (the resident claimed or cancelled, Staff verified or rejected): the Promotions list in the details panel follows.
+  window.addEventListener("storage", (e) => {
+    if (!e.key || !(e.key.startsWith("eso-res-promo:") || e.key === "eso-pm-claimstate" || e.key === "eso-pmclaims")) return;
+    if (!ui.convId) return;
+    const t = store.get(ui.convId, me.id);
+    if (t.ok) renderContext(t);
+  });
   store.subscribe(onStore);
   document.addEventListener("visibilitychange", () => {
     if (document.visibilityState === "visible") {
