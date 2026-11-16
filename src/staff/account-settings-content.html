@@ -7924,6 +7924,16 @@ html.dark .cl-ib.ok{color:#4ade80}html.dark .cl-ib.no{color:#f87171}
 .cl-eye{position:relative;display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;margin-left:4px;padding:0;border:0;border-radius:6px;background:transparent;color:var(--muted);cursor:pointer;vertical-align:middle}
 .cl-eye::after{content:"";position:absolute;inset:-10px}
 .cl-eye:hover{background:color-mix(in srgb,var(--fg) 8%,transparent)}.cl-eye:focus-visible{outline:2px solid var(--ring,#2563eb)}
+/* The claim detail is smaller to look at on a phone and a tablet (less padding, 13 px text, 32 px buttons, shorter note boxes) and stays 44 px to press: each button has an invisible area around it. */
+@media(max-width:1023px){
+.cl-d{gap:12px;padding:12px;font-size:13px}.cl-d .pmc-kv,.cl-d .pmc-kv dt,.cl-d .pmc-kv dd{font-size:13px}.cl-d .pmc-ey{font-size:11px}
+.cl-dh b{font-size:18px}.cl-dh span{font-size:14px}
+.cl-da{gap:6px}
+html body .cl-d .btn:not(.xs):not(.sm){position:relative;height:32px!important;min-height:0!important;font-size:13px;padding:0 12px}
+html body .cl-d .btn:not(.xs):not(.sm)::after{content:"";position:absolute;inset:-6px -2px}
+html body .cl-d textarea{min-height:56px!important;height:56px;font-size:13px;padding:6px 10px}
+.cl-shd .cl-d{padding:0 0 max(12px,env(safe-area-inset-bottom))}
+}
 @media(max-width:767px){#sb .pin,#sb #sbx{min-width:36px;min-height:36px;display:inline-flex;align-items:center;justify-content:center}}
 
 /* qa-r32 */

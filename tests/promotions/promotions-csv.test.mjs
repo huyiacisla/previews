@@ -169,3 +169,13 @@ test("Staff see who claimed: the unit is cut to its first character until the ey
   assert.ok(!staff.includes("units are masked") && !staff.includes("Unit masked by resident privacy"));
   assert.ok(/CLAIM_CSV_COLUMNS/.test(readFileSync(new URL("../../src/features/promotions/claims-csv.js", import.meta.url), "utf8")) && collectClaimRows(memory()).length === 0, "the CSV export keeps the whole unit (it is the sync file)");
 });
+
+test("the claim detail is smaller on a phone and a tablet (32 px buttons with a 44 px press area, shorter note boxes), with the name and unit a little larger", () => {
+  const staff = readFileSync(new URL("../../src/staff/account-settings-content.html", import.meta.url), "utf8").replace(/\r\n/g, "\n");
+  const at = staff.indexOf("The claim detail is smaller to look at");
+  const block = staff.slice(at, at + 1400);
+  assert.ok(block.includes(".cl-dh b{font-size:18px}.cl-dh span{font-size:14px}"), "the name and the unit line are larger than the rest");
+  assert.ok(block.includes("html body .cl-d .btn:not(.xs):not(.sm){position:relative;height:32px!important;min-height:0!important;"), "buttons 32 px (it has to beat the page's own 40 px rule)");
+  assert.ok(block.includes('html body .cl-d .btn:not(.xs):not(.sm)::after{content:"";position:absolute;inset:-6px -2px}'), "32 + 6 + 6 = 44 px to press");
+  assert.ok(block.includes("html body .cl-d textarea{min-height:56px!important;height:56px;"), "shorter note boxes");
+});
