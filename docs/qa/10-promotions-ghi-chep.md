@@ -449,7 +449,7 @@ Lỗ hổng thấy khi dựng ca: (1) bot trả lời câu hỏi giảm giá b�
 - [x] **R4-5: Quy tắc 1 căn hộ / 1 ưu đãi thật + Jamie + panel theo căn hộ (BIZ-01).** (a) deal mẫu ghi "One per household" phải bị chặn thật theo căn hộ: tài khoản thứ hai của căn hộ thấy nút Disabled kèm lời giải thích rõ ngay từ đầu; (b) Jamie Rivera (res-4, cùng Unit 02-291 với Alex) nhắn được Staff qua Messages; (c) panel của Staff gom theo căn hộ: claim của cả căn hộ, và cảnh báo ĐỎ "Căn hộ này đã nhận ưu đãi qua tài khoản [Tên] vào ngày [Ngày]" khi người đang hỏi bị chặn vì người cùng căn hộ.
 - [x] **R4-6: Context Card và panel tự mở (UX-01, UX-02).** "Ask about this claim" chèn sẵn một thẻ ngữ cảnh gọn (Claim ID, deal, mã, trạng thái, giờ claim, số ticket) vào tin nhắn gửi đi, cả hai bên thấy thẻ trong khung chat; Staff mở cuộc trò chuyện có thẻ thì panel bên phải tự mở và làm nổi bật claim đó (không bắt bấm icon (i)); nút mở panel có chữ "Details" thay vì icon (i) trần.
 - [x] **R4-7: Quick Actions tại chat và dấu vết hệ thống (UX-03, Audit Trail).** Trong panel chat: "Confirm claim", "Apply by hand (Override)" (bắt buộc lý do), "Reject" (lý do) và "View unit history" xong trong tối đa 2 click, không đổi tab; mỗi Override tự chèn một System Message vào khung chat để hai bên đối soát; Claims inbox và chat luôn khớp nhau.
-- [ ] **R4-8: Ma trận trường hợp.** Claim 2 lần, huỷ rồi claim lại, hai Staff cùng xử lý một claim, Verify hai lần, deal bị Off live hoặc hết hạn khi claim đang Pending, hết suất giữa chừng, cư dân A xem claim của B, Staff property khác, cư dân đã chuyển đi, hỏi sau khi claim Redeemed, tài khoản thứ hai cùng căn hộ nhắn khiếu nại (ca Jamie), checklist UX-01, UX-02, UX-03, BIZ-01 của tài liệu hướng dẫn. Ghi kết quả từng ca.
+- [x] **R4-8: Ma trận trường hợp.** Claim 2 lần, huỷ rồi claim lại, hai Staff cùng xử lý một claim, Verify hai lần, deal bị Off live hoặc hết hạn khi claim đang Pending, hết suất giữa chừng, cư dân A xem claim của B, Staff property khác, cư dân đã chuyển đi, hỏi sau khi claim Redeemed, tài khoản thứ hai cùng căn hộ nhắn khiếu nại (ca Jamie), checklist UX-01, UX-02, UX-03, BIZ-01 của tài liệu hướng dẫn. Ghi kết quả từng ca.
 - [ ] **R4-9: Tổng kết vòng 4.** Dọn dữ liệu (claim của res-1, ticket T-1086 và các ticket thử), cập nhật ghi chép, hỏi push.
 
 ### R4-1 (xong): panel Promotions trong chat của Staff
@@ -558,3 +558,37 @@ Chưa kiểm: các nút ở 375, 830 và chế độ tối; Confirm claim chỉ 
 Dọn dữ liệu: claim, trạng thái, tin nhắn hệ thống của Morgan gỡ sạch; T-1086, T-1087 và claim Pending của Alex không đổi.
 
 Test: `tests/promotions/promotions-decide.test.mjs` (7 test). `npm test` 529 test, 528 qua, 1 lỗi cũ.
+
+### R4-8 (xong): ma trận trường hợp quanh claim và hội thoại
+
+Cách làm: mỗi ca là một test chạy trên đúng mã của ứng dụng (`tests/promotions/promotions-matrix.test.mjs`, 12 test) cộng kiểm bằng giao diện thật ở những chỗ nhìn thấy được (ca T-1087 của Jamie chỉ xem, không đổi gì).
+
+| Ca | Nội dung | Kết quả |
+|---|---|---|
+| M1 | bấm Claim hai lần liên tiếp | Đạt: một claim, một mã |
+| M2 | Staff A Confirm, Staff B Reject cùng lúc; A bấm Apply hoặc Confirm muộn | Đạt: Reject sau Confirm được; click muộn của A bị từ chối kèm lý do |
+| M3 | Staff tắt deal (Off live) khi claim đang Pending | Đạt: deal biến khỏi danh sách cư dân, claim còn nguyên, Staff vẫn Apply được ("Honoured…") |
+| M4 | hết suất giữa chừng; người huỷ trả suất | Đạt: người kế tiếp được báo "fully claimed", huỷ thì suất quay lại |
+| M5 | cư dân A xem claim của B; lịch sử của một cư dân | Đạt: căn hộ khác không thấy gì, lịch sử chỉ của người đó |
+| M6 | hỏi sau khi mã đã dùng (Redeemed) | Đạt: thẻ ghi Redeemed; Reject và Apply bị chặn |
+| M7 | bị Reject rồi claim lại | Đạt: claim mới chờ, Staff quyết định claim mới, lịch sử giữ cả lần Reject |
+| M8 | cư dân huỷ khi Staff đang quyết định | Đạt: Staff được báo "cancelled", không ghi gì |
+| M9 | bộ nhớ lỗi khi lưu quyết định | Đạt: báo "Could not save", claim giữ trạng thái cũ |
+| M10 | quy tắc căn hộ từ hai tài khoản | Đạt: Jamie bị chặn khi claim của Alex còn hiệu lực; Staff Reject claim của Alex thì Jamie nhận được và Alex bị chặn |
+| M11 | tên deal có mã HTML trong thẻ | Đạt: thẻ chỉ dùng text node, không `innerHTML` |
+| M12 | tài khoản bị chặn muốn hỏi team | **Lỗi, đã sửa** (xem dưới) |
+| Jamie (T-1087) | Staff xem ca khiếu nại | Đạt: khung đỏ "This unit already got … through Alex Rivera's account…", mục "Same unit"; panel mở, nút "Hide details"; ở 830 và 375 không tràn ngang, không nút nhỏ hơn 24 px, khung đỏ vừa màn hình; tương phản khung đỏ 4,55 (sáng) và 8,58 (tối), nhãn trạng thái 4,57 và 9,57 |
+| UX-01 | không có thông tin hay hành động xử lý chính nào sau icon (i) | Đạt: panel tự mở khi có thẻ, nút "Details" bằng chữ, 0 nút không tên ở 830 |
+| UX-02 | Ask about this claim đính kèm Claim ID và ticket | Đạt (R4-6) |
+| UX-03 | Confirm, Apply, Reject tại chat trong tối đa 2 click, không đổi tab | Đạt (R4-7) |
+| BIZ-01 | tài khoản thứ hai bị chặn, có lời giải thích ngay từ đầu | Đạt: thẻ "Claimed by your unit", hộp deal ghi ai và ngày, nút vô hiệu; ở 375 vừa màn hình, nút cao 44 px |
+
+Lỗi tìm thấy và đã sửa (M12): tài khoản bị chặn theo căn hộ (Jamie) không có đường nào hỏi property team ngay tại hộp deal, phải tự mở Messages và gõ lại mọi thứ, trái nguyên tắc giảm ma sát. Nay hộp deal của người bị chặn có liên kết chữ "Ask the property team about this" (cao 44 px ở 375); tin nhắn là "I have a question about a promotion my unit already claimed." kèm thẻ có tên deal và trạng thái "Claimed by your unit", **không kèm mã hay Claim ID của tài khoản kia** (giữ riêng tư); ticket gắn nhãn Promotions. Không bấm thử trên ca T-1087 vì sẽ thêm tin vào ticket của người dùng; kiểm bằng test và nhìn hộp deal ở 375.
+
+Không áp dụng hoặc chưa kiểm được: Staff của property khác (prototype chỉ có một property); cư dân đã chuyển đi (không có dữ liệu cư dân hết hợp đồng; hợp đồng của Morgan hết 15/12); hai Staff thật cùng bấm trong hai trình duyệt (kiểm bằng hai quyết định nối tiếp, không phải đồng thời thật); chế độ tối chỉ đo tương phản bằng mã, chưa xem hình; xem hình ở 375 và 830 bị giới hạn vì cửa sổ giả lập nên đo bằng DOM.
+
+Ghi lại để quyết định: hộp deal của tài khoản bị chặn vẫn hiện **mã của người cùng căn hộ** ("Your unit's code, claimed by Alex Rivera ... MALLA10") theo thiết kế "claim chia sẻ trong căn hộ"; câu trả lời mẫu của người dùng cho Staff nói không tiết lộ. Chờ người dùng chốt giữ hay ẩn.
+
+Dữ liệu: không tạo dữ liệu thật trong phần này (các ca chạy trên bộ nhớ riêng của test); T-1086, T-1087 và claim Pending của Alex không đổi (7 và 6 tin, vẫn trong hàng đợi).
+
+Test: `promotions-matrix.test.mjs` (12 test). `npm test` 541 test, 540 qua, 1 lỗi cũ.

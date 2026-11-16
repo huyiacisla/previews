@@ -569,8 +569,9 @@ function refreshDialog() {
     line.textContent = mate ? `One claim per unit: ${mate.name} already claimed this${mate.at ? ` on ${new Date(mate.at).toLocaleDateString("en-US", { month: "short", day: "numeric" })}` : ""}.` : cs ? say[cs.st] : "";
     const askBtn = $("#dlg-ask");
     const ownRow = mate ? null : rewardRows().find((x) => x.id === String(p.id));
-    askBtn.hidden = !ownRow;
-    askBtn.onclick = () => ownRow && askAboutClaim(ownRow);
+    askBtn.textContent = mate ? "Ask the property team about this" : "Ask about this claim";
+    askBtn.hidden = !ownRow && !mate;
+    askBtn.onclick = () => (mate ? askAboutClaim({ unit: true, id: p.id, title: p.title }) : ownRow && askAboutClaim(ownRow));
     line.dataset.tone = cs && (cs.st === "verified" || cs.st === "redeemed") ? "ok" : cs && cs.st === "rejected" ? "no" : "";
   }
   const btn = $("#dlg-claim-btn");
@@ -871,12 +872,24 @@ function askAboutClaim(row) {
     return;
   }
   const rec = allRecords(storage).find((x) => String(x.id) === String(row.id));
+  // a promotion the unit already claimed (this resident is blocked by the one-per-unit rule): the question carries the promotion, not the other person's code or claim
+  if (row.unit) {
+    try {
+      storage.setItem("eso-ask-claim", JSON.stringify({ rid: me.id, promoId: row.id, claimId: "", title: row.title, code: "", at: "", status: "Claimed by your unit", unit: true }));
+    } catch {}
+    openMessages();
+    return;
+  }
   try {
     const n = Number(residentState(storage, me.id).claims[row.id]?.count) || 1;
     // the id Staff see in their Claims inbox: the same claim is found by it on both sides
     const claimId = `r_${me.id}|${row.id}|${n}`.replace(/[^a-zA-Z0-9]/g, "_");
     storage.setItem("eso-ask-claim", JSON.stringify({ rid: me.id, promoId: row.id, claimId, title: rec ? rec.x.title : "Promotion", code: row.code, at: row.at, status: STATUS[row.key][0] }));
   } catch {}
+  openMessages();
+}
+
+function openMessages() {
   const q = new URLSearchParams(location.search);
   q.delete("embed");
   q.set("ask", "1");

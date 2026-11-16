@@ -621,9 +621,9 @@ export function createStore({ transport, now = Date.now, config = {} } = {}) {
       const claimId = clean(claim.claimId, 80);
       const promoId = clean(claim.promoId, 60);
       const when = claim.at && Number.isFinite(Date.parse(claim.at)) ? new Date(claim.at).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }) : "";
-      const text = ["I have a question about my promotion claim.", `Promotion: ${title}`, code && `Code: ${code}`, when && `Claimed: ${when}`, status && `Status: ${status}`].filter(Boolean).join("\n");
+      const text = [claim.unit ? "I have a question about a promotion my unit already claimed." : "I have a question about my promotion claim.", `Promotion: ${title}`, code && `Code: ${code}`, when && `Claimed: ${when}`, status && `Status: ${status}`].filter(Boolean).join("\n");
       // the card: what the team needs to find the claim, shown in the chat to both sides
-      const card = { type: "claim", claimId, promoId, title, code, status, at: when ? String(claim.at) : "" };
+      const card = { type: "claim", claimId, promoId, title, code, status, at: when ? String(claim.at) : "", ...(claim.unit ? { unit: true } : {}) };
       api.tick();
       return act((d) => {
         let conv = Object.values(d.convs).find((c) => c.kind === "resident_support" && c.residentId === userId && OPEN_RESIDENT.includes(c.status));

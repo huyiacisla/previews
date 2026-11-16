@@ -3460,7 +3460,7 @@ export function mount({ portal }) {
       localStorage.removeItem("eso-ask-claim");
       const a = JSON.parse(raw || "null");
       if (!a || a.rid !== me.id || typeof a.title !== "string") return null;
-      return { title: a.title, code: a.code, at: a.at, status: a.status, claimId: a.claimId, promoId: a.promoId };
+      return { title: a.title, code: a.code, at: a.at, status: a.status, claimId: a.claimId, promoId: a.promoId, unit: !!a.unit };
     } catch {
       return null;
     }
