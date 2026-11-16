@@ -7987,6 +7987,10 @@ html.dark .pmvs button[aria-checked="true"].pmvs-on{background:#14532d;color:#dc
 .pmvs button:focus-visible{outline:2px solid var(--ring,#2563eb);outline-offset:2px}@media(pointer:coarse){.pmvs button{min-height:44px}}
 .pmv-hint{font-size:12px;opacity:.75;line-height:1.4}
 .q22-img{display:grid;gap:8px}.q22-prev{aspect-ratio:16/7;max-height:132px;border-radius:10px;overflow:hidden;display:grid;place-items:center;color:#fff;font-size:12px;text-shadow:0 1px 2px rgba(0,0,0,.4)}.q22-prev img{width:100%;height:100%;object-fit:cover}.q22-ia{display:flex;gap:8px;flex-wrap:wrap}.q22-ia [hidden]{display:none}
+/* the status pill and the pen on a card cover never touch: a clear gap, and the same height on touch screens */
+@media(min-width:481px){.pd .pi .pmv{right:60px}}
+@media(pointer:coarse){.pd .pi .pme{width:40px!important;height:40px!important}}
+@media(pointer:coarse) and (max-width:480px){.pd .pi .pmv{top:54px}}
 @media(max-width:1099px){.pcs-d{max-height:90vh}.pcs-d .gm-h{padding:10px 14px}.pcs-d .gm-b{padding:10px 14px 14px;gap:10px}.pcs-drop{min-height:72px}}
 /* a narrowed list (Drafts, Scheduled, Live…) has many cards side by side: a short cover keeps them small */
 .pmx .pm-flat .pd .pi{aspect-ratio:auto!important;height:clamp(80px,17vw,120px)!important;min-height:0!important}
