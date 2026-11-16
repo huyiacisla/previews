@@ -555,8 +555,11 @@ function refreshDialog() {
   const box = $("#dlg-claim");
   box.hidden = !(shown && shown.code);
   if (!box.hidden) {
-    $("#dlg-claim-label").textContent = mate ? `Your unit's code, claimed by ${mate.name}` : p.method === "qr" ? "Show this code at the partner" : "Your code";
-    $("#dlg-code").textContent = shown.code;
+    $("#dlg-claim-label").textContent = mate ? `Already claimed in your unit by ${mate.name}` : p.method === "qr" ? "Show this code at the partner" : "Your code";
+    // the code of someone else's claim is theirs: the person blocked by the one-per-unit rule is told who got it, not given the code
+    $("#dlg-code").textContent = mate ? "" : shown.code;
+    $("#dlg-code").hidden = !!mate;
+    $("#dlg-copy").hidden = !!mate;
     // what the property staff decided about this claim (words, not colour alone)
     const cs = mate ? null : claimStatus(storage, me.id, p.id);
     const say = {
@@ -998,7 +1001,7 @@ function paintRewards() {
     badge.dataset.tone = st[1];
     $("[data-note]", li).textContent = `${u.name} · ${when(u.at)}`;
     $("[data-timeline]", li).hidden = true;
-    $("[data-code]", li).textContent = u.code;
+    $("[data-code]", li).hidden = true; // a unit mate's code stays theirs
     $("[data-copy]", li).hidden = true;
     $("[data-cancel]", li).hidden = true;
     $("[data-ask]", li).hidden = true;

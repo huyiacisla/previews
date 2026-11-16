@@ -624,3 +624,11 @@ Goal của vòng 4: cư dân claim deal rồi hỏi Staff qua chat; Staff mở c
 **Ca tập của người dùng giữ nguyên**: ticket T-1086 (Alex Rivera, 7 tin, claim Pending MALLA10) và ticket T-1087 (Jamie Rivera, 6 tin) vẫn trong hàng đợi, chưa Take, chưa trả lời. Muốn xoá thì dọn bằng cách: gỡ cuộc trò chuyện c55 và cuộc của Alex khỏi `eso-msg-v1` (convs và msgs), xoá `eso-res-promo:res-1` và bản ghi `r_res_1_parking0_1` trong `eso-pmclaims`; hoặc dùng nút reset dữ liệu mẫu của Messages. Chỉ làm khi người dùng bảo.
 
 Dọn dữ liệu phần này: claim, tin nhắn và trạng thái của Priya đã gỡ (cuộc c8 đặt lại 9 tin như trước), tab Staff về Dashboard, viewport desktop.
+
+### Sau vòng 4 (người dùng bảo "tiếp tục làm"): ẩn mã của người cùng căn hộ
+
+Quyết định đang chờ ở R4-9 được áp dụng theo đề xuất (người dùng chưa trả lời riêng, câu mẫu của họ cho Staff nói không tiết lộ chi tiết claim của tài khoản khác): tài khoản bị chặn theo quy tắc 1 căn hộ **không còn thấy mã** của người đã claim. Hộp deal ghi "Already claimed in your unit by Alex Rivera" và "One claim per unit: Alex Rivera already claimed this on Nov 16." (tên và ngày giữ nguyên, theo thiết kế "claim chia sẻ trong căn hộ"), không có mã, không có nút Copy; mục "Your unit's claims" trong My rewards cũng bỏ mã. Nếu muốn kín hơn nữa (không nói tên, không nói ngày) chỉ cần đổi hai câu chữ này.
+
+Kiểm bằng giao diện thật (Jamie, `?as=res-4`, chụp hai lần): hộp deal không có mã và Copy, vẫn có nút "Claimed by your unit" (vô hiệu) và "Ask the property team about this"; My rewards không có "MALLA10"; hộp deal của chính Alex vẫn có mã của anh. Resident view của Staff dùng chung tệp nên giống y.
+
+Test: `promotions-unit.test.mjs` (thêm 1 test). `npm test` 542 test, 541 qua, 1 lỗi cũ. T-1086 và T-1087 không đổi.

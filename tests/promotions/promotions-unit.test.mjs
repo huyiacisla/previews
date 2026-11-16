@@ -66,3 +66,10 @@ test("the Staff panel says in red, first, that the unit already got it", () => {
   assert.ok(app.includes("`Same unit (${u.number})`"), "the claims of the others of the unit");
   assert.ok(app.includes("JSON.stringify([t.conv.id, data, promoEv, unitEv,"), "the panel follows changes of the unit");
 });
+
+test("the person blocked by the one-per-unit rule is told who got the promotion, and is not given the other account's code", () => {
+  const res = readFileSync(new URL("../../src/features/promotions/resident.js", import.meta.url), "utf8");
+  assert.ok(res.includes('$("#dlg-code").textContent = mate ? "" : shown.code;') && res.includes('$("#dlg-copy").hidden = !!mate;'), "no code and no Copy in the deal box");
+  assert.ok(res.includes('$("[data-code]", li).hidden = true;'), "no code in My rewards, in the unit's claims");
+  assert.ok(res.includes("Already claimed in your unit by ${mate.name}"));
+});
