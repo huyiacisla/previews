@@ -155,7 +155,7 @@ Người dùng: khối "Offer ends in" / "Use this code at checkout" / `MALLA10`
 
 - [x] **Phần 1: Template.** Deals, Store, Minimal mono, Luxury dark, rồi các template còn lại, mỗi cái ở 375/830/1440, sáng/tối: thanh trên cùng, hero gộp (badge, mã, nút), lưới thẻ, My rewards, History, (i), Redeem, chi tiết deal. Đổi template ở Staff, Resident đổi ngay.
 - [x] **Phần 2: Brand kit.** Màu chính, màu phụ, font, kiểu nút, logo; xem Resident đổi cả thanh portal, huy hiệu, hộp thoại; trả về mặc định.
-- [ ] **Phần 3: Tạo và sửa deal.** Form New promotion (ảnh bìa, logo đối tác, mã tĩnh/duy nhất/QR/link, giới hạn tổng/mỗi người/mỗi unit, hẹn lịch, nháp); Edit details (đổi tiêu đề, giá, mã, danh mục) hiện đúng ở Resident.
+- [x] **Phần 3: Tạo và sửa deal.** Form New promotion (ảnh bìa, logo đối tác, mã tĩnh/duy nhất/QR/link, giới hạn tổng/mỗi người/mỗi unit, hẹn lịch, nháp); Edit details (đổi tiêu đề, giá, mã, danh mục) hiện đúng ở Resident.
 - [ ] **Phần 4: Claim.** Alex và Jamie cùng unit, giới hạn theo unit/theo người, hết suất, đã claim, Cancel, claim lại, History; Staff xác nhận/đổi/từ chối ở Claims và Resident thấy đúng trạng thái và giờ.
 - [ ] **Phần 5: Vòng đời.** Đóng, gia hạn, tạm tắt/Off live, hẹn lịch, xoá, xuất CSV; ngày thật 16/11/2026, đồng hồ, "Expired on" đúng; sample deal và deal do Staff tạo.
 - [ ] **Phần 6: Truy cập và dọn.** Bàn phím, focus, (i), Redeem; vùng bấm; không có hai điều khiển cho một việc; dọn dữ liệu test; ghi tổng kết, hỏi người dùng về push.
@@ -210,3 +210,19 @@ Bài học về cách test: khi đổi `eso-pm-page` bằng tay phải đổi c�
 Kết quả sau sửa: 0 chữ thiếu tương phản trên 216 tổ hợp, trừ nút trên màu indigo `#6366f1` ở 4.47:1 (đã chấp nhận ở Phần 1). Không sửa: màu chính tuỳ chọn quá nhạt hay quá sáng vẫn được nhận (nút chữ rơi về mực nhưng nút đặc dùng chữ trắng/đen theo độ sáng). Đã trả brand kit về mặc định (primary, secondary, font, button style rỗng; image Rounded; logo rỗng), trả template về Deals, xoá khoá tạm, đóng tab Staff.
 
 Test: `promotions-history.test.mjs` (kiểu ảnh, màu phụ, nút).
+
+## Phần 3 (xong): Tạo và sửa deal
+
+Cách làm (Staff ở tab thứ hai, form New promotion và Edit details bằng giao diện thật, ngày thật 16/11/2026): tạo 6 deal QA3: tĩnh có ảnh bìa, logo đối tác, tổng 5, 2 mỗi người; mã duy nhất (prefix) có ảnh bìa; QR có logo; link ngoài; hẹn lịch bắt đầu sau 3 ngày; bản nháp. Xem ở Resident (375): chỉ 4 deal đang bán hiện (hẹn lịch và nháp không hiện); thẻ có ảnh bìa, logo hoặc chữ cái đầu của đối tác, thẻ giá, hạn "Exp: Nov 26, 2026", "Only 5 left" đúng tổng giới hạn; nút trong chi tiết đúng cách nhận: link "Get offer" (mở ngoài), mã duy nhất "Get my code", QR và mã tĩnh "Claim"; chi tiết ghi "Up to 2 claims per resident". Sửa bằng Edit details (tiêu đề, giá, mã, danh mục, đối tác): Resident đổi đúng. Form kiểm tra đúng: loại "% off" bắt nhập giá trị, "Free" thì không; mã tĩnh bắt nhập mã.
+
+Lỗi tìm thấy và đã sửa:
+1. **Ảnh bìa Staff tải lên không hiện trên thẻ ở trang Staff** (Resident hiện). Hai nguyên nhân: giá trị `url("data:...")` có dấu nháy kép nằm trong `style="..."` nên thuộc tính bị cắt; và một luật CSS ép mọi thẻ nền xám trung tính (`background-image:none!important`). Giờ dùng nháy đơn và luật chỉ áp cho thẻ không có ảnh riêng.
+2. **Trình dựng Staff (Live editor) không cảnh báo khi khối Coupon có mã không deal nào nhận** (yêu cầu từ Phần 1). Giờ dưới ô Code hiện chữ đỏ "No promotion uses this code. Residents would copy it and be told it was not found, so the Resident page does not show it..." (và "No promotion has a promo code yet…" với `{{code}}` khi chưa deal nào có mã); đã thử mã sai, mã của deal thật, và mã đã sửa bằng Edit details.
+
+Không sửa (ghi lại):
+- Canvas của trình dựng Staff vẫn vẽ khối "Offer ends in" và Coupon riêng, trong khi Resident gộp chúng vào hero. Staff có thể thắc mắc vì sao không giống. Cân nhắc gộp trên canvas hoặc thêm chú thích ở Phần 6.
+- Ô "Price / value" của Edit details chỉ đổi chữ hiển thị ("$10 off"), không đổi giá trị giảm thật (`oval`, `otype`) của deal.
+
+Dọn dữ liệu: xoá 6 deal QA3, bản nháp form, khoá sửa `eso-pmedits` của deal QA; trả template về Deals (Publish & set as current) và xác nhận "In use: Deals marketplace".
+
+Test: `promotions-history.test.mjs` (ảnh bìa, cảnh báo mã).

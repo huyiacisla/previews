@@ -205,3 +205,12 @@ test("a text or outline button in the brand colour falls back to readable ink wh
   assert.ok(page.includes("curBg = bg;") && page.includes("curBg = light ? T.alt : T.accent;"), "the section the button sits on is known, the hero's own background included");
   assert.ok(page.includes("border:2px solid ${onAccent ? c : ac};color:${onAccent ? c : ac}") && page.includes("color:${onAccent ? c : ac};text-decoration:underline"));
 });
+
+test("Staff see the cover they uploaded on the card, and the builder warns about a coupon code no promotion takes", () => {
+  const staff = readFileSync(new URL("../../src/staff/account-settings-content.html", import.meta.url), "utf8");
+  assert.ok(staff.includes("const bg=x.cover?`url('${x.cover}') ${x.cx}% ${x.cy}%/cover`"), "a double quote inside style=\"...\" ended the attribute: the cover never showed on the Staff card");
+  assert.ok(staff.includes('.pm-sec .pd .pi:not([style*="url("])'), "a card with a picture of its own is not painted neutral");
+  assert.ok(staff.includes("const cpWarn=(v)=>") && staff.includes('data-ixp="${k}" value="${H(v)}">${f[2]?`<small>${tt(f[2])}</small>`:""}${b.type=="coupon"&&k=="code"?cpWarn(v):""}'), "the live editor warns under the Coupon code field");
+  assert.ok(staff.includes("No promotion uses this code") && staff.includes("No promotion has a promo code yet"));
+  assert.ok(!staff.includes('<p class="pbw" role="alert">'), "the warning class does not collide with the old builder's block wrapper");
+});
