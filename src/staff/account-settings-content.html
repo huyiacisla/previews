@@ -2153,9 +2153,19 @@ const SF={new:(a,b)=>a.created-b.created,ending:(a,b)=>a.endsDays-b.endsDays,vie
 function results(){const R={};CATS.forEach(([k])=>{R[k]=Object.values(META).filter(m=>m&&m.k===k).filter(m=>!res||m.st=="active").filter(match).sort(SF[PF.sort]||SF.new)});return R}
 function HL(t){const e=H(t),q=PF.q.trim();if(!q)return e;const x=H(q).replace(/[.*+?^${}()|[\]\\]/g,"\\$&");return e.replace(new RegExp(x,"ig"),m=>`<mark>${m}</mark>`)}
 const STL={active:"Active",scheduled:"Scheduled",expired:"Expired",draft:"Draft"};
+/* Perks-portal reference: a partner avatar on the cover, the expiry at the bottom right of the card, and a table for the List view (Staff only) */
+const pmIni=t=>String(t||"").replace(/[^A-Za-z0-9 ]/g,"").trim().split(/\s+/).slice(0,2).map(w=>w[0]||"").join("").toUpperCase()||"?";
+const pmExp=m=>{const z=window._pmStock&&m.id&&_pmStock.state(m);if(z=="expired"||m.st=="expired")return{t:String((m.d&&m.d[2])||"Expired").replace(/^Ended/,"Expired"),x:1};if(typeof m.endsDays!="number"||!isFinite(m.endsDays))return{t:"",x:0};if(m.endsDays>=999)return{t:"No expiry",x:0};return{t:"Exp: "+new Date(2026,9,30+m.endsDays).toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"}),x:0}};
+function listTable(R,ks){const items=[];ks.forEach(k=>R[k].forEach(m=>items.push(m)));items.sort(SF[PF.sort]||SF.new);
+  const T={live:"Live",so:"Sold out",ex:"Expired",sch:"Scheduled",dr:"Drafts"},ttl=PF.tab&&T[PF.tab]||"All deals";
+  const rows=items.map(m=>{const br=m.d[0],C=CATS.find(x=>x[0]==m.k)||[m.k,m.k],e=pmExp(m),cl=window._pmStock?_pmStock.used(m):m.claims||0;
+    return `<tr class="pmr" data-pmrow="${m.id}" tabindex="0"><td class="pmr-p"><div class="pmr-pw"><span class="pav2" aria-hidden="true">${H(pmIni(br))}</span><span class="pmr-t"><b>${HL(br)}</b><small>${HL(m.d[1])}</small></span></div></td><td class="pmr-c"><span class="pcat">${lic(m.k,11,2)}${H(C[1])}</span></td><td class="pmr-v">${H(m.d[3])}</td><td class="pmr-s">${pmVisBtn(m,br)}</td><td class="pmr-n">${cl}</td><td class="pmr-e${e.x?" x":""}">${H(e.t)}</td><td class="pmr-a"><button type="button" class="btn o" data-pmrow-open="${m.id}" aria-label="Open ${H(br)}">View</button></td></tr>`}).join("");
+  return `<section class="pm-sec pm-tbl" id="pms-tbl"><div class="pm-sh"><h2><span class="pm-st">${ttl}</span> <small>${items.length} ${items.length==1?"deal":"deals"}</small></h2></div><div class="pmtbl-w"><table class="pmtbl"><thead><tr><th>Partner &amp; offer</th><th class="pmr-c">Category</th><th>Value</th><th>Status</th><th class="pmr-n">Claimed</th><th class="pmr-e">Expires</th><th class="pmr-a"><span class="sr">Actions</span></th></tr></thead><tbody>${rows}</tbody></table></div></section>`}
+document.addEventListener("click",e=>{const r=e.target.closest&&e.target.closest("[data-pmrow],[data-pmrow-open]");if(!r||e.target.closest("[data-pmvis]"))return;const id=r.dataset.pmrow||r.dataset.pmrowOpen;if(id&&window._cov){e.preventDefault();window._cov.detail(id)}},true);
+document.addEventListener("keydown",e=>{if(e.key!="Enter")return;const r=e.target.closest&&e.target.closest("tr[data-pmrow]");if(r&&e.target===r&&window._cov)window._cov.detail(r.dataset.pmrow)});
 function card(d,c,k,i){const[br,of,bd,pr,g,em,vw0]=d;const m=(typeof i=="string"&&META[i])||META[k+(i??0)]||{};const vw=m.id?(m.views||0):vw0;
  const cv=window._cov&&_cov.get(m.id);
- return `<article class="pd s-${c.style}" data-pmid="${m.id||""}" style="--r:${c.radius}px;--ac:${c.accent};--ratio:${c.ratio}${c.font?";font-family:"+c.font+";--pfh:"+c.fontH:""}"><div class="pi ${cv?"has-cv":""}" style="background:${g}">${cv?`<img class="pcv" src="${cv.src}" alt="${H(cv.alt||"")}" style="object-position:${cv.fx}% ${cv.fy}%">`:`<span class="pic">${lic(k,44,1.5)}</span>`}${c.badge?`<span class="bd">${H(bd)}</span>`:""}${res||!m.id?"":`<button class="pme" data-pmedit="${m.id}" aria-label="Edit card cover for ${H(br)}" title="Edit card cover">${lic("pen",14)}</button>`}${res||!m.id?"":pmVisBtn(m,br)}${res&&m.id?svBtn(m.id):""}</div><div class="pb">${c.catTag?`<span class="pcat">${lic(k,11,2)}${H((CATS.find(x=>x[0]==k)||[0,k])[1])}</span>`:""}<b>${HL(br)}</b><p>${HL(of)}</p>${c.price?`<span class="pc">${H(pr)}</span>`:""}${c.expiry&&!c.badge?`<span class="ex">${H(bd)}</span>`:""}${m.code?`<span class="pcode">${lic("tag",11)}<span>${HL(m.code)}</span></span>`:""}${window._pmStock?_pmStock.bar(m):""}${window._pmst&&!res?_pmst.sched(m):""}${window._pmStock&&_pmStock.state(m)?`<button class="pbt b-${c.btn} pbt-off" data-pmoff="${_pmStock.state(m)}" disabled>${H(_pmStock.btn(m))}</button>`:`<button class="pbt b-${c.btn}" data-pmdeal="${m.id||""}">${H(c.label)}</button>`}</div>${res?"":`<div class="stf">${window._pmStock&&_pmStock.state(m)?`<span class="pst ${_pmStock.state(m)}" title="${_pmStock.state(m)=="soldout"?"Fully claimed":""}">${_pmStock.state(m)=="soldout"?"Sold out":"Expired"}</span>`:`<span class="pst ${m.st}">${STL[m.st]||""}</span>`}<button type="button" class="stn" data-pmwho="views" data-pmwid="${m.id||""}" aria-label="${vw} views, see who viewed">${lic("eye",12)} ${typeof vw=="number"&&vw>=1e4?(vw/1e3).toFixed(0)+"k":vw}</button><button type="button" class="stn" data-pmwho="claims" data-pmwid="${m.id||""}" aria-label="${window._pmStock?_pmStock.used(m):m.claims||0} claimed, see who claimed">${lic("ticket",12)} ${window._pmStock?_pmStock.used(m):m.claims||0}<span class="stl"> claimed</span></button></div>`}</article>`}
+ return `<article class="pd s-${c.style}" data-pmid="${m.id||""}" style="--r:${c.radius}px;--ac:${c.accent};--ratio:${c.ratio}${c.font?";font-family:"+c.font+";--pfh:"+c.fontH:""}"><div class="pi ${cv?"has-cv":""}" style="background:${g}">${cv?`<img class="pcv" src="${cv.src}" alt="${H(cv.alt||"")}" style="object-position:${cv.fx}% ${cv.fy}%">`:`<span class="pic">${lic(k,44,1.5)}</span>`}${c.badge?`<span class="bd">${H(bd)}</span>`:""}${res||!m.id?"":`<button class="pme" data-pmedit="${m.id}" aria-label="Edit card cover for ${H(br)}" title="Edit card cover">${lic("pen",14)}</button>`}${res||!m.id?"":pmVisBtn(m,br)}${res&&m.id?svBtn(m.id):""}${res||!m.id?"":`<span class="pav" aria-hidden="true">${H(pmIni(br))}</span>`}</div><div class="pb">${c.catTag?`<span class="pcat">${lic(k,11,2)}${H((CATS.find(x=>x[0]==k)||[0,k])[1])}</span>`:""}<b>${HL(br)}</b><p>${HL(of)}</p>${c.price?`<span class="pc">${H(pr)}</span>`:""}${c.expiry&&!c.badge?`<span class="ex">${H(bd)}</span>`:""}${m.code?`<span class="pcode">${lic("tag",11)}<span>${HL(m.code)}</span></span>`:""}${window._pmStock?_pmStock.bar(m):""}${window._pmst&&!res?_pmst.sched(m):""}${window._pmStock&&_pmStock.state(m)?`<button class="pbt b-${c.btn} pbt-off" data-pmoff="${_pmStock.state(m)}" disabled>${H(_pmStock.btn(m))}</button>`:`<button class="pbt b-${c.btn}" data-pmdeal="${m.id||""}">${H(c.label)}</button>`}</div>${res?"":`<div class="stf">${window._pmStock&&_pmStock.state(m)?`<span class="pst ${_pmStock.state(m)}" title="${_pmStock.state(m)=="soldout"?"Fully claimed":""}">${_pmStock.state(m)=="soldout"?"Sold out":"Expired"}</span>`:`<span class="pst ${m.st}">${STL[m.st]||""}</span>`}<button type="button" class="stn" data-pmwho="views" data-pmwid="${m.id||""}" aria-label="${vw} views, see who viewed">${lic("eye",12)} ${typeof vw=="number"&&vw>=1e4?(vw/1e3).toFixed(0)+"k":vw}</button><button type="button" class="stn" data-pmwho="claims" data-pmwid="${m.id||""}" aria-label="${window._pmStock?_pmStock.used(m):m.claims||0} claimed, see who claimed">${lic("ticket",12)} ${window._pmStock?_pmStock.used(m):m.claims||0}<span class="stl"> claimed</span></button>${(()=>{const e=pmExp(m);return e.t?`<span class="pexp${e.x?" x":""}">${H(e.t)}</span>`:""})()}</div>`}</article>`}
 function flatSec(R,ks){const items=[];ks.forEach(k=>R[k].forEach(m=>items.push([k,m])));const f=SF[PF.sort]||SF.new;items.sort((a,b)=>f(a[1],b[1]));
   const T={live:"Live",so:"Sold out",ex:"Expired",sch:"Scheduled",dr:"Drafts"},ttl=PF.tab&&T[PF.tab]||"Results",lst=PF.view=="list";
   const cs={};ks.forEach(k=>{cs[k]=Object.assign({},cfg(k),{style:lst?"list":"card",layout:lst?"list":"grid",catTag:true,per:4})});
@@ -2203,7 +2213,7 @@ function page(){if(!res&&PF.tab=="store"&&window._pmst){const s=page0();return s
  ${res?"":pmTabs()}<!--pmtb-->${toolbar(R)}
  <nav class="pm-nav" aria-label="Deal categories"><button class="${PF.cat=="all"?"on":""}" data-pmcat="all">All deals <span class="n">${tot}</span></button>${CATS.map(c=>`<button class="${PF.cat==c[0]?"on":""}" data-pmcat="${c[0]}">${c[1]} <span class="n">${R[c[0]].length}</span></button>`).join("")}</nav>
  ${act||!res?"":`<div class="pm-strip"><button data-pmq="valet">20% off monthly valet</button><button data-pmcat="ev">$100 off home EV chargers</button><button data-pmcat="moving">Storage: first month $1</button></div>`}
- ${act&&!ks.length?empty:!res&&PF.cat=="all"&&act?flatSec(R,ks):ks.map(k=>sec(k,R[k])).join("")}
+ ${act&&!ks.length?empty:!res&&PF.view=="list"?listTable(R,ks):!res&&PF.cat=="all"&&act?flatSec(R,ks):ks.map(k=>sec(k,R[k])).join("")}
  <p class="pm-note">Sample promotions and partner names for the prototype. Images are generated placeholders.</p></div>`}
 /* Redeem page (Resident view): trang con như Saved — ← ∧ h1 ∧ ô nhập code; kết quả từ _pmcl.rdLook (chỉ tra cứu/claim, không tự redeem). RDP không lưu localStorage. */
 let RDP=false,RDV="",RDR="";
@@ -8040,6 +8050,36 @@ html.dark .pst.active{background:#14532d;color:#bbf7d0}html.dark .pst.draft{back
 .pmx .pm-nav{gap:8px;overflow-x:auto;scrollbar-width:none}.pmx .pm-nav::-webkit-scrollbar{display:none}
 .pmx .pm-nav button{height:36px;min-height:36px;padding:6px 14px;font-size:13px;font-weight:500}
 .pmx .pm-sh{margin-top:20px;margin-bottom:12px}.pmx .pm-sh h2{font-size:18px;font-weight:700}.pmx .pm-sh h2 small{font-size:13px;font-weight:400}
+/* ===== Perks-portal reference: avatar on the cover, expiry bottom right, table for the List view ===== */
+.pav{display:none}
+.pmx .pd.s-card:has(.pi .pmv){container-type:inline-size}
+.pmx .pd.s-card:has(.pi .pmv) .pi{overflow:visible!important}
+.pmx .pd.s-card:has(.pi .pmv) .pi .pav{display:flex;position:absolute;left:16px;bottom:-20px;z-index:2;width:40px;height:40px;align-items:center;justify-content:center;border-radius:12px;background:#0f172a;color:#fff;font-size:12px;font-weight:700;line-height:1;box-shadow:0 0 0 4px var(--card,#fff)}
+html.dark .pmx .pd.s-card:has(.pi .pmv) .pi .pav{background:#e2e8f0;color:#0f172a}
+.pmx .pd.s-card:has(.pi .pmv) .pb{padding-top:30px}
+.pmx .pd.s-card:has(.pi .pmv) .stf .pexp{margin-left:auto;font-size:11px;font-weight:500;color:var(--muted,#94a3b8);white-space:nowrap}
+.pmx .pd.s-card:has(.pi .pmv) .stf .pexp.x{color:#b91c1c}
+html.dark .pmx .pd.s-card:has(.pi .pmv) .stf .pexp.x{color:#fca5a5}
+@container (max-width:339px){.stf .stn[data-pmwho="views"]{display:none}}
+.pmtbl-w{overflow-x:auto;background:var(--card);border:1px solid var(--border);border-radius:16px}
+.pmtbl{width:100%;border-collapse:collapse;text-align:left;font-size:14px}
+.pmtbl th{padding:14px 16px;font-size:12px;font-weight:600;color:var(--muted);background:color-mix(in srgb,var(--bg) 60%,var(--card));border-bottom:1px solid var(--border);white-space:nowrap}
+.pmtbl td{height:64px;padding:8px 16px;border-bottom:1px solid #f1f5f9;vertical-align:middle;font-variant-numeric:tabular-nums}
+html.dark .pmtbl td{border-bottom-color:var(--border)}
+.pmtbl tbody tr{cursor:pointer}.pmtbl tbody tr:last-child td{border-bottom:0}
+@media(hover:hover){.pmtbl tbody tr:hover{background:color-mix(in srgb,var(--primary) 6%,transparent)}}
+.pmtbl tbody tr:focus-visible{outline:2px solid var(--ring,#2563eb);outline-offset:-2px}
+.pmr-pw{display:flex;align-items:center;gap:12px;min-width:200px}
+.pav2{display:flex;flex:none;width:40px;height:40px;align-items:center;justify-content:center;border-radius:12px;background:#0f172a;color:#fff;font-size:12px;font-weight:700}
+html.dark .pav2{background:#e2e8f0;color:#0f172a}
+.pmr-t b{display:block;font-size:14px;line-height:20px}.pmr-t small{display:block;max-width:320px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;line-height:16px;color:var(--muted)}
+.pmr-v{font-weight:700;color:#4338ca;white-space:nowrap}html.dark .pmr-v{color:#a5b4fc}
+.pmr-e{font-size:12px;color:var(--muted);white-space:nowrap}.pmr-e.x{color:#b91c1c}
+.pmr-a{text-align:right}.pmr-a .btn{height:36px;min-height:36px;padding:0 14px}
+.pmtbl .pmv{position:static!important;box-shadow:none;height:32px;min-height:32px;padding:0 10px 0 8px}
+.pmtbl .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)}
+@media(max-width:1023px){.pmtbl .pmr-c,.pmtbl .pmr-n{display:none}}
+@media(max-width:639px){.pmtbl .pmr-e,.pmtbl .pmr-a{display:none}.pmr-pw{min-width:0;gap:10px}.pmtbl td,.pmtbl th{padding-left:10px;padding-right:10px}.pmtbl .pmv{width:36px;height:36px;min-width:36px;min-height:36px;padding:0;gap:0;justify-content:center}.pmtbl .pmv .pmv-t{position:absolute;display:block!important;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}.pmtbl .pmv svg{width:16px;height:16px}.pmr-t small{max-width:100px}}
 </style>
 <script id="pmv-js">(function(){
 /* The on/off switch on a deal's card (Staff only). Off makes the deal a draft: residents do not see it, and it stays in Staff's list (Drafts). On publishes it.

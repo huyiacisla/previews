@@ -149,6 +149,10 @@ test('Staff\'s switch is a Staff-only button at the top of the card, with words,
   assert.ok(!/@media\(pointer:coarse\)\{\.pmv\{[^}]*\}\.pmv-t\{display:none\}\}/.test(staff), "no icon-only switch on touch screens: Live / Off live must be readable");
   // by decision (Staff, 2026-11-16): on tablet and phone the card shows the status as an icon only; the word stays for screen readers (clipped, not hidden) and in the aria-label and tooltip
   assert.ok(staff.includes(".pmv .pmv-t{position:absolute;display:block!important;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}"), "the word is clipped, not display:none");
+  // perks-portal reference: the expiry is at the bottom right of the card, the cover has a partner avatar, and the List view is a table (Staff only)
+  assert.ok(staff.includes('<span class="pexp${e.x?" x":""}">${H(e.t)}</span>'), "expiry in the footer");
+  assert.ok(staff.includes(".stf .pexp{margin-left:auto;"), "expiry is pushed to the right");
+  assert.ok(staff.includes('!res&&PF.view=="list"?listTable(R,ks):'), "the table is for Staff; the Resident view keeps its own list");
   assert.ok(staff.includes('aria-label="${H(word+". "+say+". Open to change")}'), "the full status is still the accessible name");
   // 1,000 deals: off-screen cards are skipped, and the follow looks again until a long list is drawn (and scrolls at once before it focuses)
   assert.ok(staff.includes(".pd{content-visibility:auto;contain-intrinsic-size:auto 260px 400px}"));
