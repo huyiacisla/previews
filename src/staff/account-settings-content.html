@@ -5850,7 +5850,7 @@ function open(id,o={}){const pi=document.querySelector(`.pd[data-pmid="${id}"] .
 function close(){document.getElementById("pcs")?.remove();S=null}
 function draw(){const d=document.getElementById("pcs");if(!d)return;const v=S.d;
  d.innerHTML=`<div class="gm-s" data-pc="x"></div><div class="pcs-d" role="dialog" aria-modal="true" aria-labelledby="pcst"><header class="gm-h"><div><b id="pcst">Card cover</b><small>${E(S.title)} · crop ${E(S.ratio.replace(/\s/g,""))} (matches section style)</small></div><button class="bx bx-o gm-i" data-pc="x" aria-label="Close">${X}</button></header><div class="gm-b">
- <div class="pcs-pv ${v.src?"":"empty"}" id="pcspv" style="aspect-ratio:${S.ratio};background:${S.bg}" ${v.src?'title="Tap to set focal point"':""}>${v.src?`<img src="${v.src}" alt="" style="object-position:${v.fx}% ${v.fy}%"><i class="pcs-fp" style="left:${v.fx}%;top:${v.fy}%"></i>`:`<label class="pcs-drop" for="pcsf"><b>Upload cover image</b><small>Tap to choose${matchMedia("(pointer:fine)").matches?" · or drag & drop / paste":""} · JPG, PNG, WebP</small></label>`}</div>
+ <div class="pcs-pv ${v.src?"":"empty"}" id="pcspv" style="aspect-ratio:${S.ratio};width:min(100%,calc(36vh*${String(S.ratio).replace(/s/g,"")}));margin-inline:auto;background:${S.bg}" ${v.src?'title="Tap to set focal point"':""}>${v.src?`<img src="${v.src}" alt="" style="object-position:${v.fx}% ${v.fy}%"><i class="pcs-fp" style="left:${v.fx}%;top:${v.fy}%"></i>`:`<label class="pcs-drop" for="pcsf"><b>Upload cover image</b><small>Tap to choose${matchMedia("(pointer:fine)").matches?" · or drag & drop / paste":""} · JPG, PNG, WebP</small></label>`}</div>
  <input id="pcsf" type="file" accept="image/*" hidden>
  ${v.src?`<small class="gm-mut">Tap or drag on the image to set the focal point. Badges stay on top.</small><div class="gm-row"><label class="gm-mut" style="flex:1">Horizontal <input type="range" min="0" max="100" value="${v.fx}" data-pcr="fx" style="width:100%"></label><label class="gm-mut" style="flex:1">Vertical <input type="range" min="0" max="100" value="${v.fy}" data-pcr="fy" style="width:100%"></label></div>
  <label class="gm-l" for="pcsa">Alt text</label><input id="pcsa" class="gm-in" value="${E(v.alt)}" placeholder="Describe the image for screen readers" maxlength="140">`:`<small class="gm-mut">No image: the card uses the gradient + icon fallback.</small>`}
@@ -7987,6 +7987,13 @@ html.dark .pmvs button[aria-checked="true"].pmvs-on{background:#14532d;color:#dc
 .pmvs button:focus-visible{outline:2px solid var(--ring,#2563eb);outline-offset:2px}@media(pointer:coarse){.pmvs button{min-height:44px}}
 .pmv-hint{font-size:12px;opacity:.75;line-height:1.4}
 .q22-img{display:grid;gap:8px}.q22-prev{aspect-ratio:16/7;max-height:132px;border-radius:10px;overflow:hidden;display:grid;place-items:center;color:#fff;font-size:12px;text-shadow:0 1px 2px rgba(0,0,0,.4)}.q22-prev img{width:100%;height:100%;object-fit:cover}.q22-ia{display:flex;gap:8px;flex-wrap:wrap}.q22-ia [hidden]{display:none}
+@media(max-width:1099px){.pcs-d{max-height:90vh}.pcs-d .gm-h{padding:10px 14px}.pcs-d .gm-b{padding:10px 14px 14px;gap:10px}.pcs-drop{min-height:72px}}
+/* a narrowed list (Drafts, Scheduled, Live…) has many cards side by side: a short cover keeps them small */
+.pmx .pm-flat .pd .pi{aspect-ratio:auto!important;height:clamp(80px,17vw,120px)!important;min-height:0!important}
+.pmx .pm-flat .pd .pi .pic{transform:scale(.72)}
+.pmx .pm-flat .pd .pb{padding:10px 12px 12px;gap:6px}
+.pmx .pm-flat .pd .stf{padding:8px 12px}
+@media(max-width:600px){.pmx .pm-flat .pd .pi{height:96px!important}.pmx .pm-flat .pd .pb{padding:8px 10px 10px}}
 .pcat{display:inline-flex;align-items:center;gap:4px;align-self:flex-start;max-width:100%;margin:0 0 4px;padding:2px 8px;border-radius:99px;background:rgba(100,116,139,.16);color:inherit;font-size:11px;font-weight:600;line-height:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .pdd-cat{align-self:flex-start;display:inline-block;padding:2px 10px;border-radius:99px;background:rgba(100,116,139,.16);font-size:12px;font-weight:600;line-height:18px}
 .pmx .pm-flat .pr.l-grid:not(:has(>.s-hero)){grid-template-columns:repeat(auto-fill,minmax(min(100%,220px),1fr))!important}
