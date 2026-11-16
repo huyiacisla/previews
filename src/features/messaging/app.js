@@ -9,7 +9,7 @@ import { duration, formatBytes, formatFull, formatTime, groupByDay, listTime } f
 import { initials, PERSONAS, PORTALS, pickPersona } from "./personas.js";
 import { describeFilters, FILTER_KEYS, isEmptyQuery, matchFilters, matchText, parseQuery, withoutFilter } from "./query.js";
 import { decideClaim, decisionText } from "../promotions/decide.js";
-import { allRecords, claimStatus, historyFor, residentState, unitBlocks, unitHistory } from "../promotions/store.js";
+import { allRecords, claimStatus, historyFor, householdClaims, maskCode, residentState, unitBlocks, unitHistory, unitMates } from "../promotions/store.js";
 import { createStore, notifies, STAGE_LABEL, STAGES, ticketNo } from "./store.js";
 import { clearSideData, createTransport } from "./transport.js";
 
@@ -1295,6 +1295,124 @@ export function mount({ portal }) {
     }
   }
 
+  // Everything a person did about promotions, deal by deal, for the "View all" window: [{ promoId, title, claims: n, st, label, code, at, by, mates: [{ name, st, at }] }]
+  const WORD = { pending: "Pending", verified: "Verified", redeemed: "Used", rejected: "Not approved" };
+  function promoOverview(residentId) {
+    try {
+      const st = residentState(localStorage, residentId);
+      const titleOf = (id) => {
+        const r = allRecords(localStorage).find((x) => String(x.id) === String(id));
+        return r ? r.x.title : "Promotion";
+      };
+      const states = (() => {
+        try {
+          return JSON.parse(localStorage.getItem("eso-pm-claimstate")) || {};
+        } catch {
+          return {};
+        }
+      })();
+      return Object.keys(st.claims)
+        .filter((id) => st.claims[id] && st.claims[id].count)
+        .map((id) => {
+          const c = st.claims[id];
+          const cs = claimStatus(localStorage, residentId, id);
+          const d = states[`${residentId}|${id}|${c.count}`] || {};
+          return {
+            promoId: id,
+            title: titleOf(id),
+            claims: c.count,
+            label: cs ? (cs.cancelled ? "Cancelled" : WORD[cs.st] || cs.st) : "Pending",
+            code: c.code || "",
+            at: c.at || "",
+            by: d.by ? `${d.by}${d.byId ? ` (${d.byId})` : ""}` : "",
+            reason: cs && cs.st === "rejected" && !cs.cancelled ? cs.reason || "" : "",
+            mates: householdClaims(localStorage, residentId, id).map((m) => ({ name: m.name, at: m.at, count: m.count })),
+          };
+        })
+        .sort((a, b) => String(b.at).localeCompare(String(a.at)));
+    } catch {
+      return [];
+    }
+  }
+  // "Also claimed in this unit by Jamie Rivera": the link between a claim and the people who share the unit
+  const sameUnitLine = (mates) => (mates && mates.length ? `Also claimed in this unit by ${mates.map((m) => m.name).join(", ")}` : "");
+  function openAllPromos(conv, resident) {
+    let dlg = document.getElementById("promos-all");
+    if (dlg) dlg.remove();
+    dlg = document.createElement("dialog");
+    dlg.id = "promos-all";
+    dlg.setAttribute("aria-labelledby", "promos-all-title");
+    dlg.className = "m-auto max-h-dvh w-full max-w-lg overflow-y-auto rounded-xl bg-card p-0 text-foreground shadow-lift-md backdrop:bg-foreground/40";
+    const box = document.createElement("div");
+    box.className = "flex flex-col gap-step-md p-step-lg";
+    const head = document.createElement("div");
+    head.className = "flex items-start justify-between gap-step-md";
+    const h = document.createElement("h2");
+    h.id = "promos-all-title";
+    h.className = "text-lg leading-6 font-semibold";
+    h.textContent = `Promotions of ${resident.name}`;
+    const close = button("Close", { variant: "outline", onClick: () => dlg.close() });
+    head.append(h, close);
+    box.appendChild(head);
+    const rule = document.createElement("p");
+    rule.className = "text-sm text-muted-foreground";
+    rule.textContent = "A promotion that is one per unit can be claimed once for the whole unit. What the others in the unit claimed is listed below, so you see who already has it.";
+    box.appendChild(rule);
+    const section = (title, rows, who) => {
+      const sub = document.createElement("p");
+      sub.className = "text-sm font-medium";
+      sub.textContent = title;
+      box.appendChild(sub);
+      if (!rows.length) {
+        const none = document.createElement("p");
+        none.className = "text-sm text-muted-foreground";
+        none.textContent = who ? "Nothing claimed yet." : "No one else in this unit has claimed a promotion.";
+        box.appendChild(none);
+        return;
+      }
+      const ul = document.createElement("ul");
+      ul.setAttribute("role", "list");
+      ul.className = "flex flex-col gap-step-sm";
+      for (const r of rows) {
+        const li = document.createElement("li");
+        li.className = "flex flex-col gap-step-xs rounded-lg bg-background p-step-sm ring-1 ring-foreground/10";
+        const line = document.createElement("div");
+        line.className = "flex items-center justify-between gap-step-sm";
+        const name = document.createElement("span");
+        name.className = "text-sm font-medium";
+        name.textContent = r.title;
+        line.append(name, badge(r.label, { Pending: "warning", Verified: "info", Used: "success", "Not approved": "danger", Cancelled: "neutral" }[r.label] || "neutral"));
+        const meta = document.createElement("span");
+        meta.className = "text-xs text-muted-foreground";
+        meta.textContent = [r.code && `Code ${r.code}`, r.claims > 1 ? `${r.claims} claims` : "", r.at && listTime(Date.parse(r.at) || 0, Date.now()), r.by && `Decided by ${r.by}`, r.reason && `Reason: ${r.reason}`].filter(Boolean).join(" · ");
+        li.append(line, meta);
+        const link = sameUnitLine(r.mates);
+        if (link) {
+          const p = document.createElement("p");
+          p.className = "text-xs font-medium text-info-text";
+          p.textContent = link;
+          li.appendChild(p);
+        }
+        ul.appendChild(li);
+      }
+      box.appendChild(ul);
+    };
+    section(`${resident.name}`, promoOverview(conv.residentId), true);
+    for (const m of unitMates(conv.residentId)) {
+      // a promotion this person holds that the resident also holds is linked to the resident's own row above
+      section(`Same unit: ${m.name}`, promoOverview(m.id).map((r) => ({ ...r, mates: [] })), true);
+    }
+    if (!unitMates(conv.residentId).length) section("Same unit", [], false);
+    if (portal === "staff") box.appendChild(button("Open Claims inbox", { variant: "outline", icon: "forward", onClick: () => goPage("/staff/promotions.html", "#/promotions/claims") }));
+    dlg.appendChild(box);
+    dlg.addEventListener("click", (e) => {
+      if (e.target === dlg) dlg.close();
+    });
+    dlg.addEventListener("close", () => dlg.remove());
+    document.body.appendChild(dlg);
+    dlg.showModal();
+  }
+
   // The claims of this resident that wait for Staff (or are confirmed and can still be applied by hand): [{ promoId, title, st, manual, n }]
   function decidable(residentId) {
     try {
@@ -1431,6 +1549,17 @@ export function mount({ portal }) {
         }
       }
       const promo = ctxSection("Promotions");
+      // "View all": a window with every promotion this resident claimed and what the others in the unit claimed, linked deal by deal
+      const hdr = promo.closest("section") && promo.closest("section").querySelector("[data-heading]");
+      if (hdr) {
+        // the heading and the button share one row: the button sits at the right end of the "Promotions" line
+        const row = document.createElement("div");
+        row.className = "flex items-center justify-between gap-step-sm";
+        hdr.replaceWith(row);
+        row.appendChild(hdr);
+        const all = button("View all", { variant: "outline", ariaLabel: "View all promotions of this resident and their unit", onClick: () => openAllPromos(t.conv, data.person || { name: "this resident" }) });
+        row.appendChild(all);
+      }
       // the one-per-unit rule: said first and in red, with whose account and when
       for (const b of unitEv.blocks) {
         const al = document.createElement("p");
@@ -1466,6 +1595,13 @@ export function mount({ portal }) {
           meta.className = "text-xs text-muted-foreground";
           meta.textContent = [lit ? "Asked about" : "", listTime(Date.parse(e.at) || 0, Date.now()), e.note].filter(Boolean).join(" · ");
           li.append(head, meta);
+          const link = sameUnitLine(householdClaims(localStorage, t.conv.residentId, e.promoId).map((m) => ({ name: m.name })));
+          if (link) {
+            const p = document.createElement("p");
+            p.className = "text-xs font-medium text-info-text";
+            p.textContent = link;
+            li.appendChild(p);
+          }
           ul.appendChild(li);
         }
       }
@@ -1809,6 +1945,7 @@ export function mount({ portal }) {
       t.conv.status,
       latestChoices && latestChoices.id,
       t.emergency ? t.emergency.msgId : 0,
+      msgs.some((m) => m.card) ? localStorage.getItem("eso-pm-claimstate") : 0, // a claim card follows the claim: it is drawn again when Staff decide
     ]);
     if (sig === ui.sigLog) return;
     ui.sigLog = sig;
@@ -2334,10 +2471,20 @@ export function mount({ portal }) {
       line.append(dt, dd);
       dl.appendChild(line);
     };
+    // The card was made when the resident asked; what it says about the claim follows the claim now (Staff confirmed it, the resident cancelled it...), and a resident does not see
+    // the code of a claim that is not approved yet in clear (mask until approved), as everywhere else. Staff see the code: they find the claim by it.
+    const n = /_(\d+)$/.exec(card.claimId || "");
+    const rid = conv && conv.residentId;
+    const live = !card.unit && card.promoId && rid && n && Number(n[1]) === (Number(residentState(localStorage, rid).claims[card.promoId]?.count) || 0) ? claimStatus(localStorage, rid, card.promoId) : null;
+    const WORD = { pending: "Pending", verified: "Verified", redeemed: "Used", rejected: "Not approved" };
+    const status = live ? (live.cancelled ? "Cancelled" : WORD[live.st] || card.status) : card.status;
+    const approved = !!live && (live.st === "verified" || live.st === "redeemed");
+    const code = me.role === "resident" && card.code && !approved ? maskCode(card.code) : card.code;
     row("Promotion", card.title);
-    row("Code", card.code);
+    row("Code", code);
     row("Claim ID", card.claimId);
-    row("Status", card.status);
+    row("Status", status);
+    row("Reason", live && live.st === "rejected" && !live.cancelled ? live.reason : "");
     row("Claimed", card.at && Number.isFinite(Date.parse(card.at)) ? formatFull(Date.parse(card.at)) : "");
     row("Ticket", conv && conv.ticketNo ? ticketNo(conv) : "");
     el.appendChild(dl);
@@ -3541,7 +3688,10 @@ export function mount({ portal }) {
     if (!e.key || !(e.key.startsWith("eso-res-promo:") || e.key === "eso-pm-claimstate" || e.key === "eso-pmclaims")) return;
     if (!ui.convId) return;
     const t = store.get(ui.convId, me.id);
-    if (t.ok) renderContext(t);
+    if (t.ok) {
+      renderContext(t);
+      renderThread(true); // the claim card in the chat shows the claim as it is now
+    }
   });
   store.subscribe(onStore);
   document.addEventListener("visibilitychange", () => {

@@ -945,6 +945,12 @@ infoDlg.addEventListener("click", (e) => {
 // date and time with the year: the history is a record
 const whenFull = (iso) => (iso && !Number.isNaN(Date.parse(iso)) ? new Date(iso).toLocaleString("en-US", { month: "short", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit" }) : "Time not recorded");
 const when = (iso) => (iso ? new Date(iso).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }) : "");
+// "Waiting 6 h" / "Waiting 3 days": how long the claim has been waiting for the property team (only what is true; no promised time)
+const waitingText = (iso) => {
+  const m = Math.max(0, (Date.now() - new Date(iso).getTime()) / 60000);
+  if (!Number.isFinite(m)) return "In progress";
+  return m < 1 ? "Waiting, just now" : m < 60 ? `Waiting ${Math.round(m)} min` : m < 2880 ? `Waiting ${Math.round(m / 60)} h` : `Waiting ${Math.round(m / 1440)} days`;
+};
 const ago = (iso) => {
   const m = Math.max(0, (Date.now() - new Date(iso).getTime()) / 60000);
   return m < 1 ? "just now" : m < 60 ? `${Math.round(m)}m ago` : m < 1440 ? `${Math.round(m / 60)}h ago` : when(iso);
@@ -1093,7 +1099,7 @@ function paintClaim() {
     const label = $("[data-label]", li);
     label.textContent = st.label;
     label.dataset.state = st.state;
-    $("[data-when]", li).textContent = st.at ? when(st.at) : st.state === "current" ? "In progress" : "";
+    $("[data-when]", li).textContent = st.at ? when(st.at) : st.state === "current" ? waitingText(r.at) : "";
     $("[data-text]", li).textContent = st.note;
     if (st.state === "current") li.setAttribute("aria-current", "step");
     steps.appendChild(li);

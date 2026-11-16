@@ -160,7 +160,7 @@ test("Staff see who claimed: the unit is cut to its first character until the ey
   const staff = readFileSync(new URL("../../src/staff/account-settings-content.html", import.meta.url), "utf8").replace(/\r\n/g, "\n");
   assert.ok(staff.includes('const mask=c=>U.rev.has(c.id)?"Unit "+c.unit:"Unit "+String(c.unit||"").slice(0,1)+"••";'));
   assert.ok(staff.includes("const eyeBtn=c=>") && staff.includes('data-cleye="${c.id}" aria-pressed="${on}"'), "an eye with a name and a pressed state");
-  assert.ok(staff.includes("<span>${mask(c)}${eyeBtn(c)} · ${ago(c.t)}</span>"), "on the inbox row");
+  assert.ok(staff.includes("<span>${mask(c)}${eyeBtn(c)} · ${ago(c.t)}${unitMatesOf(c).length?"), "on the inbox row");
   assert.ok(staff.includes('<span>${mask(c)}${c.rid?" · "+(U.rev.has(c.id)?H(c.rid):"•••"):""}${eyeBtn(c)}</span>'), "in the claim detail, beside the unit line, with the resident id");
   assert.ok(staff.includes("<span>${mask(c)}${eyeBtn(c)}</span><br>"), "in the Redeem lookup");
   assert.ok(staff.includes('data-pweye aria-pressed="false"'), "in the Claimed by list");
