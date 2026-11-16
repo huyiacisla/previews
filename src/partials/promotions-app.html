@@ -12,6 +12,8 @@
     <symbol id="i-tag" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.586 2.586A2 2 0 0 0 11.172 2H4a2 2 0 0 0-2 2v7.172a2 2 0 0 0 .586 1.414l8.704 8.704a2.426 2.426 0 0 0 3.42 0l6.58-6.58a2.426 2.426 0 0 0 0-3.42z"/><circle cx="7.5" cy="7.5" r=".5" fill="currentColor"/></symbol>
     <symbol id="i-external" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 7h10v10"/><path d="M7 17 17 7"/></symbol>
     <symbol id="i-filter" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 5h18"/><path d="M6 12h12"/><path d="M10 19h4"/></symbol>
+    <symbol id="i-clock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></symbol>
+    <symbol id="i-more" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="5" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="12" cy="19" r="1"/></symbol>
     <symbol id="i-sun-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8a2.83 2.83 0 0 0 4 4 4 4 0 1 1-4-4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.9 4.9 1.4 1.4"/><path d="m17.7 17.7 1.4 1.4"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.3 17.7-1.4 1.4"/><path d="m19.1 4.9-1.4 1.4"/></symbol>
   </defs>
 </svg>
@@ -22,12 +24,20 @@
 <div id="app" class="flex h-dvh min-h-0 flex-col bg-background text-foreground">
   <header class="shrink-0 border-b border-border bg-background">
     <div class="flex w-full items-center gap-step-md px-step-lg py-step-sm lg:px-step-xl">
-      <!-- Exit leaves Promotions (to the page the person came from, else Home). The page has no inner steps, so there is no Back. Icon alone on a phone. -->
-      <a id="btn-exit" data-chrome href="/resident/home.html" aria-label="Exit Promotions" class="group/button inline-flex h-8 shrink-0 touch-manipulation items-center justify-center gap-step-xs rounded-md border border-border bg-card px-step-sm text-sm font-medium text-foreground transition outline-none select-none hover:bg-muted focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 active:translate-y-px max-sm:w-8 max-sm:px-0 pointer-coarse:h-11 max-sm:pointer-coarse:w-11 [&_svg]:size-4 [&_svg]:text-danger-text"><svg aria-hidden="true"><use href="#i-x"/></svg><span class="max-sm:sr-only">Exit</span></a>
       <h1 class="min-w-0 flex-1 truncate text-2xl leading-8 font-semibold tracking-tight text-foreground">Promotions<span id="portal-label" class="ml-step-sm hidden text-sm font-normal tracking-normal text-muted-foreground sm:inline"></span></h1>
       <button type="button" data-theme-toggle data-chrome aria-label="Switch between light and dark" class="group/button inline-flex size-8 shrink-0 touch-manipulation items-center justify-center rounded-md border border-transparent bg-foreground/8 bg-clip-padding text-secondary-foreground transition outline-none select-none hover:bg-foreground/12 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 active:translate-y-px pointer-coarse:size-11 [&_svg]:size-4">
         <svg aria-hidden="true"><use href="#i-sun-moon"/></svg>
       </button>
+      <div data-chrome class="relative shrink-0">
+        <button type="button" id="btn-more" aria-haspopup="menu" aria-expanded="false" aria-controls="more-menu" aria-label="More" class="group/button inline-flex size-8 touch-manipulation items-center justify-center rounded-md border border-transparent bg-foreground/8 bg-clip-padding text-secondary-foreground transition outline-none select-none hover:bg-foreground/12 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 active:translate-y-px aria-expanded:bg-foreground/12 pointer-coarse:size-11 [&_svg]:size-4">
+          <svg aria-hidden="true"><use href="#i-more"/></svg>
+        </button>
+        <div id="more-menu" role="menu" aria-label="More" hidden class="absolute right-0 z-50 mt-step-xs flex min-w-48 flex-col rounded-lg bg-card p-step-xs text-foreground shadow-lift-md ring-1 ring-foreground/10">
+          <button type="button" role="menuitem" data-more="saved" class="flex h-8 w-full items-center gap-step-sm rounded-md px-step-sm text-left text-sm text-foreground outline-none hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50 pointer-coarse:h-11"><svg aria-hidden="true" class="size-4"><use href="#i-star"/></svg>Saved promotions</button>
+          <button type="button" role="menuitem" data-more="filters" class="flex h-8 w-full items-center gap-step-sm rounded-md px-step-sm text-left text-sm text-foreground outline-none hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50 pointer-coarse:h-11"><svg aria-hidden="true" class="size-4"><use href="#i-filter"/></svg>Filters</button>
+          <a id="btn-exit" role="menuitem" href="/resident/home.html" class="flex h-8 w-full items-center gap-step-sm rounded-md px-step-sm text-left text-sm text-foreground outline-none hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50 pointer-coarse:h-11"><svg aria-hidden="true" class="size-4"><use href="#i-arrow-left"/></svg>Back to Home</a>
+        </div>
+      </div>
       <div data-chrome class="hidden min-w-0 items-center gap-step-sm sm:flex">
         <span id="me-avatar" class="inline-flex size-8 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-medium text-muted-foreground"></span>
         <span class="flex min-w-0 flex-col leading-tight"><span id="me-name" class="truncate text-sm font-medium"></span><span id="me-role" class="truncate text-xs text-muted-foreground"></span></span>
@@ -119,6 +129,7 @@
         <span data-nocover class="absolute inset-0 flex items-center justify-center text-muted-foreground [&_svg]:size-8"><svg aria-hidden="true"><use href="#i-tag"/></svg></span>
       </div>
       <span data-avatar aria-hidden="true" class="absolute -bottom-5 left-step-md z-raised flex size-10 items-center justify-center overflow-hidden rounded-xl bg-foreground text-xs font-semibold text-background ring-4 ring-card"></span>
+      <span data-count hidden role="timer" class="absolute -bottom-3 right-step-md z-raised inline-flex h-6 items-center gap-1 rounded-full bg-card px-step-sm text-xs font-medium tabular-nums text-warning-text ring-4 ring-card [&_svg]:size-3.5"><svg aria-hidden="true"><use href="#i-clock"/></svg><span data-count-text></span></span>
       </div>
       <div class="flex min-w-0 flex-1 flex-col gap-step-sm px-step-md pt-8 pb-step-md">
         <p data-partner class="truncate text-xs text-muted-foreground empty:hidden"></p>

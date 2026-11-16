@@ -84,10 +84,11 @@ export function sampleRecords(storage) {
   // What Staff turned off (a draft) or on is read each time; the list is only made again when that choice changed.
   const overrides = storage ? C.readOverrides(storage) : {};
   const edits = storage ? C.readEdits(storage) : {};
+  const ends = storage ? C.readEnds(storage) : {};
   const covers = readCovers(storage);
-  const key = JSON.stringify([overrides, edits, covers]);
+  const key = JSON.stringify([overrides, edits, covers, ends]);
   if (sampleCache.key !== key) {
-    const list = C.records(overrides, edits).map((r) => {
+    const list = C.records(overrides, edits, ends).map((r) => {
       const logo = covers[`logo:${r.id}`];
       const cv = covers[r.id];
       const x = { ...r.x };
@@ -117,7 +118,7 @@ function audienceLabel(x) {
 /** A promotion is shown once it has started and until its end date; drafts and not-yet-started ones stay hidden. */
 export function isLive(rec, today) {
   const x = rec && rec.x;
-  if (!x || rec.st === "draft") return false;
+  if (!x || rec.st === "draft" || rec.st === "closed" || rec.st === "removed") return false; // closed = Staff ended it; removed = Staff took it off the list
   if (x.start && x.start > today) return false;
   if (x.end && x.end < today) return false;
   if (Array.isArray(x.ch) && x.ch.length && !x.ch.includes("In-App")) return false; // not delivered in the app
@@ -157,6 +158,17 @@ export function claimedByResidents(storage, promoId) {
 }
 
 const daysBetween = (a, b) => Math.round((new Date(`${b}T00:00:00`) - new Date(`${a}T00:00:00`)) / 864e5);
+
+// The moment a promotion ends, as milliseconds: Staff's end date and time, or (a sample deal, whose dates follow a demo clock) the end of the day that many days from today.
+function endsAtOf(x, today) {
+  if (x.end) return new Date(`${x.end}T${/^\d{2}:\d{2}$/.test(x.etime || "") ? x.etime : "23:59"}:00`).getTime();
+  if (Number.isFinite(x.endsIn) && x.endsIn >= 0) {
+    const d = new Date(`${today}T23:59:00`);
+    d.setDate(d.getDate() + x.endsIn);
+    return d.getTime();
+  }
+  return null;
+}
 
 function toPromo(rec, names, extra = 0, today = todayISO()) {
   const x = rec.x;
@@ -198,6 +210,7 @@ function toPromo(rec, names, extra = 0, today = todayISO()) {
     isNew: x.badge === "New" || (!rec.sample && !!x.start && daysBetween(x.start, today) >= 0 && daysBetween(x.start, today) <= 14),
     isLimited: total > 0 && !((Number(rec.claims) || 0) + (extra || 0) >= total),
     isFree: /\bfree\b|\$0\b|\$1\b/i.test(offerLabel(x)),
+    endsAt: endsAtOf(x, today),
     daysLeft: Number.isFinite(x.endsIn) ? x.endsIn : x.end ? daysBetween(today, x.end) : null,
     audience: audienceLabel(x),
     terms: String(x.terms || "").slice(0, 1000),

@@ -250,6 +250,35 @@ function tagOf(p, hot) {
   return null;
 }
 
+// "2d 5h left", then "5h 12m left", then "12m 30s left" in the last hour. At zero the list is drawn again (the promotion is gone).
+function leftText(ms) {
+  const s = Math.max(0, Math.floor(ms / 1000));
+  const d = Math.floor(s / 86400);
+  const h = Math.floor((s % 86400) / 3600);
+  const m = Math.floor((s % 3600) / 60);
+  if (d > 0) return `${d}d ${h}h left`;
+  if (h > 0) return `${h}h ${m}m left`;
+  return `${m}m ${s % 60}s left`;
+}
+function paintCount(el) {
+  const ms = Number(el.dataset.ends) - Date.now();
+  if (ms <= 0) {
+    el.hidden = true;
+    return true;
+  }
+  $("[data-count-text]", el).textContent = leftText(ms);
+  return false;
+}
+let counting = 0;
+function startTicker() {
+  if (counting) return;
+  counting = setInterval(() => {
+    let done = false;
+    for (const el of document.querySelectorAll("[data-count]:not([hidden])")) done = paintCount(el) || done;
+    if (done) render();
+  }, 1000);
+}
+
 function card(p, mine, cfg, hot = new Set()) {
   const li = tpl("t-card");
   li.dataset.promo = p.id;
@@ -275,6 +304,13 @@ function card(p, mine, cfg, hot = new Set()) {
   if (p.full) badges.appendChild(badge("Sold out", "danger"));
   const stock = stockEl(p);
   if (stock) $("[data-stock]", li).appendChild(stock);
+  const cnt = $("[data-count]", li);
+  if (p.endsAt && p.daysLeft != null && p.daysLeft <= 7 && !p.full) {
+    cnt.dataset.ends = String(p.endsAt);
+    cnt.hidden = false;
+    paintCount(cnt);
+    startTicker();
+  }
   const tag = tagOf(p, hot);
   const tagEl = $("[data-tag]", li);
   tagEl.hidden = !tag;
@@ -456,6 +492,49 @@ $("#dlg-copy").addEventListener("click", async () => {
 });
 
 /* ---------------------------------------------------------------- search + live */
+
+// The three-dot menu: Saved promotions, Filters, and the way back Home.
+const moreBtn = $("#btn-more");
+const moreMenu = $("#more-menu");
+function closeMore(focusBtn = false) {
+  if (moreMenu.hidden) return;
+  moreMenu.hidden = true;
+  moreBtn.setAttribute("aria-expanded", "false");
+  if (focusBtn) moreBtn.focus();
+}
+moreBtn.addEventListener("click", () => {
+  const open = moreMenu.hidden;
+  moreMenu.hidden = !open;
+  moreBtn.setAttribute("aria-expanded", String(open));
+  if (open) $("[role=menuitem]", moreMenu).focus();
+});
+moreMenu.addEventListener("click", (e) => {
+  const b = e.target.closest("[data-more]");
+  if (!b) return;
+  if (b.dataset.more === "saved") {
+    ui.savedOnly = true;
+    ui.category = "all";
+  }
+  if (b.dataset.more === "filters") ui.panel = true;
+  closeMore();
+  render();
+  if (b.dataset.more === "filters") $("#tag-filters button")?.focus();
+});
+moreMenu.addEventListener("keydown", (e) => {
+  const items = [...moreMenu.querySelectorAll("[role=menuitem]")];
+  const i = items.indexOf(document.activeElement);
+  if (e.key === "ArrowDown") items[(i + 1) % items.length].focus();
+  else if (e.key === "ArrowUp") items[(i - 1 + items.length) % items.length].focus();
+  else if (e.key === "Escape") closeMore(true);
+  else return;
+  e.preventDefault();
+});
+document.addEventListener("click", (e) => {
+  if (!e.target.closest("#btn-more, #more-menu")) closeMore();
+});
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape" && !moreMenu.hidden) closeMore(true);
+});
 
 $("#btn-filter").addEventListener("click", () => {
   ui.panel = !ui.panel;

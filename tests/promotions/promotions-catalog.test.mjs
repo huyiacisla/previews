@@ -58,7 +58,7 @@ test("the Resident sees the 17 running deals, and Staff's page carries no list o
   );
   assert.equal(new Set(list.map((p) => p.id)).size, 17);
   const staff = readFileSync(new URL("../../src/staff/account-settings-content.html", import.meta.url), "utf8");
-  assert.match(staff, /<!--include:promotions\/catalog\.js-->/);
+  assert.match(staff, /<!--include:features\/promotions\/catalog\.js-->/);
   assert.ok(!staff.includes("const DEALS={parking:["), "the deals are only in promotions/catalog.js");
   assert.match(staff, /PM_CATALOG\.meta\(DEALS,/);
 });
@@ -98,7 +98,7 @@ test("a deal Staff published sits next to the samples; the categories list count
   assert.equal(dining(s), dining(store()) + 1);
 });
 
-test("Staff's on/off choice: off hides a running sample deal from residents, on shows a draft, an ended deal stays ended, junk in the key is ignored", () => {
+test("Staff's on/off choice: off hides a running sample deal from residents, on shows a draft, an ended deal stays ended until it is extended, junk in the key is ignored", () => {
   const live = (st) => listPromotions(st, { today: TODAY }).map((p) => p.id);
   const base = live(store());
   assert.ok(base.includes("parking0"));
@@ -113,9 +113,10 @@ test("Staff's on/off choice: off hides a running sample deal from residents, on 
   const on = store({ "eso-pm-status": JSON.stringify({ [draftId]: "active" }) });
   assert.ok(live(on).includes(draftId));
   assert.equal(live(on).length, 18);
-  // an ended deal cannot be turned on from here
+  // an ended deal stays ended until Staff extends it (the choice "active" and a new end date)
   const endedId = Object.values(M0).find((m) => m.st === "expired").id;
-  assert.ok(!live(store({ "eso-pm-status": JSON.stringify({ [endedId]: "active" }) })).includes(endedId));
+  assert.ok(!live(store()).includes(endedId), "ended: residents do not see it");
+  assert.ok(live(store({ "eso-pm-status": JSON.stringify({ [endedId]: "active" }), "eso-pm-ends": JSON.stringify({ [endedId]: "2026-12-31" }) })).includes(endedId), "extended: residents see it again");
   // only known ids and the two choices are read
   assert.deepEqual(C.readOverrides(store({ "eso-pm-status": JSON.stringify({ parking0: "hack", "../x": "draft", ev3: "draft", a: "draft" }) })), { ev3: "draft" });
   assert.deepEqual(C.readOverrides(store({ "eso-pm-status": "[1,2]" })), {});

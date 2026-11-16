@@ -83,7 +83,7 @@
     }
     const out = {};
     if (raw && typeof raw === "object" && !Array.isArray(raw)) {
-      for (const k of Object.keys(raw)) if (/^[a-z]+\d{1,2}$/.test(k) && (raw[k] === "draft" || raw[k] === "active" || raw[k] === "scheduled")) out[k] = raw[k];
+      for (const k of Object.keys(raw)) if (/^[a-z]+\d{1,2}$/.test(k) && /^(draft|active|scheduled|expired|removed)$/.test(raw[k])) out[k] = raw[k];
     }
     return out;
   }
@@ -118,7 +118,21 @@
    * `overrides` is what Staff turned on or off (readOverrides): a deal turned off becomes a draft (residents do not see it), one turned on becomes live.
    * A deal that was already running keeps its numbers when it is turned off; one that never ran starts with none when it is turned on.
    */
-  function meta(DEALS, overrides) {
+  /** The new end date Staff gave a sample deal (extend) or the day they closed it: { "parking3": "2026-12-31" }. */
+  const ENDS_KEY = "eso-pm-ends";
+  function readEnds(storage) {
+    let raw = null;
+    try {
+      raw = JSON.parse(storage.getItem(ENDS_KEY));
+    } catch {
+      raw = null;
+    }
+    const out = {};
+    if (raw && typeof raw === "object" && !Array.isArray(raw)) for (const k of Object.keys(raw)) if (/^[a-z]+\d{1,2}$/.test(k) && /^\d{4}-\d{2}-\d{2}$/.test(String(raw[k]))) out[k] = raw[k];
+    return out;
+  }
+
+  function meta(DEALS, overrides, ends = {}) {
     const META = {};
     let gi = 0;
     const fd = (o) => new Date(2026, 9, 30 + o).toLocaleDateString("en-US", { month: "short", day: "numeric" });
@@ -140,7 +154,8 @@
           k,
           i,
           d,
-          st: base === "expired" ? base : choice || base, // an ended deal stays ended: it cannot be turned on again from here
+          st: choice || base, // Staff can turn a deal on or off, close it, remove it, or extend an ended one
+          ext: (ends && ends[k + i]) || "", // the end date Staff gave it (or the day they closed it)
           ty: code && n % 5 === 4 ? "coupon" : TYPE(d[1]),
           au: ["all", "members", "movein", "all"][n % 4],
           en: ["week", "month", "none", "month"][n % 4],
@@ -152,12 +167,13 @@
           created: n,
           endsDays: [4, 18, 999, 25][n % 4] + (n % 3),
         });
+        if (m.ext) m.endsDays = Math.round((new Date(`${m.ext}T00:00:00`) - new Date(2026, 9, 30)) / 864e5); // the demo clock is 30 Oct 2026
         const ran = base === "active" || base === "expired"; // did it run in the catalog's own story? only then does it have numbers
         if (!ran) {
           m.views = 0;
           m.claims = 0;
         } else m.claims = Math.min(m.claims, Math.floor(m.views * 0.7));
-        if (m.st === "expired") d[2] = "Ended " + fd(-((m.endsDays % 20) + 1));
+        if (m.st === "expired") d[2] = "Ended " + fd(m.ext ? m.endsDays : -((m.endsDays % 20) + 1));
         else if (m.st === "scheduled") d[2] = "Starts " + fd(3 + (n % 9));
         else if (m.st === "draft") d[2] = "Draft";
         else if (/^Ends /.test(d[2])) d[2] = m.endsDays >= 999 ? "Ongoing" : "Ends " + fd(m.endsDays);
@@ -184,8 +200,8 @@
   }
 
   /** The running deals as records of the shape Staff publish ({ id, st, x, claims }), which is what the Resident app reads. */
-  function records(overrides, edits) {
-    const META = meta(deals(), overrides);
+  function records(overrides, edits, ends) {
+    const META = meta(deals(), overrides, ends);
     const lim = limits(META);
     return Object.values(META)
       .filter((m) => m.st === "active")
@@ -208,6 +224,7 @@
             cat: e.cat || m.k,
             partner: e.partner || title,
             endsIn: m.endsDays >= 999 ? null : m.endsDays,
+            end: m.ext || undefined, // a real date only when Staff gave one
             endShow:
               m.endsDays >= 999
                 ? ""
@@ -230,5 +247,5 @@
       });
   }
 
-  root.PM_CATALOG = { CATS, deals, meta, limits, records, readOverrides, readEdits, STATUS_KEY, EDITS_KEY };
+  root.PM_CATALOG = { CATS, deals, meta, limits, records, readOverrides, readEdits, readEnds, STATUS_KEY, EDITS_KEY, ENDS_KEY };
 })(globalThis);

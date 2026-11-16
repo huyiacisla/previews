@@ -331,6 +331,103 @@ select option{background:var(--popover);color:var(--foreground)}
 
 
 </head><body>
+<script id="pm-life-js">(function(){
+/* The life of a promotion, from the detail box (Staff only): end it now, give it a new end date (also after it ended), export who claimed it, take the card off the list.
+   A deal Staff made is changed in its own record (eso-pmc-saved: st "closed" / "removed", x.end); a sample deal in eso-pm-status and eso-pm-ends. The Resident app reads the same keys. */
+var SK='eso-pmc-saved',DOC=document;
+function M(){return window._pmMETA||{}}
+function iso(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
+function today(){return iso(new Date())}
+function addDays(s,n){var d=new Date(s+'T00:00:00');d.setDate(d.getDate()+n);return iso(d)}
+function fmt(s){return new Date(s+'T00:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})}
+function short(s){return new Date(s+'T00:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'})}
+function tst(m,u){
+ try{var o=DOC.getElementById('pmlt');if(o)o.remove();var t=DOC.createElement('div');t.id='pmlt';t.className='pml-t';t.setAttribute('role','status');t.innerHTML='<span>'+E(m)+'</span>'+(u?'<button type="button">Undo</button>':'');DOC.body.appendChild(t);
+ if(u)t.querySelector('button').onclick=function(){t.remove();u()};setTimeout(function(){t.remove()},u?8000:4500)}catch(e){}}
+function E(t){return String(t==null?'':t).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})}
+function rd(k,d){try{var v=JSON.parse(localStorage.getItem(k)||'null');return v==null?d:v}catch(e){return d}}
+function wr(k,v){try{localStorage.setItem(k,JSON.stringify(v));return true}catch(e){tst('Could not save. Try again.');return false}}
+function ended(m){var z=window._pmStock&&_pmStock.state(m);return z==='expired'||m.st==='expired'}
+function endIso(m){
+ if(m.x&&m.x.end)return m.x.end;
+ if(m.ext)return m.ext;
+ var d=window._pmStock&&_pmStock.endD&&_pmStock.endD(m);if(d)return iso(d);
+ if(typeof m.endsDays==='number'&&m.endsDays<999)return iso(new Date(2026,9,30+m.endsDays));
+ return''}
+function rec(m){var a=rd(SK,[]);var r=a.filter(function(s){return String(s.id)===String(m.pmc)})[0];return r?{a:a,r:r}:null}
+function sync(id){var C=window.PM_CATALOG,m=M()[id],f=C.meta(C.deals(),C.readOverrides(localStorage),C.readEnds(localStorage))[id];if(!m||!f)return;m.st=f.st;m.ext=f.ext;m.endsDays=f.endsDays;m.d[2]=f.d[2];m.views=f.views;m.claims=f.claims}
+function after(id,keepOpen){try{window._pm&&_pm.upd&&_pm.upd()}catch(e){}if(keepOpen&&window._cov)window._cov.detail(id)}
+function setSample(id,st,end){var C=window.PM_CATALOG,ov=C.readOverrides(localStorage),en=C.readEnds(localStorage);if(st===null)delete ov[id];else ov[id]=st;if(end===null)delete en[id];else if(end)en[id]=end;if(!wr(C.STATUS_KEY,ov)||!wr(C.ENDS_KEY,en))return false;sync(id);return true}
+
+function endNow(id){
+ var m=M()[id];if(!m)return;var t=today(),prev={st:m.st};
+ if(m.pmc){var q=rec(m);if(!q)return;prev.rst=q.r.st;prev.end=q.r.x&&q.r.x.end;q.r.st='closed';q.r.x=q.r.x||{};q.r.x.end=t;if(!wr(SK,q.a))return;m.st='expired';if(m.x)m.x.end=t;m.endsDays=0;m.d[2]='Ended '+short(t)}
+ else{var C=window.PM_CATALOG;prev.ov=C.readOverrides(localStorage)[id];prev.en=C.readEnds(localStorage)[id];if(!setSample(id,'expired',t))return}
+ after(id,true);
+ tst((m.d[0]||'This deal')+' ended. Residents no longer see it.',function(){restore(id,prev)})}
+function restore(id,prev){
+ var m=M()[id];if(!m)return;
+ if(m.pmc){var q=rec(m);if(!q)return;q.r.st=prev.rst;if(prev.end)q.r.x.end=prev.end;else delete q.r.x.end;wr(SK,q.a);m.st=prev.st;if(m.x){if(prev.end)m.x.end=prev.end;else delete m.x.end}m.d[2]=prev.st==='draft'?'Draft':prev.st==='scheduled'?m.d[2]:'New'}
+ else{setSample(id,prev.ov===undefined?null:prev.ov,prev.en===undefined?null:prev.en)}
+ after(id,true)}
+function extend(id,date){
+ var m=M()[id];if(!m)return false;
+ if(!date||date<today()){return 'Pick today or a later date.'}
+ var prevSt=m.st,wasEnded=ended(m);
+ if(m.pmc){var q=rec(m);if(!q)return 'Could not find this promotion.';q.r.x=q.r.x||{};q.r.x.end=date;if(q.r.st==='closed')q.r.st='active';if(!wr(SK,q.a))return 'Could not save. Try again.';
+  if(m.x)m.x.end=date;if(m.st==='expired')m.st='active';m.endsDays=Math.max(0,Math.round((new Date(date+'T00:00:00')-new Date())/864e5));if(m.st==='active')m.d[2]='Ends '+short(date)}
+ else{var keep=(m.st==='draft'||m.st==='scheduled')?m.st:'active';if(!setSample(id,keep,date))return 'Could not save. Try again.'}
+ after(id,true);
+ tst((wasEnded?'Extended: ':'New end date: ')+fmt(date)+'.'+(wasEnded?' Residents can see it again.':''));return''}
+function remove(id){
+ var m=M()[id];if(!m)return;var prev={st:m.st};
+ if(m.pmc){var q=rec(m);if(!q)return;prev.rst=q.r.st;q.r.st='removed';if(!wr(SK,q.a))return;m.st='removed'}
+ else{var C=window.PM_CATALOG;prev.ov=C.readOverrides(localStorage)[id];if(!setSample(id,'removed',undefined))return;m.st='removed'}
+ var d=DOC.getElementById('pdd');if(d){if(history.state&&history.state.pdd)history.back();else d.remove()}
+ after(id,false);
+ tst((m.d[0]||'The card')+' was removed.',function(){m.st=prev.st;if(m.pmc){var q=rec(m);if(q){q.r.st=prev.rst;wr(SK,q.a)}}else setSample(id,prev.ov===undefined?null:prev.ov,undefined);after(id,false)})}
+function csvOf(id){
+ var m=M()[id],r=[['Claim ID','Resident','Unit','Claimed','Code','Status']];
+ ((window._pmcl&&_pmcl.CL)||[]).filter(function(c){return c.deal==id}).forEach(function(c){r.push([c.id,c.name,c.pv=='all'?c.unit:String(c.unit)[0]+'••',new Date(c.t).toISOString(),c.code,c.st])});
+ return{rows:r.length-1,text:r.map(function(l){return l.map(function(v){v=String(v==null?'':v);return /[",\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v}).join(',')}).join('\n')}}
+function download(id){
+ var m=M()[id],c=csvOf(id),name=String((m&&m.d[0])||id).toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'')+'-claimers.csv';
+ window.__lastLifeCSV=c.text;
+ try{var a=DOC.createElement('a');a.href=URL.createObjectURL(new Blob([c.text],{type:'text/csv'}));a.download=name;DOC.body.appendChild(a);a.click();a.remove()}catch(e){}
+ tst(c.rows?'Downloaded '+c.rows+(c.rows===1?' claim':' claims')+'.':'Nobody has claimed this yet: the file has only the header row.')}
+
+function render(box,id){
+ var m=M()[id];if(!m)return;var e=ended(m),end=endIso(m),t=today(),base=end&&end>t?end:t;
+ var state=e?'Ended'+(end?' on '+fmt(end):'')+'. Residents do not see it.':(m.st==='draft'?'Off live. Residents do not see it.':(m.st==='scheduled'?'Scheduled. ':'Live. ')+(end?'Ends '+fmt(end)+'.':'No end date.'));
+ box.dataset.id=id;
+ box.innerHTML='<h4>Manage</h4><p class="pml-s">'+E(state)+'</p>'
+ +'<div class="pml-r"><label for="pmlD">'+(e?'Extend until':'Change end date')+'</label><input id="pmlD" type="date" min="'+t+'" value="'+addDays(base,30)+'"><button type="button" class="bx bx-p" data-pml="extend">'+(e?'Extend':'Set date')+'</button></div>'
+ +'<div class="pml-r">'+(e?'':'<button type="button" class="bx bx-o" data-pml="end">End now</button>')+'<button type="button" class="bx bx-o" data-pml="csv">Export claimers (CSV)</button><button type="button" class="bx bx-o pml-d" data-pml="rm">Remove card</button></div>'
+ +'<div class="pml-c" id="pmlC" role="alert" hidden></div>'}
+function say(box,html){var c=box.querySelector('#pmlC');c.innerHTML=html;c.hidden=!html}
+
+window.addEventListener('click',function(ev){
+ var b=ev.target.closest&&ev.target.closest('[data-pml]');if(!b)return;
+ var box=b.closest('.pml-box');if(!box)return;ev.preventDefault();ev.stopImmediatePropagation();
+ var id=box.dataset.id,a=b.dataset.pml;
+ if(a==='csv')return download(id);
+ if(a==='cancel')return say(box,'');
+ if(a==='end')return say(box,'<span>End this promotion now? Residents stop seeing it and cannot claim it. You can extend it later.</span><span><button type="button" class="bx bx-p" data-pml="end-ok">End now</button><button type="button" class="bx bx-o" data-pml="cancel">Keep it</button></span>');
+ if(a==='end-ok'){say(box,'');return endNow(id)}
+ if(a==='rm')return say(box,'<span>Remove this card from the list? Residents will not see it either. You can undo right after.</span><span><button type="button" class="bx bx-p" data-pml="rm-ok">Remove</button><button type="button" class="bx bx-o" data-pml="cancel">Keep it</button></span>');
+ if(a==='rm-ok')return remove(id);
+ if(a==='extend'){var msg=extend(id,box.querySelector('#pmlD').value);if(msg)say(box,'<span>'+E(msg)+'</span>')}
+},true);
+
+new MutationObserver(function(){
+ var p=DOC.getElementById('pdd');if(!p||(window._pm&&_pm.res))return;
+ var row=p.querySelector('.pmv-row');if(!row||!row.dataset.id)return;
+ var box=p.querySelector('.pml-box');
+ if(!box){box=DOC.createElement('section');box.className='pml-box';var anchor=p.querySelector('.pmv-hist')||row;anchor.after(box);render(box,row.dataset.id)}
+ else if(box.dataset.id!==row.dataset.id)render(box,row.dataset.id)
+}).observe(DOC.body,{childList:true,subtree:true});
+window._pmLife={endNow:endNow,extend:extend,remove:remove,csv:csvOf,render:render};
+})();</script>
 <div id="app" class="app">
 <aside class="sb" id="sb"></aside><div class="ov" id="ov"></div>
 <div class="main"><header class="apphdr"><button class="ham hbtn" id="ham" aria-label="Toggle navigation"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h16M4 18h16"/></svg></button><nav class="crumb" id="ttl"></nav><nav class="topnav" id="topnav"></nav>
@@ -2081,7 +2178,7 @@ body.pmon #badge{display:none!important}
 .drw input[type=range]{width:150px}
 .dck{width:36px;height:20px;border-radius:10px;border:0;background:color-mix(in srgb,var(--fg) 20%,transparent);position:relative;cursor:pointer}.dck::after{content:"";position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;background:#fff;transition:.15s}.dck.on{background:var(--primary)}.dck.on::after{left:18px}
 </style>
-<script><!--include:promotions/catalog.js--></script>
+<script><!--include:features/promotions/catalog.js--></script>
 <script>
 (()=>{
 Object.assign(P,{tag:'<path d="M20.6 13.4l-7.2 7.2a2 2 0 01-2.8 0L3 13V3h10l7.6 7.6a2 2 0 010 2.8z"/><circle cx="7.5" cy="7.5" r="1.5"/>'});
@@ -2107,7 +2204,7 @@ const ACC=["#1f5d4c","#2563eb","#7c3aed","#c2410c","#be185d","#0f172a","#ffffff"
 Object.assign(LI,{search:'<circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/>',filter:'<path d="M3 5h18M6 12h12M10 19h4"/>',grid:'<rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>',list:'<path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/>',x:'<path d="M18 6L6 18M6 6l12 12"/>',inbox:'<path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.45 5.11L2 12v6a2 2 0 002 2h16a2 2 0 002-2v-6l-3.45-6.89A2 2 0 0016.76 4H7.24a2 2 0 00-1.79 1.11z"/>',layout:'<rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/>'});
 const NOWD=new Date(2026,9,30);const META={};let gi=0;
 const TYPE=o=>/%/.test(o)?"pct":/\$\d+ off/i.test(o)?"fixed":/bundle|buy \d|get 1|\bfor \$|bogo/i.test(o)?"bundle":/free|first month|\$1\b/i.test(o)?"trial":"coupon";
-Object.assign(META,PM_CATALOG.meta(DEALS,PM_CATALOG.readOverrides(localStorage)));window._pmMETA=META;
+Object.assign(META,PM_CATALOG.meta(DEALS,PM_CATALOG.readOverrides(localStorage),PM_CATALOG.readEnds(localStorage)));window._pmMETA=META;
 const FD={st:[["active","Active"],["scheduled","Scheduled"],["expired","Expired"],["draft","Draft"]],ty:[["pct","Discount %"],["fixed","Fixed $ off"],["trial","Free / first month"],["bundle","Bundle"],["coupon","Coupon code"]],au:[["all","All residents"],["members","Members"],["movein","New move-ins"]],en:[["week","This week"],["month","This month"],["none","No end date"]],bl:[["Building A","Building A"],["Building B","Building B"],["Garage","Garage"]],pb:[["QA Staff PM","QA Staff PM"],["Dana Whitfield","Dana Whitfield"],["Sample","Sample data"]]};
 const FL={st:"Status",ty:"Type",au:"Audience",en:"Ends",bl:"Building",pb:"Published by"};
 const SORTS=[["new","Newest"],["ending","Ending soon"],["views","Most viewed"],["claims","Most claimed"],["az","A–Z"]];
@@ -2129,7 +2226,7 @@ pfFromHash();cat=PF.cat;
 addEventListener("hashchange",()=>{if(/^#\/promotions\?/.test(location.hash)){pfFromHash();cat=PF.cat}});
 const nAct=()=>Object.keys(FL).reduce((a,k)=>a+PF[k].length,0)+(PF.code?1:0);
 const isAct=()=>!!PF.q.trim()||nAct()>0||(res&&PF.sv)||(!res&&PF.tab&&PF.tab!="all");
-function match(m){const d=m.d,q=PF.q.trim().toLowerCase();if(window._pmst&&(_pmst.gone(m)||_pmst.archived(m)))return false;if(q&&!(d[0]+" "+d[1]+" "+d[3]+" "+m.code+" "+CATS.find(c=>c[0]==m.k)[1]).toLowerCase().includes(q))return false;
+function match(m){if(m.st=="removed")return false;const d=m.d,q=PF.q.trim().toLowerCase();if(window._pmst&&(_pmst.gone(m)||_pmst.archived(m)))return false;if(q&&!(d[0]+" "+d[1]+" "+d[3]+" "+m.code+" "+CATS.find(c=>c[0]==m.k)[1]).toLowerCase().includes(q))return false;
  for(const k of Object.keys(FL))if(PF[k].length&&!PF[k].includes(k=="st"?({so:"soldout",ex:"expired"})[pmTabOf(m)]||m.st:m[k]))return false;if(PF.code&&!m.code)return false;if(res&&PF.sv&&!SV.has(m.id))return false;if(!res&&PF.tab&&PF.tab!="all"&&PF.tab!="svd"&&pmTabOf(m)!=PF.tab)return false;if(!res&&PF.tab=="svd"&&!SV.has(m.id))return false;/* only published deals count: a draft shows in the Drafts tab (or when the Status filter asks for it), never in "All", the category counts or the resident view */if(m.st=="draft"&&(res||((!PF.tab||PF.tab=="all")&&!PF.st.includes("draft"))))return false;return true}
 /* The on/off switch of a deal: on = residents see it (live, sold out), scheduled = on, residents see it from its start date, off = a draft they do not see, ended = off and cannot be turned on here. Icon AND words, never colour alone. */
 const PMV_ICON={on:'<path d="M2.06 12.35a1 1 0 0 1 0-.7 10.75 10.75 0 0 1 19.88 0 1 1 0 0 1 0 .7 10.75 10.75 0 0 1-19.88 0"/><circle cx="12" cy="12" r="3"/>',wait:'<circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>',off:'<path d="M10.733 5.076a10.744 10.744 0 0 1 11.205 6.575 1 1 0 0 1 0 .696 10.747 10.747 0 0 1-1.444 2.49"/><path d="M14.084 14.158a3 3 0 0 1-4.242-4.242"/><path d="M17.479 17.499a10.75 10.75 0 0 1-15.417-5.151 1 1 0 0 1 0-.696 10.75 10.75 0 0 1 4.446-5.143"/><path d="m2 2 20 20"/>'};
@@ -2139,7 +2236,7 @@ const word={on:"Live",wait:"Scheduled",off:"Off live",ended:"Ended"}[v];return `
 window._pmVisBtn=pmVisBtn;window._pmVis=pmVis;window._pmVisIcon=PMV_ICON;
 const pmTabOf=m=>{const z=window._pmStock&&m.id&&_pmStock.state(m);return z=="expired"?"ex":z=="soldout"?"so":m.st=="draft"?"dr":m.st=="active"?"live":"sch"};
 window._pmTabOf=pmTabOf;
-function pmTabs(){const c={all:0,live:0,so:0,ex:0,sch:0,dr:0,svd:0};Object.values(META).forEach(m=>{if(!m||!m.st)return;if(window._pmst&&(_pmst.gone(m)||_pmst.archived(m)))return;if(m.st!="draft")c.all++;c[pmTabOf(m)]++;if(SV.has(m.id))c.svd++});const t=PF.tab||"all";return `<div class="pdtabs pmtabs" role="tablist" aria-label="Promotion status">${[["all","All"],["live","Live"],["so","Sold out"],["ex","Expired"],["sch","Scheduled"],["dr","Drafts"],["svd","Saved"],["claims","Claims"],["store","Storage"]].map(([k,l])=>k=="store"?(window._pmst?`<button role="tab" data-pmtab="store" aria-selected="${t==k}" class="${t==k?"on":""}">Storage <span class="pdc">${_pmst.count()}</span></button>`:""):k=="claims"?(window._pmcl?`<button role="tab" data-pmtab="claims" aria-selected="${t==k}" class="${t==k?"on":""}">${lic("inbox",14)} Claims${_pmcl.pending()?` <span class="pdc pdc-p" title="Pending claims">${_pmcl.pending()}</span>`:""}</button>`:""):`<button role="tab" data-pmtab="${k}" aria-selected="${t==k}" class="${t==k?"on":""}">${l} <span class="pdc">${c[k]}</span></button>`).join("")}</div>`}
+function pmTabs(){const c={all:0,live:0,so:0,ex:0,sch:0,dr:0,svd:0};Object.values(META).forEach(m=>{if(!m||!m.st||m.st=="removed")return;if(window._pmst&&(_pmst.gone(m)||_pmst.archived(m)))return;if(m.st!="draft")c.all++;c[pmTabOf(m)]++;if(SV.has(m.id))c.svd++});const t=PF.tab||"all";return `<div class="pdtabs pmtabs" role="tablist" aria-label="Promotion status">${[["all","All"],["live","Live"],["so","Sold out"],["ex","Expired"],["sch","Scheduled"],["dr","Drafts"],["svd","Saved"],["claims","Claims"],["store","Storage"]].map(([k,l])=>k=="store"?(window._pmst?`<button role="tab" data-pmtab="store" aria-selected="${t==k}" class="${t==k?"on":""}">Storage <span class="pdc">${_pmst.count()}</span></button>`:""):k=="claims"?(window._pmcl?`<button role="tab" data-pmtab="claims" aria-selected="${t==k}" class="${t==k?"on":""}">${lic("inbox",14)} Claims${_pmcl.pending()?` <span class="pdc pdc-p" title="Pending claims">${_pmcl.pending()}</span>`:""}</button>`:""):`<button role="tab" data-pmtab="${k}" aria-selected="${t==k}" class="${t==k?"on":""}">${l} <span class="pdc">${c[k]}</span></button>`).join("")}</div>`}
 window.addEventListener("click",e=>{const t=e.target.closest&&e.target.closest("[data-pmsv],[data-pmsvf]");if(!t)return;e.preventDefault();e.stopImmediatePropagation();
  if(t.dataset.pmsvf!==undefined){RDP=false;PF.sv=!PF.sv;if(PF.sv){PF.cat="all";cat="all"}pfSave();render();return}
  const id=t.dataset.pmsv,was=SV.has(id);was?SV.delete(id):SV.add(id);svPut();svSync(id);toast(was?"Removed from saved":"Saved — find it under Saved");
@@ -2150,7 +2247,7 @@ async function clApi(id){const A=window.ESO_SAVE_API;if(!A)return{ok:true};try{a
 window._pmSv={btn:svBtn,res:()=>res,claimApi:clApi};
 document.addEventListener("click",e=>{const b=e.target.closest&&e.target.closest("[data-pmtab]");if(!b)return;e.preventDefault();PF.tab=b.dataset.pmtab;pfSave();render()},true);
 const SF={new:(a,b)=>a.created-b.created,ending:(a,b)=>a.endsDays-b.endsDays,views:(a,b)=>b.views-a.views,claims:(a,b)=>b.claims-a.claims,az:(a,b)=>a.d[0].localeCompare(b.d[0])};
-function results(){const R={};CATS.forEach(([k])=>{R[k]=Object.values(META).filter(m=>m&&m.k===k).filter(m=>!res||m.st=="active").filter(match).sort(SF[PF.sort]||SF.new)});return R}
+function results(){const R={};CATS.forEach(([k])=>{R[k]=Object.values(META).filter(m=>m&&m.k===k&&m.st!="removed").filter(m=>!res||m.st=="active").filter(match).sort(SF[PF.sort]||SF.new)});return R}
 function HL(t){const e=H(t),q=PF.q.trim();if(!q)return e;const x=H(q).replace(/[.*+?^${}()|[\]\\]/g,"\\$&");return e.replace(new RegExp(x,"ig"),m=>`<mark>${m}</mark>`)}
 const STL={active:"Active",scheduled:"Scheduled",expired:"Expired",draft:"Draft"};
 /* Perks-portal reference: a partner avatar on the cover, the expiry at the bottom right of the card, and a table for the List view (Staff only) */
@@ -6217,7 +6314,7 @@ function add(x,st,id){const k=x.cat||"services";if(!DEALS[k])DEALS[k]=[];let i=D
 function saved(){try{return JSON.parse(localStorage.getItem(SK)||"[]")}catch(e){return[]}}
 /* A deal scheduled for a date is live from that date: the Resident app already shows it then, so this list must too (Saved becomes Live). */
 const todayISO=(()=>{const n=new Date(),p=v=>String(v).padStart(2,"0");return n.getFullYear()+"-"+p(n.getMonth()+1)+"-"+p(n.getDate())})();
-saved().forEach(s=>{try{const m=add(Object.assign(blank(),s.x),s.st==="scheduled"&&s.x&&s.x.start&&s.x.start<=todayISO?"active":s.st,s.id);m.views=s.views||0;m.claims=s.claims||0}catch(e){}});if(saved().length&&/^#\/promotions/.test(location.hash))setTimeout(()=>PM.upd&&PM.upd(),0);
+saved().forEach(s=>{try{const m=add(Object.assign(blank(),s.x),s.st==="closed"?"expired":s.st==="scheduled"&&s.x&&s.x.start&&s.x.start<=todayISO?"active":s.st,s.id);m.views=s.views||0;m.claims=s.claims||0}catch(e){}});if(saved().length&&/^#\/promotions/.test(location.hash))setTimeout(()=>PM.upd&&PM.upd(),0);
 const NM={title:"Title",cat:"Category",newcat:"New category name",reward:"Short description",desc:"Detailed description",oval:"Offer value",ch:"Delivery channels",code:"Promo code",link:"External link",start:"Start date",end:"End date",alt:"Cover alt text",au:"Audience",limT:"Total claim limit"};
 function errs(x){const E={};if(!x.title.trim())E.title="Add a title residents will recognize.";if(!x.cat)E.cat="Pick a category.";if(x.cat=="__new"&&!x.newcat.trim())E.newcat="Name the new category.";if(!x.reward.trim())E.reward="Add a one-line summary.";if(!x.desc.trim())E.desc="Describe how the offer works.";
  if((x.otype=="pct"||x.otype=="fixed")&&!(+x.oval>0))E.oval=x.otype=="pct"?"Enter a percentage, e.g. 20.":"Enter an amount, e.g. 25.";if(x.otype=="pct"&&+x.oval>100)E.oval="A percentage can’t exceed 100.";
@@ -6637,7 +6734,7 @@ const lim=m=>{const x=m.x||{};return +(x.limT||LIM[m.id]||0)};
 // demo seeds: one healthy, one low stock, one sold out (persisted so a claim really decrements)
 const act=Object.values(META).filter(m=>m.st=="active");
 [[act[0],23],[act[1],3],[act[2],0]].forEach(([m,l])=>{if(m&&!LIM[m.id]&&!(m.x&&m.x.limT))LIM[m.id]=used(m)+l});localStorage.setItem(K,JSON.stringify(LIM));
-const endD=m=>{const x=m.x||{};if(x.end)return new Date(x.end);if(m.st=="expired")return new Date(2026,9,30-((m.endsDays||3)%20+1));return null};
+const endD=m=>{const x=m.x||{};if(x.end)return new Date(x.end);if(m.ext)return new Date(m.ext+"T00:00:00");if(m.st=="expired")return new Date(2026,9,30-((m.endsDays||3)%20+1));return null};
 const expired=m=>m.st=="expired"||(!!endD(m)&&endD(m)<new Date());
 const left=m=>{const L=lim(m);return L?Math.max(0,L-used(m)):null};
 const state=m=>!m||!m.id?"":expired(m)?"expired":left(m)===0?"soldout":"";
@@ -8141,6 +8238,20 @@ html.dark .pmx .pd.s-card:has(.pi .pmv) .pi .psv.pav-sv.on svg{color:#fbbf24!imp
 .rv-wrap{margin-top:12px}
 .rv-frame{display:block;width:100%;height:calc(100vh - 250px);min-height:560px;margin-inline:auto;border:1px solid var(--border);border-radius:16px;background:var(--card)}
 @media(max-width:639px){.rv-dev{display:none}.rv-frame{max-width:100%!important;height:calc(100vh - 230px)}}
+/* Manage box in the detail box: end now, extend, export claimers, remove */
+.pml-box{display:grid;gap:10px;margin:14px 0;padding:14px;border:1px solid var(--border);border-radius:12px;background:color-mix(in srgb,var(--fg) 3%,transparent)}
+.pml-box h4{margin:0;font-size:14px}.pml-s{margin:0;font-size:13px;color:var(--muted)}
+.pml-r{display:flex;flex-wrap:wrap;gap:8px;align-items:center}.pml-r label{flex:1 1 100%;font-size:13px;font-weight:600}
+.pml-r input[type=date]{flex:1 1 150px;min-width:0;height:40px;padding:0 10px;border:1px solid var(--border);border-radius:8px;background:var(--card);color:inherit;font:inherit}
+.pml-r .bx{min-height:40px}
+.pml-d{color:#b91c1c!important;border-color:#fecaca!important}
+html.dark .pml-d{color:#fca5a5!important;border-color:#7f1d1d!important}
+.pml-c{display:grid;gap:8px;margin:0;padding:10px 12px;border-radius:10px;background:#fef2f2;color:#7f1d1d;font-size:13px}
+.pml-c[hidden]{display:none}
+.pml-c .bx{margin-right:8px}
+html.dark .pml-c{background:#3b1212;color:#fecaca}
+.pml-t{position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom));transform:translateX(-50%);z-index:10120;display:flex;gap:12px;align-items:center;max-width:calc(100vw - 24px);padding:10px 12px 10px 14px;border-radius:10px;background:#0f172a;color:#fff;font-size:14px;box-shadow:0 8px 24px rgba(0,0,0,.3)}
+.pml-t button{min-height:32px;padding:0 10px;border:1px solid #ffffff55;border-radius:8px;background:none;color:#fff;font:inherit;font-size:13px;font-weight:600}
 </style>
 <script id="pmv-js">(function(){
 /* The on/off switch on a deal's card (Staff only). Off makes the deal a draft: residents do not see it, and it stays in Staff's list (Drafts). On publishes it.
@@ -8166,7 +8277,7 @@ if(m.pmc){
 }else{
  var C=window.PM_CATALOG,ov=C.readOverrides(localStorage);ov[id]=to==='on'?'active':to==='scheduled'?'scheduled':'draft';
  try{localStorage.setItem(C.STATUS_KEY,JSON.stringify(ov))}catch(e){tst('Could not save. Try again.');return}
- var fresh=C.meta(C.deals(),ov)[id];m.st=fresh.st;m.d[2]=fresh.d[2];m.views=fresh.views;m.claims=fresh.claims;
+ var fresh=C.meta(C.deals(),ov,C.readEnds(localStorage))[id];m.st=fresh.st;m.d[2]=fresh.d[2];m.views=fresh.views;m.claims=fresh.claims;
 }
 note(id,to);
 if(!quiet)tst(name+(to==='on'?' is live: residents can see it now.':to==='scheduled'?' is scheduled: residents see it from its start date.':' is off live: residents do not see it. It is in Drafts.'),function(){setVis(id,cur,true)});
