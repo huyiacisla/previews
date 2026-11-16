@@ -3,7 +3,7 @@
 // toggles hidden / data-* / aria-*. The data comes from promotions/store.js (what Staff published).
 
 import { initials, PORTALS, pickPersona } from "../messaging/personas.js";
-import { activeClaims, allRecords, categoriesIn, claim, claimStatus, KEY, listPromotions, lookupCode, readConfig, residentState, toggleSaved } from "./store.js";
+import { activeClaims, allRecords, categoriesIn, claim, claimStatus, claimDecidedAt, householdClaims, HOUSEHOLD, KEY, listPromotions, lookupCode, readConfig, residentState, toggleSaved, unitMates } from "./store.js";
 
 const $ = (sel, root = document) => root.querySelector(sel);
 const tpl = (id) => document.getElementById(id).content.firstElementChild.cloneNode(true);
@@ -12,7 +12,9 @@ const clear = (el) => {
 };
 
 const portal = document.body.dataset.portal;
-const me = pickPersona(portal, new URLSearchParams(location.search).get("as"));
+// ?as=res-4 opens the page as Jamie, who lives in Alex's unit (a promotion limited per unit counts them once)
+const asParam = new URLSearchParams(location.search).get("as");
+const me = (portal === "resident" && HOUSEHOLD.find((p) => p.id === asParam)) || pickPersona(portal, asParam);
 const info = PORTALS[portal];
 const storage = window.localStorage;
 // What Staff can target a promotion at: this resident's building and segments.
@@ -324,6 +326,8 @@ function card(p, mine, cfg, hot = new Set()) {
     tagEl.dataset.tone = tag[1];
   }
   $("[data-coverwrap]", li).dataset.soldout = String(p.full);
+  const mateOnCard = p.scope === "unit" && !(mine.claims[p.id] && activeClaims(storage, me.id, p.id).active > 0) ? householdClaims(storage, me.id, p.id)[0] : null;
+  if (mateOnCard) badges.appendChild(badge("Claimed by your unit", "success"));
   if (mine.claims[p.id]) {
     const own = activeClaims(storage, me.id, p.id);
     badges.appendChild(own.active > 0 ? badge("Claimed", "success") : badge(own.locked ? "Closed" : "Not approved", "warning"));
@@ -406,13 +410,17 @@ function refreshDialog() {
   $("#dlg-fine").textContent = fine;
 
   const claimed = mine.claims[p.id];
+  const ownNow = activeClaims(storage, me.id, p.id);
+  // a promotion limited per unit: what someone who lives with you claimed is the unit's claim
+  const mate = p.scope === "unit" && !(claimed && ownNow.active > 0) ? householdClaims(storage, me.id, p.id)[0] : null;
+  const shown = mate ? { code: mate.code } : claimed;
   const box = $("#dlg-claim");
-  box.hidden = !(claimed && claimed.code);
+  box.hidden = !(shown && shown.code);
   if (!box.hidden) {
-    $("#dlg-claim-label").textContent = p.method === "qr" ? "Show this code at the partner" : "Your code";
-    $("#dlg-code").textContent = claimed.code;
+    $("#dlg-claim-label").textContent = mate ? `Your unit's code, claimed by ${mate.name}` : p.method === "qr" ? "Show this code at the partner" : "Your code";
+    $("#dlg-code").textContent = shown.code;
     // what the property staff decided about this claim (words, not colour alone)
-    const cs = claimStatus(storage, me.id, p.id);
+    const cs = mate ? null : claimStatus(storage, me.id, p.id);
     const say = {
       pending: "Waiting for the property team to confirm.",
       verified: "Confirmed by the property team.",
@@ -420,17 +428,19 @@ function refreshDialog() {
       rejected: `Not approved by the property team.${cs && cs.reason ? ` ${cs.reason}` : ""}`,
     };
     const line = $("#dlg-claim-status");
-    line.textContent = cs ? say[cs.st] : "";
+    line.textContent = mate ? `One claim per unit: ${mate.name} already claimed this${mate.at ? ` on ${new Date(mate.at).toLocaleDateString("en-US", { month: "short", day: "numeric" })}` : ""}.` : cs ? say[cs.st] : "";
     line.dataset.tone = cs && (cs.st === "verified" || cs.st === "redeemed") ? "ok" : cs && cs.st === "rejected" ? "no" : "";
   }
   const btn = $("#dlg-claim-btn");
   // claims Staff rejected do not count: the resident can claim again, unless Staff locked it
   const own = activeClaims(storage, me.id, p.id);
   const done = claimed && own.active >= p.perResident;
-  btn.disabled = p.full || own.locked || (done && p.method !== "link");
+  btn.disabled = p.full || own.locked || !!mate || (done && p.method !== "link");
   $("#dlg-claim-text").textContent = p.full
     ? "Sold out"
-    : own.locked
+    : mate
+      ? "Claimed by your unit"
+      : own.locked
       ? "Closed"
       : p.method === "link"
         ? "Get offer"
@@ -606,40 +616,55 @@ const STATUS = {
   redeemed: ["Used", "ok", "Used. Thank you."],
   rejected: ["Not approved", "no", ""],
 };
+const when = (iso) => (iso ? new Date(iso).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }) : "");
 function paintRewards() {
   const mine = residentState(storage, me.id);
   const list = $("#rw-list");
   clear(list);
-  const ids = Object.keys(mine.claims).filter((id) => mine.claims[id] && mine.claims[id].code);
-  $("#rw-empty").hidden = ids.length > 0;
-  for (const id of ids) {
-    const rec = allRecords(storage).find((r) => String(r.id) === id);
-    const cs = claimStatus(storage, me.id, id);
-    const st = STATUS[cs ? cs.st : "pending"];
+  // this resident's claims, and (for a promotion limited per unit) what the people of the unit claimed
+  const rows = Object.keys(mine.claims)
+    .filter((id) => mine.claims[id] && mine.claims[id].code)
+    .map((id) => ({ id, code: mine.claims[id].code, at: mine.claims[id].at, by: "", cs: claimStatus(storage, me.id, id), decided: claimDecidedAt(storage, me.id, id) }));
+  for (const m of unitMates(me.id)) {
+    const theirs = residentState(storage, m.id).claims;
+    for (const id of Object.keys(theirs)) {
+      const rec = allRecords(storage).find((r) => String(r.id) === id);
+      if (!rec || rec.x.limS !== "unit" || rows.some((r) => r.id === id) || activeClaims(storage, m.id, id).active < 1) continue;
+      rows.push({ id, code: theirs[id].code, at: theirs[id].at, by: m.name, cs: claimStatus(storage, m.id, id), decided: claimDecidedAt(storage, m.id, id) });
+    }
+  }
+  rows.sort((x, y) => String(y.at || "").localeCompare(String(x.at || "")));
+  $("#rw-empty").hidden = rows.length > 0;
+  for (const r of rows) {
+    const rec = allRecords(storage).find((x) => String(x.id) === r.id);
+    const st = STATUS[r.cs ? r.cs.st : "pending"];
     const li = tpl("t-reward");
     $("[data-title]", li).textContent = rec ? rec.x.title : "Promotion";
     const badge = $("[data-status]", li);
     badge.textContent = st[0];
     badge.dataset.tone = st[1];
-    $("[data-note]", li).textContent = cs && cs.st === "rejected" && cs.reason ? cs.reason : st[2];
-    $("[data-code]", li).textContent = mine.claims[id].code;
+    // the history of this claim: who claimed, when, and when Staff decided
+    const note = [r.by ? `Claimed by ${r.by} (your unit)` : "Claimed by you", r.at ? when(r.at) : ""].filter(Boolean).join(" · ");
+    const decision = r.cs && r.cs.st === "rejected" && r.cs.reason ? r.cs.reason : st[2];
+    $("[data-note]", li).textContent = [note, r.decided && r.cs && r.cs.st !== "pending" ? `${st[0]} ${when(r.decided)}` : "", decision].filter(Boolean).join(". ");
+    $("[data-code]", li).textContent = r.code;
     $("[data-copy]", li).addEventListener("click", async () => {
       try {
-        await navigator.clipboard.writeText(mine.claims[id].code);
+        await navigator.clipboard.writeText(r.code);
         toast("Code copied");
       } catch {
         toast("Could not copy. Select the code and copy it.");
       }
     });
     const view = $("[data-view]", li);
-    view.hidden = !rec || !find(id);
+    view.hidden = !rec || !find(r.id);
     view.addEventListener("click", () => {
       rwDlg.close();
-      openDialog(id);
+      openDialog(r.id);
     });
     list.appendChild(li);
   }
-  const n = ids.filter((id) => activeClaims(storage, me.id, id).active > 0).length;
+  const n = rows.filter((r) => !r.by && activeClaims(storage, me.id, r.id).active > 0).length;
   const c = $("#rewards-count");
   c.hidden = n === 0;
   c.textContent = String(n);

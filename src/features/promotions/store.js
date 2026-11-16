@@ -12,6 +12,19 @@
 
 import { companyPrefs } from "../../shared/js/company-prefs.js";
 import { PERSONAS } from "../messaging/personas.js";
+
+// People who live with a resident, for Promotions only (the rest of the prototype keeps its own list). Jamie shares Alex's unit, so a promotion limited per unit counts them once.
+export const HOUSEHOLD = [
+  {
+    id: "res-4",
+    role: "resident",
+    name: "Jamie Rivera",
+    title: "Unit 02-291",
+    org: "Mallard Pointe at Riverbend",
+    unit: { number: "02-291", building: "Building 2", leaseStart: "2026-03-01", leaseEnd: "2027-02-28", block: "Building A", segments: ["pet"], entry: "Dog in unit. Call first." },
+  },
+];
+const PEOPLE = [...PERSONAS, ...HOUSEHOLD];
 import "./catalog.js"; // defines globalThis.PM_CATALOG: the sample deals Staff's page shows too (the Resident sees the running ones)
 
 // `claimState` is written by Staff's Claims inbox: { "<residentId>|<promotionId>|<n>": { st: verified | redeemed | rejected, reason } }. Only a status; the Resident app never writes it.
@@ -147,10 +160,28 @@ export function activeClaims(storage, residentId, promoId) {
   return { count, active: count - rejected, rejected, locked };
 }
 
+/** The other residents of this resident's unit (same unit number), not the resident. */
+export function unitMates(residentId) {
+  const me = PEOPLE.find((p) => p.id === residentId);
+  const n = me && me.unit && me.unit.number;
+  return n ? PEOPLE.filter((p) => p.role === "resident" && p.id !== residentId && p.unit && p.unit.number === n) : [];
+}
+
+/** What the other people of this unit claimed of this promotion (only claims Staff did not reject): [{ id, name, code, at, count }]. */
+export function householdClaims(storage, residentId, promoId) {
+  const out = [];
+  for (const m of unitMates(residentId)) {
+    const c = residentState(storage, m.id).claims[promoId];
+    const a = activeClaims(storage, m.id, promoId);
+    if (c && a.active > 0) out.push({ id: m.id, name: m.name, code: c.code || "", at: c.at || "", count: a.active });
+  }
+  return out;
+}
+
 /** How many times residents claimed this promotion in this app: every resident's own claims that Staff did not reject. */
 export function claimedByResidents(storage, promoId) {
   let n = 0;
-  for (const p of PERSONAS) {
+  for (const p of PEOPLE) {
     if (p.role !== "resident") continue;
     n += activeClaims(storage, p.id, promoId).active;
   }
@@ -198,6 +229,8 @@ function toPromo(rec, names, extra = 0, today = todayISO()) {
     prefix: (x.prefix || "RES").toUpperCase(),
     link,
     perResident: Math.max(1, Number(x.limR) || 1),
+    // who the per-person limit counts: each resident, or everyone who lives in the same unit
+    scope: x.limS === "unit" ? "unit" : "resident",
     total,
     // What Staff's record says plus what residents claimed in this app (each resident's own key): the "fully claimed" limit counts both.
     claimed: (Number(rec.claims) || 0) + (extra || 0),
@@ -295,6 +328,13 @@ export function claimStatus(storage, residentId, promoId) {
   return { st: "pending", reason: "", locked: false };
 }
 
+/** When Staff decided about this resident's newest claim of the promotion (milliseconds), or 0 while it waits. */
+export function claimDecidedAt(storage, residentId, promoId) {
+  const count = Number(residentState(storage, residentId).claims[promoId]?.count) || 0;
+  const s = count ? (read(storage, KEY.claimState, {}) || {})[`${residentId}|${promoId}|${count}`] : null;
+  return s ? Number(s.at) || 0 : 0;
+}
+
 function put(storage, residentId, st) {
   return write(storage, KEY.mine(residentId), { saved: [...st.saved], claims: st.claims });
 }
@@ -336,10 +376,22 @@ export function claim(storage, residentId, promo, now = new Date()) {
     const own = activeClaims(storage, residentId, promo.id);
     if (own.locked) return { ok: false, reason: "The property team closed this claim. Contact them if you think this is a mistake." };
     // a claim Staff rejected does not count against the limit: the resident may claim again
-    if (own.active >= promo.perResident) return { ok: true, again: true, code: prev.code || code, link: promo.link };
+    if (own.active >= promo.perResident && promo.scope !== "unit") return { ok: true, again: true, code: prev.code || code, link: promo.link };
+  }
+  if (promo.scope === "unit") {
+    // the limit is the unit's: the claims of everyone who lives there count together
+    const own = activeClaims(storage, residentId, promo.id);
+    const mates = householdClaims(storage, residentId, promo.id);
+    const total = own.active + mates.reduce((n, m) => n + m.count, 0);
+    if (total >= promo.perResident) {
+      if (own.active > 0) return { ok: true, again: true, code: (prev && prev.code) || code, link: promo.link };
+      const by = mates[0];
+      const when = by && by.at ? new Date(by.at).toLocaleDateString("en-US", { month: "short", day: "numeric" }) : "";
+      return { ok: false, reason: `Your unit already claimed this${by ? `: ${by.name}${when ? ` claimed it on ${when}` : " claimed it"}` : ""}.`, unit: by ? { by: by.name, at: by.at, code: by.code } : undefined };
+    }
   }
   // `who` is what Staff's Claims inbox shows for this claim (a real app sends the resident's profile with the claim).
-  const person = PERSONAS.find((p) => p.id === residentId);
+  const person = PEOPLE.find((p) => p.id === residentId);
   const who = person ? { name: person.name, unit: (person.unit && person.unit.number) || "" } : undefined;
   st.claims[promo.id] = { count: (prev ? prev.count : 0) + 1, code, at: now.toISOString(), ...(who ? { who } : {}) };
   if (!put(storage, residentId, st)) return { ok: false, reason: "Could not save your claim. Try again." };

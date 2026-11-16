@@ -118,3 +118,52 @@ test("Redeem: a sample deal's code works, and only static or QR codes can be loo
   assert.equal(look(s, p.code).state, "live");
   assert.equal(look(withCode("active", { method: "unique", code: "" }), "BRIGHT20").state, "none");
 });
+
+// Two people in one unit: a promotion limited "per unit" is one claim for both of them.
+import { claim, householdClaims, unitMates } from "../../src/features/promotions/store.js";
+
+const unitDeal = (over = {}) => memory({ [KEY.published]: [{ id: "u1", st: "active", x: form({ limS: "unit", limR: "1", code: "", method: "unique", ...over }), views: 0, claims: 0 }] });
+const promoOf = (s, id) => listPromotions(s, { today: TODAY }).find((p) => p.id === id);
+
+test("Alex and Jamie live in the same unit; nobody else shares it", () => {
+  assert.deepEqual(unitMates("res-1").map((p) => p.id), ["res-4"]);
+  assert.deepEqual(unitMates("res-4").map((p) => p.id), ["res-1"]);
+  assert.deepEqual(unitMates("res-2"), []);
+});
+
+test("limited per unit: when Alex claims, Jamie cannot, and is told who did", () => {
+  const s = unitDeal();
+  assert.equal(promoOf(s, "u1").scope, "unit");
+  const a = claim(s, "res-1", promoOf(s, "u1"));
+  assert.equal(a.ok, true);
+  const j = claim(s, "res-4", promoOf(s, "u1"));
+  assert.equal(j.ok, false, "the unit already has its claim");
+  assert.match(j.reason, /Your unit already claimed this: Alex Rivera/);
+  assert.equal(j.unit.by, "Alex Rivera");
+  assert.deepEqual(householdClaims(s, "res-4", "u1").map((c) => c.name), ["Alex Rivera"]);
+  // Alex can still open their own claim again
+  assert.equal(claim(s, "res-1", promoOf(s, "u1")).again, true);
+  // another unit is not affected
+  assert.equal(claim(s, "res-2", promoOf(s, "u1")).ok, true);
+});
+
+test("limited per unit with two claims allowed: both can claim, a third cannot", () => {
+  const s = unitDeal({ limR: "2" });
+  assert.equal(claim(s, "res-1", promoOf(s, "u1")).ok, true);
+  assert.equal(claim(s, "res-4", promoOf(s, "u1")).ok, true);
+  assert.equal(claim(s, "res-1", promoOf(s, "u1")).again, true);
+});
+
+test("limited per resident (the default): Alex and Jamie each have their own claim", () => {
+  const s = unitDeal({ limS: "resident" });
+  assert.equal(claim(s, "res-1", promoOf(s, "u1")).ok, true);
+  assert.equal(claim(s, "res-4", promoOf(s, "u1")).ok, true);
+});
+
+test("a claim Staff rejected gives the unit its place back", () => {
+  const s = unitDeal();
+  claim(s, "res-1", promoOf(s, "u1"));
+  s.setItem(KEY.claimState, JSON.stringify({ "res-1|u1|1": { st: "rejected", reason: "wrong unit", at: 1 } }));
+  assert.equal(householdClaims(s, "res-4", "u1").length, 0);
+  assert.equal(claim(s, "res-4", promoOf(s, "u1")).ok, true);
+});
