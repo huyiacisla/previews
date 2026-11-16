@@ -105,7 +105,7 @@
       const d = Array.isArray(e.d) ? e.d : [];
       const s = (v, n) => (typeof v === "string" ? v.trim().slice(0, n) : "");
       const code = typeof e.code === "string" ? e.code.trim().toUpperCase() : undefined;
-      const cat = typeof e.cat === 'string' && CATS.some(([v]) => v === e.cat) ? e.cat : undefined;
+      const cat = typeof e.cat === "string" && CATS.some(([v]) => v === e.cat) ? e.cat : undefined;
       out[k] = { title: s(d[0], 60), reward: s(d[1], 90), price: s(d[3], 30), code: code === undefined ? undefined : /^[A-Z0-9-]{3,20}$/.test(code) ? code : "", ...(cat ? { cat } : {}) };
     }
     return out;
