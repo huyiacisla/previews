@@ -632,3 +632,21 @@ Quyết định đang chờ ở R4-9 được áp dụng theo đề xuất (ngư
 Kiểm bằng giao diện thật (Jamie, `?as=res-4`, chụp hai lần): hộp deal không có mã và Copy, vẫn có nút "Claimed by your unit" (vô hiệu) và "Ask the property team about this"; My rewards không có "MALLA10"; hộp deal của chính Alex vẫn có mã của anh. Resident view của Staff dùng chung tệp nên giống y.
 
 Test: `promotions-unit.test.mjs` (thêm 1 test). `npm test` 542 test, 541 qua, 1 lỗi cũ. T-1086 và T-1087 không đổi.
+
+### Sau vòng 4: thanh trên cùng, icon My rewards, tab Not approved, ô Decide (người dùng phản ánh 16/11)
+
+Người dùng phản ánh (kèm ảnh): thanh trên cùng "không đi theo" khi kéo xuống và mất chip danh mục; nút Saved bị đẩy xuống hàng riêng ở màn hình trung bình ("mình nói đi cùng chứ mình đâu nói đổi chỗ UI Save"); My rewards và Saved không cùng kiểu, số đếm bị sát mép; đổi icon My rewards thành icon người kèm ngôi sao; "chỗ này cũng bị" ở màn hình điện thoại lúc chưa cuộn.
+
+Đã làm:
+- **Điện thoại (dưới 640 px): thanh luôn là bản gọn, ngay từ đầu và ở mọi độ sâu cuộn**: một hàng gồm tìm kiếm, bộ lọc, Redeem, My rewards, Saved, **cả ba cùng một kiểu nút vuông 32 px có số đếm ở góc**, và hàng chip danh mục mỏng ngay dưới (chip không còn bị ẩn khi cuộn). Chữ vẫn có cho trình đọc màn hình và làm tooltip (`title`).
+- **Từ màn hình tablet (640 px trở lên): Redeem, My rewards, tìm kiếm, bộ lọc, Saved nằm trên MỘT hàng, Saved ở cuối hàng** (chữ " a code" và "Saved" ẩn dưới 1024 px, ô tìm kiếm co được tới 160 px); trước đó Saved rớt xuống hàng hai ở khoảng 690 px.
+- **Icon My rewards = người và ngôi sao** (`i-user-star`, đặc, ngôi sao có viền hở), thay dấu tích.
+- **My rewards tách "Not approved" (property team từ chối) khỏi "Cancelled" (cư dân tự huỷ)**: hai tab, hai số đếm. Kiểm bằng giao diện thật: một claim bị từ chối ở chat và một claim tự huỷ cho "Not approved 1" và "Cancelled 1".
+- **Danh sách "Decide" trong panel chat cuộn trong hộp cao tối đa 320 px** (cuộn được bằng bàn phím).
+- Nhãn ticket T-1087 sửa thành Promotions (chỉ đổi nhãn, không đổi tin nhắn hay trạng thái).
+
+Kiểm kéo trang (cuộn thật `#main-content` tới cuối, đo vị trí thanh, 5 điều khiển, chip, số đếm và hit-test mỗi bước) với **cả 7 template** (Deals, Store, Modern, Editorial, Mono, Seasonal, Luxury) ở **375, 690, 1184 px**, sáng và tối (tối bằng lớp `dark` trên khung): thanh luôn bám đỉnh (lệch 0 px ở mọi độ sâu), 5 điều khiển luôn thấy và bấm được (không bị khối nào của template che), chip luôn trong thanh, không tràn ngang; ở điện thoại thanh cao 78 px.
+
+Lỗi tìm thấy khi kiểm: (1) lớp Tailwind chỉ viết trong `.js` không được biên dịch (biểu `@source` chỉ quét HTML): `max-h-[320px]` và `ring-info-text` không có tác dụng → dùng style trực tiếp hoặc lớp đã có trong HTML (đã ghi vào bộ nhớ làm việc); máy chủ thử cần khởi động lại để quét lại lớp mới; (2) công cụ đo của mình lúc đầu đo sai bề rộng (khung bị co) nên các kết quả ở 690 và 1184 phải đo lại bằng khung không co.
+
+Test: `tests/promotions/promotions-bar.test.mjs` (5 test). `npm test`: 547 test, 546 qua, 1 lỗi cũ của messaging-ui.

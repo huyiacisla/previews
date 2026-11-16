@@ -7,6 +7,7 @@
     <symbol id="i-search" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21 21-4.34-4.34"/><circle cx="11" cy="11" r="8"/></symbol>
     <symbol id="i-x" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></symbol>
     <symbol id="i-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></symbol>
+    <symbol id="i-user-star" viewBox="0 0 24 24" fill="currentColor" stroke="none"><mask id="m-user-star" maskUnits="userSpaceOnUse" x="0" y="0" width="24" height="24"><rect width="24" height="24" fill="#fff"/><path d="M17.5 11.8 18.8 15 22.3 15.3 19.6 17.5 20.4 20.8 17.5 19 14.6 20.8 15.4 17.5 12.7 15.3 16.2 15Z" fill="#000" stroke="#000" stroke-width="2.6" stroke-linejoin="round"/></mask><g mask="url(#m-user-star)"><circle cx="9" cy="7.2" r="4.2"/><path d="M1.5 21.5c0-4.5 3.3-7.8 7.5-7.8s7.5 3.3 7.5 7.8z"/></g><path d="M17.5 11.8 18.8 15 22.3 15.3 19.6 17.5 20.4 20.8 17.5 19 14.6 20.8 15.4 17.5 12.7 15.3 16.2 15Z"/></symbol>
     <symbol id="i-copy" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></symbol>
     <symbol id="i-star" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l2.8 5.7 6.2.9-4.5 4.4 1 6.2L12 17.3 6.5 20.2l1-6.2L3 9.6l6.2-.9z"/></symbol>
     <symbol id="i-tag" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.586 2.586A2 2 0 0 0 11.172 2H4a2 2 0 0 0-2 2v7.172a2 2 0 0 0 .586 1.414l8.704 8.704a2.426 2.426 0 0 0 3.42 0l6.58-6.58a2.426 2.426 0 0 0 0-3.42z"/><circle cx="7.5" cy="7.5" r=".5" fill="currentColor"/></symbol>
@@ -42,11 +43,11 @@
 
   <main id="main-content" tabindex="-1" class="min-h-0 flex-1 overflow-y-auto outline-none">
     <style>
-      /* On a phone, once you have scrolled, the bar folds into ONE row that keeps following you: search, filter, Redeem, My rewards, Saved (icons; the words stay for screen readers). */
+      /* On a phone the bar is always the compact one: ONE row of controls (search, filter, Redeem, My rewards, Saved as the same square icon, with the count on its corner; the words stay for screen readers and as tooltips) and one slim row of category chips under it. All of it keeps following you. */
       @media (max-width: 639px) {
         #toolbar[data-condensed="true"] > div { flex-direction: row; flex-wrap: wrap; align-items: center; gap: 0.5rem; }
         #toolbar[data-condensed="true"] > div > div:not(#filter-panel):not(#filters) { display: contents; }
-        #toolbar[data-condensed="true"] #filters { display: none !important; }
+        #toolbar[data-condensed="true"] #filters { order: 10; flex-basis: 100%; }
         #toolbar[data-condensed="true"] #search-wrap { order: 1; flex: 1 1 6rem; min-width: 6rem; }
         #toolbar[data-condensed="true"] #btn-filter { order: 2; }
         #toolbar[data-condensed="true"] #btn-redeem { order: 3; }
@@ -54,7 +55,9 @@
         #toolbar[data-condensed="true"] #btn-saved { order: 5; margin-left: 0; }
         #toolbar[data-condensed="true"] #filter-panel { order: 9; flex-basis: 100%; }
         #toolbar[data-condensed="true"] #btn-redeem,
-        #toolbar[data-condensed="true"] #btn-rewards { padding-inline: 0.625rem; }
+        #toolbar[data-condensed="true"] #btn-rewards { position: relative; width: 2rem; padding-inline: 0; }
+        #toolbar[data-condensed="true"] #rewards-count { position: absolute; top: -0.375rem; right: -0.375rem; }
+        #toolbar[data-condensed="true"] #btn-saved { margin-right: 0.375rem; }
         #toolbar[data-condensed="true"] .lbl { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
       }
     </style>
@@ -62,16 +65,16 @@
     <div id="toolbar" class="sticky top-0 z-20 border-b border-border bg-background">
       <div class="mx-auto flex w-full max-w-6xl flex-col gap-step-xs px-step-lg py-step-xs sm:flex-row sm:flex-wrap sm:items-center sm:gap-step-sm sm:py-step-sm lg:px-step-xl">
         <div class="flex flex-wrap items-center gap-step-sm sm:contents">
-          <button type="button" id="btn-redeem" class="sm:order-1 group/button inline-flex h-8 shrink-0 touch-manipulation items-center justify-center gap-step-sm rounded-md border border-input bg-card px-step-md text-sm font-medium text-foreground transition outline-none select-none hover:bg-muted focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 active:translate-y-px pointer-coarse:h-9 [&_svg]:size-4"><svg aria-hidden="true"><use href="#i-ticket"/></svg><span class="lbl">Redeem</span><span class="max-sm:sr-only"> a code</span></button>
-          <button type="button" id="btn-rewards" class="sm:order-2 group/button inline-flex h-8 shrink-0 touch-manipulation items-center justify-center gap-step-sm rounded-md border border-input bg-card px-step-md text-sm font-medium text-foreground transition outline-none select-none hover:bg-muted focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 active:translate-y-px pointer-coarse:h-9 [&_svg]:size-4"><svg aria-hidden="true"><use href="#i-check"/></svg><span class="lbl">My rewards</span><span id="rewards-count" hidden class="inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] leading-none font-medium text-primary-foreground tabular-nums"></span></button>
-          <button type="button" id="btn-saved" aria-pressed="false" aria-label="Saved promotions" class="sm:order-5 group/button relative ml-auto inline-flex h-8 shrink-0 touch-manipulation items-center justify-center gap-step-sm rounded-md border border-input bg-card px-step-sm text-sm font-medium text-foreground transition outline-none select-none hover:bg-muted focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 active:translate-y-px aria-pressed:bg-muted pointer-coarse:h-9 [&_svg]:size-4">
+          <button type="button" id="btn-redeem" title="Redeem a code" class="sm:order-1 group/button inline-flex h-8 shrink-0 touch-manipulation items-center justify-center gap-step-sm rounded-md border border-input bg-card px-step-md text-sm font-medium text-foreground transition outline-none select-none hover:bg-muted focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 active:translate-y-px pointer-coarse:h-9 [&_svg]:size-4"><svg aria-hidden="true"><use href="#i-ticket"/></svg><span class="lbl">Redeem</span><span class="max-lg:sr-only"> a code</span></button>
+          <button type="button" id="btn-rewards" title="My rewards" class="sm:order-2 group/button inline-flex h-8 shrink-0 touch-manipulation items-center justify-center gap-step-sm rounded-md border border-input bg-card px-step-md text-sm font-medium text-foreground transition outline-none select-none hover:bg-muted focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 active:translate-y-px pointer-coarse:h-9 [&_svg]:size-4"><svg aria-hidden="true" fill="currentColor" stroke="none"><use href="#i-user-star"/></svg><span class="lbl">My rewards</span><span id="rewards-count" hidden class="inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] leading-none font-medium text-primary-foreground tabular-nums"></span></button>
+          <button type="button" id="btn-saved" title="Saved promotions" aria-pressed="false" aria-label="Saved promotions" class="sm:order-5 group/button relative ml-auto inline-flex h-8 shrink-0 touch-manipulation items-center justify-center gap-step-sm rounded-md border border-input bg-card px-step-sm text-sm font-medium text-foreground transition outline-none select-none hover:bg-muted focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 active:translate-y-px aria-pressed:bg-muted pointer-coarse:h-9 [&_svg]:size-4">
             <svg aria-hidden="true" fill="none" class="group-aria-pressed/button:fill-amber-400 group-aria-pressed/button:text-amber-500"><use href="#i-star"/></svg>
-            <span class="max-sm:sr-only">Saved</span>
+            <span class="max-lg:sr-only">Saved</span>
             <span id="saved-count" hidden class="absolute -top-1.5 -right-1.5 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] leading-none font-medium text-primary-foreground tabular-nums"></span>
           </button>
         </div>
         <div class="flex items-center gap-step-sm sm:contents">
-        <div id="search-wrap" class="relative min-w-0 flex-1 sm:order-3 sm:min-w-56">
+        <div id="search-wrap" class="relative min-w-0 flex-1 sm:order-3 sm:min-w-40">
           <label for="search" class="sr-only">Search promotions</label>
           <svg aria-hidden="true" class="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground"><use href="#i-search"/></svg>
           <input id="search" type="search" autocomplete="off" spellcheck="false" placeholder="Search promotions…" class="h-8 w-full min-w-0 rounded-md border border-input bg-card pr-2.5 pl-8 text-base text-ellipsis outline-none transition-colors placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 md:text-sm pointer-coarse:h-9" />

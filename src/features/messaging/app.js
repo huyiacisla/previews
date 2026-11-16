@@ -1454,7 +1454,7 @@ export function mount({ portal }) {
         for (const e of promoEv) {
           const li = document.createElement("li");
           const lit = !!asked && !!asked.promoId && e.promoId === asked.promoId;
-          li.className = `flex flex-col gap-step-xs${lit ? " rounded-md bg-info-bg p-step-sm ring-1 ring-info-text" : ""}`;
+          li.className = `flex flex-col gap-step-xs${lit ? " rounded-md bg-info-bg p-step-sm ring-1" : ""}`;
           if (lit) li.dataset.asked = "true";
           const head = document.createElement("div");
           head.className = "flex items-center justify-between gap-step-sm";
@@ -1474,6 +1474,13 @@ export function mount({ portal }) {
         sub.className = "mt-step-sm text-xs font-medium text-muted-foreground";
         sub.textContent = "Decide";
         promo.appendChild(sub);
+        const decideList = document.createElement("div");
+        decideList.className = "flex flex-col gap-step-sm overflow-y-auto";
+        decideList.style.maxHeight = "320px"; // many claims scroll inside their own box (the page's stylesheet only knows classes written in HTML)
+        decideList.tabIndex = 0;
+        decideList.setAttribute("role", "group");
+        decideList.setAttribute("aria-label", "Claims to decide");
+        promo.appendChild(decideList);
         for (const c of toDecide) {
           const wrap = document.createElement("div");
           wrap.className = "flex flex-col gap-step-xs";
@@ -1484,7 +1491,7 @@ export function mount({ portal }) {
           name.textContent = c.title;
           head.append(name, badge(c.manual ? "Applied by hand" : c.st === "verified" ? "Confirmed" : "Waiting", c.manual || c.st === "verified" ? "success" : "warning"));
           wrap.append(head, decisionBox(t.conv, c));
-          promo.appendChild(wrap);
+          decideList.appendChild(wrap);
         }
       }
       if (unitEv.mates.length) {

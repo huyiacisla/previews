@@ -186,30 +186,24 @@ function wearInFrame(css) {
     /* a portal of another origin: left alone */
   }
 }
-// The top bar always stays. On a phone it takes a good part of the screen, so once you have scrolled it folds into ONE row (search, filter, Redeem, My rewards, Saved)
-// and unfolds again near the top. A negative bottom margin keeps the page from shifting when it folds.
+// The top bar always stays, and on a phone it is always the compact one: ONE row of controls (search, filter, Redeem, My rewards, Saved, all the same kind of square icon with its count on the corner;
+// the words stay for screen readers and as tooltips) with the category chips as a slim row under it. The same bar at the top and after any scroll, so nothing moves or changes shape when you scroll.
 const topBar = $("#toolbar");
 const mainEl = $("#main-content");
-let folded = false;
+let folded = null;
 function fitBar() {
-  const phone = matchMedia("(max-width: 639px)").matches;
-  const y = mainEl.scrollTop;
-  const want = phone && (folded ? y > 60 : y > 140);
+  const want = matchMedia("(max-width: 639px)").matches;
   if (want === folded) return;
   folded = want;
-  topBar.dataset.condensed = "false";
+  topBar.dataset.condensed = String(want);
   topBar.style.marginBottom = "";
-  const full = topBar.offsetHeight;
-  if (want) {
-    topBar.dataset.condensed = "true";
-    topBar.style.marginBottom = `${topBar.offsetHeight - full}px`;
-  }
 }
+fitBar();
 mainEl.addEventListener("scroll", fitBar, { passive: true });
 addEventListener("resize", fitBar);
 function scrollToCatalog() {
-  // the results are reached with the bar folded on a phone, so leave room for the folded bar only
-  $("#count").style.scrollMarginTop = matchMedia("(max-width: 639px)").matches ? "76px" : `${topBar.offsetHeight + 12}px`;
+  // the results are reached with the bar folded on a phone, so leave room for the folded bar (its row of controls and the row of chips) only
+  $("#count").style.scrollMarginTop = matchMedia("(max-width: 639px)").matches ? "112px" : `${topBar.offsetHeight + 12}px`;
   $("#count").scrollIntoView({ block: "start", behavior: "smooth" });
 }
 function pickCategory(key) {
@@ -767,6 +761,7 @@ const TABS = [
   ["pending", "Pending"],
   ["verified", "Verified"],
   ["redeemed", "Redeemed"],
+  ["rejected", "Not approved"],
   ["cancelled", "Cancelled"],
 ];
 let rwTab = "all";
@@ -835,7 +830,7 @@ function stateOf(cs) {
   if (!cs) return "pending";
   return cs.st === "rejected" ? (cs.cancelled ? "cancelled" : "rejected") : cs.st;
 }
-const tabOf = (k) => (k === "rejected" ? "cancelled" : k);
+const tabOf = (k) => k;
 
 function rewardRows() {
   const mine = residentState(storage, me.id);
