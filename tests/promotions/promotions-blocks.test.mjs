@@ -67,3 +67,14 @@ test("the builder says where a Countdown and a Coupon appear, and Edit details n
   assert.ok(staff.includes("Residents see this inside the Hero banner: the first Countdown as its Ends in badge, the first Coupon under its words."));
   assert.ok(staff.includes('for="q22p">Price shown on the card</label>'), "the price field says it is what the card shows");
 });
+
+test("the Resident also draws a block's anchor name, width, entrance animation, text style, and button look from the editor", () => {
+  const page = readFileSync(new URL("../../src/features/promotions/page.js", import.meta.url), "utf8");
+  assert.ok(page.includes("function applyAdv(node, b)") && page.includes("applyAdv(node, b);"));
+  assert.ok(page.includes("node.id = a.id"), "an anchor name, letters digits and dashes only");
+  assert.ok(page.includes('b.w === "wide" || b.w === "half"') && page.includes("max-width: 767px"), "wide and half width, full width on a phone");
+  assert.ok(page.includes("prefers-reduced-motion: reduce"), "an entrance animation is skipped for people who ask for less motion");
+  assert.ok(page.includes("withAlpha(x.color, 100)"), "text colour is 6-digit hex only");
+  assert.ok(page.includes('curVar = (b.sx && b.sx.bv) || s.btn || ""') && page.includes('["fill", "outline", "pill", "text"].includes(curVar)'), "button variant and size");
+  assert.ok(page.indexOf("txN += 1;") < page.indexOf("const set = (sel, css)"), "the class number is taken before the rules use it");
+});

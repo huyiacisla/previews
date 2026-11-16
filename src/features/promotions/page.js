@@ -166,6 +166,47 @@ function applySx(node, sx) {
   if (["left", "center", "right"].includes(sx.al)) node.style.textAlign = sx.al;
 }
 
+let txN = 0;
+
+/**
+ * The editor's Advanced and Text tabs for one block: an anchor name, a width (wide, half), an entrance animation, and text style
+ * (size, weight, colour, alignment, line height, letter spacing, bold, italic, underline). Only plain values are taken.
+ */
+function applyAdv(node, b) {
+  const a = (b && b.adv) || {};
+  if (typeof a.id === "string" && /^[A-Za-z][\w-]{0,40}$/.test(a.id)) node.id = a.id;
+  const narrow = typeof matchMedia === "function" && matchMedia("(max-width: 767px)").matches;
+  if ((b.w === "wide" || b.w === "half") && !narrow) {
+    node.style.maxWidth = b.w === "wide" ? "75%" : "50%";
+    node.style.marginLeft = "auto";
+    node.style.marginRight = "auto";
+  }
+  const x = b.tx;
+  if (x && typeof x === "object") {
+    const rules = [];
+    txN += 1;
+    const set = (sel, css) => rules.push(`.pmx-${txN} :is(${sel}){${css}}`);
+    if (x.size !== undefined && x.size !== "" && Number.isFinite(+x.size)) set("h1,h2,h3,h4,p,b,strong,small,li", `font-size:${num(x.size, 8, 96, 16)}px!important`);
+    if ([100, 200, 300, 400, 500, 600, 700, 800, 900].includes(+x.weight)) set("h1,h2,h3,h4,p,b", `font-weight:${+x.weight}!important`);
+    if (withAlpha(x.color, 100)) set("h1,h2,h3,h4,p,b,small,li", `color:${x.color}!important`);
+    if (["left", "center", "right"].includes(x.align)) set("h1,h2,h3,h4,p", `text-align:${x.align}!important`);
+    if (x.lh !== undefined && x.lh !== "" && Number.isFinite(+x.lh)) set("h1,h2,h3,h4,p", `line-height:${num(x.lh, 0.8, 3, 1.4)}!important`);
+    if (x.ls !== undefined && x.ls !== "" && Number.isFinite(+x.ls)) set("h1,h2,h3,h4,p", `letter-spacing:${num(x.ls, -5, 20, 0)}px!important`);
+    if (x.b) set("h1,h2,h3,p", "font-weight:800!important");
+    if (x.i) set("h1,h2,h3,p", "font-style:italic!important");
+    if (x.u) set("h1,h2,h3,p", "text-decoration:underline!important");
+    if (rules.length) {
+      node.classList.add(`pmx-${txN}`);
+      const st = document.createElement("style");
+      st.textContent = rules.join("");
+      node.prepend(st);
+    }
+  }
+  const reduced = typeof matchMedia === "function" && matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const from = { fade: { opacity: 0 }, slide: { opacity: 0, transform: "translateY(24px)" }, zoom: { opacity: 0, transform: "scale(.96)" } }[a.anim];
+  if (from && !reduced && typeof node.animate === "function") node.animate([from, {}], { duration: 600, easing: "ease-out", fill: "backwards" });
+}
+
 function h(tag, css, ...kids) {
   const e = document.createElement(tag);
   if (css) e.style.cssText = css;
@@ -283,16 +324,21 @@ export function renderPage(snap, ctx) {
     const b = hex6(curBg) ? curBg : hex6(T.bg) ? T.bg : null;
     return !b || !hex6(T.accent) || cr(T.accent, b) >= 4.5 ? T.accent : ink(b);
   };
+  // the block's own button look (Style tab: variant and size), else the page's
+  let curVar = "";
+  let curSize = "m";
   const btn = (label, on, onAccent) => {
     const c = onAccent ? ink(T.accent) : "#fff";
     const ac = accentOn();
-    const base = "font:inherit;font-weight:600;cursor:pointer;padding:10px 20px;min-height:40px;";
+    const v = ["fill", "outline", "pill", "text"].includes(curVar) ? curVar : T.btn;
+    const pad = { s: "6px 14px;min-height:32px", l: "14px 28px;min-height:48px" }[curSize] || "10px 20px;min-height:40px";
+    const base = `font:inherit;font-weight:600;cursor:pointer;padding:${pad};`;
     const css =
-      T.btn === "outline"
+      v === "outline"
         ? `${base}background:transparent;border:2px solid ${onAccent ? c : ac};color:${onAccent ? c : ac};border-radius:${T.radius}px`
-        : T.btn === "text"
+        : v === "text"
           ? `${base}background:none;border:0;color:${onAccent ? c : ac};text-decoration:underline;padding-left:0;padding-right:0`
-          : `${base}background:${onAccent ? c : T.accent};border:0;color:${onAccent ? T.accent : ink(T.accent)};border-radius:${T.btn === "pill" ? 999 : Math.round(T.radius / 2)}px`;
+          : `${base}background:${onAccent ? c : T.accent};border:0;color:${onAccent ? T.accent : ink(T.accent)};border-radius:${v === "pill" ? 999 : Math.round(T.radius / 2)}px`;
     const b = h("button", css, text(label));
     b.type = "button";
     b.addEventListener("click", on);
@@ -344,6 +390,8 @@ export function renderPage(snap, ctx) {
     if (b === cdBlock || b === cpBlock) continue; // drawn inside the hero
     const bg = bgOf(s);
     curBg = bg;
+    curVar = (b.sx && b.sx.bv) || s.btn || "";
+    curSize = (b.sx && b.sx.bs) || "m";
     const fg = bg === T.accent ? ink(T.accent) : bg === T.bg ? T.fg : bg === T.alt ? T.onAlt : ink(bg);
     const sec = (type, ...kids) => {
       const e = h("section", `background:${bg};color:${fg};padding:${mobile ? Math.round((SP[s.pad] || SP.m) * 0.75) : SP[s.pad] || SP.m}px 0;padding-inline:${GUTTER};text-align:${["left", "center", "right"].includes(s.align) ? s.align : "left"}`);
@@ -495,6 +543,7 @@ export function renderPage(snap, ctx) {
     }
     if (node) {
       applySx(node, b.sx);
+      applyAdv(node, b);
       root.append(node);
     }
   }

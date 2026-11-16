@@ -385,3 +385,36 @@ Còn mở (chưa sửa):
 - "Price shown on the card" chỉ đổi chữ hiển thị, không đổi mức giảm thật.
 - Chữ trắng trên indigo 4.47:1 (đã chấp nhận).
 - Chưa push: local đang đi trước origin/main.
+
+## Vòng 3: hoàn thiện (người dùng yêu cầu tiếp tục sau tổng kết vòng 2)
+
+Lý do: goal Promotions đạt ở luồng chính nhưng còn khoảng cách "Staff chỉnh gì thì Resident thấy đúng như vậy", và bảng QA lượt 3 (`05-bao-cao-tong-hop.md`) còn dòng Không đạt, chưa kiểm được, cùng các sửa chưa đo lại. Mỗi phần xong thì 5 phút sau chạy phần kế (`[ ]` đầu tiên).
+
+- [x] **R3-1: Trình dựng nói đúng điều Resident áp dụng.** Tuỳ chọn Resident chưa hỗ trợ (hoạt ảnh, neo, kiểu chữ `tx`, biến thể và cỡ nút `bv/bs/bi`, thẻ kiểu `sx.card`): làm cho chạy nếu rẻ, nếu không thì ẩn hoặc ghi rõ ngay trong trình dựng "Resident chưa hiển thị". Thử lại ở Resident thật.
+- [ ] **R3-2: Claim Phần 4 và vòng Staff → Resident cuối.** Thử lại lỗi claim chập chờn (claim, huỷ, claim lại, Staff duyệt/từ chối, redeem, lịch sử) nhiều lần, hai tab.
+- [ ] **R3-3: Kiểm lại các sửa chưa đo lại của lượt 3.** S325 (ô Property profile cắt ký tự), R607 (khẩn cấp viết bằng lời), R624 (Ticket box không lộ tên nhân viên), Pin trùng, aria-current, Larger tap targets.
+- [ ] **R3-4: A3 Settings còn Không đạt / Chưa kiểm được.** Chạy lại các dòng của `08-ket-qua-lai-A3.md` chưa kiểm hết (42 Không đạt, 32 chưa kiểm được); sửa lỗi thấy.
+- [ ] **R3-5: A5 Điều hướng, khung.** Chạy lại các dòng Không đạt của A5 (36) và chưa kiểm được (18); sửa.
+- [ ] **R3-6: Vận hành an toàn.** System health, vòng đời property (end property, chặn truy cập, niêm phong), hộp thoại bằng bàn phím, dữ liệu hỏng/đầy bộ nhớ: thử thật, sửa.
+- [ ] **R3-7: Tổng kết vòng 3.** Dọn dữ liệu, cập nhật bảng tổng hợp, hỏi push.
+
+### R3-1 (xong): Resident áp dụng thêm thiết lập khối của trình dựng
+
+Cách làm: ghi tay các thiết lập vào bản công bố `eso-pm-page` (hero, grid, một khối CTA), đổi `at`, tải lại Resident, đọc kiểu tính toán và chụp màn hình ở 563 và 1440 (hai lần).
+
+Đã làm (`applyAdv` trong `page.js`, và nút trong `btn`): Resident giờ cũng áp dụng
+- **tên neo** (`adv.id`, chỉ chữ, số, gạch);
+- **độ rộng khối** (`w`: Wide 75%, Half 50%; từ 768 px trở xuống luôn đầy);
+- **hoạt ảnh vào** (`adv.anim`: fade, slide, zoom; bỏ qua nếu người dùng chọn giảm chuyển động);
+- **kiểu chữ** (`tx`: cỡ, độ đậm, màu hex, căn lề, giãn dòng, giãn chữ, đậm, nghiêng, gạch chân);
+- **kiểu và cỡ nút** (`sx.bv`: fill, outline, pill, text; `sx.bs`: S, M, L; cũng đọc `style.btn` của khối).
+
+Lỗi tìm thấy khi thử: số thứ tự lớp kiểu chữ lấy sau khi tạo luật nên luật nhắm sai lớp (chữ không đổi). Đã sửa (lấy số trước).
+
+Kết quả đo ở 1440: grid `Half` rộng 586 px giữa khung 1184 px; hero chữ 34 px, màu `#7c2d12`, nghiêng, đậm, căn giữa; nút CTA pill, đệm 14/28 px, cao 48 px.
+
+Vẫn chưa hỗ trợ ở Resident (ghi lại): biểu tượng trong nút (`bi`), thẻ kiểu (`sx.card`), phông chữ riêng của khối (`tx.font`), và cặp nút "Copy code / View details" trong hero có kiểu cố định theo yêu cầu thiết kế (kiểu và cỡ nút của khối không đổi chúng).
+
+Test: `promotions-blocks.test.mjs` (thêm 1 test). `npm test` 503 test, 502 qua, 1 lỗi cũ.
+
+Dọn dữ liệu: `eso-pm-page` trả về bản gốc (6 khối, hero `{{offer}}`), không còn khoá `qa-*`, viewport desktop.
