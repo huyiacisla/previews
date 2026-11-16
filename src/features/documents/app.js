@@ -42,7 +42,7 @@ if (!Array.isArray(stored)) save();
 const PREFS_KEY = 'docs-prefs:client';
 let prefs = normalizeDocPrefs(read(PREFS_KEY, null));
 const DISMISS_KEY = 'eso-docs-dismissed:client'; // how many expired / expiring documents were in view when each reminder was closed
-let dismissed = (() => { const v = read(DISMISS_KEY, null); return { expired: Number(v?.expired) || 0, soon: Number(v?.soon) || 0 }; })();
+const dismissed = (() => { const v = read(DISMISS_KEY, null); return { expired: Number(v?.expired) || 0, soon: Number(v?.soon) || 0 }; })();
 const f = { q: '', category: 'all', property: 'all', range: 'any', sort: 'attention' };
 let until = 0; // when the W-9's current unlock ends; in memory only, so a reload locks it again
 let tick = null;

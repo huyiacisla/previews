@@ -54,7 +54,7 @@ export function isPerson(key) {
   if (!k) return false;
   if (k === 'me') return true;
   if (k.startsWith('res:')) return PERSONAS.some((p) => p.role === 'resident' && p.id === k.slice(4));
-  return Object.prototype.hasOwnProperty.call(PEOPLE, k);
+  return  Object.hasOwn(PEOPLE, k);
 }
 
 /** Who a person key is: { name, role }. "me" is the Staff person using the Staff app, which a resident reads as the property team (`staffName`). */

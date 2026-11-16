@@ -52,7 +52,7 @@ export function byOf(obj) {
 
 // One person has one key everywhere. The feed names Alex Rivera "alex"; as a resident he is "res:res-1". The key of the person using Staff is "me".
 const ALIAS = { alex: 'res:res-1' };
-export const canon = (key) => (Object.prototype.hasOwnProperty.call(ALIAS, key) ? ALIAS[key] : String(key)); // (a key like "constructor" is not an alias)
+export const canon = (key) => (Object.hasOwn(ALIAS, key) ? ALIAS[key] : String(key)); // (a key like "constructor" is not an alias)
 
 /** The people the feed names as having shared a post: [authorKey]. */
 export function feedShares(p) {

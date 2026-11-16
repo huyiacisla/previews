@@ -25,7 +25,7 @@ globalThis._companyMfa = () => /^\/(staff|client)\//.test(globalThis.location.pa
 import { clientWorkspaceTree, installClientWorkspace, CW_DEFAULTS, PROP as CW_PROP } from './client-workspace.js';
 import { ITEMS as PLAN_ITEMS } from '../features/capacity/store.js';
 
-(function () {
+(() => {
   const w = window;
   const search = location.search;
   /* The same page serves three portals: /staff/…, /client/account-settings.html and /resident/settings…, which all include it.
@@ -119,7 +119,7 @@ html.a11y-focus :focus-visible{outline:3px solid var(--primary)!important;outlin
 
   /* 5. Put the sections in the tree: Messages and Accessibility under My settings, Resident promotions under Workspace. */
   const T0 = w.TREES;
-  w.TREES = function () {
+  w.TREES = () => {
     const T = T0();
     const me = T.settings.kids, ws = T.workspace.kids;
     if (!me.find((x) => x.id === 'messaging')) {

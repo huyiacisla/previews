@@ -7,7 +7,7 @@
 // What is here: the 29 sample deals, how each one is given a status (running, scheduled, draft, ended) and numbers, and how the running ones become the
 // records the Resident app already reads (the same shape as what Staff publish). Staff's page then moves 2 of the ended ones to Storage and shows a
 // 27-deal list: Live 16, Sold out 1, Expired 2, Saved 4 (not started), Drafts 4. The Resident sees the 17 that are running (Live 16 and Sold out 1).
-(function (root) {
+((root) => {
   const gr = (a, b) => `linear-gradient(135deg,${a},${b})`;
   const CATS = [['parking', 'Parking', '🅿️'], ['moving', 'Moving & Storage', '📦'], ['carcare', 'Car care', '🚗'], ['ev', 'EV charging', '⚡'], ['pets', 'Pets', '🐾'], ['dining', 'Local dining', '🍜'], ['services', 'Services', '🧰']];
 

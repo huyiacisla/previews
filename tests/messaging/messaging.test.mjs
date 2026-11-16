@@ -291,7 +291,7 @@ test('support thread: open -> pending -> open -> resolved -> reopened', () => {
   const row = store.listFor('adm-1').find((x) => x.id === r.convId);
   assert.ok(row.tags.includes('queue'));
   assert.ok(store.send(r.convId, 'adm-1', 'Billing > Invoices, filter by month.').ok);
-  let c = store.get(r.convId, 'adm-1').conv;
+  const c = store.get(r.convId, 'adm-1').conv;
   assert.equal(c.status, 'pending');
   assert.equal(c.assigneeId, 'adm-1');
   store.send(r.convId, 'cli-1', 'Found it, thanks.');

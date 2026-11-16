@@ -2,13 +2,13 @@
    NOTE: BRIEF.md says no JS besides preview.js; this file is a deliberate exception requested for this page only.
    Does not edit the app's render code: it patches the DOM after each render via a debounced MutationObserver.
    Selectors are specific to this prototype (#content, #toast, .dd h6, nav.crumb, .pzst, .srow/.row/.prow/.pzrow). */
-(function(){
+(()=> {
 function init(){
 var b=document.body;if(!b)return;
 
 /* 1. Skip link. Uses a click handler, not href="#content", because the app routes on location.hash. */
 if(!document.querySelector('.qa-skip')){var a=document.createElement('a');a.className='qa-skip';a.href='#content';a.textContent='Skip to main content';
-a.addEventListener('click',function(e){e.preventDefault();var c=(b.classList.contains('fdon')&&document.getElementById('feedroot'))||document.getElementById('content');if(c){c.setAttribute('tabindex','-1');c.focus()}});
+a.addEventListener('click',(e)=> {e.preventDefault();var c=(b.classList.contains('fdon')&&document.getElementById('feedroot'))||document.getElementById('content');if(c){c.setAttribute('tabindex','-1');c.focus()}});
 b.insertBefore(a,b.firstChild)}
 
 /* 1b. Social sidebar item follows Settings > Social, always.
@@ -26,18 +26,18 @@ if(c&&c.getAttribute('role')!=='main')c.setAttribute('role','main');
 var fr=document.getElementById('feedroot');if(fr&&fr.getAttribute('role')!=='main')fr.setAttribute('role','main');
 var t=document.getElementById('toast');if(t&&!t.getAttribute('aria-live')){t.setAttribute('role','status');t.setAttribute('aria-live','polite')}
 /* 3. Heading order: menu group labels are not part of the page outline; never skip a level inside #content */
-document.querySelectorAll('.dd h6').forEach(function(h){if(h.getAttribute('role')!=='presentation')h.setAttribute('role','presentation')});
-if(c){var prev=0;c.querySelectorAll('h1,h2,h3,h4,h5,h6').forEach(function(h){var l=+h.tagName[1];if(prev&&l>prev+1){l=prev+1;h.setAttribute('aria-level',l)}else if(h.getAttribute('aria-level')&&+h.getAttribute('aria-level')!==l&&!(prev&&l>prev+1)){h.removeAttribute('aria-level')}prev=l})}
+document.querySelectorAll('.dd h6').forEach((h)=> {if(h.getAttribute('role')!=='presentation')h.setAttribute('role','presentation')});
+if(c){var prev=0;c.querySelectorAll('h1,h2,h3,h4,h5,h6').forEach((h)=> {var l=+h.tagName[1];if(prev&&l>prev+1){l=prev+1;h.setAttribute('aria-level',l)}else if(h.getAttribute('aria-level')&&+h.getAttribute('aria-level')!==l&&!(prev&&l>prev+1)){h.removeAttribute('aria-level')}prev=l})}
 if(c){
 /* 4. Unlabelled form controls: take the row title, else the placeholder */
-c.querySelectorAll('select:not([aria-label]),input:not([type=hidden]):not([type=checkbox]):not([type=radio]):not([aria-label])').forEach(function(f){if(f.id&&document.querySelector('label[for="'+f.id+'"]')||f.closest('label'))return;var row=f.closest('.srow,.row,.prow,.pzrow');var t=row&&row.querySelector('.stt,b,strong,h4,h5');var txt=t&&t.textContent.trim()||f.getAttribute('placeholder')||'';if(txt)f.setAttribute('aria-label',txt)});
+c.querySelectorAll('select:not([aria-label]),input:not([type=hidden]):not([type=checkbox]):not([type=radio]):not([aria-label])').forEach((f)=> {if(f.id&&document.querySelector('label[for="'+f.id+'"]')||f.closest('label'))return;var row=f.closest('.srow,.row,.prow,.pzrow');var t=row&&row.querySelector('.stt,b,strong,h4,h5');var txt=t&&t.textContent.trim()||f.getAttribute('placeholder')||'';if(txt)f.setAttribute('aria-label',txt)});
 /* 5. Controls under 24px tall get a larger hit area (switches excluded: spaced apart, pass by spacing exception) */
-c.querySelectorAll('a[href]:not(.qa-tap),button:not(.sw):not([role=switch]):not(.qa-tap)').forEach(function(bt){if(bt.offsetHeight&&bt.offsetHeight<24)bt.classList.add('qa-tap')})}
+c.querySelectorAll('a[href]:not(.qa-tap),button:not(.sw):not([role=switch]):not(.qa-tap)').forEach((bt)=> {if(bt.offsetHeight&&bt.offsetHeight<24)bt.classList.add('qa-tap')})}
 /* 5b. A row of choice buttons (accent and sidebar colour dots, segmented buttons) shows the choice only with the class "on": say it to assistive tech too,
    and name a colour dot that has no name. Groups that already use tabs, radios or aria-selected are left alone. */
-if(c){c.querySelectorAll('.dsw,.seg,.segm,[class*="seg"],.pzdots,.pzseg,.pzsg').forEach(function(g){var bs=[].filter.call(g.children,function(x){return x.tagName==='BUTTON'});if(bs.length<2)return;
-if(bs.some(function(x){return x.hasAttribute('aria-selected')||x.getAttribute('role')==='tab'||x.getAttribute('role')==='radio'}))return;
-bs.forEach(function(x,i){x.setAttribute('aria-pressed',(x.classList.contains('on')||x.classList.contains('sel')||x.classList.contains('active')||x.classList.contains('selected'))?'true':'false');
+if(c){c.querySelectorAll('.dsw,.seg,.segm,[class*="seg"],.pzdots,.pzseg,.pzsg').forEach((g)=> {var bs=[].filter.call(g.children,(x)=> x.tagName==='BUTTON');if(bs.length<2)return;
+if(bs.some((x)=> x.hasAttribute('aria-selected')||x.getAttribute('role')==='tab'||x.getAttribute('role')==='radio'))return;
+bs.forEach((x,i)=> {x.setAttribute('aria-pressed',(x.classList.contains('on')||x.classList.contains('sel')||x.classList.contains('active')||x.classList.contains('selected'))?'true':'false');
 if(!x.getAttribute('aria-label')&&!x.textContent.trim()){var v=x.getAttribute('data-v')||x.getAttribute('title')||'';x.setAttribute('aria-label',v?'Option '+v:'Option '+(i+1))}})})}
 /* 6. Breadcrumb semantics */
 var cr=document.querySelector('nav.crumb');if(cr){if(!cr.getAttribute('aria-label'))cr.setAttribute('aria-label','Breadcrumb');var l=cr.lastElementChild;if(l&&l.tagName!=='A'&&!l.getAttribute('aria-current'))l.setAttribute('aria-current','page')}
@@ -49,7 +49,7 @@ var cr=document.querySelector('nav.crumb');if(cr){if(!cr.getAttribute('aria-labe
 function pz(){}
 
 /* Debounce with setTimeout (requestAnimationFrame is paused in hidden panes and left the flag stuck) */
-var q=0;function sched(){if(q)return;q=setTimeout(function(){q=0;fix();pz()},60)}
+var q=0;function sched(){if(q)return;q=setTimeout(()=> {q=0;fix();pz()},60)}
 fix();addEventListener('hashchange',sched);
 new MutationObserver(sched).observe(b,{childList:true,subtree:true});
 }
@@ -58,17 +58,17 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
 /* Text typed in Settings is bounded and safe. A line of text takes at most 120 characters and a note at most 500 (a field that sets its own limit keeps it, and
    a pasted text is cut to the limit). A web address takes http(s) only: javascript:, data: and vbscript: are dropped the moment they are typed. This runs
    before the page's own handlers, so what they save is already clean. */
-document.addEventListener('focusin',function(e){var t=e.target;if(!t||t.hasAttribute('maxlength'))return;
+document.addEventListener('focusin',(e)=> {var t=e.target;if(!t||t.hasAttribute('maxlength'))return;
 if(t.tagName==='INPUT'&&(t.type==='text'||t.type==='url'||t.type==='search'||t.type===''))t.maxLength=120;
 else if(t.tagName==='TEXTAREA')t.maxLength=500},true);
 /* A value set by a script, a paste or an autofill never took the limit of a field nobody had focused. Cut it to the limit when it changes, and again just
    before a button or a change is handled, so a long text is never what gets saved. */
 function clamp(t){if(!t||!t.value)return;var tx=t.tagName==='INPUT'&&(t.type==='text'||t.type==='url'||t.type==='search'||t.type==='');
 if(!tx&&t.tagName!=='TEXTAREA')return;var max=t.maxLength>0?t.maxLength:(t.tagName==='TEXTAREA'?500:120);if(t.value.length>max)t.value=t.value.slice(0,max)}
-document.addEventListener('input',function(e){clamp(e.target)},true);
-document.addEventListener('change',function(e){clamp(e.target)},true);
-document.addEventListener('click',function(e){if(!e.target.closest||!e.target.closest('button,[role=button],.btn'))return;var c=document.getElementById('content');if(c)c.querySelectorAll('input,textarea').forEach(clamp)},true);
-document.addEventListener('input',function(e){var t=e.target;if(!t||t.tagName!=='INPUT')return;
+document.addEventListener('input',(e)=> {clamp(e.target)},true);
+document.addEventListener('change',(e)=> {clamp(e.target)},true);
+document.addEventListener('click',(e)=> {if(!e.target.closest||!e.target.closest('button,[role=button],.btn'))return;var c=document.getElementById('content');if(c)c.querySelectorAll('input,textarea').forEach(clamp)},true);
+document.addEventListener('input',(e)=> {var t=e.target;if(!t||t.tagName!=='INPUT')return;
 var looksLikeAddress=t.type==='url'||/web|url|site|link|href/i.test((t.id||'')+' '+(t.name||'')+' '+(t.getAttribute('aria-label')||'')+' '+(t.getAttribute('data-k')||''));
 if(looksLikeAddress&&/^\s*(javascript|data|vbscript):/i.test(t.value)){t.value='';t.setAttribute('aria-invalid','true');t.setAttribute('title','Use a web address that starts with http:// or https://')}
 else if(t.getAttribute('aria-invalid')==='true'&&looksLikeAddress)t.removeAttribute('aria-invalid')},true);
@@ -76,15 +76,15 @@ else if(t.getAttribute('aria-invalid')==='true'&&looksLikeAddress)t.removeAttrib
 /* 8. The frame's floating assistant button must not cover the buttons of a dialog of this page. At 675px it sat on top of "Publish"/"Schedule" in
    New promotion, so the main action could not be clicked. While a dialog of this page is open, tell the frame (same origin) to hide that button;
    styles.css does the hiding (html[data-eso-modal]). */
-(function(){
+(()=> {
 if(parent===window)return;
 var last=null;
 function sig(){
-var open=Array.prototype.some.call(document.querySelectorAll('[aria-modal="true"],dialog[open],.pmc-ov'),function(e){return e.getClientRects().length>0});
+var open=Array.prototype.some.call(document.querySelectorAll('[aria-modal="true"],dialog[open],.pmc-ov'),(e)=> e.getClientRects().length>0);
 if(open===last)return;last=open;
 try{parent.document.documentElement.toggleAttribute('data-eso-modal',open)}catch(e){}}
 function start(){new MutationObserver(sig).observe(document.body,{childList:true,subtree:true,attributes:true,attributeFilter:['class','hidden','open','aria-modal','style']});sig()}
 if(document.body)start();else document.addEventListener('DOMContentLoaded',start);
-addEventListener('pagehide',function(){try{parent.document.documentElement.removeAttribute('data-eso-modal')}catch(e){}});
+addEventListener('pagehide',()=> {try{parent.document.documentElement.removeAttribute('data-eso-modal')}catch(e){}});
 })();
 })();
