@@ -869,7 +869,8 @@ function paintRewards() {
     const badge = $("[data-status]", li);
     badge.textContent = st[0];
     badge.dataset.tone = st[1];
-    $("[data-note]", li).textContent = `Claimed ${ago(r.at)}${r.key === "rejected" && r.cs && r.cs.reason ? `. ${r.cs.reason}` : ""}`;
+    const activeN = activeClaims(storage, me.id, r.id).active;
+    $("[data-note]", li).textContent = `${activeN > 1 ? `${activeN} claims, latest ` : "Claimed "}${ago(r.at)}${r.key === "rejected" && r.cs && r.cs.reason ? `. ${r.cs.reason}` : ""}`;
     // the history: every step with its time
     const tl = $("[data-timeline]", li);
     for (const ev of claimTimeline(storage, me.id, r.id)) {

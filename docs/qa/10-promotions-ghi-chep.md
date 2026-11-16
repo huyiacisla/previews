@@ -156,7 +156,7 @@ Người dùng: khối "Offer ends in" / "Use this code at checkout" / `MALLA10`
 - [x] **Phần 1: Template.** Deals, Store, Minimal mono, Luxury dark, rồi các template còn lại, mỗi cái ở 375/830/1440, sáng/tối: thanh trên cùng, hero gộp (badge, mã, nút), lưới thẻ, My rewards, History, (i), Redeem, chi tiết deal. Đổi template ở Staff, Resident đổi ngay.
 - [x] **Phần 2: Brand kit.** Màu chính, màu phụ, font, kiểu nút, logo; xem Resident đổi cả thanh portal, huy hiệu, hộp thoại; trả về mặc định.
 - [x] **Phần 3: Tạo và sửa deal.** Form New promotion (ảnh bìa, logo đối tác, mã tĩnh/duy nhất/QR/link, giới hạn tổng/mỗi người/mỗi unit, hẹn lịch, nháp); Edit details (đổi tiêu đề, giá, mã, danh mục) hiện đúng ở Resident.
-- [ ] **Phần 4: Claim.** Alex và Jamie cùng unit, giới hạn theo unit/theo người, hết suất, đã claim, Cancel, claim lại, History; Staff xác nhận/đổi/từ chối ở Claims và Resident thấy đúng trạng thái và giờ.
+- [x] **Phần 4: Claim.** Alex và Jamie cùng unit, giới hạn theo unit/theo người, hết suất, đã claim, Cancel, claim lại, History; Staff xác nhận/đổi/từ chối ở Claims và Resident thấy đúng trạng thái và giờ.
 - [ ] **Phần 5: Vòng đời.** Đóng, gia hạn, tạm tắt/Off live, hẹn lịch, xoá, xuất CSV; ngày thật 16/11/2026, đồng hồ, "Expired on" đúng; sample deal và deal do Staff tạo.
 - [ ] **Phần 6: Truy cập và dọn.** Bàn phím, focus, (i), Redeem; vùng bấm; không có hai điều khiển cho một việc; dọn dữ liệu test; ghi tổng kết, hỏi người dùng về push.
 
@@ -226,3 +226,24 @@ Không sửa (ghi lại):
 Dọn dữ liệu: xoá 6 deal QA3, bản nháp form, khoá sửa `eso-pmedits` của deal QA; trả template về Deals (Publish & set as current) và xác nhận "In use: Deals marketplace".
 
 Test: `promotions-history.test.mjs` (ảnh bìa, cảnh báo mã).
+
+## Phần 4 (xong): Claim
+
+Cách làm: Staff tạo ba deal QA4 bằng form (giới hạn **theo unit** 1 lần; **theo người** 2 lần, tổng 3; **tổng 1**). Alex (res-1) rồi Jamie (res-4, `?as=res-4`, cùng unit) làm bằng giao diện Resident ở 375 sáng, rồi Staff (tab thứ hai) xác nhận, đánh dấu đã dùng và từ chối ở Claims. Xem giờ ở My rewards, History và mục "Your unit's claims".
+
+Chạy đúng:
+- Theo unit: Alex claim xong thì Jamie thấy nút khoá "Claimed by your unit" và dòng "One claim per unit: Alex Rivera already claimed this on Nov 16."; Alex huỷ thì chỗ trả lại, Jamie claim được; Alex lúc đó thấy "Claimed by your unit" và, ở mục "Your unit's claims", claim của Jamie không có nút Cancel.
+- Theo người (2 lần): lần một nút vẫn "Claim", lần hai thành "Claimed" bị khoá; số "left" giảm đúng (3 → 1); Jamie claim nốt thì "Sold out" cho cả hai.
+- Tổng 1: sau một claim thành "Sold out" (card và nút), người sau không claim được.
+- Staff: Claims hiện đủ claim (cả hai người, Alex hai lần), giờ theo múi giờ Staff ("Nov 16, 2:08 AM PST"); Verify rồi Mark redeemed ghi `vt`, `rt`; Reject kèm lý do. Resident thấy Redeemed với dòng thời gian Claimed, Verified, Redeemed kèm giờ Staff; Jamie thấy "Not approved", lý do, giờ từ chối, và "Claim again".
+- Huỷ bởi Resident hiện ở Staff là Rejected "Cancelled by resident", đúng thiết kế.
+
+Lỗi tìm thấy và đã sửa:
+1. **Claim đã huỷ đổi thành "Not approved" sau khi Staff nhận được.** Ngay sau khi huỷ hiện "Cancelled", nhưng khi trang Staff ghi nó thành một lần từ chối thì nhãn đổi sang "Not approved" (và tab Cancelled mất một mục). `claimStatus` giờ coi claim do chính Resident huỷ luôn là Cancelled; dòng thời gian cũng hiện "Cancelled" thay vì thêm một bước "Rejected".
+2. **Một deal cho claim nhiều lần mà My rewards chỉ hiện một hàng** như một claim. Hàng giờ ghi "2 claims, latest 4m ago" khi có nhiều hơn một claim đang hoạt động.
+
+Chưa sửa: một lần đầu, claim của Jamie cho deal theo người không ghi nhận dù nút bấm được (ngay sau khi mở rồi đóng một deal khác bị khoá); thử lại ba lần không tái hiện, claim ghi nhận bình thường. Ghi lại để để ý ở Phần 6.
+
+Dọn dữ liệu: xoá 3 deal QA4, toàn bộ bản ghi Resident của Jamie, claim và nhật ký QA4 của Alex, các mục Claims và trạng thái QA4.
+
+Test: `promotions-history.test.mjs` (huỷ vẫn là Cancelled, từ chối thật vẫn là Rejected, số claim).

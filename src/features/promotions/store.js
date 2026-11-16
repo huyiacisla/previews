@@ -325,7 +325,7 @@ export function claimStatus(storage, residentId, promoId) {
   if (!count) return null;
   const all = read(storage, KEY.claimState, {}) || {};
   const gone = residentState(storage, residentId).claims[promoId]?.cancelled;
-  if (Array.isArray(gone) && gone.includes(count) && !all[`${residentId}|${promoId}|${count}`]) return { st: "rejected", reason: "Cancelled by you", locked: false, cancelled: true };
+  if (Array.isArray(gone) && gone.includes(count)) return { st: "rejected", reason: "Cancelled by you", locked: false, cancelled: true };
   // the newest claim is the one that is shown: an older rejected one does not speak for a new claim that waits
   const s = all[`${residentId}|${promoId}|${count}`];
   if (s && (s.st === "verified" || s.st === "redeemed" || s.st === "rejected"))
@@ -367,8 +367,9 @@ export function claimTimeline(storage, residentId, promoId) {
   const out = [{ label: "Claimed", at: c.at || "", note: c.code ? `Code issued: ${c.code}` : "", tone: "wait" }];
   if (s && (s.st === "verified" || s.st === "redeemed")) out.push({ label: "Verified", at: ms(s.vt) || (s.st === "verified" ? ms(s.at) : ""), note: "The property team confirmed your claim", tone: "ok" });
   if (s && s.st === "redeemed") out.push({ label: "Redeemed", at: ms(s.rt) || ms(s.at), note: "The code was used", tone: "ok" });
-  if (s && s.st === "rejected") out.push({ label: "Rejected", at: ms(s.jt) || ms(s.at), note: String(s.reason || "No reason given").slice(0, 200), tone: "no" });
-  if (Array.isArray(c.cancelled) && c.cancelled.includes(n) && !(s && s.st === "rejected")) out.push({ label: "Cancelled", at: (c.cancelledAt && c.cancelledAt[n]) || "", note: "You cancelled this claim", tone: "no" });
+  const byMe = Array.isArray(c.cancelled) && c.cancelled.includes(n);
+  if (s && s.st === "rejected" && !byMe) out.push({ label: "Rejected", at: ms(s.jt) || ms(s.at), note: String(s.reason || "No reason given").slice(0, 200), tone: "no" });
+  if (byMe) out.push({ label: "Cancelled", at: (c.cancelledAt && c.cancelledAt[n]) || "", note: "You cancelled this claim", tone: "no" });
   return out;
 }
 

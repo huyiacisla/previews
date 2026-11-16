@@ -7,7 +7,7 @@ import { readFileSync } from "node:fs";
 import test from "node:test";
 import "../../src/features/promotions/catalog.js";
 import { themeVars } from "../../src/features/promotions/page.js";
-import { cancelClaim, claim, historyFor, KEY, listPromotions } from "../../src/features/promotions/store.js";
+import { cancelClaim, claim, claimStatus, claimTimeline, historyFor, KEY, listPromotions } from "../../src/features/promotions/store.js";
 
 const memory = (seed = {}) => {
   const m = new Map(Object.entries(seed).map(([k, v]) => [k, JSON.stringify(v)]));
@@ -213,4 +213,23 @@ test("Staff see the cover they uploaded on the card, and the builder warns about
   assert.ok(staff.includes("const cpWarn=(v)=>") && staff.includes('data-ixp="${k}" value="${H(v)}">${f[2]?`<small>${tt(f[2])}</small>`:""}${b.type=="coupon"&&k=="code"?cpWarn(v):""}'), "the live editor warns under the Coupon code field");
   assert.ok(staff.includes("No promotion uses this code") && staff.includes("No promotion has a promo code yet"));
   assert.ok(!staff.includes('<p class="pbw" role="alert">'), "the warning class does not collide with the old builder's block wrapper");
+});
+
+test("a claim the resident cancelled stays Cancelled after Staff's inbox records it, in the status, the timeline and the list", () => {
+  const s = memory();
+  const p = pick(s);
+  claim(s, ME, p, T(1));
+  cancelClaim(s, ME, p.id, T(2));
+  // Staff's inbox writes the cancellation as a rejection
+  s.setItem(KEY.claimState, JSON.stringify({ [`${ME}|${p.id}|1`]: { st: "rejected", reason: "Cancelled by resident", at: T(2).getTime(), jt: T(2).getTime() } }));
+  assert.equal(claimStatus(s, ME, p.id).cancelled, true, "not turned into \"Not approved\"");
+  assert.deepEqual(claimTimeline(s, ME, p.id).map((e) => e.label), ["Claimed", "Cancelled"], "no Rejected step for something the resident did");
+  // a rejection by Staff is still a rejection, with the reason
+  const s2 = memory();
+  claim(s2, ME, p, T(1));
+  s2.setItem(KEY.claimState, JSON.stringify({ [`${ME}|${p.id}|1`]: { st: "rejected", reason: "Outside the offer hours", at: T(3).getTime(), jt: T(3).getTime() } }));
+  assert.equal(claimStatus(s2, ME, p.id).cancelled, undefined);
+  assert.deepEqual(claimTimeline(s2, ME, p.id).map((e) => e.label), ["Claimed", "Rejected"]);
+  const res = readFileSync(new URL("../../src/features/promotions/resident.js", import.meta.url), "utf8");
+  assert.ok(res.includes("claims, latest"), "a promotion claimed more than once says how many claims are active");
 });
