@@ -232,6 +232,27 @@ test("the pages agree: Resident refreshes on any resident's claim and on a moved
   assert.ok(res.includes("toast(r.reason);"), "a refused claim says why");
   const staff = readFileSync(new URL("../../src/staff/account-settings-content.html", import.meta.url), "utf8");
   assert.ok(staff.includes('const actor=()=>window._wsRole!="staff"?"Property Manager":"Staff";'));
-  assert.ok(staff.includes('"eso-pm-audit-v1"') && staff.includes("by:o&&o.st===c.st&&o.by?o.by:actor()"), "Staff's decisions carry who made them and go into the same log");
+  assert.ok(staff.includes('"eso-pm-audit-v1"') && staff.includes('by:o&&o.st===c.st&&o.by?o.by:(/^Cancelled by resident/.test(c.reason||"")&&c.rid?"resident:"+c.rid:actor())'), "Staff's decisions carry who made them and go into the same log");
   assert.ok(staff.includes('(c.codes&&c.codes[j])||c.code'), "each claim of the inbox has the code it was given");
+});
+
+test("claim, cancel, claim again: the cancelled claim stays cancelled on the record and does not count again, with or without Staff's inbox", () => {
+  const s = open([rec("1", "active", { limR: "1", limT: "5" })]);
+  assert.ok(claim(s, "res-1", card(s), T(1)).ok);
+  assert.ok(cancelClaim(s, "res-1", "1", T(2)).ok);
+  assert.equal(activeClaims(s, "res-1", "1").active, 0, "cancelled: nothing counts");
+  const again = claim(s, "res-1", card(s), T(5));
+  assert.ok(again.ok && !again.again, "a real new claim");
+  const r = residentState(s, "res-1").claims["1"];
+  assert.deepEqual([r.count, r.cancelled], [2, [1]], "the first claim is still marked cancelled");
+  assert.equal(activeClaims(s, "res-1", "1").active, 1, "one claim counts, the new one");
+  assert.equal(claimedByResidents(s, "1"), 1, "one place is taken, not two");
+  assert.deepEqual(readAudit(s).map((e) => [e.type, e.spotDelta]), [["claim", -1], ["give_back", 1], ["claim", -1]]);
+  assert.equal(spotsTaken(s, "1"), 1);
+});
+
+test("an old close event must not forget the promotion that was opened right after (the Phase 4 flake: Claim did nothing)", () => {
+  const res = readFileSync(new URL("../../src/features/promotions/resident.js", import.meta.url), "utf8");
+  const at = res.indexOf('dlg.addEventListener("close", () => {');
+  assert.ok(at > 0 && res.slice(at, at + 700).includes("if (dlg.open) return;\n  ui.openId = null;"), "a close event that arrives while the window is open again is ignored");
 });

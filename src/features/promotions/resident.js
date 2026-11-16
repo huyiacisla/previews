@@ -664,6 +664,9 @@ dlg.addEventListener("click", (e) => {
   if (e.target === dlg) closeDialog();
 }); // the backdrop
 dlg.addEventListener("close", () => {
+  // A "close" event arrives a moment AFTER dlg.close(). If another promotion was opened in the same breath (Saved or My rewards > View, a quick close and open), the window is open
+  // again by now and this event is the old one: it must not forget the new promotion (the Claim button then did nothing: the Phase 4 flake) or open a window behind it.
+  if (dlg.open) return;
   ui.openId = null;
   const back = ui.back;
   ui.back = null;

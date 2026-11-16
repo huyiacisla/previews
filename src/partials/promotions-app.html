@@ -65,6 +65,9 @@
         #toolbar #btn-redeem, #toolbar #btn-rewards, #toolbar #btn-saved, #toolbar #btn-filter, #toolbar #search, #toolbar #sort, [data-theme-toggle], dialog button, dialog input, dialog select { min-height: 2.5rem; }
         #toolbar #btn-filter, #toolbar #btn-saved, #toolbar #btn-redeem, #toolbar #btn-rewards, [data-theme-toggle], dialog [data-close], #dlg-close { min-width: 2.5rem; }
       }
+      /* On a touch screen with "Larger tap targets" on (the default there) the bar's controls are 44 px, like every other page's */
+      html[data-big-target] #toolbar :is(#btn-redeem, #btn-rewards, #btn-saved, #btn-filter, #search, #sort) { min-height: 2.75rem; }
+      html[data-big-target] #toolbar :is(#btn-redeem, #btn-rewards, #btn-saved, #btn-filter) { min-width: 2.75rem; }
       /* While a window is open the page behind it does not scroll (a touch or the wheel on the backdrop stays on the window) */
       body:has(dialog[open]) #main-content { overflow: hidden; }
       dialog { overscroll-behavior: contain; }

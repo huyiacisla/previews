@@ -570,7 +570,11 @@ export function claim(storage, residentId, shown, now = new Date()) {
   const issued = promo.method === "unique" ? newUniqueCode(storage, promo.prefix) : code;
   // `code` is the newest claim's; `codes` keeps the code of each claim by its number (a second claim has a code of its own)
   const num = (prev ? prev.count : 0) + 1;
-  st.claims[promo.id] = { count: num, code: issued, codes: { ...(prev && isObj(prev.codes) ? prev.codes : {}), [num]: issued }, at: now.toISOString(), ...(who ? { who } : {}) };
+  // what the resident cancelled before stays on the record: a new claim must not make a cancelled one count again (until Staff's inbox has taken the cancellation over, this is the only place it is kept)
+  const kept = {};
+  if (prev && Array.isArray(prev.cancelled)) kept.cancelled = prev.cancelled;
+  if (prev && isObj(prev.cancelledAt)) kept.cancelledAt = prev.cancelledAt;
+  st.claims[promo.id] = { ...kept, count: num, code: issued, codes: { ...(prev && isObj(prev.codes) ? prev.codes : {}), [num]: issued }, at: now.toISOString(), ...(who ? { who } : {}) };
   note(st, { t: now.toISOString(), p: String(promo.id), k: "claimed", n: st.claims[promo.id].count, note: issued ? `Code issued: ${issued}` : "" });
   // the audit log first, the record second: if the record cannot be saved the log is put back, so the two never disagree
   const before = auditRaw(storage);

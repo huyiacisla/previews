@@ -919,7 +919,7 @@ matchMedia("(prefers-color-scheme: dark)").addEventListener("change",apply);
 // edge swipe — mirrors use-edge-swipe.ts (edge ≤24px, dx≥60, |dy|<dx)
 let pickKind=null;
 document.addEventListener("click",e=>{const t=e.target.closest("[data-pick],[data-rm],[data-gl],[data-gr],[data-gc],[data-gd],[data-wt],[data-pre],[data-am],[data-role],#discard,#savews,[data-drop]");if(!t)return;e.preventDefault();
- if(t.id=="savews"){W=JSON.parse(JSON.stringify(WD));try{localStorage.setItem("eso-prop",JSON.stringify(W));toast(/^Property profile/.test((document.querySelector(".sechead h2")||{}).textContent||"")?"Property profile saved (mock)":"Changes saved (mock)")}catch(x){toast("Images too large for local storage — remove some")}dirty=false;$("#savebar").classList.remove("o");return}
+ if(t.id=="savews"){if(WD.website&&!/^https?:\/\/[^\s<>"]+$/i.test(WD.website)){toast("Website must start with http:// or https://");return}W=JSON.parse(JSON.stringify(WD));try{localStorage.setItem("eso-prop",JSON.stringify(W));toast(/^Property profile/.test((document.querySelector(".sechead h2")||{}).textContent||"")?"Property profile saved (mock)":"Changes saved (mock)")}catch(x){toast("Images too large for local storage — remove some")}dirty=false;$("#savebar").classList.remove("o");return}
  if(t.id=="discard"){WD=JSON.parse(JSON.stringify(W));dirty=false;$("#savebar").classList.remove("o");apply();toast("Changes discarded");return}
  if(t.dataset.role){canManage=t.dataset.role=="pm";window._wsRole=canManage?"pm":"staff";render();return}
  if(!canManage)return;
@@ -6569,7 +6569,7 @@ try{const out={};let prev={};try{prev=JSON.parse(localStorage.getItem("eso-pm-cl
 /* a decision made from the chat on a claim this page has not imported yet is kept (it is taken over when the claim is imported) */
 {const known=new Set(CL.map(c=>c.rk).filter(Boolean));Object.keys(prev).forEach(k=>{if(!known.has(k)&&prev[k]&&prev[k].st)out[k]=prev[k]})}
 /* `at` is when the decision was published (kept while the decision stays the same): the resident's notice is dated by it */
-CL.forEach(c=>{if(c.rk&&c.st&&c.st!=="pending"){const o=prev[c.rk];const rec=out[c.rk]={st:c.st,reason:c.st==="rejected"?String(c.reason||"").slice(0,200):"",...(c.st==="rejected"&&c.lock?{lock:true}:{}),at:o&&o.st===c.st&&o.at?o.at:Date.now(),...(c.vt?{vt:c.vt}:{}),...(c.rt?{rt:c.rt}:{}),...(c.jt?{jt:c.jt}:{}),...((c.st==="verified"||c.st==="redeemed")&&c.manual&&c.manual.reason?{manual:String(c.manual.reason).slice(0,200)}:{}),by:o&&o.st===c.st&&o.by?o.by:actor()};
+CL.forEach(c=>{if(c.rk&&c.st&&c.st!=="pending"){const o=prev[c.rk];const rec=out[c.rk]={st:c.st,reason:c.st==="rejected"?String(c.reason||"").slice(0,200):"",...(c.st==="rejected"&&c.lock?{lock:true}:{}),at:o&&o.st===c.st&&o.at?o.at:Date.now(),...(c.vt?{vt:c.vt}:{}),...(c.rt?{rt:c.rt}:{}),...(c.jt?{jt:c.jt}:{}),...((c.st==="verified"||c.st==="redeemed")&&c.manual&&c.manual.reason?{manual:String(c.manual.reason).slice(0,200)}:{}),by:o&&o.st===c.st&&o.by?o.by:(/^Cancelled by resident/.test(c.reason||"")&&c.rid?"resident:"+c.rid:actor())};
 /* a decision that is new here is an event in the audit log (one decided from the chat is already there: its state is the same, so it is not added twice) */
 if(!o||o.st!==c.st){const a={promoId:c.promo,rid:c.rid,n:+String(c.rk).split("|").pop()||0,code:c.code,actor:rec.by,at:c.vt||c.jt||c.rt||Date.now()};
 if(o&&o.st==="rejected")evs.push({...a,type:"claim",reason:"Reinstated by Staff: the place is taken again"});
@@ -7895,6 +7895,18 @@ html body #pmc :is(button,select,textarea,input:not([type=radio],[type=checkbox]
 html.dark .pmx:not(:has(.pmland)) :is(.pdtabs,.pmt-v){background:var(--muted-c,oklch(.27 0 0))}
 html.dark .pmx:not(:has(.pmland)) :is(.pdtabs button,.pm-nav button,.pmt-v button):not(.on),html.dark .pmx:not(:has(.pmland)) :is(.pdtabs button,.pm-nav button):not(.on) :is(span,i){color:var(--muted-foreground)!important}
 html.dark .pmx,html.dark #pmd{--r31-pfg:oklch(0.8 0.11 266)}
+/* R5-3: the tab strip of the Templates pages (Library, My creations, Current, Drafts) wears the same look as the one of the Deals page, light and dark (it was a white strip with dark text in dark mode, its counts 1.6:1) */
+.pmdet .pdtabs{box-shadow:none;border-radius:8px}
+.pmdet .pdtabs button{border-radius:8px;font-size:12px;font-weight:500;box-shadow:none}
+.pmdet .pdtabs button.on{background:color-mix(in srgb,var(--primary) 12%,var(--card));color:var(--r31-pfg,var(--primary));box-shadow:none}
+html.dark .pmdet .pdtabs{background:var(--muted-c,oklch(.27 0 0))}
+html.dark .pmdet .pdtabs button:not(.on),html.dark .pmdet .pdtabs button:not(.on) :is(span,i){color:var(--muted-foreground)!important}
+html.dark .pmdet .pdtabs button.on{--r31-pfg:oklch(0.8 0.11 266)}
+/* the little counts beside a tab are 11px: in dark mode they are lighter, so they are 4.5:1 or better */
+html.dark .pdc:not(.pdc-p){color:oklch(.85 0 0)}
+html.dark.dark body .pdtabs button:not(.on) .pdc:not(.pdc-p){color:oklch(.85 0 0)!important}
+/* "Current" on a template card: the accent as text is the light indigo in dark mode (it was 2.9:1) */
+html.dark .tpd{color:oklch(.8 .11 266)}
 @media(max-width:767px){#sb .pin,#sb #sbx{min-width:36px;min-height:36px;display:inline-flex;align-items:center;justify-content:center}}
 
 /* qa-r32 */

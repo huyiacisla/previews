@@ -100,6 +100,8 @@ export function promoItems(storage, role, me, now = Date.now()) {
   for (const [rk, s] of Object.entries(all)) {
     const [rid, pid] = rk.split("|");
     if (rid !== me.id || !s || !say[s.st]) continue;
+    // the resident's own cancellation is in Staff's inbox as a rejection, but it is no news and "not approved" would be wrong: they did it
+    if (s.st === "rejected" && /^Cancelled by resident/i.test(String(s.reason || ""))) continue;
     const at = Number(s.at);
     if (!at || now - at > WEEK) continue;
     const title = names.get(pid) || "A promotion";

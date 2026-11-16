@@ -285,6 +285,9 @@ html[data-big-target] :is(button, [role="menuitem"]):not([hidden]):not([role="sw
 /* Links that stand on their own (a row of a list, "View all", a card's link) are controls too; a link inside a sentence is not changed. Switches, checkboxes and radios included. */
 html[data-big-target] :is(li, div, td, section, article, nav) > a[href]:not([hidden]):not([data-slot="sidebar-menu-button"]) { min-height: 2.75rem; }
 html[data-big-target] [data-slot="sidebar-menu-button"] { min-height: 2.75rem; }
+/* a notification's title link (it sits in a paragraph) and a chat bubble that opens its actions are pressed like the rest: 44 px (R5-4, Larger tap targets) */
+html[data-big-target] a[data-link]:not([hidden]) { display: inline-flex; align-items: center; min-height: 2.75rem; }
+html[data-big-target] [data-body][role="button"] { min-height: 2.75rem; display: flex; flex-direction: column; justify-content: center; }
 /* The search boxes' own ring is the primary colour at half strength: under 3:1 on dark. A full-strength outline keeps the focus visible in both looks. */
 input[aria-label="Filter menu"]:focus-visible, header input[type="search"]:focus-visible { outline: 2px solid var(--ring); outline-offset: 1px; }
 /* Only a plain inline text link becomes a flex box to centre its text; a card-link (block, flex or grid) keeps its own layout, or its children shrink to their content. */
