@@ -124,3 +124,38 @@ Lỗi thật tìm thấy và đã sửa:
 2. **"Expired on Nov 15" cho deal kết thúc ngày 16.** `new Date("2026-11-16")` là nửa đêm UTC nên lùi một ngày ở múi giờ phía tây. Đọc ngày dạng `YYYY-MM-DD` phải thêm `T00:00:00` (giờ địa phương). Đã sửa chỗ hiển thị và chỗ tính ngày còn lại.
 
 Bài học: ngày dạng chuỗi và khoá theo vị trí là hai nguồn lỗi lặp lại. Khi người dùng đưa đặc tả mâu thuẫn với yêu cầu trước, hỏi một câu với phương án rõ thay vì chọn bừa.
+
+### Đổi ý sau Đợt 6: thanh trên cùng gom cả Search và chip
+
+Người dùng gửi thêm lời khuyên UX: Search và chip danh mục phải thấy ngay khi mở trang, không được trôi xuống sau hero/đồng hồ/mã giảm giá; kèm ảnh chụp trang đang cuộn. Nên bố cục "Split" đổi thành **một thanh dính trên cùng** (`#toolbar`): hàng Redeem / My rewards / Saved, hàng Search + nút lọc, hàng chip. Dưới nó là trang Staff thiết kế (hero, đồng hồ, mã), rồi "N of 17 promotions" và lưới thẻ. Bỏ `#browse` và `--bar-h`. Thanh cao khoảng 166px trên 375 (một phần tư màn hình), chấp nhận vì tìm kiếm là công cụ nhanh.
+
+Vì danh sách nằm sau trang thiết kế, bấm chip (hoặc gõ chữ đầu tiên vào Search) mà không cuộn thì trên màn hình không có gì đổi: đã thêm `scrollToCatalog()` sau khi chọn chip và khi gõ chữ đầu; kết quả hiện ngay dưới thanh với dòng đếm. Bài học: sau khi chuyển điều khiển đi xa nơi nó có tác dụng, phải thử bấm thật và nhìn màn hình, không chỉ đọc DOM.
+
+### Kích cỡ thanh trên cùng quá lớn trên mobile và tablet
+
+Người dùng khoanh vùng tiêu đề + thanh (ba hàng) trên 375 và nói quá lớn. Đã làm gọn:
+- Tiêu đề trang nhỏ hơn trên điện thoại (text-xl), không có dòng phụ đề dưới 640px.
+- Từ 640px trở lên cả thanh là **một hàng**: Redeem, My rewards, Search, nút lọc, Saved; chip nằm hàng dưới (cao 86px trên 830, trước đây khoảng 150px). Làm bằng `order` + `sm:contents`, không nhân đôi nút.
+- Chip trong thanh nhỏ hơn (h-7, text-xs), khoảng cách và đệm nhỏ lại.
+- Dưới 1024px thanh **trượt lên khi cuộn xuống và hiện lại khi cuộn lên** (luôn hiện ở đầu trang, khi ô tìm kiếm đang focus, và khi app tự cuộn tới kết quả). Từ laptop trở lên thanh luôn dính.
+- Giữ nguyên vùng bấm 44px trên thiết bị cảm ứng: cổng portal bật `data-big-target` mặc định cho con trỏ thô (mọi nút `min-height: 2.75rem`), nên không thể thu nhỏ nút bằng class `h-*` trên thiết bị cảm ứng. Muốn gọn hơn thì giảm số hàng, không giảm vùng bấm.
+
+### Countdown và mã giảm giá gộp vào hero
+
+Người dùng: khối "Offer ends in" / "Use this code at checkout" / `MALLA10` đứng riêng, không nói deal nào, hai nút đỏ giống nhau ("Copy", "Use code") gây hoang mang; kèm lời nhận xét UX. Hai bộ đếm cùng deal còn lệch nhau (thẻ "4d 22h left" so với khối "4d 23:59:18").
+
+- Khi trang có hero, khối countdown và coupon **không vẽ riêng** nữa: nằm trong hero. Đầu hero: huy hiệu nhỏ "Ends in 4d 22h" (cập nhật mỗi 30 giây, đếm tới **hạn thật của deal** mà hero nói tới nên khớp với thẻ; deal không có hạn mới dùng số ngày của khối). Dưới lời hero: "Promo code: show it or apply it when you book", ô mã, một nút chính "Copy code" (đổi thành "Copied ✓", hoặc "Could not copy" nếu trình duyệt từ chối, không báo sai) và một nút phụ viền "View details" mở chi tiết đúng deal có mã đó.
+- Nút "Claim offer" của hero (cuộn xuống danh sách) mở chi tiết deal khi không có mã.
+- Mặc định coupon của Staff đổi từ "Use this code at checkout" thành "Promo code: show it or apply it when you book".
+- Test: `promotions-history.test.mjs`.
+
+## Kế hoạch test Staff ↔ Resident, từng phần (mỗi phần xong thì 5 phút sau chạy `npm test` rồi làm phần kế)
+
+Đánh dấu `[x]` khi xong. Mỗi phần: cuộn hết trang, nhìn ảnh thật (chụp lại lần hai vì ảnh có thể cũ), Staff ở tab thứ hai, dọn dữ liệu test sau khi xong.
+
+- [ ] **Phần 1: Template.** Deals, Store, Minimal mono, Luxury dark, rồi các template còn lại, mỗi cái ở 375/830/1440, sáng/tối: thanh trên cùng, hero gộp (badge, mã, nút), lưới thẻ, My rewards, History, (i), Redeem, chi tiết deal. Đổi template ở Staff, Resident đổi ngay.
+- [ ] **Phần 2: Brand kit.** Màu chính, màu phụ, font, kiểu nút, logo; xem Resident đổi cả thanh portal, huy hiệu, hộp thoại; trả về mặc định.
+- [ ] **Phần 3: Tạo và sửa deal.** Form New promotion (ảnh bìa, logo đối tác, mã tĩnh/duy nhất/QR/link, giới hạn tổng/mỗi người/mỗi unit, hẹn lịch, nháp); Edit details (đổi tiêu đề, giá, mã, danh mục) hiện đúng ở Resident.
+- [ ] **Phần 4: Claim.** Alex và Jamie cùng unit, giới hạn theo unit/theo người, hết suất, đã claim, Cancel, claim lại, History; Staff xác nhận/đổi/từ chối ở Claims và Resident thấy đúng trạng thái và giờ.
+- [ ] **Phần 5: Vòng đời.** Đóng, gia hạn, tạm tắt/Off live, hẹn lịch, xoá, xuất CSV; ngày thật 16/11/2026, đồng hồ, "Expired on" đúng; sample deal và deal do Staff tạo.
+- [ ] **Phần 6: Truy cập và dọn.** Bàn phím, focus, (i), Redeem; vùng bấm; không có hai điều khiển cho một việc; dọn dữ liệu test; ghi tổng kết, hỏi người dùng về push.

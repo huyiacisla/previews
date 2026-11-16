@@ -25,10 +25,10 @@
 <noscript><p class="bg-warning-bg px-step-lg py-step-md text-sm text-warning-text">Promotions needs JavaScript. Turn it on in your browser settings and reload this page.</p></noscript>
 <div id="app" class="flex h-dvh min-h-0 flex-col bg-background text-foreground">
   <header class="shrink-0 border-b border-border bg-background">
-    <div class="flex w-full items-center gap-step-md px-step-lg py-step-lg lg:px-step-xl">
+    <div class="flex w-full items-center gap-step-md px-step-lg py-step-sm sm:py-step-lg lg:px-step-xl">
       <div class="min-w-0 flex-1">
-        <h1 class="truncate text-2xl leading-8 font-semibold tracking-tight text-foreground">Promotions</h1>
-        <p class="truncate text-sm text-muted-foreground">Perks and deals from your property and its partners</p>
+        <h1 class="truncate text-xl leading-7 font-semibold tracking-tight text-foreground sm:text-2xl sm:leading-8">Promotions</h1>
+        <p class="hidden truncate text-sm text-muted-foreground sm:block">Perks and deals from your property and its partners</p>
       </div>
       <button type="button" data-theme-toggle data-chrome aria-label="Switch between light and dark" class="group/button inline-flex size-8 shrink-0 touch-manipulation items-center justify-center rounded-md border border-transparent bg-foreground/8 bg-clip-padding text-secondary-foreground transition outline-none select-none hover:bg-foreground/12 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 active:translate-y-px pointer-coarse:size-11 [&_svg]:size-4">
         <svg aria-hidden="true"><use href="#i-sun-moon"/></svg>
@@ -41,45 +41,38 @@
   </header>
 
   <main id="main-content" tabindex="-1" class="min-h-0 flex-1 overflow-y-auto outline-none">
-    <!-- Redeem, My rewards and Saved stay at the very top whatever page Staff designed below them -->
-    <div id="toolbar" class="sticky top-0 z-20 border-b border-border bg-background">
-      <div class="mx-auto flex w-full max-w-6xl flex-col px-step-lg py-step-sm lg:px-step-xl">
-        <div class="flex flex-wrap items-center gap-step-sm">
-          <button type="button" id="btn-redeem" class="group/button inline-flex h-8 shrink-0 touch-manipulation items-center justify-center gap-step-sm rounded-md border border-input bg-card px-step-md text-sm font-medium text-foreground transition outline-none select-none hover:bg-muted focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 active:translate-y-px pointer-coarse:h-11 [&_svg]:size-4"><svg aria-hidden="true"><use href="#i-ticket"/></svg>Redeem<span class="max-sm:sr-only"> a code</span></button>
-          <button type="button" id="btn-rewards" class="group/button inline-flex h-8 shrink-0 touch-manipulation items-center justify-center gap-step-sm rounded-md border border-input bg-card px-step-md text-sm font-medium text-foreground transition outline-none select-none hover:bg-muted focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 active:translate-y-px pointer-coarse:h-11 [&_svg]:size-4"><svg aria-hidden="true"><use href="#i-check"/></svg>My rewards<span id="rewards-count" hidden class="inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] leading-none font-medium text-primary-foreground tabular-nums"></span></button>
-          <button type="button" id="btn-saved" aria-pressed="false" aria-label="Saved promotions" class="group/button relative ml-auto inline-flex h-8 shrink-0 touch-manipulation items-center justify-center gap-step-sm rounded-md border border-input bg-card px-step-sm text-sm font-medium text-foreground transition outline-none select-none hover:bg-muted focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 active:translate-y-px aria-pressed:bg-muted pointer-coarse:h-11 [&_svg]:size-4">
+    <!-- Redeem, My rewards, Saved, Search and the category chips stay at the very top, found at once whatever page Staff designed below them -->
+    <div id="toolbar" class="sticky top-0 z-20 border-b border-border bg-background transition-transform duration-200 motion-reduce:transition-none data-[away=true]:not-focus-within:-translate-y-full">
+      <div class="mx-auto flex w-full max-w-6xl flex-col gap-step-xs px-step-lg py-step-xs sm:flex-row sm:flex-wrap sm:items-center sm:gap-step-sm sm:py-step-sm lg:px-step-xl">
+        <div class="flex flex-wrap items-center gap-step-sm sm:contents">
+          <button type="button" id="btn-redeem" class="sm:order-1 group/button inline-flex h-8 shrink-0 touch-manipulation items-center justify-center gap-step-sm rounded-md border border-input bg-card px-step-md text-sm font-medium text-foreground transition outline-none select-none hover:bg-muted focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 active:translate-y-px pointer-coarse:h-9 [&_svg]:size-4"><svg aria-hidden="true"><use href="#i-ticket"/></svg>Redeem<span class="max-sm:sr-only"> a code</span></button>
+          <button type="button" id="btn-rewards" class="sm:order-2 group/button inline-flex h-8 shrink-0 touch-manipulation items-center justify-center gap-step-sm rounded-md border border-input bg-card px-step-md text-sm font-medium text-foreground transition outline-none select-none hover:bg-muted focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 active:translate-y-px pointer-coarse:h-9 [&_svg]:size-4"><svg aria-hidden="true"><use href="#i-check"/></svg>My rewards<span id="rewards-count" hidden class="inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] leading-none font-medium text-primary-foreground tabular-nums"></span></button>
+          <button type="button" id="btn-saved" aria-pressed="false" aria-label="Saved promotions" class="sm:order-5 group/button relative ml-auto inline-flex h-8 shrink-0 touch-manipulation items-center justify-center gap-step-sm rounded-md border border-input bg-card px-step-sm text-sm font-medium text-foreground transition outline-none select-none hover:bg-muted focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 active:translate-y-px aria-pressed:bg-muted pointer-coarse:h-9 [&_svg]:size-4">
             <svg aria-hidden="true"><use href="#i-star"/></svg>
             <span class="max-sm:sr-only">Saved</span>
             <span id="saved-count" hidden class="absolute -top-1.5 -right-1.5 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] leading-none font-medium text-primary-foreground tabular-nums"></span>
           </button>
         </div>
-      </div>
-    </div>
-    <!-- the page Staff designed in Templates & brand (drawn by page.js), when they published one: full width -->
-    <div id="page-top" hidden class="isolate"></div>
-    <!-- Search and the category chips sit right above the results, and stick under the top bar once scrolled to -->
-    <div id="browse" class="sticky z-10 border-b border-border bg-background" style="top:var(--bar-h,3.5rem);scroll-margin-top:var(--bar-h,3.5rem)">
-      <div class="mx-auto flex w-full max-w-6xl flex-col gap-step-sm px-step-lg py-step-sm lg:px-step-xl">
-        <div class="flex items-center gap-step-sm">
-        <div class="relative min-w-0 flex-1">
+        <div class="flex items-center gap-step-sm sm:contents">
+        <div class="relative min-w-0 flex-1 sm:order-3 sm:min-w-56">
           <label for="search" class="sr-only">Search promotions</label>
           <svg aria-hidden="true" class="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground"><use href="#i-search"/></svg>
-          <input id="search" type="search" autocomplete="off" spellcheck="false" placeholder="Search promotions…" class="h-8 w-full min-w-0 rounded-md border border-input bg-card pr-2.5 pl-8 text-base text-ellipsis outline-none transition-colors placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 md:text-sm pointer-coarse:h-11" />
+          <input id="search" type="search" autocomplete="off" spellcheck="false" placeholder="Search promotions…" class="h-8 w-full min-w-0 rounded-md border border-input bg-card pr-2.5 pl-8 text-base text-ellipsis outline-none transition-colors placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 md:text-sm pointer-coarse:h-9" />
         </div>
-          <button type="button" id="btn-filter" aria-haspopup="true" aria-expanded="false" aria-controls="filter-panel" aria-label="Filters" class="group/button relative inline-flex size-8 shrink-0 touch-manipulation items-center justify-center rounded-md border border-input bg-card text-foreground transition outline-none select-none hover:bg-muted focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 active:translate-y-px aria-expanded:bg-muted pointer-coarse:size-11 [&_svg]:size-4">
+          <button type="button" id="btn-filter" aria-haspopup="true" aria-expanded="false" aria-controls="filter-panel" aria-label="Filters" class="sm:order-4 group/button relative inline-flex size-8 shrink-0 touch-manipulation items-center justify-center rounded-md border border-input bg-card text-foreground transition outline-none select-none hover:bg-muted focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 active:translate-y-px aria-expanded:bg-muted pointer-coarse:size-9 [&_svg]:size-4">
             <svg aria-hidden="true"><use href="#i-filter"/></svg>
             <span id="filter-count" hidden class="absolute -top-1.5 -right-1.5 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] leading-none font-medium text-primary-foreground tabular-nums"></span>
           </button>
         </div>
-        <div id="filters" role="group" aria-label="Filter promotions" hidden class="flex flex-nowrap items-center gap-step-xs overflow-x-auto pb-px [scrollbar-width:none] [&::-webkit-scrollbar]:hidden [&>*]:shrink-0"></div>
-        <div id="filter-panel" hidden class="flex max-h-[55dvh] flex-col overflow-y-auto gap-step-md rounded-lg bg-card p-step-md ring-1 ring-foreground/10">
+        <div id="filters" role="group" aria-label="Filter promotions" hidden class="flex flex-nowrap items-center gap-step-xs overflow-x-auto pb-px [scrollbar-width:none] sm:order-6 sm:basis-full [&::-webkit-scrollbar]:hidden [&>*]:h-7 [&>*]:shrink-0 [&>*]:px-step-sm [&>*]:text-xs"></div>
+        <div id="filter-panel" hidden class="sm:order-7 sm:basis-full flex max-h-[55dvh] flex-col overflow-y-auto gap-step-md rounded-lg bg-card p-step-md ring-1 ring-foreground/10">
           <div>
             <p id="tag-label" class="text-xs font-medium text-muted-foreground">Show only</p>
             <div id="tag-filters" role="group" aria-labelledby="tag-label" class="mt-step-xs flex flex-wrap gap-step-xs"></div>
           </div>
           <div class="flex flex-wrap items-center gap-step-sm">
             <label for="sort" class="text-xs font-medium text-muted-foreground">Sort by</label>
-            <select id="sort" class="h-8 rounded-md border border-input bg-card px-step-sm text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 pointer-coarse:h-11">
+            <select id="sort" class="h-8 rounded-md border border-input bg-card px-step-sm text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 pointer-coarse:h-9">
               <option value="rec">Recommended</option>
               <option value="end">Ending soon</option>
               <option value="claimed">Most claimed</option>
@@ -90,8 +83,10 @@
         </div>
       </div>
     </div>
+    <!-- the page Staff designed in Templates & brand (drawn by page.js), when they published one: full width -->
+    <div id="page-top" hidden class="isolate"></div>
     <div class="mx-auto flex w-full max-w-6xl flex-col gap-step-lg px-step-lg py-step-lg lg:px-step-xl">
-      <p id="count" role="status" class="scroll-mt-40 text-sm text-muted-foreground tabular-nums"></p>
+      <p id="count" role="status" class="scroll-mt-52 text-sm text-muted-foreground tabular-nums"></p>
       <ul id="grid" role="list" class="isolate grid grid-cols-1 gap-step-lg sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"></ul>
       <div id="empty" hidden></div>
     </div>

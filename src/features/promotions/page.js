@@ -39,6 +39,57 @@ function ink(bg) {
   return l > 0.6 ? "#111827" : "#ffffff";
 }
 
+// "Ends in 4d 23h": a small badge. It counts to the end of the deal the hero speaks of (its real end date); only a deal without one falls back to the block's own days.
+function endsBadge(block, spot, light) {
+  const bp = block.props || {};
+  const end = spot && spot.endsAt > 0 ? spot.endsAt : Number(bp.endsAt) > 0 ? Number(bp.endsAt) : null;
+  if (!end) return null;
+  const el = h("span", `display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:999px;font-size:13px;font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap;border:1px solid currentColor;${light ? "" : "background:rgba(255,255,255,.18);"}`);
+  el.setAttribute("role", "timer");
+  const paint = () => {
+    const s = Math.floor((end - Date.now()) / 1000);
+    if (s <= 0) {
+      el.textContent = "Ended";
+      return false;
+    }
+    const d = Math.floor(s / 86400);
+    const hh = Math.floor((s % 86400) / 3600);
+    const mm = Math.floor((s % 3600) / 60);
+    el.textContent = d > 0 ? `Ends in ${d}d ${hh}h` : hh > 0 ? `Ends in ${hh}h ${mm}m` : `Ends in ${mm}m`;
+    el.title = `Ends ${new Date(end).toLocaleString("en-US", { month: "short", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit" })}`;
+    return true;
+  };
+  paint();
+  const timer = setInterval(() => {
+    if (!el.isConnected || !paint()) clearInterval(timer);
+  }, 30000);
+  return el;
+}
+
+// The promo code under the hero's words: what it is, one main button (Copy code, with "Copied" as feedback) and one quiet one (View details).
+function promoCode(code, light, accent, fg, copy, open) {
+  const wrap = h("div", "margin:0 0 4px");
+  wrap.append(h("p", "margin:0 0 8px;font-size:13px;font-weight:600;opacity:.9", "Promo code: show it or apply it when you book"));
+  const row = h("div", "display:flex;flex-wrap:wrap;align-items:center;gap:10px");
+  row.append(h("strong", "font-family:ui-monospace,Menlo,Consolas,monospace;font-size:20px;letter-spacing:.08em;padding:6px 12px;border:2px dashed currentColor;border-radius:8px", code));
+  const base = "font:inherit;font-weight:600;cursor:pointer;padding:8px 16px;min-height:40px;border-radius:999px;";
+  const main = h("button", `${base}border:2px solid transparent;${light ? `background:${accent};color:${ink(accent)}` : `background:${fg};color:${accent}`}`, "Copy code");
+  main.type = "button";
+  main.dataset.copy = "";
+  const view = h("button", `${base}background:transparent;border:2px solid currentColor;color:inherit`, "View details");
+  view.type = "button";
+  main.addEventListener("click", async () => {
+    const ok = await copy();
+    main.textContent = ok === false ? "Could not copy" : "Copied \u2713";
+    setTimeout(() => (main.textContent = "Copy code"), 2000);
+  });
+  view.addEventListener("click", open);
+  row.append(main, view);
+  wrap.append(row);
+  wrap.dataset.promoCode = "";
+  return wrap;
+}
+
 function h(tag, css, ...kids) {
   const e = document.createElement(tag);
   if (css) e.style.cssText = css;
@@ -98,10 +149,11 @@ export function themeVars(snap) {
  *  cats          [{ key, name, count }]
  *  makeCard(p)   one of the app's own cards (a <li>)
  *  toCatalog()   scroll to the full list
+ *  openDeal(p)   open the details of one promotion
  *  pickCategory(key | null)
  *  goLink(label) a navbar link
  *  redeem(code)  open the Redeem box with this code
- *  copy(code)    copy a code
+ *  copy(code)    copy a code (resolves false when the browser refused)
  */
 export function renderPage(snap, ctx) {
   const th = snap.theme || {};
@@ -170,12 +222,17 @@ export function renderPage(snap, ctx) {
     }
     return ul;
   };
+  // A countdown and a coupon say nothing alone ("which offer?"): when the page has a hero, they are part of it: an "Ends in" badge in its header and the promo code under its words.
+  const heroBlock = snap.blocks.find((x) => x && x.type === "hero");
+  const cdBlock = heroBlock ? snap.blocks.find((x) => x && x.type === "countdown") : null;
+  const cpBlock = heroBlock ? snap.blocks.find((x) => x && x.type === "coupon" && sub(((x.props || {}).code))) : null;
   const pick = (cat) => (cat && cat !== "all" ? ctx.promos.filter((p) => p.category.key === cat) : ctx.promos);
 
   for (const b of snap.blocks) {
     const s = b.style || {};
     const p = b.props || {};
     if (b.hideMobile && mobile) continue;
+    if (b === cdBlock || b === cpBlock) continue; // drawn inside the hero
     const bg = bgOf(s);
     const fg = bg === T.accent ? ink(T.accent) : bg === T.bg || bg === T.alt ? T.fg : ink(bg);
     const sec = (type, ...kids) => {
@@ -216,12 +273,21 @@ export function renderPage(snap, ctx) {
       const light = p.tone === "light";
       const hb = light ? T.alt : `linear-gradient(135deg,${T.accent},${color(snap.brand && snap.brand.secondary, T.accent)})`;
       const hc = light ? T.fg : ink(T.accent);
+      const code = cpBlock ? sub((cpBlock.props || {}).code) : "";
+      const codeDeal = code ? ctx.promos.find((x) => x.code === code) || spot : spot;
+      const open = () => (codeDeal || spot ? ctx.openDeal(codeDeal || spot) : ctx.toCatalog());
+      const badge = cdBlock ? endsBadge(cdBlock, spot, light) : null;
+      const head = h("div", "display:flex;flex-wrap:wrap;align-items:flex-start;justify-content:space-between;gap:8px 12px");
+      head.append(p.kicker ? h("p", `margin:0 0 8px;font-size:12px;letter-spacing:.12em;text-transform:uppercase;font-weight:700;opacity:.85`, sub(p.kicker)) : h("span"));
+      if (badge) head.append(badge);
+      const strip = code ? promoCode(code, light, T.accent, hc, () => ctx.copy(code), open) : null;
       node = sec(
         "hero",
-        p.kicker ? h("p", `margin:0 0 8px;font-size:12px;letter-spacing:.12em;text-transform:uppercase;font-weight:700;opacity:.85`, sub(p.kicker)) : null,
+        p.kicker || badge ? head : null,
         h("h2", `margin:0 0 10px;font-family:${T.hf};font-size:${TS[s.ts] || TS.l}px;line-height:1.1;font-weight:800`, sub(p.title)),
         p.sub ? h("p", `margin:${s.align === "center" ? "0 auto 18px" : s.align === "right" ? "0 0 18px auto" : "0 0 18px"};max-width:46ch;font-size:16px;line-height:1.5;opacity:.92`, sub(p.sub)) : null,
-        p.btn ? btn(p.btn, () => ctx.toCatalog(), !light) : null,
+        strip,
+        !strip && p.btn ? btn(p.btn, open, !light) : null,
       );
       node.style.background = hb;
       node.style.color = hc;

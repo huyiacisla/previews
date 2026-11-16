@@ -75,24 +75,18 @@ test("the Resident page shows History with the year and time, and long help sits
   assert.ok(js.includes('year: "numeric"'), "date and time include the year");
 });
 
-test("Redeem, My rewards and Saved are pinned at the very top; Search and the category chips sit right above the results", () => {
+test("Redeem, My rewards, Saved, Search and the category chips are in one bar pinned at the very top, above whatever page Staff designed", () => {
   const html = readFileSync(new URL("../../src/partials/promotions-app.html", import.meta.url), "utf8");
   const bar = html.indexOf('id="toolbar"');
   const page = html.indexOf('id="page-top"');
   assert.ok(bar > 0 && page > bar, "the bar comes before the designed page");
-  for (const id of ["btn-redeem", "btn-rewards", "btn-saved"]) {
-    const at = html.indexOf(`id="${id}"`);
-    assert.ok(at > bar && at < page, `${id} is inside the top bar`);
-  }
   assert.match(html.slice(bar - 20, bar + 120), /sticky top-0/);
-  const browse = html.indexOf('id="browse"');
-  const grid = html.indexOf('id="grid"');
-  for (const id of ['id="search"', 'id="btn-filter"', 'id="filters"']) {
-    const at = html.indexOf(id);
-    assert.ok(at > browse && at < grid && browse > page, `${id} is in the bar right above the results, after the designed page`);
+  for (const id of ["btn-redeem", "btn-rewards", "btn-saved", "search", "btn-filter", "filters"]) {
+    const at = html.indexOf(`id="${id}"`);
+    assert.ok(at > bar && at < page, `${id} is inside the top bar, found at once when the page opens`);
   }
-  assert.ok(html.indexOf('id="count"') < grid && html.indexOf('id="count"') > browse, "the count sits under the chips");
-  assert.match(html.slice(browse - 20, browse + 200), /sticky[^"]*"[^>]*top:var\(--bar-h/, "it sticks right under the top bar");
+  assert.ok(!html.includes('id="browse"'), "no second bar lower down");
+  assert.ok(html.indexOf('id="count"') > page && html.indexOf('id="count"') < html.indexOf('id="grid"'), "the count and the cards come after the designed page");
 });
 
 test("the template's colours, corners and fonts replace the portal's tokens, so no old look is left", () => {
@@ -133,4 +127,30 @@ test("the CSV and the Claims inbox follow the promotion a claim was made for, no
   assert.ok(staff.includes("String(c.promo)===String(m.pmc)"), "the export lists only the claimers of that promotion");
   const res = readFileSync(new URL("../../src/features/promotions/resident.js", import.meta.url), "utf8");
   assert.ok(!res.includes("hasTiles"), "the chips are always the category list");
+});
+
+test("choosing a category chip or starting a search brings the results into view", () => {
+  const js = readFileSync(new URL("../../src/features/promotions/resident.js", import.meta.url), "utf8");
+  assert.ok((js.match(/render\(\);\n\s+scrollToCatalog\(\);/g) || []).length >= 2, "All and each category chip scroll to the results");
+  assert.ok(js.includes("if (first) scrollToCatalog();"), "the first letters typed in the search do too");
+});
+
+test("the top bar is compact: one row from tablet width, and it slips away on a scroll down on phones and tablets", () => {
+  const html = readFileSync(new URL("../../src/partials/promotions-app.html", import.meta.url), "utf8");
+  assert.ok(html.includes("sm:flex-row") && html.includes("sm:order-3") && html.includes("sm:contents"), "Redeem, My rewards, Search, filter and Saved share one row from 640px");
+  assert.ok(html.includes("data-[away=true]:not-focus-within:-translate-y-full"), "it moves away unless the search has focus");
+  assert.ok(html.includes('class="hidden truncate text-sm text-muted-foreground sm:block"'), "no subtitle on a phone");
+  const js = readFileSync(new URL("../../src/features/promotions/resident.js", import.meta.url), "utf8");
+  assert.ok(js.includes("max-width: 1023px") && js.includes("keepUntil"), "only below laptop width, and not while the app scrolls to the results");
+});
+
+test("a countdown and a coupon are part of the hero: one offer, a small Ends-in badge, one main Copy code button and a quiet View details", () => {
+  const page = readFileSync(new URL("../../src/features/promotions/page.js", import.meta.url), "utf8");
+  assert.ok(page.includes("b === cdBlock || b === cpBlock"), "they are not drawn as separate sections when the page has a hero");
+  assert.ok(page.includes("Ends in ${d}d ${hh}h") && page.includes('"Copy code"') && page.includes('"View details"'));
+  assert.ok(page.includes("spot.endsAt > 0"), "the badge counts to the real end of the deal the hero speaks of, so it agrees with the card");
+  assert.ok(page.includes("Promo code: show it or apply it when you book") && !page.includes("Use this code at checkout"));
+  assert.ok(page.includes('ok === false ? "Could not copy"'), "it never says Copied when the browser refused");
+  const res = readFileSync(new URL("../../src/features/promotions/resident.js", import.meta.url), "utf8");
+  assert.ok(res.includes("openDeal: (p) => openDialog(p.id)") && res.includes("return false;"));
 });

@@ -185,13 +185,27 @@ function wearInFrame(css) {
     /* a portal of another origin: left alone */
   }
 }
-// The top bar's height, for the search bar that sticks right under it. It tucks 1px under the top bar, so no seam shows between them (heights are fractions of a pixel).
+// On a phone or a tablet the bar takes a good part of the screen: it slips away while you scroll down and is back as soon as you scroll up (always shown at the top,
+// while the search has focus, and while the app itself scrolls to the results). From laptop width it stays.
 const topBar = $("#toolbar");
-const fitBar = () => document.documentElement.style.setProperty("--bar-h", `${Math.floor(topBar.getBoundingClientRect().height) - 1}px`);
-new ResizeObserver(fitBar).observe(topBar);
-fitBar();
+const mainEl = $("#main-content");
+let lastY = 0;
+let keepUntil = 0;
+mainEl.addEventListener(
+  "scroll",
+  () => {
+    const y = mainEl.scrollTop;
+    if (!matchMedia("(max-width: 1023px)").matches || y < 80 || Date.now() < keepUntil) topBar.dataset.away = "false";
+    else if (y > lastY + 8) topBar.dataset.away = "true";
+    else if (y < lastY - 8) topBar.dataset.away = "false";
+    if (Math.abs(y - lastY) > 8) lastY = y;
+  },
+  { passive: true },
+);
 function scrollToCatalog() {
-  $("#browse").scrollIntoView({ block: "start", behavior: "smooth" });
+  keepUntil = Date.now() + 1200;
+  topBar.dataset.away = "false";
+  $("#count").scrollIntoView({ block: "start", behavior: "smooth" });
 }
 function pickCategory(key) {
   ui.category = key || "all";
@@ -213,6 +227,7 @@ function paintPage(all, mine, cfg, hot, cats) {
         cats,
         makeCard: (p) => card(p, mine, cfg, hot),
         toCatalog: scrollToCatalog,
+        openDeal: (p) => openDialog(p.id),
         pickCategory,
         goLink: (label) => {
           const l = label.toLowerCase();
@@ -231,8 +246,10 @@ function paintPage(all, mine, cfg, hot, cats) {
           try {
             await navigator.clipboard.writeText(code);
             toast("Code copied");
+            return true;
           } catch {
             toast("Could not copy. Select the code and copy it.");
+            return false;
           }
         },
       })
@@ -312,12 +329,14 @@ function render() {
       ui.category = "all";
       ui.savedOnly = false;
       render();
+      scrollToCatalog();
     });
     for (const c of cats)
       chip(c.name, c.count, ui.category === c.key && !ui.savedOnly, () => {
         ui.category = c.key;
         ui.savedOnly = false;
         render();
+        scrollToCatalog();
       });
   }
   filters.hidden = !filters.childElementCount;
@@ -637,7 +656,7 @@ $("#btn-saved").addEventListener("click", () => {
   ui.savedOnly = !ui.savedOnly;
   ui.category = "all";
   render();
-  if (ui.savedOnly) $("#browse").scrollIntoView({ block: "start", behavior: "smooth" });
+  if (ui.savedOnly) $("#count").scrollIntoView({ block: "start", behavior: "smooth" });
 });
 
 // ---- Redeem a code and My rewards ----
@@ -935,8 +954,11 @@ let timer = 0;
 $("#search").addEventListener("input", (e) => {
   clearTimeout(timer);
   timer = setTimeout(() => {
+    const first = !ui.query && !!e.target.value;
     ui.query = e.target.value;
     render();
+    // the first letters typed bring the results into view (they sit below the designed page)
+    if (first) scrollToCatalog();
   }, 120);
 });
 
