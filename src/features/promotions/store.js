@@ -86,7 +86,7 @@ export function sampleRecords(storage) {
   const edits = storage ? C.readEdits(storage) : {};
   const ends = storage ? C.readEnds(storage) : {};
   const covers = readCovers(storage);
-  const key = JSON.stringify([overrides, edits, covers, ends]);
+  const key = JSON.stringify([overrides, edits, covers, ends, C.clock().getTime()]);
   if (sampleCache.key !== key) {
     const list = C.records(overrides, edits, ends).map((r) => {
       const logo = covers[`logo:${r.id}`];
@@ -159,7 +159,7 @@ export function claimedByResidents(storage, promoId) {
 
 const daysBetween = (a, b) => Math.round((new Date(`${b}T00:00:00`) - new Date(`${a}T00:00:00`)) / 864e5);
 
-// The moment a promotion ends, as milliseconds: Staff's end date and time, or (a sample deal, whose dates follow a demo clock) the end of the day that many days from today.
+// The moment a promotion ends, as milliseconds: Staff's end date and time, or (a sample deal, whose dates count from today) the end of the day that many days from today.
 function endsAtOf(x, today) {
   if (x.end) return new Date(`${x.end}T${/^\d{2}:\d{2}$/.test(x.etime || "") ? x.etime : "23:59"}:00`).getTime();
   if (Number.isFinite(x.endsIn) && x.endsIn >= 0) {

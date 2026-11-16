@@ -1,5 +1,6 @@
 // What the company decided for its residents (Client > Workspace settings > Residents) reaches Social, Promotions and Messages.
 
+import "./promotions/_clock.mjs";
 import assert from "node:assert/strict";
 import test from "node:test";
 import { createStore } from "../src/features/messaging/store.js";

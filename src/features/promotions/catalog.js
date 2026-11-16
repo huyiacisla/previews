@@ -114,10 +114,27 @@
 
   /**
    * Give every deal an id ("parking0"), a status and numbers, and fix its badge text to match (one status, one label). `DEALS` is what deals() returned;
-   * its deals are edited in place, as Staff's page always did. The demo clock is 30 Oct 2026 so the labels never depend on today's date.
+   * its deals are edited in place, as Staff's page always did. The sample deals count from clock() (today, or the day a test fixes) so a label says what is true today date.
    * `overrides` is what Staff turned on or off (readOverrides): a deal turned off becomes a draft (residents do not see it), one turned on becomes live.
    * A deal that was already running keeps its numbers when it is turned off; one that never ran starts with none when it is turned on.
    */
+  /**
+   * The day the sample deals count from. In the browser it is today, so a deal that "ends in 4 days" really does and one that "ended 5 days ago" really did.
+   * A test fixes it (globalThis.PM_CLOCK = "2026-10-30") so its dates never move.
+   */
+  function clock() {
+    const f = root.PM_CLOCK;
+    const d = f ? new Date(`${f}T00:00:00`) : new Date();
+    d.setHours(0, 0, 0, 0);
+    return d;
+  }
+  /** The day that many days from the clock day (negative = in the past). */
+  function day(o) {
+    const d = clock();
+    d.setDate(d.getDate() + o);
+    return d;
+  }
+
   /** The new end date Staff gave a sample deal (extend) or the day they closed it: { "parking3": "2026-12-31" }. */
   const ENDS_KEY = "eso-pm-ends";
   function readEnds(storage) {
@@ -135,7 +152,7 @@
   function meta(DEALS, overrides, ends = {}) {
     const META = {};
     let gi = 0;
-    const fd = (o) => new Date(2026, 9, 30 + o).toLocaleDateString("en-US", { month: "short", day: "numeric" });
+    const fd = (o) => day(o).toLocaleDateString("en-US", { month: "short", day: "numeric" });
     CATS.forEach(([k]) =>
       DEALS[k].forEach((d, i) => {
         const n = gi++;
@@ -167,7 +184,7 @@
           created: n,
           endsDays: [4, 18, 999, 25][n % 4] + (n % 3),
         });
-        if (m.ext) m.endsDays = Math.round((new Date(`${m.ext}T00:00:00`) - new Date(2026, 9, 30)) / 864e5); // the demo clock is 30 Oct 2026
+        if (m.ext) m.endsDays = Math.round((new Date(`${m.ext}T00:00:00`) - clock()) / 864e5); // days from the clock day
         const ran = base === "active" || base === "expired"; // did it run in the catalog's own story? only then does it have numbers
         if (!ran) {
           m.views = 0;
@@ -229,7 +246,7 @@
               m.endsDays >= 999
                 ? ""
                 : (() => {
-                    const d = new Date(2026, 9, 30 + m.endsDays);
+                    const d = day(m.endsDays);
                     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
                   })(),
             offerText: price,
@@ -247,5 +264,5 @@
       });
   }
 
-  root.PM_CATALOG = { CATS, deals, meta, limits, records, readOverrides, readEdits, readEnds, STATUS_KEY, EDITS_KEY, ENDS_KEY };
+  root.PM_CATALOG = { CATS, deals, meta, limits, records, readOverrides, readEdits, readEnds, clock, day, STATUS_KEY, EDITS_KEY, ENDS_KEY };
 })(globalThis);

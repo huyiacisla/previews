@@ -352,7 +352,7 @@ function endIso(m){
  if(m.x&&m.x.end)return m.x.end;
  if(m.ext)return m.ext;
  var d=window._pmStock&&_pmStock.endD&&_pmStock.endD(m);if(d)return iso(d);
- if(typeof m.endsDays==='number'&&m.endsDays<999)return iso(new Date(2026,9,30+m.endsDays));
+ if(typeof m.endsDays==='number'&&m.endsDays<999)return iso(PM_CATALOG.day(m.endsDays));
  return''}
 function rec(m){var a=rd(SK,[]);var r=a.filter(function(s){return String(s.id)===String(m.pmc)})[0];return r?{a:a,r:r}:null}
 function sync(id){var C=window.PM_CATALOG,m=M()[id],f=C.meta(C.deals(),C.readOverrides(localStorage),C.readEnds(localStorage))[id];if(!m||!f)return;m.st=f.st;m.ext=f.ext;m.endsDays=f.endsDays;m.d[2]=f.d[2];m.views=f.views;m.claims=f.claims}
@@ -2202,7 +2202,7 @@ const cfg=k=>{const c=CF[k];if(c&&c.mode=="custom")return Object.assign({},TPL[c
 let res=false,cat="all",dOpen=false,dCat="parking";
 const ACC=["#1f5d4c","#2563eb","#7c3aed","#c2410c","#be185d","#0f172a","#ffffff"];
 Object.assign(LI,{search:'<circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/>',filter:'<path d="M3 5h18M6 12h12M10 19h4"/>',grid:'<rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>',list:'<path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/>',x:'<path d="M18 6L6 18M6 6l12 12"/>',inbox:'<path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.45 5.11L2 12v6a2 2 0 002 2h16a2 2 0 002-2v-6l-3.45-6.89A2 2 0 0016.76 4H7.24a2 2 0 00-1.79 1.11z"/>',layout:'<rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/>'});
-const NOWD=new Date(2026,9,30);const META={};let gi=0;
+const NOWD=PM_CATALOG.clock();const META={};let gi=0;
 const TYPE=o=>/%/.test(o)?"pct":/\$\d+ off/i.test(o)?"fixed":/bundle|buy \d|get 1|\bfor \$|bogo/i.test(o)?"bundle":/free|first month|\$1\b/i.test(o)?"trial":"coupon";
 Object.assign(META,PM_CATALOG.meta(DEALS,PM_CATALOG.readOverrides(localStorage),PM_CATALOG.readEnds(localStorage)));window._pmMETA=META;
 const FD={st:[["active","Active"],["scheduled","Scheduled"],["expired","Expired"],["draft","Draft"]],ty:[["pct","Discount %"],["fixed","Fixed $ off"],["trial","Free / first month"],["bundle","Bundle"],["coupon","Coupon code"]],au:[["all","All residents"],["members","Members"],["movein","New move-ins"]],en:[["week","This week"],["month","This month"],["none","No end date"]],bl:[["Building A","Building A"],["Building B","Building B"],["Garage","Garage"]],pb:[["QA Staff PM","QA Staff PM"],["Dana Whitfield","Dana Whitfield"],["Sample","Sample data"]]};
@@ -2256,7 +2256,7 @@ const pmPartner=(m,br)=>String((m.partner!==undefined&&m.partner!=="")?m.partner
 const pmLogoSrc=m=>m.pmc?((m.x&&m.x.plogo)||""):(((window._cov&&_cov.get("logo:"+m.id))||{}).src||"");
 const pmAv=(m,br,cls)=>{const g=pmLogoSrc(m);return `<span class="${cls}${g?" has-logo":""}" aria-hidden="true">${g?`<img src="${H(g)}" alt="">`:H(pmIni(pmPartner(m,br)))}</span>`};
 window._pmLogo=m=>({src:pmLogoSrc(m),name:pmPartner(m,(m.d&&m.d[0])||""),has:!!(pmLogoSrc(m)||m.partner||(m.x&&m.x.partner)),own:m.partner||(m.x&&m.x.partner)||""});
-const pmExp=m=>{const z=window._pmStock&&m.id&&_pmStock.state(m);if(z=="expired"||m.st=="expired")return{t:String((m.d&&m.d[2])||"Expired").replace(/^Ended/,"Expired"),x:1};if(typeof m.endsDays!="number"||!isFinite(m.endsDays))return{t:"",x:0};if(m.endsDays>=999)return{t:"No expiry",x:0};return{t:"Exp: "+new Date(2026,9,30+m.endsDays).toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"}),x:0}};
+const pmExp=m=>{const z=window._pmStock&&m.id&&_pmStock.state(m);if(z=="expired"||m.st=="expired")return{t:String((m.d&&m.d[2])||"Expired").replace(/^Ended/,"Expired"),x:1};if(typeof m.endsDays!="number"||!isFinite(m.endsDays))return{t:"",x:0};if(m.endsDays>=999)return{t:"No expiry",x:0};return{t:"Exp: "+PM_CATALOG.day(m.endsDays).toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"}),x:0}};
 function listTable(R,ks){const items=[];ks.forEach(k=>R[k].forEach(m=>items.push(m)));items.sort(SF[PF.sort]||SF.new);
   const T={live:"Live",so:"Sold out",ex:"Expired",sch:"Scheduled",dr:"Drafts",svd:"Saved"},ttl=PF.tab&&T[PF.tab]||"All deals";
   const rows=items.map(m=>{const br=m.d[0],C=CATS.find(x=>x[0]==m.k)||[m.k,m.k],e=pmExp(m),cl=window._pmStock?_pmStock.used(m):m.claims||0;
@@ -5983,7 +5983,7 @@ addEventListener("popstate",()=>{if(S)close();if(DS)dclose()});
 /* ---- promotion detail ---- */
 let DS=null;
 function detail(id){const M=window._pmMETA||{},m=M[id];if(!m)return;const [br,of,bd,pr,g]=m.d,cv=C[id];DS=id;let d=document.getElementById("pdd");if(!d){d=document.createElement("div");d.id="pdd";document.body.appendChild(d);history.pushState({pdd:1},"")}
- const ends=m.endsDays>=999?"No end date":"Ends "+new Date(2026,9,30+m.endsDays).toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"});
+ const ends=m.endsDays>=999?"No end date":"Ends "+PM_CATALOG.day(m.endsDays).toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"});
  d.innerHTML=`<div class="gm-s" data-pdx></div><div class="pdd-d" role="dialog" aria-modal="true" aria-labelledby="pddt"><div class="pdd-cv" style="background:${g}">${cv?`<img src="${cv.src}" alt="${E(cv.alt)}" style="object-position:${cv.fx}% ${cv.fy}%">`:""}<span class="bd">${E(bd)}</span><button class="bx bx-o gm-i pdd-x" data-pdx aria-label="Back">${X}</button>${window._pmSv&&_pmSv.res()?_pmSv.btn(id,"pdd-sv"):""}</div><div class="gm-b">
  ${(()=>{const l=window._pmLogo&&window._pmLogo(m);return l&&l.has?`<div class="pdd-pt"><span class="pdd-av">${l.src?`<img src="${E(l.src)}" alt="">`:E(l.name.split(/\s+/).slice(0,2).map(w=>(w[0]||"")).join("").toUpperCase())}</span><span>${E(l.name)}</span></div>`:""})()}<span class="pdd-cat">${E(((window.PM_CATALOG&&PM_CATALOG.CATS.find(x=>x[0]==m.k))||[0,m.k||""])[1])}</span><h2 id="pddt">${E(br)}</h2><p class="pdd-of">${E(of)}</p><div class="gm-row"><b class="pdd-pr">${E(pr)}</b><span class="gm-mut">${ends}</span></div>
  ${m.code?`<div class="pdd-code"><span>Promo code</span><b>${E(m.code)}</b><button class="bx bx-o" data-pdcopy="${E(m.code)}">Copy</button></div>`:""}
@@ -6734,7 +6734,7 @@ const lim=m=>{const x=m.x||{};return +(x.limT||LIM[m.id]||0)};
 // demo seeds: one healthy, one low stock, one sold out (persisted so a claim really decrements)
 const act=Object.values(META).filter(m=>m.st=="active");
 [[act[0],23],[act[1],3],[act[2],0]].forEach(([m,l])=>{if(m&&!LIM[m.id]&&!(m.x&&m.x.limT))LIM[m.id]=used(m)+l});localStorage.setItem(K,JSON.stringify(LIM));
-const endD=m=>{const x=m.x||{};if(x.end)return new Date(x.end);if(m.ext)return new Date(m.ext+"T00:00:00");if(m.st=="expired")return new Date(2026,9,30-((m.endsDays||3)%20+1));return null};
+const endD=m=>{const x=m.x||{};if(x.end)return new Date(x.end);if(m.ext)return new Date(m.ext+"T00:00:00");if(m.st=="expired")return PM_CATALOG.day(-((m.endsDays||3)%20+1));return null};
 const expired=m=>m.st=="expired"||(!!endD(m)&&endD(m)<new Date());
 const left=m=>{const L=lim(m);return L?Math.max(0,L-used(m)):null};
 const state=m=>!m||!m.id?"":expired(m)?"expired":left(m)===0?"soldout":"";

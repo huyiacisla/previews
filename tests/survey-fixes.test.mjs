@@ -1,6 +1,7 @@
 // Fixes that came out of the system survey (docs/qa/01a, 01b, 01c): data left behind by a deleted post, claims counted across residents,
 // leftovers of a reset, one set of names in Social.
 
+import "./promotions/_clock.mjs";
 import assert from "node:assert/strict";
 import test from "node:test";
 import { PERSONAS } from "../src/features/messaging/personas.js";

@@ -1,6 +1,7 @@
 // Promotions as the Resident app sees them: what Staff publish shows up, drafts and expired ones do not,
 // the two Staff switches work, and saving / claiming behave. Run with: npm test
 
+import "./_clock.mjs";
 import assert from "node:assert/strict";
 import test from "node:test";
 import { categoriesIn, claim, isLive, KEY, listPromotions, offerLabel, readConfig, residentState, toggleSaved } from "../../src/features/promotions/store.js";

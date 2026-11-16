@@ -1,5 +1,6 @@
 // A promotion's life as Staff run it: close it early, extend it, remove it, and what the Resident app shows at each step. Run with: npm test
 
+import "./_clock.mjs";
 import assert from "node:assert/strict";
 import test from "node:test";
 import "../../src/features/promotions/catalog.js";

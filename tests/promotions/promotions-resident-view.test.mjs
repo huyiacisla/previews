@@ -1,6 +1,7 @@
 // What the Resident app shows of a promotion: how many are left, which are sold out, the tags the filter uses (new, limited, ending soon, free),
 // the partner logo and cover Staff set, and the expiry date. Run with: npm test
 
+import "./_clock.mjs";
 import assert from "node:assert/strict";
 import test from "node:test";
 import "../../src/features/promotions/catalog.js";
