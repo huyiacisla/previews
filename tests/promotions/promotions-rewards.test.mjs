@@ -107,3 +107,15 @@ test("the card: a Pending code is masked with an eye and no Copy, the card leads
   assert.ok(res.includes('$("[data-view]", li).addEventListener("click", () => openClaim(r.id));'));
   assert.ok(html.includes('<dialog id="dlg-steps"') && html.includes('id="cl-steps"'));
 });
+
+test("the deal window follows the same rule as the card: masked with an eye and no Copy while Pending, clear with Copy once approved, none when refused, cancelled or someone else's", () => {
+  const read = (p) => readFileSync(new URL(`../../${p}`, import.meta.url), "utf8").replace(/\r\n/g, "\n");
+  const html = read("src/partials/promotions-app.html");
+  const res = read("src/features/promotions/resident.js");
+  assert.ok(html.includes('id="dlg-reveal"') && html.includes('id="dlg-pending"') && html.includes("Code will be available after staff approval."));
+  assert.ok(res.includes('const mode = mate ? "none" : key === "verified" || key === "redeemed" ? "clear" : key === "pending" ? "masked" : "none";'));
+  assert.ok(res.includes('paintCode($("#dlg-code"), $("#dlg-reveal"), shown.code, mode, dlgShown);'));
+  assert.ok(res.includes('$("#dlg-copy").hidden = mode !== "clear";') && res.includes('$("#dlg-pending").hidden = mode !== "masked";'));
+  assert.ok(res.includes('"Claimed. Your code unlocks after staff approval."'), "the toast no longer says the code is below");
+  assert.ok(res.includes("dlgShown = false;"), "a new promotion opens with its code hidden");
+});

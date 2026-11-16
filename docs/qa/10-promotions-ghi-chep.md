@@ -767,4 +767,9 @@ Phạm vi theo quyết định của người dùng: Promotions chỉ là kênh 
 
 **Kiểm chứng**: `npm test` 597/597 (mới: `promotions-rewards`, `promotions-csv`; cập nhật các test của thẻ cũ); giao diện thật với dữ liệu thật của res-1 (đã trả lại sau khi thử): thẻ Pending che mã, Verified hiện Copy code, Used nhỏ và không Copy, View mở các bước, bấm thân thẻ về đúng deal, xuất CSV ra đúng 3 claim thật và không dòng demo; console sạch trên Resident và Staff.
 
-**Còn mở**: cửa sổ chi tiết deal (nút "View details" trên trang) vẫn hiện mã ngay sau khi claim kể cả khi Pending (theo thiết kế cũ "Your code is below"); cần quyết định có áp quy tắc che mã ở đó nữa không. Thử trống (kho không có claim) chỉ bằng test đơn vị, chưa bằng giao diện thật.
+
+**Sau R6 (người dùng chốt 16/11): che mã đến khi được duyệt ở cả cửa sổ chi tiết deal.** Cửa sổ "View details" dùng cùng quy tắc với thẻ My rewards: Pending thì mã che (`MALL***` hoặc `RES-******`) kèm nút mắt, không Copy, dòng "Code will be available after staff approval."; Verified hoặc Used thì mã rõ và có Copy; bị từ chối, đã huỷ hoặc mã của người cùng căn hộ thì không hiện mã. Thông báo sau khi claim đổi thành "Claimed. Your code unlocks after staff approval."
+
+**Thử đầu cuối bằng giao diện thật (hai tab, dữ liệu thật của res-1, đã trả lại)**: Resident claim (mã `RES-65GWCM` che trong cửa sổ deal, nút mắt 44 px, không Copy) → Staff mở Claims, bấm Verify → `eso-pm-claimstate` ghi `verified` kèm `by` → `eso-pm-audit-v1` có dòng `verify` với người duyệt và giờ ISO → cửa sổ deal đang mở của Resident tự mở khoá (mã rõ, có Copy, "Confirmed by the property team.") và thẻ My rewards hiện Verified với Copy code 44 px, không cần tải lại trang.
+
+**Lưu ý**: mã tĩnh dùng chung của một deal (ví dụ `MALLA10`) còn hiện công khai ở khối coupon trong trang do Staff thiết kế và có thể tra bằng ô Redeem; mã dùng chung không thể giữ bí mật, quy tắc che chỉ áp cho mã của claim của từng cư dân. Cần quyết định nếu muốn thay đổi khối coupon.

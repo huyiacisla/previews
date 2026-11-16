@@ -538,6 +538,7 @@ function onSave(p) {
 
 const dlg = $("#dlg");
 let opener = null;
+let dlgShown = false; // the eye on a code that is not usable yet: looking at it, never copying it
 
 function find(id) {
   return listPromotions(storage, { viewer }).find((p) => p.id === id);
@@ -551,6 +552,7 @@ function openDialog(id, from, back) {
   ui.back = back || null;
   ui.openId = id;
   ui.lastId = id;
+  dlgShown = false;
   $("#dlg-error").textContent = "";
   refreshDialog();
   if (!dlg.open) dlg.showModal();
@@ -598,12 +600,16 @@ function refreshDialog() {
   box.hidden = !(shown && shown.code);
   if (!box.hidden) {
     $("#dlg-claim-label").textContent = mate ? `Already claimed in your unit by ${mate.name}` : p.method === "qr" ? "Show this code at the partner" : "Your code";
-    // the code of someone else's claim is theirs: the person blocked by the one-per-unit rule is told who got it, not given the code
-    $("#dlg-code").textContent = mate ? "" : shown.code;
-    $("#dlg-code").hidden = !!mate;
-    $("#dlg-copy").hidden = !!mate;
     // what the property staff decided about this claim (words, not colour alone)
     const cs = mate ? null : claimStatus(storage, me.id, p.id);
+    // The same rule as My rewards. The code of someone else's claim is theirs: the person blocked by the one-per-unit rule is told who got it, not given the code. Your own code is clear
+    // (and can be copied) once the property team approved it; while it waits it is masked (MALL***) with an eye, no Copy and a line that says why; a refused or cancelled claim shows none.
+    const key = mate ? "" : stateOf(cs);
+    const mode = mate ? "none" : key === "verified" || key === "redeemed" ? "clear" : key === "pending" ? "masked" : "none";
+    paintCode($("#dlg-code"), $("#dlg-reveal"), shown.code, mode, dlgShown);
+    $("#dlg-code").parentElement.hidden = mode === "none";
+    $("#dlg-copy").hidden = mode !== "clear";
+    $("#dlg-pending").hidden = mode !== "masked";
     const say = {
       pending: "Waiting for the property team to confirm.",
       verified: cs && cs.manual ? `Applied by the property team: ${cs.manual}` : "Confirmed by the property team.",
@@ -706,7 +712,7 @@ $("#dlg-claim-btn").addEventListener("click", () => {
       return;
     }
     if (p.method === "link" && r.link) window.open(r.link, "_blank", "noopener,noreferrer");
-    else toast(r.again ? "You already claimed this" : "Claimed. Your code is below.");
+    else toast(r.again ? "You already claimed this" : "Claimed. Your code unlocks after staff approval.");
     if (!r.again) bumpUnseen("rewards", 1);
     render();
   } finally {
@@ -720,6 +726,11 @@ $("#dlg-claim-btn").addEventListener("click", () => {
 $("#dlg-save").addEventListener("click", () => {
   const p = find(ui.openId);
   if (p) onSave(p);
+});
+
+$("#dlg-reveal").addEventListener("click", () => {
+  dlgShown = !dlgShown;
+  refreshDialog();
 });
 
 $("#dlg-copy").addEventListener("click", async () => {
