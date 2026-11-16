@@ -66,14 +66,37 @@ function categoryNames(storage) {
 
 /** The sample deals that are running, as records (the same ones Staff see in their list: 17 of the 27 are running). Made once, they never change by themselves. */
 let sampleCache = { key: null, list: [] };
+
+// Staff's card cover pictures and partner logos for sample deals ("<id>" = cover, "logo:<id>" = logo). Data URLs only.
+export const COVERS_KEY = "eso-covers-v1";
+function readCovers(storage) {
+  try {
+    const raw = storage && storage.getItem(COVERS_KEY);
+    const o = raw ? JSON.parse(raw) : {};
+    return o && typeof o === "object" && !Array.isArray(o) ? o : {};
+  } catch {
+    return {};
+  }
+}
 export function sampleRecords(storage) {
   const C = globalThis.PM_CATALOG;
   if (!C) return [];
   // What Staff turned off (a draft) or on is read each time; the list is only made again when that choice changed.
   const overrides = storage ? C.readOverrides(storage) : {};
   const edits = storage ? C.readEdits(storage) : {};
-  const key = JSON.stringify([overrides, edits]);
-  if (sampleCache.key !== key) sampleCache = { key, list: C.records(overrides, edits) };
+  const covers = readCovers(storage);
+  const key = JSON.stringify([overrides, edits, covers]);
+  if (sampleCache.key !== key) {
+    const list = C.records(overrides, edits).map((r) => {
+      const logo = covers[`logo:${r.id}`];
+      const cv = covers[r.id];
+      const x = { ...r.x };
+      if (logo && safeSrc(logo.src)) x.plogo = logo.src;
+      if (cv && safeSrc(cv.src)) Object.assign(x, { cover: cv.src, cx: cv.fx, cy: cv.fy, alt: cv.alt || "" });
+      return { ...r, x };
+    });
+    sampleCache = { key, list };
+  }
   return sampleCache.list;
 }
 
@@ -133,7 +156,9 @@ export function claimedByResidents(storage, promoId) {
   return n;
 }
 
-function toPromo(rec, names, extra = 0) {
+const daysBetween = (a, b) => Math.round((new Date(`${b}T00:00:00`) - new Date(`${a}T00:00:00`)) / 864e5);
+
+function toPromo(rec, names, extra = 0, today = todayISO()) {
   const x = rec.x;
   const link = x.method === "link" && /^https?:\/\//i.test(x.link || "") ? x.link : "";
   const total = Number(x.limT) > 0 ? Number(x.limT) : 0;
@@ -164,8 +189,16 @@ function toPromo(rec, names, extra = 0) {
     total,
     // What Staff's record says plus what residents claimed in this app (each resident's own key): the "fully claimed" limit counts both.
     claimed: (Number(rec.claims) || 0) + (extra || 0),
+    // how many are left of the total limit (null when there is no limit)
+    left: total > 0 ? Math.max(0, total - ((Number(rec.claims) || 0) + (extra || 0))) : null,
     full: total > 0 && (Number(rec.claims) || 0) + (extra || 0) >= total,
     end: x.end || "",
+    endShow: String(x.endShow || ""),
+    // Tags for the filter: new (the badge says New, or Staff started it in the last 14 days), limited (a total limit with some left), free, days left.
+    isNew: x.badge === "New" || (!rec.sample && !!x.start && daysBetween(x.start, today) >= 0 && daysBetween(x.start, today) <= 14),
+    isLimited: total > 0 && !((Number(rec.claims) || 0) + (extra || 0) >= total),
+    isFree: /\bfree\b|\$0\b|\$1\b/i.test(offerLabel(x)),
+    daysLeft: Number.isFinite(x.endsIn) ? x.endsIn : x.end ? daysBetween(today, x.end) : null,
     audience: audienceLabel(x),
     terms: String(x.terms || "").slice(0, 1000),
   };
@@ -191,7 +224,7 @@ export function listPromotions(storage, { today = todayISO(), query = "", catego
   const published = read(storage, KEY.published, []);
   return [...(Array.isArray(published) ? published : []), ...(samples ? sampleRecords(storage) : [])]
     .filter((rec) => isLive(rec, today) && inAudience(rec.x, viewer))
-    .map((rec) => toPromo(rec, names, claimedByResidents(storage, rec.id)))
+    .map((rec) => toPromo(rec, names, claimedByResidents(storage, rec.id), today))
     .filter((p) => category === "all" || p.category.key === category)
     .filter((p) => !q || [p.title, p.summary, p.description, p.partner, p.category.name].join(" ").toLowerCase().includes(q));
 }

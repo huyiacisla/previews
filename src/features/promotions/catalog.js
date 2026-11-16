@@ -105,8 +105,9 @@
       const d = Array.isArray(e.d) ? e.d : [];
       const s = (v, n) => (typeof v === "string" ? v.trim().slice(0, n) : "");
       const code = typeof e.code === "string" ? e.code.trim().toUpperCase() : undefined;
+      const partner = typeof e.partner === "string" ? e.partner.trim().slice(0, 120) : "";
       const cat = typeof e.cat === "string" && CATS.some(([v]) => v === e.cat) ? e.cat : undefined;
-      out[k] = { title: s(d[0], 60), reward: s(d[1], 90), price: s(d[3], 30), code: code === undefined ? undefined : /^[A-Z0-9-]{3,20}$/.test(code) ? code : "", ...(cat ? { cat } : {}) };
+      out[k] = { title: s(d[0], 60), reward: s(d[1], 90), price: s(d[3], 30), code: code === undefined ? undefined : /^[A-Z0-9-]{3,20}$/.test(code) ? code : "", ...(cat ? { cat } : {}), ...(partner ? { partner } : {}) };
     }
     return out;
   }
@@ -205,7 +206,15 @@
             reward,
             desc: `${reward} (${price}).`,
             cat: e.cat || m.k,
-            partner: title,
+            partner: e.partner || title,
+            endsIn: m.endsDays >= 999 ? null : m.endsDays,
+            endShow:
+              m.endsDays >= 999
+                ? ""
+                : (() => {
+                    const d = new Date(2026, 9, 30 + m.endsDays);
+                    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+                  })(),
             offerText: price,
             badge: m.d[2],
             method: code ? "static" : "unique",

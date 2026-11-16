@@ -1932,4 +1932,4 @@ body:has(
   line-height: 1.2;
 }
 
-@source "./**/*.html";
+@source "../../**/*.html";

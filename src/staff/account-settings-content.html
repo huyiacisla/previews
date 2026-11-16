@@ -2206,7 +2206,14 @@ function toolbar(R){const n=nAct(),tot=Object.values(R).reduce((a,l)=>a+l.length
  <label class="pmt-sel"><span class="lb">Sort</span><select data-pmsort aria-label="Sort promotions">${SORTS.map(x=>`<option value="${x[0]}" ${PF.sort==x[0]?"selected":""}>${x[1]}</option>`).join("")}</select></label>
  <div class="pmt-v" role="group" aria-label="View">${[["grid","grid","Styled grid"],["list","list","Compact list"]].map(v=>`<button data-pmview="${v[0]}" aria-pressed="${PF.view==v[0]}" class="${PF.view==v[0]?"on":""}" title="${v[2]}" aria-label="${v[2]}">${lic(v[1],16)}</button>`).join("")}</div></div>
  ${chips()}${isAct()&&!(res&&PF.sv&&!PF.q.trim()&&!nAct())?`<div class="pmcount" role="status" aria-live="polite">${tot} ${tot==1?"result":"results"}${PF.q.trim()?` for “${H(PF.q.trim())}”`:""}</div>`:""}`}
-function page(){if(!res&&PF.tab=="store"&&window._pmst){const s=page0();return s.slice(0,s.indexOf("<!--pmtb-->"))+_pmst.view()+"</div>"}if(!res&&PF.tab=="claims"&&window._pmcl){const s=page0();return s.slice(0,s.indexOf("<!--pmtb-->"))+_pmcl.inbox()+"</div>"}return page0()}function page0(){cat=PF.cat;if(res)setTimeout(svHydrate,0);const R=results(),tot=Object.values(R).reduce((a,l)=>a+l.length,0),act=isAct();
+/* Resident view: the Resident app's own page, in a frame. Both read the same stores, so what Staff publishes, edits, turns off, extends or removes is what shows here. */
+let RVD="full";
+function resFrame(){const dk=document.documentElement.classList.contains("dark")?"&dark=1":"",W={phone:"390px",tablet:"768px",full:"100%"},dv=[["phone","Phone"],["tablet","Tablet"],["full","Desktop"]];
+  return `<div class="pmx rvx"><div class="pm-h"><div><div class="pm-ttl"><h1>Promotions</h1></div><p>Resident view: the page residents open in the resident app.</p></div><span class="sp"></span><div class="acts"><div class="rv-dev" role="group" aria-label="Preview size">${dv.map(([k,l])=>`<button type="button" data-rvdev="${k}" aria-pressed="${RVD==k}" class="${RVD==k?"on":""}">${l}</button>`).join("")}</div><button class="pm-tg on" data-pmres role="switch" aria-checked="true"><i></i>Resident view</button></div></div>
+  <div class="pm-res">${lic("eye",15)} This is the real resident page. Staff-only controls are hidden; what you publish, edit or close shows up here.</div>
+  <div class="rv-wrap"><iframe class="rv-frame" id="rvf" title="Resident promotions page" src="/resident/promotions-content.html?embed=1${dk}" style="max-width:${W[RVD]}"></iframe></div></div>`}
+document.addEventListener("click",e=>{const b=e.target.closest&&e.target.closest("[data-rvdev]");if(!b)return;e.preventDefault();RVD=b.dataset.rvdev;render()},true);
+function page(){if(res)return resFrame();if(!res&&PF.tab=="store"&&window._pmst){const s=page0();return s.slice(0,s.indexOf("<!--pmtb-->"))+_pmst.view()+"</div>"}if(!res&&PF.tab=="claims"&&window._pmcl){const s=page0();return s.slice(0,s.indexOf("<!--pmtb-->"))+_pmcl.inbox()+"</div>"}return page0()}function page0(){cat=PF.cat;if(res)setTimeout(svHydrate,0);const R=results(),tot=Object.values(R).reduce((a,l)=>a+l.length,0),act=isAct();
  let ks=PF.cat=="all"?CATS.map(c=>c[0]):[PF.cat];if(act)ks=ks.filter(k=>R[k].length);
  const onlySv=res&&PF.sv&&!PF.q.trim()&&!nAct();const empty=onlySv?`<div class="pmempty">${lic("star",28,1.5)}<h3>No saved promotions yet</h3><p>Tap the star on a deal to keep it here.</p><button class="btn" data-pmclearall>Show all promotions</button></div>`:`<div class="pmempty">${lic("inbox",28,1.5)}<h3>No promotions match</h3><p>Try a different search term or remove some filters.</p><button class="btn" data-pmclearall>Clear filters</button></div>`;
  if(res&&RDP)return rdPage();
@@ -8127,6 +8134,13 @@ html.dark .pmx .pd.s-card:has(.pi .pmv) .pi .psv.pav-sv.on{color:#fbbf24!importa
 .pmx .pd.s-card:has(.pi .pmv) .pi .psv.pav-sv.on svg{color:#f59e0b!important;fill:#f59e0b;stroke:#f59e0b}
 html.dark .pmx .pd.s-card:has(.pi .pmv) .pi .psv.pav-sv.on svg{color:#fbbf24!important;fill:#fbbf24;stroke:#fbbf24}
 .pmx .pd.s-card:has(.pi .pmv) .pi .psv.pav-sv:not(.on) svg{fill:none}
+/* Resident view frame */
+.rv-dev{display:inline-flex;gap:2px;padding:4px;border-radius:12px;background:color-mix(in srgb,var(--fg) 9%,transparent)}
+.rv-dev button{height:32px;padding:0 12px;border:0;border-radius:8px;background:none;color:var(--muted);font:inherit;font-size:13px;font-weight:500}
+.rv-dev button.on{background:var(--card);color:var(--primary);box-shadow:0 1px 2px rgba(15,23,42,.12)}
+.rv-wrap{margin-top:12px}
+.rv-frame{display:block;width:100%;height:calc(100vh - 250px);min-height:560px;margin-inline:auto;border:1px solid var(--border);border-radius:16px;background:var(--card)}
+@media(max-width:639px){.rv-dev{display:none}.rv-frame{max-width:100%!important;height:calc(100vh - 230px)}}
 </style>
 <script id="pmv-js">(function(){
 /* The on/off switch on a deal's card (Staff only). Off makes the deal a draft: residents do not see it, and it stays in Staff's list (Drafts). On publishes it.

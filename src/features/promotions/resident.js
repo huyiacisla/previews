@@ -19,7 +19,28 @@ const storage = window.localStorage;
 // What Staff can target a promotion at: this resident's building and segments.
 const viewer = me.unit ? { block: me.unit.block, segments: me.unit.segments } : undefined;
 
-const ui = { query: "", category: "all", savedOnly: false, openId: null };
+const ui = { query: "", category: "all", savedOnly: false, openId: null, tags: new Set(), sort: "rec", panel: false };
+
+// The quick filters in the panel next to the search box.
+const TAGS = [
+  ["new", "New", (p) => p.isNew],
+  ["hot", "Hot", (p, hot) => hot.has(p.id)],
+  ["limited", "Limited", (p) => p.isLimited],
+  ["ending", "Ending soon", (p) => p.daysLeft != null && p.daysLeft <= 7 && !p.full],
+  ["free", "Free", (p) => p.isFree],
+  ["open", "Still available", (p) => !p.full],
+];
+// Hot = the top quarter by how many claimed it (and at least 20).
+function hotSet(list) {
+  const top = [...list].sort((a, b) => b.claimed - a.claimed).slice(0, Math.max(1, Math.ceil(list.length / 4)));
+  return new Set(top.filter((p) => p.claimed >= 20).map((p) => p.id));
+}
+const SORTS = {
+  rec: null,
+  end: (a, b) => (a.daysLeft ?? 1e9) - (b.daysLeft ?? 1e9),
+  claimed: (a, b) => b.claimed - a.claimed,
+  az: (a, b) => a.title.localeCompare(b.title),
+};
 
 /* ------------------------------------------------------------------ header */
 
@@ -63,6 +84,20 @@ function badge(text, tone = "neutral") {
 
 const fmtDate = (iso) => new Intl.DateTimeFormat("en-US", { dateStyle: "medium", timeZone: "UTC" }).format(new Date(`${iso}T00:00:00Z`));
 const endText = (p) => (p.end ? `Ends ${fmtDate(p.end)}` : "");
+// The card footer, bottom right: "Exp: Nov 3, 2026" (a deal with no end date says so)
+const expText = (p) => {
+  const d = p.end || p.endShow;
+  return d ? `Exp: ${fmtDate(d)}` : "No expiry";
+};
+const initialsOf = (t) =>
+  String(t || "")
+    .replace(/[^A-Za-z0-9 ]/g, "")
+    .trim()
+    .split(/\s+/)
+    .slice(0, 2)
+    .map((w) => w[0] || "")
+    .join("")
+    .toUpperCase() || "?";
 
 function setCover(img, none, cover, visual) {
   if (cover) {
@@ -90,6 +125,34 @@ function setCover(img, none, cover, visual) {
 
 /* --------------------------------------------------------------------- list */
 
+// The filter button, its count and the panel (chips for New, Hot, Limited, Ending soon, Free, Still available).
+function paintFilterPanel(counts) {
+  const n = ui.tags.size + (ui.sort !== "rec" ? 1 : 0);
+  const btn = $("#btn-filter");
+  btn.setAttribute("aria-expanded", String(ui.panel));
+  btn.setAttribute("aria-label", n ? `Filters, ${n} active` : "Filters");
+  const badgeEl = $("#filter-count");
+  badgeEl.hidden = !n;
+  badgeEl.textContent = String(n);
+  $("#filter-panel").hidden = !ui.panel;
+  $("#sort").value = ui.sort;
+  $("#filter-clear").hidden = !n;
+  const box = $("#tag-filters");
+  clear(box);
+  for (const [k, label] of TAGS) {
+    const b = tpl("t-filter");
+    $("[data-label]", b).textContent = label;
+    $("[data-count]", b).textContent = String(counts[k]);
+    b.setAttribute("aria-pressed", String(ui.tags.has(k)));
+    b.addEventListener("click", () => {
+      if (ui.tags.has(k)) ui.tags.delete(k);
+      else ui.tags.add(k);
+      render();
+    });
+    box.appendChild(b);
+  }
+}
+
 function render() {
   const cfg = readConfig(storage);
   const mine = residentState(storage, me.id);
@@ -99,6 +162,14 @@ function render() {
   if (!cfg.save) ui.savedOnly = false;
   let list = listPromotions(storage, { query: ui.query, category: ui.category, viewer });
   if (ui.savedOnly) list = list.filter((p) => mine.saved.has(p.id));
+  const hot = hotSet(all);
+  const counts = Object.fromEntries(TAGS.map(([k, , test]) => [k, list.filter((p) => test(p, hot)).length]));
+  for (const k of ui.tags) {
+    const test = TAGS.find((t) => t[0] === k)[2];
+    list = list.filter((p) => test(p, hot));
+  }
+  if (SORTS[ui.sort]) list = [...list].sort(SORTS[ui.sort]);
+  paintFilterPanel(counts);
 
   // filter row: All, one per category, Saved
   const filters = $("#filters");
@@ -133,7 +204,7 @@ function render() {
 
   const grid = $("#grid");
   clear(grid);
-  for (const p of list) grid.appendChild(card(p, mine, cfg));
+  for (const p of list) grid.appendChild(card(p, mine, cfg, hot));
   $("#count").textContent = all.length ? `${list.length} of ${all.length} ${all.length === 1 ? "promotion" : "promotions"}` : "";
 
   const empty = $("#empty");
@@ -156,11 +227,42 @@ function emptyText(cfg, total) {
   return ["No matches", "Try another word or pick a different category."];
 }
 
-function card(p, mine, cfg) {
+// How many are left (only for a promotion with a total limit): words and a bar, never colour alone. The classes live in the t-stock template.
+function stockEl(p) {
+  if (!(p.total > 0)) return null;
+  const left = p.left ?? Math.max(0, p.total - p.claimed);
+  const pct = Math.max(0, Math.min(100, Math.round((left / p.total) * 100)));
+  const low = left > 0 && (pct <= 10 || left <= 5);
+  const el = tpl("t-stock");
+  el.dataset.tone = left === 0 ? "out" : low ? "low" : "ok";
+  $("[data-text]", el).textContent = left === 0 ? "Sold out" : low ? `Only ${left} left` : `${left} of ${p.total} left`;
+  $("[data-fill]", el).style.width = `${pct}%`;
+  return el;
+}
+
+// The one tag a card carries on its cover, most important first.
+function tagOf(p, hot) {
+  if (p.full) return ["Sold out", "danger"];
+  if (p.daysLeft != null && p.daysLeft <= 7) return ["Ending soon", "warning"];
+  if (hot.has(p.id)) return ["Hot", "danger"];
+  if (p.isLimited) return ["Limited", "info"];
+  if (p.isNew) return ["New", "success"];
+  return null;
+}
+
+function card(p, mine, cfg, hot = new Set()) {
   const li = tpl("t-card");
   li.dataset.promo = p.id;
   setCover($("[data-cover]", li), $("[data-nocover]", li), p.cover, p.visual);
-  $("[data-partner]", li).textContent = p.partner;
+  $("[data-partner]", li).textContent = p.partner && p.partner !== p.title ? p.partner : "";
+  const av = $("[data-avatar]", li);
+  if (p.partnerLogo) {
+    const im = Object.assign(document.createElement("img"), { src: p.partnerLogo, alt: "", className: "size-full bg-white object-contain p-1" });
+    av.appendChild(im);
+    av.classList.add("bg-white");
+  } else {
+    av.textContent = initialsOf(p.partner || p.title);
+  }
   const open = $("[data-open]", li);
   open.textContent = p.title;
   open.addEventListener("click", () => openDialog(p.id));
@@ -170,12 +272,23 @@ function card(p, mine, cfg) {
   badges.appendChild(badge(p.offer, "info"));
   badges.appendChild(badge(p.category.name));
   if (p.audience) badges.appendChild(badge(p.audience, "warning"));
-  if (p.full) badges.appendChild(badge("Fully claimed", "danger"));
+  if (p.full) badges.appendChild(badge("Sold out", "danger"));
+  const stock = stockEl(p);
+  if (stock) $("[data-stock]", li).appendChild(stock);
+  const tag = tagOf(p, hot);
+  const tagEl = $("[data-tag]", li);
+  tagEl.hidden = !tag;
+  if (tag) {
+    tagEl.textContent = tag[0];
+    tagEl.dataset.tone = tag[1];
+  }
+  $("[data-coverwrap]", li).dataset.soldout = String(p.full);
   if (mine.claims[p.id]) {
     const own = activeClaims(storage, me.id, p.id);
     badges.appendChild(own.active > 0 ? badge("Claimed", "success") : badge(own.locked ? "Closed" : "Not approved", "warning"));
   }
-  $("[data-end]", li).textContent = endText(p);
+  $("[data-end]", li).textContent = expText(p);
+  $("[data-foot-left]", li).textContent = p.claimed > 0 ? `${p.claimed} claimed` : "";
   const save = $("[data-save]", li);
   save.hidden = !cfg.save;
   save.dataset.id = p.id;
@@ -243,6 +356,10 @@ function refreshDialog() {
   badges.appendChild(badge(p.offer, "info"));
   badges.appendChild(badge(p.category.name));
   if (p.audience) badges.appendChild(badge(p.audience, "warning"));
+  const stockBox = $("#dlg-stock");
+  clear(stockBox);
+  const stockLine = stockEl(p);
+  if (stockLine) stockBox.appendChild(stockLine);
   $("#dlg-desc").textContent = p.description || p.summary;
   const fine = [endText(p), p.perResident > 1 ? `Up to ${p.perResident} claims per resident.` : "", p.terms && `Terms: ${p.terms}`].filter(Boolean).join(" · ");
   $("#dlg-fine").textContent = fine;
@@ -271,7 +388,7 @@ function refreshDialog() {
   const done = claimed && own.active >= p.perResident;
   btn.disabled = p.full || own.locked || (done && p.method !== "link");
   $("#dlg-claim-text").textContent = p.full
-    ? "Fully claimed"
+    ? "Sold out"
     : own.locked
       ? "Closed"
       : p.method === "link"
@@ -340,6 +457,19 @@ $("#dlg-copy").addEventListener("click", async () => {
 
 /* ---------------------------------------------------------------- search + live */
 
+$("#btn-filter").addEventListener("click", () => {
+  ui.panel = !ui.panel;
+  render();
+});
+$("#sort").addEventListener("change", (e) => {
+  ui.sort = e.target.value;
+  render();
+});
+$("#filter-clear").addEventListener("click", () => {
+  ui.tags.clear();
+  ui.sort = "rec";
+  render();
+});
 let timer = 0;
 $("#search").addEventListener("input", (e) => {
   clearTimeout(timer);
