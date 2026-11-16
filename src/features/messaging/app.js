@@ -1336,28 +1336,8 @@ export function mount({ portal }) {
   }
   // "Also claimed in this unit by Jamie Rivera": the link between a claim and the people who share the unit
   const sameUnitLine = (mates) => (mates && mates.length ? `Also claimed in this unit by ${mates.map((m) => m.name).join(", ")}` : "");
-  function openAllPromos(conv, resident) {
-    let dlg = document.getElementById("promos-all");
-    if (dlg) dlg.remove();
-    dlg = document.createElement("dialog");
-    dlg.id = "promos-all";
-    dlg.setAttribute("aria-labelledby", "promos-all-title");
-    dlg.className = "m-auto max-h-dvh w-full max-w-lg overflow-y-auto rounded-xl bg-card p-0 text-foreground shadow-lift-md backdrop:bg-foreground/40";
-    const box = document.createElement("div");
-    box.className = "flex flex-col gap-step-md p-step-lg";
-    const head = document.createElement("div");
-    head.className = "flex items-start justify-between gap-step-md";
-    const h = document.createElement("h2");
-    h.id = "promos-all-title";
-    h.className = "text-lg leading-6 font-semibold";
-    h.textContent = `Promotions of ${resident.name}`;
-    const close = button("Close", { variant: "outline", onClick: () => dlg.close() });
-    head.append(h, close);
-    box.appendChild(head);
-    const rule = document.createElement("p");
-    rule.className = "text-sm text-muted-foreground";
-    rule.textContent = "A promotion that is one per unit can be claimed once for the whole unit. What the others in the unit claimed is listed below, so you see who already has it.";
-    box.appendChild(rule);
+  // The rewards of a resident and of the people of the same unit, deal by deal (inside a window `box`)
+  function fillPromos(box, conv, resident) {
     const section = (title, rows, who) => {
       const sub = document.createElement("p");
       sub.className = "text-sm font-medium";
@@ -1404,6 +1384,120 @@ export function mount({ portal }) {
     }
     if (!unitMates(conv.residentId).length) section("Same unit", [], false);
     if (portal === "staff") box.appendChild(button("Open Claims inbox", { variant: "outline", icon: "forward", onClick: () => goPage("/staff/promotions.html", "#/promotions/claims") }));
+  }
+  // Press the resident's picture in the chat: one window with what Staff need to help them: who and where they live, their rewards, their tickets
+  function openResidentInfo(conv) {
+    const data = store.contextFor(conv.id, me.id);
+    if (!data || data.kind !== "resident" || !data.person) return;
+    let dlg = document.getElementById("res-info");
+    if (dlg) dlg.remove();
+    dlg = document.createElement("dialog");
+    dlg.id = "res-info";
+    dlg.setAttribute("aria-labelledby", "res-info-title");
+    dlg.className = "m-auto max-h-dvh w-full max-w-lg overflow-y-auto rounded-xl bg-card p-0 text-foreground shadow-lift-md backdrop:bg-foreground/40";
+    const box = document.createElement("div");
+    box.className = "flex flex-col gap-step-md p-step-lg";
+    const head = document.createElement("div");
+    head.className = "flex items-start justify-between gap-step-md";
+    const who = document.createElement("div");
+    who.className = "flex min-w-0 items-center gap-step-md";
+    const nm = document.createElement("div");
+    nm.className = "min-w-0";
+    const h = document.createElement("h2");
+    h.id = "res-info-title";
+    h.className = "text-lg leading-6 font-semibold";
+    h.textContent = data.person.name;
+    const sub = document.createElement("p");
+    sub.className = "text-sm text-muted-foreground";
+    sub.textContent = `Resident information · Unit ${data.unit.number}`;
+    nm.append(h, sub);
+    who.append(avatar({ name: data.person.name, role: "resident" }), nm);
+    head.append(who, button("Close", { variant: "outline", onClick: () => dlg.close() }));
+    box.appendChild(head);
+    const part = (title) => {
+      const p = document.createElement("h3");
+      p.className = "mt-step-sm border-t border-border pt-step-md text-sm font-semibold";
+      p.textContent = title;
+      box.appendChild(p);
+    };
+    // 1. information
+    part("Information");
+    const u = data.unit;
+    const dl = document.createElement("dl");
+    dl.className = "flex flex-col gap-step-sm";
+    box.appendChild(dl);
+    ctxRow(dl, "Unit", u.number);
+    ctxRow(dl, "Location", u.building);
+    const reach = readPrefs(localStorage, data.person.id);
+    if (reach.phone) ctxRow(dl, "Phone", reach.phone);
+    ctxRow(dl, "Prefers", { app: "In the app", email: "Email", text: "Text message" }[reach.contact] || "In the app");
+    ctxRow(dl, "Lease", `${fmtDate(u.leaseStart)} to ${fmtDate(u.leaseEnd)}`);
+    const left = u.daysLeft;
+    ctxRow(dl, "Lease status", left < 0 ? `Ended ${-left} days ago` : left <= 60 ? `Ends in ${left} days` : `${left} days left`, left < 0 ? "danger" : left <= 60 ? "warning" : "success");
+    const entry = document.createElement("p");
+    entry.className = "text-sm text-foreground-secondary";
+    entry.textContent = `Unit entry notes: ${u.entry || "No notes."}`;
+    box.appendChild(entry);
+    // 2. rewards: what they claimed, and what the others in the unit claimed
+    part("Rewards");
+    fillPromos(box, conv, data.person);
+    // 3. ticket history
+    part("Ticket history");
+    if (!data.tickets.length) {
+      const none = document.createElement("p");
+      none.className = "text-sm text-muted-foreground";
+      none.textContent = "No other tickets from this resident.";
+      box.appendChild(none);
+    } else {
+      const ul = document.createElement("ul");
+      ul.setAttribute("role", "list");
+      ul.className = "flex flex-col";
+      for (const k of data.tickets) {
+        const li = tpl("t-ctx-ticket");
+        $("[data-topic]", li).textContent = k.topic;
+        $("[data-stage]", li).appendChild(badge(STAGE_LABEL[k.stage], { open: "info", in_progress: "success", waiting_on_resident: "warning", resolved: "neutral", closed: "neutral" }[k.stage]));
+        $("[data-meta]", li).textContent = [listTime(k.at, Date.now()), k.assignee].filter(Boolean).join(" · ");
+        const b = $("[data-open]", li);
+        if (k.open) b.addEventListener("click", () => {
+          dlg.close();
+          openConv(k.id);
+        });
+        else b.disabled = true;
+        ul.appendChild(li);
+      }
+      box.appendChild(ul);
+    }
+    dlg.appendChild(box);
+    dlg.addEventListener("click", (e) => {
+      if (e.target === dlg) dlg.close();
+    });
+    dlg.addEventListener("close", () => dlg.remove());
+    document.body.appendChild(dlg);
+    dlg.showModal();
+  }
+  function openAllPromos(conv, resident) {
+    let dlg = document.getElementById("promos-all");
+    if (dlg) dlg.remove();
+    dlg = document.createElement("dialog");
+    dlg.id = "promos-all";
+    dlg.setAttribute("aria-labelledby", "promos-all-title");
+    dlg.className = "m-auto max-h-dvh w-full max-w-lg overflow-y-auto rounded-xl bg-card p-0 text-foreground shadow-lift-md backdrop:bg-foreground/40";
+    const box = document.createElement("div");
+    box.className = "flex flex-col gap-step-md p-step-lg";
+    const head = document.createElement("div");
+    head.className = "flex items-start justify-between gap-step-md";
+    const h = document.createElement("h2");
+    h.id = "promos-all-title";
+    h.className = "text-lg leading-6 font-semibold";
+    h.textContent = `Promotions of ${resident.name}`;
+    const close = button("Close", { variant: "outline", onClick: () => dlg.close() });
+    head.append(h, close);
+    box.appendChild(head);
+    const rule = document.createElement("p");
+    rule.className = "text-sm text-muted-foreground";
+    rule.textContent = "A promotion that is one per unit can be claimed once for the whole unit. What the others in the unit claimed is listed below, so you see who already has it.";
+    box.appendChild(rule);
+    fillPromos(box, conv, resident);
     dlg.appendChild(box);
     dlg.addEventListener("click", (e) => {
       if (e.target === dlg) dlg.close();
@@ -2546,7 +2640,23 @@ export function mount({ portal }) {
     const who = m.kind === "bot" ? "EasySpotOps Assistant" : `${a.name}${a.role && a.role !== "bot" && !(me.role === "resident" && a.role === "admin") ? ` · ${ROLE_LABEL[a.role]}` : ""}`; // (a resident reads "EasySpotOps Support", not "… · Admin")
     if (first) $("[data-author]", el).textContent = who;
     else $("[data-author]", el).hidden = true;
-    if (last) $("[data-avatar]", el).replaceWith(avatar({ name: a.name, role: a.role === "bot" ? "bot" : a.role, size: "sm" }));
+    if (last) {
+      let av = avatar({ name: a.name, role: a.role === "bot" ? "bot" : a.role, size: "sm" });
+      if (["staff", "admin"].includes(me.role) && a.role === "resident" && t.conv.kind === "resident_support") {
+        // the picture opens the resident's information: a 44 px press area around a small picture
+        const open = document.createElement("button");
+        open.type = "button";
+        open.className = "inline-flex shrink-0 cursor-pointer touch-manipulation items-center justify-center rounded-full outline-none focus-visible:ring-3 focus-visible:ring-ring/50";
+        open.style.cssText = "padding:8px;margin:-8px";
+        open.setAttribute("aria-label", `Resident information: ${a.name}`);
+        open.title = "Resident information";
+        open.dataset.resInfo = "";
+        open.appendChild(av);
+        open.addEventListener("click", () => openResidentInfo(t.conv));
+        av = open;
+      }
+      $("[data-avatar]", el).replaceWith(av);
+    }
     const tm = $("[data-time]", el);
     tm.textContent = when;
     tm.dateTime = iso;

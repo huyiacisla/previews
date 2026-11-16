@@ -24,7 +24,7 @@ test("Messages: the window lists the resident's own promotions and then those of
   assert.ok(w.includes("residentState(localStorage, residentId)"));
   assert.ok(w.includes('localStorage.getItem("eso-pm-claimstate")'));
   assert.ok(w.includes("householdClaims(localStorage, residentId, id)"));
-  const o = msg.slice(msg.indexOf("function openAllPromos"), msg.indexOf("The claims of this resident that wait for Staff"));
+  const o = msg.slice(msg.indexOf("function fillPromos"), msg.indexOf("function openResidentInfo"));
   assert.ok(o.includes("unitMates(conv.residentId)"));
   assert.ok(o.includes("Decided by"));
   assert.ok(o.includes("Nothing claimed yet."));
@@ -66,4 +66,15 @@ test("Resident: a Pending claim says how long it has been waiting (a fact, not a
   assert.ok(res.includes("`Waiting ${Math.round(m / 60)} h`"));
   assert.ok(res.includes("waitingText(r.at)"));
   assert.ok(!/will be (approved|verified) (in|within)/i.test(res));
+});
+
+test("Messages: the resident's picture in the chat opens a Resident information window (information, rewards, ticket history), for Staff only", () => {
+  assert.ok(msg.includes("function openResidentInfo(conv)"));
+  assert.ok(msg.includes('dlg.id = "res-info"'));
+  const w = msg.slice(msg.indexOf("function openResidentInfo"), msg.indexOf("function openAllPromos"));
+  for (const part of ['part("Information")', 'part("Rewards")', 'part("Ticket history")']) assert.ok(w.includes(part), part);
+  assert.ok(w.includes("fillPromos(box, conv, data.person)"));
+  assert.ok(msg.includes('["staff", "admin"].includes(me.role) && a.role === "resident" && t.conv.kind === "resident_support"'));
+  assert.ok(msg.includes("`Resident information: ${a.name}`"));
+  assert.ok(msg.includes('open.style.cssText = "padding:8px;margin:-8px"'), "a 44 px press area around the small picture");
 });
