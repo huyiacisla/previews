@@ -28,11 +28,11 @@ test("the history Staff see is the claims of the resident in the conversation, w
 
 test("the Messages details panel for a resident lists their promotion claims, opens the Claims inbox for Staff only, and follows changes made in other tabs", () => {
   const app = readFileSync(new URL("../../src/features/messaging/app.js", import.meta.url), "utf8");
-  assert.ok(app.includes('import { allRecords, historyFor } from "../promotions/store.js";'));
+  assert.ok(app.includes('import { allRecords, historyFor, unitBlocks, unitHistory } from "../promotions/store.js";'));
   assert.ok(app.includes('data && data.kind === "resident" && data.person ? promoEvents(data.person.id) : []'), "only a resident conversation has the list, for that resident");
   assert.ok(app.includes('const promo = ctxSection("Promotions");') && app.includes("No promotion claims from this resident."));
   assert.ok(app.includes('if (portal === "staff") promo.appendChild(button("Open Claims inbox"'), "the inbox link is for the Staff portal only");
-  assert.ok(app.includes("JSON.stringify([t.conv.id, data, promoEv,"), "the panel is drawn again when the claims change");
+  assert.ok(app.includes("JSON.stringify([t.conv.id, data, promoEv, unitEv,"), "the panel is drawn again when the claims change");
   assert.ok(app.includes('e.key.startsWith("eso-res-promo:")') && app.includes('e.key === "eso-pm-claimstate"'), "a claim or a Staff decision in another tab refreshes the open panel");
   assert.ok(app.includes('Verified: "Confirmed by the property team"'), "notes written for the resident are said to Staff");
 });
