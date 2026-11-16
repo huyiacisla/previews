@@ -306,7 +306,7 @@ Vòng 1 (Phần 1 đến 6) đã kiểm template, brand kit, tạo deal, claim, 
 - [x] **R2-1: Trình dựng → Resident.** Live editor: sửa chữ hero, đổi thứ tự khối, thêm khối (Featured, Coupon, FAQ), ẩn khối trên điện thoại, xoá khối; bản nháp so với đã công bố (Resident chỉ thấy khi Publish & set as current?); "Stop using" (Resident về diện mạo portal, không còn dấu vết theme); Customize một template thành "My creations" rồi Use; Resident đổi ngay không cần tải lại.
 - [x] **R2-2: "Resident view" của Staff giống hệt Resident thật.** Công tắc Resident view ở trang Staff (khung nhúng): so thanh trên cùng, Saved, hero gộp, theme, My rewards, History ở 375/830/1440; cuộn hết trang; không còn điều khiển cũ.
 - [x] **R2-3: Quét hình ảnh bố cục mới.** Thanh trên cùng gập một hàng, hero gộp, Saved, (i), hộp thoại: 375, 830, 1440 × sáng, tối × template Deals, Store, Luxury dark, Minimal mono; cuộn hết trang, chụp hai lần.
-- [ ] **R2-4: Việc còn mở.** Canvas trình dựng Staff cho giống Resident (đếm ngược và mã giảm giá nằm trong hero), "Scheduled" chọn được ngày bắt đầu, "Price / value" đổi giá trị giảm thật, thử lại lỗi claim Phần 4.
+- [x] **R2-4: Việc còn mở.** Canvas trình dựng Staff cho giống Resident (đếm ngược và mã giảm giá nằm trong hero), "Scheduled" chọn được ngày bắt đầu, "Price / value" đổi giá trị giảm thật, thử lại lỗi claim Phần 4.
 - [ ] **R2-5: Tổng kết vòng 2.** Dọn dữ liệu, ghi tổng kết, hỏi push.
 
 ### R2-1 (xong): Trình dựng → Resident
@@ -348,3 +348,19 @@ Kết quả: **không có lỗi mới.** 0 chữ thiếu tương phản (ngoài 
 Chưa chạy: 1440 tối (cùng đường mã, đã chạy ở 830 tối và 1440 sáng).
 
 Dọn dữ liệu: khoá tạm `qa-snaps`, `qa-sweep-src`, snapshot về Deals, template Deals "In use", brand mặc định.
+
+### R2-4 (xong): việc còn mở
+
+Cách làm: Staff (tab thứ hai, 1440) tạo bản ghi deal Staff làm ở trạng thái Scheduled (bắt đầu sau 3 ngày, kết thúc sau 20 ngày), mở chi tiết, thử ô ngày bắt đầu mới; xem Resident ở tab khác; mở Live editor của Seasonal, chọn khối Countdown.
+
+Đã làm:
+1. **Scheduled chọn được ngày bắt đầu.** Hộp Manage của deal Staff làm đang Scheduled có thêm dòng "Start date" + "Set start" (`setStart()`). Từ chối ngày hôm nay hoặc trước đó ("Pick a day after today. To show it now, use Live.") và ngày sau ngày kết thúc. Khi lưu: ghi `x.start` vào `eso-pmc-saved`, đổi nhãn "Starts Nov 25" trên thẻ và trong hộp, hiện toast "Starts Nov 25, 2026. Residents see it from that day." Hộp Manage vẽ lại khi ngày bắt đầu đổi (`sig`). Kiểm: Resident không thấy deal trước ngày đó, thấy khi `start` là hôm nay.
+2. **"Price / value" đổi tên thành "Price shown on the card"** với gợi ý "e.g. 20% off or $96/mo". Giá trị này là chữ Resident hiển thị làm tiêu đề giá (`offerText`), nên tên cũ gây hiểu nhầm là đổi mức giảm thật. Không đổi mức giảm thật ở đây; mức giảm thật vẫn do form tạo deal quyết định.
+3. **Canvas trình dựng vs hero Resident.** Không gộp trên canvas (Resident gộp Countdown và Coupon vào Hero chỉ khi trang có Hero). Thêm một dòng giải thích dưới ô Heading của khối Countdown và Coupon khi mẫu có Hero: "Residents see this inside the Hero banner: the first Countdown as its Ends in badge, the first Coupon under its words."
+4. Lỗi claim Phần 4: không thử lại (đã hơn 15 lần không tái hiện).
+
+Còn mở (ghi lại): thiết lập khối Resident chưa hỗ trợ (hoạt ảnh, neo, kiểu chữ riêng, biến thể nút, thẻ kiểu); chữ trắng trên indigo 4.47:1 đã chấp nhận.
+
+Dọn dữ liệu: xoá bản ghi deal QA khỏi `eso-pmc-saved`, trình dựng đóng không để lại `tpl:seasonal`, template Deals "In use".
+
+Test: `promotions-blocks.test.mjs` (thêm 2 test).

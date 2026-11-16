@@ -52,3 +52,18 @@ test("Staff's Resident view shows the page without dressing Staff's own page in 
   const staff = readFileSync(new URL("../../src/staff/account-settings-content.html", import.meta.url), "utf8");
   assert.ok(staff.includes("promotions-content.html"), "Staff's Resident view embeds the same page file the Resident portal does, so it cannot drift");
 });
+
+test("Staff can change the day a scheduled promotion starts, within today and its end date, and the Resident follows", () => {
+  const staff = readFileSync(new URL("../../src/staff/account-settings-content.html", import.meta.url), "utf8");
+  assert.ok(staff.includes("function setStart(id,date)") && staff.includes('data-pml="start"'), "the Manage box has a Start date row for a scheduled promotion Staff made");
+  assert.ok(staff.includes("date<=today()") && staff.includes("date>q.r.x.end"), "a start in the past or after the end date is refused with a message");
+  assert.ok(staff.includes('"|"+((m.x&&m.x.start)||"")'), "the Manage box is drawn again when the start date changes");
+  const store = readFileSync(new URL("../../src/features/promotions/store.js", import.meta.url), "utf8");
+  assert.ok(store.includes("if (x.start && x.start > today) return false;"), "the Resident shows it only from that day");
+});
+
+test("the builder says where a Countdown and a Coupon appear, and Edit details names the price Residents see", () => {
+  const staff = readFileSync(new URL("../../src/staff/account-settings-content.html", import.meta.url), "utf8");
+  assert.ok(staff.includes("Residents see this inside the Hero banner: the first Countdown as its Ends in badge, the first Coupon under its words."));
+  assert.ok(staff.includes('for="q22p">Price shown on the card</label>'), "the price field says it is what the card shows");
+});
