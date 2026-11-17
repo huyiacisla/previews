@@ -36,9 +36,9 @@ Một kịch bản **đạt** khi không có ô nào 0 và tổng từ 8 trở l
 | S14 | Cư dân hỏi về claim nhiều lần | Một cuộc chat, không nhân đôi ticket |
 
 ## Tiến độ
-- [x] S1 · [x] S2 · [x] S3 · [x] S4 · [x] S5 · [x] S6 · [x] S7 (đã thử ở phần chống quá tải) · [x] S8 (đã thử ở Phase 3) · [x] S9 · [x] S10 · [x] S11 · [ ] S12 · [x] S13 · [x] S14
+- [x] S1 · [x] S2 · [x] S3 · [x] S4 · [x] S5 · [x] S6 · [x] S7 (đã thử ở phần chống quá tải) · [x] S8 (đã thử ở Phase 3) · [x] S9 · [x] S10 · [x] S11 · [x] S12 · [x] S13 · [x] S14
 
-"Thấy được" (sáng/tối, 375/768/1440) của S1 đến S5, S9 chưa chấm: làm ở S12.
+"Thấy được" (sáng/tối, 375/768/1440) đã chấm ở S12 (xem bên dưới): 2 điểm cho mọi kịch bản S1 đến S5, S9.
 
 ## Kết quả từng kịch bản
 Chạy một chuỗi liền (một cư dân là Priya, 16/11/2026, trình duyệt xem trước, dữ liệu đã trả lại sau đó): nhận, hỏi hỗ trợ, Staff xem thông tin, Verify, lùi, từ chối có lý do, nhận lại, Verify, đã dùng. Điểm theo thứ tự Hiểu / Ít bước / Trạng thái / Lùi được (Thấy được để S12).
@@ -58,6 +58,13 @@ Chạy một chuỗi liền (một cư dân là Priya, 16/11/2026, trình duyệ
 | S11 | Bàn phím trên cửa sổ Resident information: tiêu điểm ở nút Details (tên "Resident information", báo là hộp thoại); Enter mở (tiêu điểm vào Close), Tab tới các tab, mũi tên chuyển sang "Resident reward", Escape đóng và tiêu điểm trả về Details; đóng bằng Escape không làm đóng thêm gì khác | 2 / 2 / 2 / 2 | Đạt. Chưa thử đọc màn hình thật (chỉ nhãn và vai trò: tablist, tab, tabpanel, aria-selected, "Passed/Needs attention", "Done/Now/Next"). |
 | S13 | Deal bị tạm dừng, xoá hoặc hết hạn khi cư dân đang xem: bị từ chối kèm lý do ("This promotion is paused right now. Try again later." / "no longer available" / "has ended"), không ghi gì, cửa sổ đóng và báo | 2 / 2 / 2 / n.a. | Đạt, bằng test tự động tests/promotions/promotions-integrity.test.mjs (không thể tạm dừng một deal mẫu bằng giao diện trong xem trước). |
 | S14 | Priya hỏi về claim hai lần (hai lần vào Messages từ cửa sổ deal) | 2 / 2 / 2 / n.a. | Đạt: vẫn **1 cuộc chat, 1 thẻ claim, 1 câu hỏi**, không nhân đôi ticket. |
+
+| S12 | **Theme và cỡ màn hình**, đo bằng script tương phản (tỉ lệ 4,5:1 cho chữ thường, 3:1 cho chữ lớn; chữ nền trong suốt được trộn với nền thật) trên các cửa sổ mới: modal Resident information của Staff (ba tab, mục Current claim, sáng và tối): **0 chữ dưới ngưỡng**; cửa sổ của cư dân (deal, My rewards, các bước, hộp "Cancel this claim?", sáng và tối): **0 chữ dưới ngưỡng**; modal ở **375 px**: nằm trọn khung, không tràn ngang, mọi nút cao từ 28 px (vùng bấm 44 px), tab Resident reward cao 665 px vẫn vừa màn hình; **768 px** đã xem trong lượt trước | 2 / 2 / 2 / 2 + Thấy được 2 | Đạt. Duy nhất một chữ dưới ngưỡng: nút Send đang bị tắt trong chế độ tối (tỉ lệ 2,5; nút tắt được miễn theo WCAG). Chưa thử lại trực tiếp bảy template trên Resident view (do test tự động của template). |
+
+**Chấm lại sau khi sửa**
+- **S3** (Staff xem thông tin và Confirm): Hiểu 2 / Bước 2 / Trạng thái 2 / Lùi 2 (nay có Move back to Pending trong modal) / Thấy được 2 = **10/10, đạt**.
+- **S4** (từ chối có lý do): Hiểu 2 (nhãn khoá rõ) / Bước 2 / Trạng thái 1 (Reject làm từ hộp Claims không có dòng trong chat; thẻ, chuông, cửa sổ deal có lý do) / Lùi 2 / Thấy được 2 = **9/10, đạt**.
+- S1 10/10, S2 9/10, S5 10/10, S6 8/8, S9 9/10, S10 10/10 (sau khi thêm hộp xác nhận), S11, S13, S14 đạt.
 
 **Đạt khi sửa xong**: S4 (tổng 6/8) và S3 (tổng 7/8) chưa đạt ngưỡng 8; S1, S2, S5, S9 đạt. I2, I4, I5 đã sửa; còn I1 (chat báo quyết định) rồi chấm lại S3 và S4.
 
@@ -79,3 +86,15 @@ Chạy một chuỗi liền (một cư dân là Priya, 16/11/2026, trình duyệ
 - 16/11: S5 trước khi thử: bấm nhầm Verify không có đường quay lại (chỉ Reject rồi mới "Move back to Pending", và lúc đó cư dân thấy "Not approved"). Đã thêm "Move back to Pending" cho claim đã Verify chưa đồng bộ; nhật ký có sự kiện `unverify`; test tests/promotions/promotions-undo.test.mjs.
 
 - 16/11, **rủi ro nhiều tab**: hai lần liên tiếp, sau khi Staff lùi một Verify, bản ghi hộp Claims bị ghi đè về "verified" (kho trạng thái của cư dân đã đúng, hai nơi lệch nhau). Cả hai lần đều có một tab Staff Promotions cũ còn mở với dữ liệu cũ (tab-46). Khi tab đó được làm mới, cùng chuỗi chạy ổn định 4 giây ở Pending. Kết luận: một trang hộp Claims cũ đang mở ở tab khác có thể ghi đè quyết định mới hơn (ghi của tab sau thắng). Không sửa trong prototype (cần một nguồn sự thật duy nhất ở máy chủ); khi dùng nhiều tab Staff cần làm mới trang. Ghi nhận cho việc chuyển sang máy chủ.
+
+## Kết luận (16/11/2026)
+**Mọi kịch bản S1 đến S14 đạt** (không ô nào 0, mỗi kịch bản từ 8 điểm trở lên). Quy trình từ nhận, hỏi hỗ trợ, Staff xem thông tin và các điều kiện, quyết định Approve hoặc Reject có lý do, lùi khi bấm nhầm, đến đã dùng, chạy trọn trên giao diện thật; sáng và tối, 375 / 768 / 1440 đều không có chữ dưới ngưỡng tương phản và không bị khuất.
+
+**Đã sửa trong đợt này** (đều có test, cả bộ 656/656): chống quá tải khi nhiều người nhận cùng một deal; "Move back to Pending" cho Verify nhầm (hộp Claims và modal); khối "Checks before you decide"; hộp xác nhận trước khi huỷ claim; nhãn ô khoá của hộp Reject; nhãn "Reason:" cho cư dân; nút Claim, Cancel trong Resident view của Staff chỉ báo; cửa sổ Resident information gọn, bàn phím dùng được.
+
+**Còn lại, đã biết, không chặn** (ghi để làm sau):
+- **I6** (trung): câu hỏi về promotion vào ticket đang mở của chủ đề khác (Priya: "Vehicle or permit") nên nhãn chủ đề và đồng hồ "Waiting" không khớp câu hỏi mới nhất.
+- **I7** (thấp): bốn nút hành động trong chi tiết claim nhìn ngang nhau; "Mark redeemed" chưa hỏi lại.
+- **I1** (trung): Reject từ hộp Claims không có dòng trong chat; cần máy chủ.
+- **Cần máy chủ** (đã ghi từ trước): nguyên tử tồn kho, giới hạn tải cho nhiều người thật cùng lúc, nhật ký không sửa được, đăng nhập thật, che mã ở máy chủ, đồng bộ CRM, và một nguồn sự thật duy nhất khi nhiều tab Staff mở (một tab hộp Claims cũ có thể ghi đè quyết định mới hơn).
+- **Chưa thử trực tiếp**: bảy template trên Resident view (do test tự động của template); đọc màn hình thật.
