@@ -9,7 +9,8 @@
 
 export const AUDIT_KEY = "eso-pm-audit-v1";
 export const AUDIT_VERSION = 1;
-export const AUDIT_TYPES = ["claim", "reject", "give_back", "verify", "redeem"];
+// "unverify": Staff took a Verify back (a mistaken one): the claim is Pending again; it takes no place and gives none back (spotDelta 0)
+export const AUDIT_TYPES = ["claim", "reject", "give_back", "verify", "redeem", "unverify"];
 const MAX = 5000;
 
 const clean = (e) =>

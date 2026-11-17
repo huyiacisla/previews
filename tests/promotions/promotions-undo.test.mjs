@@ -1,0 +1,43 @@
+// A mistaken Verify can be taken back: the claim is Pending again, the resident's code is hidden again, the log says so once, and no place is taken or given back.
+// Run with: npm test
+
+import "./_clock.mjs";
+import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import test from "node:test";
+import { appendAudit, AUDIT_TYPES, readAudit, spotsTaken } from "../../src/features/promotions/audit.js";
+
+const read = (p) => readFileSync(new URL(`../../${p}`, import.meta.url), "utf8").replace(/\r\n/g, "\n");
+const staff = read("src/staff/account-settings-content.html");
+const memory = () => {
+  const m = new Map();
+  return { getItem: (k) => (m.has(k) ? m.get(k) : null), setItem: (k, v) => void m.set(k, String(v)), removeItem: (k) => void m.delete(k) };
+};
+
+test("the audit log knows an 'unverify' event and it moves no place", () => {
+  assert.ok(AUDIT_TYPES.includes("unverify"));
+  const s = memory();
+  const base = { promoId: "p1", residentId: "res-1", n: 1, actor: "Jordan Lee", actorId: "stf-1" };
+  assert.ok(appendAudit(s, { ...base, type: "claim", actor: "resident:res-1", at: new Date(2026, 10, 16, 9, 0) }).ok);
+  assert.ok(appendAudit(s, { ...base, type: "verify", at: new Date(2026, 10, 16, 9, 5) }).ok);
+  assert.equal(spotsTaken(s, "p1"), 1);
+  assert.ok(appendAudit(s, { ...base, type: "unverify", reason: "Verification taken back by Staff: Pending again", at: new Date(2026, 10, 16, 9, 6) }).ok);
+  assert.equal(spotsTaken(s, "p1"), 1, "the place is still the resident's");
+  const e = readAudit(s).filter((x) => x.type === "unverify");
+  assert.equal(e.length, 1);
+  assert.equal(e[0].spotDelta, 0);
+});
+
+test("Claims inbox: a verified claim that is not yet synced has 'Move back to Pending'; it goes back to Pending and the log gets one event", () => {
+  assert.ok(staff.includes('${c.st=="verified"&&!c.sync?`<button class="btn out" data-clunv="${c.id}">Move back to Pending</button>`:""}'));
+  assert.ok(staff.includes('if(b=g("data-clunv")){act([b.dataset.clunv],c=>{if(c.st=="verified"){c.st="pending";c.reason="";delete c.vt;delete c.manual}});return}'));
+  assert.ok(staff.includes('if(o&&o.st==="verified"&&c.st==="pending")evs.push({type:"unverify"'));
+  assert.ok(staff.includes('reason:"Verification taken back by Staff: Pending again"'));
+});
+
+test("a used or already synced claim cannot be taken back", () => {
+  const at = staff.indexOf("data-clunv=");
+  const cond = staff.slice(staff.lastIndexOf("${", at), at);
+  assert.ok(cond.includes('c.st=="verified"') && cond.includes("!c.sync"), "only a verified, not synced claim");
+  assert.ok(!cond.includes("redeemed"));
+});
