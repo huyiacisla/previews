@@ -1466,6 +1466,13 @@ export function mount({ portal }) {
     p.textContent = text;
     return p;
   };
+  // the name above a list of one person's claims is a heading, so a screen reader can jump from person to person
+  const subhead = (text) => {
+    const h = document.createElement("h3");
+    h.className = "text-sm font-medium";
+    h.textContent = text;
+    return h;
+  };
   // a person's claim events, read once each time the window is drawn (the steps of every card and the History list come from it)
   function timelineOf(residentId) {
     if (!ui.infoCache) ui.infoCache = new Map();
@@ -1759,7 +1766,7 @@ export function mount({ portal }) {
                         al.textContent = `This unit already got "${b.title}" through ${b.by}'s account${when ? ` on ${when}` : ""}. One per unit: a second claim is blocked. Do not pay it twice.`;
                         p.appendChild(al);
                       }
-                      p.appendChild(paragraph(data.person.name, "text-sm font-medium"));
+                      p.appendChild(subhead(data.person.name));
                       const toDecide = ["staff", "admin"].includes(me.role) && conv.kind === "resident_support" ? decidable(rid) : [];
                       claimList(p, "cur", rid, current, "No claim in progress.", (r, li) => {
                         const d = toDecide.find((x) => x.promoId === r.promoId);
@@ -1769,7 +1776,7 @@ export function mount({ portal }) {
                         }
                       });
                       for (const { m, rows } of matesCurrent) {
-                        p.appendChild(paragraph(`Same unit: ${m.name}`, "text-sm font-medium"));
+                        p.appendChild(subhead(`Same unit: ${m.name}`));
                         claimList(p, `cur-${m.id}`, m.id, rows, "No claim in progress.");
                       }
                       if (portal === "staff") p.appendChild(button("Open Claims inbox", { variant: "outline", icon: "forward", onClick: () => goPage("/staff/promotions.html", "#/promotions/claims") }));
@@ -1780,10 +1787,10 @@ export function mount({ portal }) {
                     label: "History claimed",
                     count: timelineOf(rid).length + mates.reduce((n, m) => n + timelineOf(m.id).length, 0),
                     build: (p) => {
-                      p.appendChild(paragraph(data.person.name, "text-sm font-medium"));
+                      p.appendChild(subhead(data.person.name));
                       eventList(p, "hist", rid, "Nothing claimed yet.");
                       for (const m of mates) {
-                        p.appendChild(paragraph(`Same unit: ${m.name}`, "text-sm font-medium"));
+                        p.appendChild(subhead(`Same unit: ${m.name}`));
                         eventList(p, `hist-${m.id}`, m.id, "Nothing claimed yet.");
                       }
                     },

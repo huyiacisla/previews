@@ -126,5 +126,5 @@ Priya nhận Covered Spot Upgrade (Pending), rồi ngày kết thúc deal đư�
 Với mỗi cửa sổ: hộp thoại có tên và là modal, tiêu điểm vào bên trong, mọi nút, liên kết, ô nhập có tên đọc được, tab nối đúng với panel (aria-controls, aria-selected, aria-labelledby), không có id trùng, ảnh có alt.
 - **Modal Resident information của Staff** (Profile, Resident reward, Ticket): 0 lỗi.
 - **Cửa sổ của cư dân** (deal, My rewards, các bước, hộp "Cancel this claim?"): 0 lỗi. Hộp huỷ vào "Keep claim"; bấm Keep thì tiêu điểm trở về cửa sổ các bước.
-- **Gợi ý nhỏ, chưa làm**: tên người trong tab Resident reward ("Alex Rivera", "Same unit: Jamie Rivera") là đoạn văn thường, chưa là đề mục, nên người dùng đọc màn hình chưa nhảy theo đề mục được.
+- **Gợi ý nhỏ, đã làm**: tên người trong tab Resident reward ("Alex Rivera", "Same unit: Jamie Rivera") nay là đề mục (h3, cùng cỡ chữ), người dùng đọc màn hình nhảy theo đề mục được; đã xem trên giao diện thật.
 - **Vẫn chưa thử**: đọc màn hình thật (NVDA, VoiceOver) và bàn phím ảo trên điện thoại thật.

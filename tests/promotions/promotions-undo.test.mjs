@@ -101,3 +101,10 @@ test("usability: a claim still waiting on a deal that has ended says so and wher
   const res = read("src/features/promotions/resident.js");
   assert.ok(res.includes('r.key === "pending" && r.info.live !== "running" ? ". Your claim was made before it ended. Ask the property team if it will still be honored." : ""'));
 });
+
+test("accessibility: the person's name above a list of claims is a heading", () => {
+  const msg = read("src/features/messaging/app.js");
+  assert.ok(msg.includes('const h = document.createElement("h3");') && msg.includes("const subhead = (text) => {"));
+  assert.ok(!msg.includes('paragraph(data.person.name, "text-sm font-medium")'));
+  assert.ok(msg.includes("p.appendChild(subhead(`Same unit: ${m.name}`));"));
+});
