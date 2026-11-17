@@ -1673,7 +1673,12 @@ export function createStore({ transport, now = Date.now, config = {} } = {}) {
           .sort((a, b) => b.createdAt - a.createdAt)
           .slice(0, 5)
           .map((c) => ({ id: c.id, topic: c.topic || "General question", stage: ticketStage(c), at: c.updatedAt, assignee: c.assigneeId ? user(c.assigneeId).name : "", open: canSee(c, u) }));
-        return { kind: "resident", person: { id: res.id, name: res.name, title: res.title, org: res.org }, unit: { ...res.unit, daysLeft: Math.ceil((end - now()) / 86400000) }, tickets };
+        // The Ticket tab of the Resident information window: every real ticket of this resident (this chat too), newest first, with its number and stage
+        const ticketList = Object.values(state.convs)
+          .filter((c) => c.kind === "resident_support" && c.residentId === resId && (u.role === "staff" || canSee(c, u)))
+          .sort((a, b) => b.createdAt - a.createdAt)
+          .map((c) => ({ id: c.id, no: ticketNo(c), topic: c.topic || "General question", stage: ticketStage(c), at: c.updatedAt, assignee: c.assigneeId ? user(c.assigneeId).name : "", open: canSee(c, u), current: c.id === conv.id }));
+        return { kind: "resident", person: { id: res.id, name: res.name, title: res.title, org: res.org }, unit: { ...res.unit, daysLeft: Math.ceil((end - now()) / 86400000) }, tickets, ticketList };
       }
       const ids = conv.participants || (conv.kind === "support" ? [conv.requesterId, conv.assigneeId].filter(Boolean) : []);
       const people = ids

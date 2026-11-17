@@ -9,7 +9,7 @@ import { duration, formatBytes, formatFull, formatTime, groupByDay, listTime } f
 import { initials, PERSONAS, PORTALS, pickPersona } from "./personas.js";
 import { describeFilters, FILTER_KEYS, isEmptyQuery, matchFilters, matchText, parseQuery, withoutFilter } from "./query.js";
 import { decideClaim, decisionText } from "../promotions/decide.js";
-import { allRecords, claimStatus, historyFor, householdClaims, maskCode, residentState, unitBlocks, unitHistory, unitMates } from "../promotions/store.js";
+import { allRecords, claimStatus, claimSteps, historyFor, householdClaims, maskCode, residentState, rewardGroup, rewardInfo, unitBlocks, unitHistory, unitMates } from "../promotions/store.js";
 import { createStore, notifies, STAGE_LABEL, STAGES, ticketNo } from "./store.js";
 import { clearSideData, createTransport } from "./transport.js";
 
@@ -1319,6 +1319,8 @@ export function mount({ portal }) {
           const d = states[`${residentId}|${id}|${c.count}`] || {};
           return {
             promoId: id,
+            key: cs ? (cs.cancelled ? "cancelled" : cs.st) : "pending",
+            group: rewardGroup(cs ? (cs.cancelled ? "cancelled" : cs.st) : "pending", rewardInfo(localStorage, id)).group,
             title: titleOf(id),
             claims: c.count,
             label: cs ? (cs.cancelled ? "Cancelled" : WORD[cs.st] || cs.st) : "Pending",
@@ -1385,7 +1387,170 @@ export function mount({ portal }) {
     if (!unitMates(conv.residentId).length) section("Same unit", [], false);
     if (portal === "staff") box.appendChild(button("Open Claims inbox", { variant: "outline", icon: "forward", onClick: () => goPage("/staff/promotions.html", "#/promotions/claims") }));
   }
-  // Press the resident's picture in the chat: one window with what Staff need to help them: who and where they live, their rewards, their tickets
+  // Press the resident's picture in the chat: one window, "Resident information", with three tabs. Profile: who and where they live. Resident reward: what they claimed
+  // (Current claim, with the steps it is at; History claimed) and what the others in the unit did. Ticket: their tickets with number and stage (Current ticket, History ticket).
+  let tabSeq = 0; // makes the ids of the tabs and their panels unique
+  function tabset(label, items, { sub = false } = {}) {
+    const wrap = document.createElement("div");
+    wrap.className = "flex flex-col gap-step-md";
+    const bar = document.createElement("div");
+    bar.setAttribute("role", "tablist");
+    bar.setAttribute("aria-label", label);
+    bar.className = "flex flex-wrap gap-step-xs" + (sub ? "" : " border-b border-border pb-step-sm");
+    const panels = [];
+    const tabs = items.map((it, n) => {
+      const tab = tpl("t-tab");
+      $("[data-label]", tab).textContent = it.label;
+      if (it.count != null) {
+        const c = $("[data-count]", tab);
+        c.hidden = false;
+        c.textContent = String(it.count);
+      }
+      const base = `${sub ? "rsub" : "rtab"}-${it.id}-${++tabSeq}`;
+      tab.id = `${base}-t`;
+      const panel = document.createElement("div");
+      panel.id = `${base}-p`;
+      panel.setAttribute("role", "tabpanel");
+      panel.setAttribute("aria-labelledby", tab.id);
+      panel.className = "flex flex-col gap-step-md";
+      tab.setAttribute("aria-controls", panel.id);
+      it.build(panel);
+      panels.push(panel);
+      bar.appendChild(tab);
+      return tab;
+    });
+    const select = (n, focus) => {
+      tabs.forEach((t, k) => {
+        t.setAttribute("aria-selected", String(k === n));
+        t.tabIndex = k === n ? 0 : -1;
+        panels[k].hidden = k !== n;
+      });
+      if (focus) tabs[n].focus();
+    };
+    tabs.forEach((t, n) => {
+      t.addEventListener("click", () => select(n, false));
+      t.addEventListener("keydown", (e) => {
+        const k = { ArrowRight: 1, ArrowLeft: -1 }[e.key];
+        if (k) {
+          e.preventDefault();
+          select((n + k + tabs.length) % tabs.length, true);
+        }
+        if (e.key === "Home") {
+          e.preventDefault();
+          select(0, true);
+        }
+        if (e.key === "End") {
+          e.preventDefault();
+          select(tabs.length - 1, true);
+        }
+      });
+    });
+    select(0, false);
+    wrap.append(bar, ...panels);
+    return wrap;
+  }
+  const paragraph = (text, cls = "text-sm text-muted-foreground") => {
+    const p = document.createElement("p");
+    p.className = cls;
+    p.textContent = text;
+    return p;
+  };
+  // the steps of a claim, as Staff read them ("Claimed, Reviewed, Approved ..."): done, now, next, stopped
+  function stepList(residentId, row) {
+    const titleOf = (id) => (allRecords(localStorage).find((x) => String(x.id) === String(id)) || { x: {} }).x.title || "";
+    const timeline = historyFor(localStorage, residentId, titleOf).filter((e) => e.promoId === row.promoId);
+    const WORDS = { "Cancelled by you": "Cancelled by the resident", "Approved: your code is ready": "Approved: the code is ready", "Awaiting staff approval": "Waiting for Staff to approve", "Staff approval": "Staff approval" };
+    const ol = document.createElement("ol");
+    ol.setAttribute("role", "list");
+    ol.className = "flex flex-col gap-step-xs";
+    for (const st of claimSteps(row.key, timeline)) {
+      const li = document.createElement("li");
+      li.className = "flex items-start gap-step-sm text-xs";
+      const mark = document.createElement("span");
+      mark.setAttribute("aria-hidden", "true");
+      mark.className = { done: "text-success-text", current: "text-warning-text", stop: "text-danger-text", todo: "text-muted-foreground" }[st.state] + " w-4 shrink-0 text-center font-medium";
+      mark.textContent = { done: "\u2713", current: "\u25CF", stop: "\u2715", todo: "\u25CB" }[st.state];
+      const state = document.createElement("span");
+      state.className = "sr-only";
+      state.textContent = { done: "Done: ", current: "Now: ", stop: "Stopped: ", todo: "Next: " }[st.state];
+      const text = document.createElement("span");
+      text.className = st.state === "todo" ? "text-muted-foreground" : "text-foreground";
+      text.textContent = [WORDS[st.label] || st.label, st.at && formatFull(Date.parse(st.at) || 0), st.state === "current" && row.at ? `waiting since ${listTime(Date.parse(row.at) || 0, Date.now())}` : "", st.note && `(${st.note})`].filter(Boolean).join(" \u00b7 ");
+      li.append(mark, state, text);
+      ol.appendChild(li);
+    }
+    return ol;
+  }
+  // one claim: its deal, the state it is in, the code, who decided, who else in the unit has it, and its steps
+  function rewardCard(residentId, r, { withSteps = true } = {}) {
+    const li = document.createElement("li");
+    li.className = "flex flex-col gap-step-sm rounded-lg bg-background p-step-sm ring-1 ring-foreground/10";
+    const line = document.createElement("div");
+    line.className = "flex items-center justify-between gap-step-sm";
+    const name = document.createElement("span");
+    name.className = "text-sm font-medium";
+    name.textContent = r.title;
+    line.append(name, badge(r.label, { Pending: "warning", Verified: "info", Used: "success", "Not approved": "danger", Cancelled: "neutral" }[r.label] || "neutral"));
+    li.appendChild(line);
+    li.appendChild(paragraph([r.code && `Code ${r.code}`, r.claims > 1 ? `${r.claims} claims` : "", r.at && `Claimed ${formatFull(Date.parse(r.at) || 0)}`, r.by && `Decided by ${r.by}`, r.reason && `Reason: ${r.reason}`].filter(Boolean).join(" \u00b7 "), "text-xs text-muted-foreground"));
+    const link = sameUnitLine(r.mates);
+    if (link) li.appendChild(paragraph(link, "text-xs font-medium text-info-text"));
+    if (withSteps) li.appendChild(stepList(residentId, r));
+    return li;
+  }
+  function claimList(panel, residentId, rows, empty) {
+    if (!rows.length) return panel.appendChild(paragraph(empty));
+    const ul = document.createElement("ul");
+    ul.setAttribute("role", "list");
+    ul.className = "flex flex-col gap-step-sm";
+    for (const r of rows) ul.appendChild(rewardCard(residentId, r));
+    panel.appendChild(ul);
+  }
+  // what happened to a resident's claims, newest first (claimed, approved, used, not approved, cancelled, could not claim)
+  function eventList(panel, residentId, empty) {
+    const titleOf = (id) => (allRecords(localStorage).find((x) => String(x.id) === String(id)) || { x: {} }).x.title || "";
+    const ev = historyFor(localStorage, residentId, titleOf);
+    if (!ev.length) return panel.appendChild(paragraph(empty));
+    const ul = document.createElement("ul");
+    ul.setAttribute("role", "list");
+    ul.className = "flex flex-col gap-step-xs";
+    for (const e of ev) {
+      const li = document.createElement("li");
+      li.className = "flex flex-col gap-step-xs rounded-lg bg-background p-step-sm ring-1 ring-foreground/10";
+      const line = document.createElement("div");
+      line.className = "flex items-center justify-between gap-step-sm";
+      const name = document.createElement("span");
+      name.className = "text-sm font-medium";
+      name.textContent = e.title;
+      line.append(name, badge(e.label, { Claimed: "warning", Verified: "info", Redeemed: "success", Rejected: "danger", Cancelled: "neutral", "Could not claim": "danger" }[e.label] || "neutral"));
+      li.append(line, paragraph([e.at && formatFull(Date.parse(e.at) || 0), e.note].filter(Boolean).join(" \u00b7 "), "text-xs text-muted-foreground"));
+      ul.appendChild(li);
+    }
+    panel.appendChild(ul);
+  }
+  const STAGE_TONE = { open: "info", in_progress: "success", waiting_on_resident: "warning", resolved: "neutral", closed: "neutral" };
+  function ticketRows(panel, dlg, rows, empty) {
+    if (!rows.length) return panel.appendChild(paragraph(empty));
+    const ul = document.createElement("ul");
+    ul.setAttribute("role", "list");
+    ul.className = "flex flex-col";
+    for (const k of rows) {
+      const li = tpl("t-ctx-ticket");
+      $("[data-topic]", li).textContent = `${k.no} \u00b7 ${k.topic}`;
+      $("[data-stage]", li).appendChild(badge(STAGE_LABEL[k.stage], STAGE_TONE[k.stage]));
+      $("[data-meta]", li).textContent = [k.current ? "This chat" : "", `Updated ${listTime(k.at, Date.now())}`, k.assignee && `Handled by ${k.assignee}`].filter(Boolean).join(" \u00b7 ");
+      const b = $("[data-open]", li);
+      if (k.current) b.addEventListener("click", () => dlg.close());
+      else if (k.open)
+        b.addEventListener("click", () => {
+          dlg.close();
+          openConv(k.id);
+        });
+      else b.disabled = true;
+      ul.appendChild(li);
+    }
+    panel.appendChild(ul);
+  }
   function openResidentInfo(conv) {
     const data = store.contextFor(conv.id, me.id);
     if (!data || data.kind !== "resident" || !data.person) return;
@@ -1406,67 +1571,102 @@ export function mount({ portal }) {
     const h = document.createElement("h2");
     h.id = "res-info-title";
     h.className = "text-lg leading-6 font-semibold";
-    h.textContent = data.person.name;
-    const sub = document.createElement("p");
-    sub.className = "text-sm text-muted-foreground";
-    sub.textContent = `Resident information · Unit ${data.unit.number}`;
-    nm.append(h, sub);
+    h.textContent = "Resident information";
+    nm.append(h, paragraph(`${data.person.name} \u00b7 Unit ${data.unit.number}`));
     who.append(avatar({ name: data.person.name, role: "resident" }), nm);
     head.append(who, button("Close", { variant: "outline", onClick: () => dlg.close() }));
     box.appendChild(head);
-    const part = (title) => {
-      const p = document.createElement("h3");
-      p.className = "mt-step-sm border-t border-border pt-step-md text-sm font-semibold";
-      p.textContent = title;
-      box.appendChild(p);
-    };
-    // 1. information
-    part("Information");
-    const u = data.unit;
-    const dl = document.createElement("dl");
-    dl.className = "flex flex-col gap-step-sm";
-    box.appendChild(dl);
-    ctxRow(dl, "Unit", u.number);
-    ctxRow(dl, "Location", u.building);
-    const reach = readPrefs(localStorage, data.person.id);
-    if (reach.phone) ctxRow(dl, "Phone", reach.phone);
-    ctxRow(dl, "Prefers", { app: "In the app", email: "Email", text: "Text message" }[reach.contact] || "In the app");
-    ctxRow(dl, "Lease", `${fmtDate(u.leaseStart)} to ${fmtDate(u.leaseEnd)}`);
-    const left = u.daysLeft;
-    ctxRow(dl, "Lease status", left < 0 ? `Ended ${-left} days ago` : left <= 60 ? `Ends in ${left} days` : `${left} days left`, left < 0 ? "danger" : left <= 60 ? "warning" : "success");
-    const entry = document.createElement("p");
-    entry.className = "text-sm text-foreground-secondary";
-    entry.textContent = `Unit entry notes: ${u.entry || "No notes."}`;
-    box.appendChild(entry);
-    // 2. rewards: what they claimed, and what the others in the unit claimed
-    part("Rewards");
-    fillPromos(box, conv, data.person);
-    // 3. ticket history
-    part("Ticket history");
-    if (!data.tickets.length) {
-      const none = document.createElement("p");
-      none.className = "text-sm text-muted-foreground";
-      none.textContent = "No other tickets from this resident.";
-      box.appendChild(none);
-    } else {
-      const ul = document.createElement("ul");
-      ul.setAttribute("role", "list");
-      ul.className = "flex flex-col";
-      for (const k of data.tickets) {
-        const li = tpl("t-ctx-ticket");
-        $("[data-topic]", li).textContent = k.topic;
-        $("[data-stage]", li).appendChild(badge(STAGE_LABEL[k.stage], { open: "info", in_progress: "success", waiting_on_resident: "warning", resolved: "neutral", closed: "neutral" }[k.stage]));
-        $("[data-meta]", li).textContent = [listTime(k.at, Date.now()), k.assignee].filter(Boolean).join(" · ");
-        const b = $("[data-open]", li);
-        if (k.open) b.addEventListener("click", () => {
-          dlg.close();
-          openConv(k.id);
-        });
-        else b.disabled = true;
-        ul.appendChild(li);
-      }
-      box.appendChild(ul);
-    }
+
+    const rid = conv.residentId;
+    const mine = promoOverview(rid);
+    const mates = unitMates(rid);
+    const current = mine.filter((r) => r.group === "active");
+    const matesCurrent = mates.map((m) => ({ m, rows: promoOverview(m.id).filter((r) => r.group === "active").map((r) => ({ ...r, mates: [] })) }));
+    const tickets = data.ticketList || [];
+    const isCurrentTicket = (k) => ["open", "in_progress", "waiting_on_resident"].includes(k.stage);
+
+    box.appendChild(
+      tabset("Resident information", [
+        {
+          id: "profile",
+          label: "Profile",
+          build: (panel) => {
+            const u = data.unit;
+            const dl = document.createElement("dl");
+            dl.className = "flex flex-col gap-step-sm";
+            ctxRow(dl, "Apartment", u.number);
+            ctxRow(dl, "Location", u.building);
+            const reach = readPrefs(localStorage, data.person.id);
+            if (reach.phone) ctxRow(dl, "Phone", reach.phone);
+            ctxRow(dl, "Prefers", { app: "In the app", email: "Email", text: "Text message" }[reach.contact] || "In the app");
+            ctxRow(dl, "Lease", `${fmtDate(u.leaseStart)} to ${fmtDate(u.leaseEnd)}`);
+            const left = u.daysLeft;
+            ctxRow(dl, "Lease status", left < 0 ? `Ended ${-left} days ago` : left <= 60 ? `Ends in ${left} days` : `${left} days left`, left < 0 ? "danger" : left <= 60 ? "warning" : "success");
+            panel.appendChild(dl);
+            panel.appendChild(paragraph(`Unit entry notes: ${u.entry || "No notes."}`, "text-sm text-foreground-secondary"));
+            if (mates.length) panel.appendChild(paragraph(`Same unit: ${mates.map((m) => m.name).join(", ")}`, "text-sm text-foreground-secondary"));
+          },
+        },
+        {
+          id: "reward",
+          label: "Resident reward",
+          build: (panel) => {
+            panel.appendChild(
+              tabset(
+                "Resident reward",
+                [
+                  {
+                    id: "current",
+                    label: "Current claim",
+                    count: current.length + matesCurrent.reduce((n, x) => n + x.rows.length, 0),
+                    build: (p) => {
+                      p.appendChild(paragraph(data.person.name, "text-sm font-medium"));
+                      claimList(p, rid, current, "No claim in progress.");
+                      for (const { m, rows } of matesCurrent) {
+                        p.appendChild(paragraph(`Same unit: ${m.name}`, "text-sm font-medium"));
+                        claimList(p, m.id, rows, "No claim in progress.");
+                      }
+                      if (portal === "staff") p.appendChild(button("Open Claims inbox", { variant: "outline", icon: "forward", onClick: () => goPage("/staff/promotions.html", "#/promotions/claims") }));
+                    },
+                  },
+                  {
+                    id: "history",
+                    label: "History claimed",
+                    build: (p) => {
+                      p.appendChild(paragraph(data.person.name, "text-sm font-medium"));
+                      eventList(p, rid, "Nothing claimed yet.");
+                      for (const m of mates) {
+                        p.appendChild(paragraph(`Same unit: ${m.name}`, "text-sm font-medium"));
+                        eventList(p, m.id, "Nothing claimed yet.");
+                      }
+                    },
+                  },
+                ],
+                { sub: true },
+              ),
+            );
+          },
+        },
+        {
+          id: "ticket",
+          label: "Ticket",
+          build: (panel) => {
+            const now = tickets.filter(isCurrentTicket);
+            const past = tickets.filter((k) => !isCurrentTicket(k));
+            panel.appendChild(
+              tabset(
+                "Tickets",
+                [
+                  { id: "current", label: "Current ticket", count: now.length, build: (p) => ticketRows(p, dlg, now, "No ticket in progress.") },
+                  { id: "history", label: "History ticket", count: past.length, build: (p) => ticketRows(p, dlg, past, "No earlier tickets.") },
+                ],
+                { sub: true },
+              ),
+            );
+          },
+        },
+      ]),
+    );
     dlg.appendChild(box);
     dlg.addEventListener("click", (e) => {
       if (e.target === dlg) dlg.close();

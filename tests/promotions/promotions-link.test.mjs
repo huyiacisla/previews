@@ -68,13 +68,40 @@ test("Resident: a Pending claim says how long it has been waiting (a fact, not a
   assert.ok(!/will be (approved|verified) (in|within)/i.test(res));
 });
 
-test("Messages: the resident's picture in the chat opens a Resident information window (information, rewards, ticket history), for Staff only", () => {
+test("Messages: the resident's picture in the chat opens the Resident information window, for Staff only", () => {
   assert.ok(msg.includes("function openResidentInfo(conv)"));
   assert.ok(msg.includes('dlg.id = "res-info"'));
-  const w = msg.slice(msg.indexOf("function openResidentInfo"), msg.indexOf("function openAllPromos"));
-  for (const part of ['part("Information")', 'part("Rewards")', 'part("Ticket history")']) assert.ok(w.includes(part), part);
-  assert.ok(w.includes("fillPromos(box, conv, data.person)"));
+  assert.ok(msg.includes('h.textContent = "Resident information"'));
   assert.ok(msg.includes('["staff", "admin"].includes(me.role) && a.role === "resident" && t.conv.kind === "resident_support"'));
   assert.ok(msg.includes("`Resident information: ${a.name}`"));
   assert.ok(msg.includes('open.style.cssText = "padding:8px;margin:-8px"'), "a 44 px press area around the small picture");
+});
+
+test("Resident information: three tabs (Profile, Resident reward, Ticket); reward and ticket each have a current and a history part", () => {
+  const w = msg.slice(msg.indexOf("function openResidentInfo"), msg.indexOf("function openAllPromos"));
+  for (const label of ['label: "Profile"', 'label: "Resident reward"', 'label: "Ticket"', 'label: "Current claim"', 'label: "History claimed"', 'label: "Current ticket"', 'label: "History ticket"']) assert.ok(w.includes(label), label);
+  const t = msg.slice(msg.indexOf("function tabset"), msg.indexOf("const paragraph"));
+  for (const a of ['role", "tablist"', 'role", "tabpanel"', "aria-selected", "aria-controls", "ArrowRight", '"Home"', '"End"']) assert.ok(t.includes(a), a);
+});
+
+test("Resident information: Profile shows the apartment, Reward shows each claim with its steps and state, Ticket shows the number and stage", () => {
+  assert.ok(msg.includes('ctxRow(dl, "Apartment", u.number)'));
+  assert.ok(msg.includes("claimSteps(row.key, timeline)"), "the steps of a claim come from the same source as My rewards");
+  assert.ok(msg.includes('{ done: "Done: ", current: "Now: ", stop: "Stopped: ", todo: "Next: " }'), "a step's state is also in words, not only a mark");
+  assert.ok(msg.includes('group === "active"'), "current claims are the ones that are active");
+  assert.ok(msg.includes("historyFor(localStorage, residentId, titleOf)"));
+  assert.ok(msg.includes("${k.no}") && msg.includes("${k.topic}"), "ticket number then topic");
+  assert.ok(msg.includes("STAGE_LABEL[k.stage]"));
+  assert.ok(msg.includes('["open", "in_progress", "waiting_on_resident"].includes(k.stage)'), "current tickets are the unfinished ones; resolved and closed are history");
+  const store = read("src/features/messaging/store.js");
+  assert.ok(store.includes("const ticketList = Object.values(state.convs)"));
+  assert.ok(store.includes("current: c.id === conv.id"));
+});
+
+test("Messages: the hover bar of a message (React, Reply, Forward, More) floats and leaves the bubble's width alone", () => {
+  const html = read("src/partials/messages-app.html");
+  assert.ok(html.includes("sm:absolute sm:right-0 sm:bottom-0"), "incoming bar floats at the end of the row");
+  assert.ok(html.includes("sm:absolute sm:bottom-0 sm:left-0"), "outgoing bar floats at the start of the row");
+  assert.equal(html.split("sm:max-w-[min(75%,calc(100%_-_11.5rem))]").length - 1, 2, "both bubbles keep room for the bar");
+  assert.ok(!html.includes("sm:max-w-3/4"));
 });

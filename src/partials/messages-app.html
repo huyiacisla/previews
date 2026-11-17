@@ -476,9 +476,9 @@
   <!-- Tap or click the bubble to reveal the time, the action bar and the avatar details (data-reveal). -->
   <div data-msg data-reveal="false" class="group/msg flex flex-col rounded-lg py-0.5 transition-colors data-[flash=true]:bg-accent/50">
     <p data-author class="pb-0.5 pl-9 text-xs text-muted-foreground"></p>
-    <div class="flex flex-wrap items-end gap-x-step-sm sm:flex-nowrap">
+    <div class="flex flex-wrap items-end gap-x-step-sm sm:relative sm:flex-nowrap">
       <div class="w-6 shrink-0 group-data-[react=true]/msg:mb-5"><span data-avatar></span></div>
-      <div class="flex max-w-5/6 min-w-0 flex-col items-start gap-0.5 sm:max-w-3/4">
+      <div class="flex max-w-5/6 min-w-0 flex-col items-start gap-0.5 sm:max-w-[min(75%,calc(100%_-_11.5rem))]">
         <p data-forwarded hidden class="flex items-center gap-step-xs text-2xs text-muted-foreground [&_svg]:size-3"><svg aria-hidden="true"><use href="#i-forward"/></svg>Forwarded</p>
         <p data-emergency-label hidden class="flex items-center gap-step-xs text-2xs font-medium text-danger-text [&_svg]:size-3"><svg aria-hidden="true"><use href="#i-alert"/></svg>Emergency</p>
         <div data-quote hidden role="button" tabindex="0" class="max-w-full cursor-pointer rounded-lg border-l-2 border-primary bg-muted/60 px-step-sm py-step-xs text-xs outline-none focus-visible:ring-3 focus-visible:ring-ring/50"><p data-who class="font-medium text-foreground-secondary"></p><p data-qtext class="truncate text-muted-foreground"></p></div>
@@ -487,7 +487,7 @@
         <div data-reactions hidden class="-mt-1.5 flex flex-wrap gap-0.5 pl-step-sm"></div>
         <div data-choices hidden class="flex flex-wrap gap-step-sm pt-step-xs"></div>
       </div>
-      <div data-actions class="hidden items-center gap-0.5 group-hover/msg:flex group-data-[reveal=true]/msg:flex max-sm:basis-full max-sm:pl-9"></div>
+      <div data-actions class="hidden items-center gap-0.5 group-hover/msg:flex group-data-[reveal=true]/msg:flex sm:absolute sm:right-0 sm:bottom-0 max-sm:basis-full max-sm:pl-9"></div>
     </div>
     <div data-quick hidden class="mt-1 ml-9 flex w-fit gap-0.5 rounded-lg bg-card p-0.5 shadow-lift-md ring-1 ring-foreground/10"></div>
     <div data-menu hidden role="menu" aria-label="More actions" class="absolute top-full left-0 z-popup mt-1 flex w-60 flex-col rounded-lg bg-card p-1 text-left shadow-lift-md ring-1 ring-foreground/10 data-[flip=true]:top-auto data-[flip=true]:bottom-full data-[flip=true]:mt-0 data-[flip=true]:mb-1"></div>
@@ -498,9 +498,9 @@
 
 <template id="t-out">
   <div data-msg data-reveal="false" class="group/msg flex flex-col items-end rounded-lg py-0.5 transition-colors data-[flash=true]:bg-accent/50">
-    <div class="flex w-full flex-wrap items-end justify-end gap-x-step-sm sm:flex-nowrap">
-      <div data-actions class="hidden items-center gap-0.5 group-hover/msg:flex group-data-[reveal=true]/msg:flex max-sm:order-last max-sm:basis-full max-sm:justify-end"></div>
-      <div class="flex max-w-5/6 min-w-0 flex-col items-end gap-0.5 sm:max-w-3/4">
+    <div class="flex w-full flex-wrap items-end justify-end gap-x-step-sm sm:relative sm:flex-nowrap">
+      <div data-actions class="hidden items-center gap-0.5 group-hover/msg:flex group-data-[reveal=true]/msg:flex sm:absolute sm:bottom-0 sm:left-0 max-sm:order-last max-sm:basis-full max-sm:justify-end"></div>
+      <div class="flex max-w-5/6 min-w-0 flex-col items-end gap-0.5 sm:max-w-[min(75%,calc(100%_-_11.5rem))]">
         <p data-forwarded hidden class="flex items-center gap-step-xs text-2xs text-muted-foreground [&_svg]:size-3"><svg aria-hidden="true"><use href="#i-forward"/></svg>Forwarded</p>
         <p data-emergency-label hidden class="flex items-center gap-step-xs text-2xs font-medium text-danger-text [&_svg]:size-3"><svg aria-hidden="true"><use href="#i-alert"/></svg>Emergency</p>
         <div data-quote hidden role="button" tabindex="0" class="max-w-full cursor-pointer rounded-lg border-l-2 border-primary bg-muted/60 px-step-sm py-step-xs text-xs outline-none focus-visible:ring-3 focus-visible:ring-ring/50"><p data-who class="font-medium text-foreground-secondary"></p><p data-qtext class="truncate text-muted-foreground"></p></div>
