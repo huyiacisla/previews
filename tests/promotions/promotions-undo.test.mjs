@@ -166,3 +166,8 @@ test("Claims inbox: what it takes from a resident's record and the decision stor
   assert.ok(body.includes("if(nm(d.vt))c.vt=d.vt;if(nm(d.jt))c.jt=d.jt;if(d.st===\"rejected\")c.reason=tx(d.reason);if(tx(d.manual))c.manual={by:\"Property team\",at:nm(d.vt)||nm(d.at)||Date.now(),reason:tx(d.manual)}"));
   assert.ok(!/String\(d\.reason/.test(body) && !/String\(d\.manual/.test(body));
 });
+
+test("Claims inbox: the resident's name and unit are taken as text only, so an object in the record is not shown as [object Object]", () => {
+  assert.ok(staff.includes('name:(tx(who.name).slice(0,60)||"Resident"),unit:(tx(who.unit).slice(0,12)||"—")'));
+  assert.ok(!staff.includes('name:String(who.name'));
+});
