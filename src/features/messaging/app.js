@@ -1051,7 +1051,15 @@ export function mount({ portal }) {
     autoContext(t);
     // (A resident used to have a separate "Conversations" icon here because there was no Back; the Back arrow at the top is now the one way to the list.)
     $("#btn-context")?.remove();
-    if (["staff", "admin"].includes(me.role) && store.contextFor(conv.id, me.id)) {
+    const ctx = ["staff", "admin"].includes(me.role) ? store.contextFor(conv.id, me.id) : null;
+    if (ctx && ctx.kind === "resident") {
+      // Details is the Resident information window: profile, rewards, tickets
+      const cb = button("Details", { variant: "outline", ariaLabel: "Resident information", onClick: () => openResidentInfo(conv) });
+      cb.id = "btn-context";
+      cb.title = "Resident information";
+      cb.setAttribute("aria-haspopup", "dialog");
+      $("#thread-flags").insertBefore(cb, $("#thread-flags").firstChild);
+    } else if (ctx) {
       const on = contextOpen();
       const cb = button(on ? "Hide details" : "Details", { variant: on ? "soft" : "outline", ariaLabel: on ? "Hide details" : "Show details", onClick: () => setContext(!contextOpen()) });
       cb.id = "btn-context";
@@ -1231,7 +1239,7 @@ export function mount({ portal }) {
     }
   };
   ui.contextPref = readCtxPref();
-  const contextOpen = () => (ui.ctxForce && ui.ctxForce === ui.convId ? true : ui.contextPref === null ? matchMedia("(min-width: 1280px)").matches : ui.contextPref);
+  const contextOpen = () => (ui.ctxForce && ui.ctxForce === ui.convId ? true : ui.lastKind === "resident_support" && ["staff", "admin"].includes(me.role) ? false : ui.contextPref === null ? matchMedia("(min-width: 1280px)").matches : ui.contextPref);
   function setContext(on) {
     ui.ctxForce = null;
     ui.contextPref = on;
@@ -1390,7 +1398,7 @@ export function mount({ portal }) {
   // Press the resident's picture in the chat: one window, "Resident information", with three tabs. Profile: who and where they live. Resident reward: what they claimed
   // (Current claim, with the steps it is at; History claimed) and what the others in the unit did. Ticket: their tickets with number and stage (Current ticket, History ticket).
   let tabSeq = 0; // makes the ids of the tabs and their panels unique
-  function tabset(label, items, { sub = false } = {}) {
+  function tabset(label, items, { sub = false, start = 0, onSelect } = {}) {
     const wrap = document.createElement("div");
     wrap.className = "flex flex-col gap-step-md";
     const bar = document.createElement("div");
@@ -1425,6 +1433,7 @@ export function mount({ portal }) {
         t.tabIndex = k === n ? 0 : -1;
         panels[k].hidden = k !== n;
       });
+      if (onSelect) onSelect(n);
       if (focus) tabs[n].focus();
     };
     tabs.forEach((t, n) => {
@@ -1445,7 +1454,7 @@ export function mount({ portal }) {
         }
       });
     });
-    select(0, false);
+    select(Math.min(start, tabs.length - 1), false);
     wrap.append(bar, ...panels);
     return wrap;
   }
@@ -1498,12 +1507,16 @@ export function mount({ portal }) {
     if (withSteps) li.appendChild(stepList(residentId, r));
     return li;
   }
-  function claimList(panel, residentId, rows, empty) {
+  function claimList(panel, residentId, rows, empty, extra) {
     if (!rows.length) return panel.appendChild(paragraph(empty));
     const ul = document.createElement("ul");
     ul.setAttribute("role", "list");
     ul.className = "flex flex-col gap-step-sm";
-    for (const r of rows) ul.appendChild(rewardCard(residentId, r));
+    for (const r of rows) {
+      const li = rewardCard(residentId, r);
+      if (extra) extra(r, li);
+      ul.appendChild(li);
+    }
     panel.appendChild(ul);
   }
   // what happened to a resident's claims, newest first (claimed, approved, used, not approved, cancelled, could not claim)
@@ -1551,11 +1564,15 @@ export function mount({ portal }) {
     }
     panel.appendChild(ul);
   }
-  function openResidentInfo(conv) {
+  function openResidentInfo(conv, keep) {
     const data = store.contextFor(conv.id, me.id);
     if (!data || data.kind !== "resident" || !data.person) return;
+    const st = keep || { main: 0, reward: 0, ticket: 0 };
     let dlg = document.getElementById("res-info");
+    const scroll = dlg ? dlg.scrollTop : 0; // a rebuilt window stays where it was
     if (dlg) dlg.remove();
+    const rebuild = () => openResidentInfo(conv, st);
+    ui.infoRefresh = rebuild;
     dlg = document.createElement("dialog");
     dlg.id = "res-info";
     dlg.setAttribute("aria-labelledby", "res-info-title");
@@ -1621,7 +1638,11 @@ export function mount({ portal }) {
                     count: current.length + matesCurrent.reduce((n, x) => n + x.rows.length, 0),
                     build: (p) => {
                       p.appendChild(paragraph(data.person.name, "text-sm font-medium"));
-                      claimList(p, rid, current, "No claim in progress.");
+                      const toDecide = decidable(rid);
+                      claimList(p, rid, current, "No claim in progress.", (r, li) => {
+                        const d = toDecide.find((x) => x.promoId === r.promoId);
+                        if (d) li.appendChild(decisionBox(conv, d, rebuild));
+                      });
                       for (const { m, rows } of matesCurrent) {
                         p.appendChild(paragraph(`Same unit: ${m.name}`, "text-sm font-medium"));
                         claimList(p, m.id, rows, "No claim in progress.");
@@ -1642,7 +1663,7 @@ export function mount({ portal }) {
                     },
                   },
                 ],
-                { sub: true },
+                { sub: true, start: st.reward, onSelect: (n) => (st.reward = n) },
               ),
             );
           },
@@ -1660,20 +1681,25 @@ export function mount({ portal }) {
                   { id: "current", label: "Current ticket", count: now.length, build: (p) => ticketRows(p, dlg, now, "No ticket in progress.") },
                   { id: "history", label: "History ticket", count: past.length, build: (p) => ticketRows(p, dlg, past, "No earlier tickets.") },
                 ],
-                { sub: true },
+                { sub: true, start: st.ticket, onSelect: (n) => (st.ticket = n) },
               ),
             );
           },
         },
-      ]),
+      ], { start: st.main, onSelect: (n) => (st.main = n) }),
     );
     dlg.appendChild(box);
     dlg.addEventListener("click", (e) => {
       if (e.target === dlg) dlg.close();
     });
-    dlg.addEventListener("close", () => dlg.remove());
+    dlg.addEventListener("close", () => {
+      ui.dlgClosedAt = Date.now(); // the Escape that closed this window must not also close the Details panel
+      if (ui.infoRefresh === rebuild) ui.infoRefresh = null;
+      dlg.remove();
+    });
     document.body.appendChild(dlg);
     dlg.showModal();
+    dlg.scrollTop = scroll;
   }
   function openAllPromos(conv, resident) {
     let dlg = document.getElementById("promos-all");
@@ -1702,7 +1728,10 @@ export function mount({ portal }) {
     dlg.addEventListener("click", (e) => {
       if (e.target === dlg) dlg.close();
     });
-    dlg.addEventListener("close", () => dlg.remove());
+    dlg.addEventListener("close", () => {
+      ui.dlgClosedAt = Date.now(); // the Escape that closed this window must not also close the Details panel
+      dlg.remove();
+    });
     document.body.appendChild(dlg);
     dlg.showModal();
   }
@@ -1742,8 +1771,10 @@ export function mount({ portal }) {
     }
     ui.sigCtx = "";
     renderAll(true);
+    if (ui.infoRefresh) ui.infoRefresh();
   }
-  function decisionBox(conv, c) {
+  function decisionBox(conv, c, onChange) {
+    const redraw = onChange || (() => renderContext(store.get(conv.id, me.id)));
     const box = document.createElement("div");
     box.className = "mt-step-xs flex flex-col gap-step-xs rounded-md bg-muted p-step-sm";
     const mine = ui.decide && ui.decide.promoId === c.promoId ? ui.decide.kind : null;
@@ -1751,9 +1782,9 @@ export function mount({ portal }) {
     row.className = "flex flex-wrap gap-step-xs";
     if (c.st === "pending") row.appendChild(button("Confirm claim", { variant: "primary", onClick: () => decide(conv, c, "verify", "") }));
     if (!c.manual) {
-      row.appendChild(button("Apply by hand", { variant: mine === "apply" ? "soft" : "outline", onClick: () => { ui.decide = mine === "apply" ? null : { promoId: c.promoId, kind: "apply" }; ui.sigCtx = ""; renderContext(store.get(conv.id, me.id)); } }));
+      row.appendChild(button("Apply by hand", { variant: mine === "apply" ? "soft" : "outline", onClick: () => { ui.decide = mine === "apply" ? null : { promoId: c.promoId, kind: "apply" }; ui.sigCtx = ""; redraw(); } }));
     }
-    row.appendChild(button("Reject", { variant: mine === "reject" ? "soft" : "outline", onClick: () => { ui.decide = mine === "reject" ? null : { promoId: c.promoId, kind: "reject" }; ui.sigCtx = ""; renderContext(store.get(conv.id, me.id)); } }));
+    row.appendChild(button("Reject", { variant: mine === "reject" ? "soft" : "outline", onClick: () => { ui.decide = mine === "reject" ? null : { promoId: c.promoId, kind: "reject" }; ui.sigCtx = ""; redraw(); } }));
     box.appendChild(row);
     if (mine) {
       const label = document.createElement("p");
@@ -2183,6 +2214,20 @@ export function mount({ portal }) {
       const av = $("#thread-avatar");
       av.dataset.role = row.avatar.role;
       clear(av);
+      // the picture at the top of a resident's chat is the way in to "Resident information" (Staff and Admin)
+      const info = ["staff", "admin"].includes(me.role) && t.conv.kind === "resident_support";
+      av.dataset.action = String(info);
+      if (info) {
+        av.setAttribute("role", "button");
+        av.tabIndex = 0;
+        av.setAttribute("aria-label", `Resident information: ${row.avatar.name}`);
+        av.title = "Resident information";
+      } else {
+        av.removeAttribute("role");
+        av.removeAttribute("tabindex");
+        av.removeAttribute("aria-label");
+        av.removeAttribute("title");
+      }
       if (row.avatar.role === "bot") {
         const icon = svgIcon("bot");
         icon.setAttribute("class", "size-5");
@@ -2840,23 +2885,7 @@ export function mount({ portal }) {
     const who = m.kind === "bot" ? "EasySpotOps Assistant" : `${a.name}${a.role && a.role !== "bot" && !(me.role === "resident" && a.role === "admin") ? ` · ${ROLE_LABEL[a.role]}` : ""}`; // (a resident reads "EasySpotOps Support", not "… · Admin")
     if (first) $("[data-author]", el).textContent = who;
     else $("[data-author]", el).hidden = true;
-    if (last) {
-      let av = avatar({ name: a.name, role: a.role === "bot" ? "bot" : a.role, size: "sm" });
-      if (["staff", "admin"].includes(me.role) && a.role === "resident" && t.conv.kind === "resident_support") {
-        // the picture opens the resident's information: a 44 px press area around a small picture
-        const open = document.createElement("button");
-        open.type = "button";
-        open.className = "inline-flex shrink-0 cursor-pointer touch-manipulation items-center justify-center rounded-full outline-none focus-visible:ring-3 focus-visible:ring-ring/50";
-        open.style.cssText = "padding:8px;margin:-8px";
-        open.setAttribute("aria-label", `Resident information: ${a.name}`);
-        open.title = "Resident information";
-        open.dataset.resInfo = "";
-        open.appendChild(av);
-        open.addEventListener("click", () => openResidentInfo(t.conv));
-        av = open;
-      }
-      $("[data-avatar]", el).replaceWith(av);
-    }
+    if (last) $("[data-avatar]", el).replaceWith(avatar({ name: a.name, role: a.role === "bot" ? "bot" : a.role, size: "sm" }));
     const tm = $("[data-time]", el);
     tm.textContent = when;
     tm.dateTime = iso;
@@ -3131,6 +3160,19 @@ export function mount({ portal }) {
   form.addEventListener("submit", (e) => {
     e.preventDefault();
     send();
+  });
+  const headAvatar = $("#thread-avatar");
+  const openInfo = () => {
+    if (headAvatar.dataset.action !== "true" || !ui.convId) return;
+    const t = store.get(ui.convId, me.id);
+    if (t.ok) openResidentInfo(t.conv);
+  };
+  headAvatar.addEventListener("click", openInfo);
+  headAvatar.addEventListener("keydown", (e) => {
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      openInfo();
+    }
   });
   const input = $("#msg-input");
   input.addEventListener("keydown", (e) => {
@@ -3986,7 +4028,7 @@ export function mount({ portal }) {
       closeMenu();
       // Esc closes the details panel when you are inside it, or when it covers the screen (narrower than 1280px).
       const pane = $("#context-pane");
-      if (!pane.hidden && !document.querySelector("dialog[open]") && (pane.contains(document.activeElement) || !matchMedia("(min-width: 1280px)").matches)) {
+      if (!pane.hidden && !document.querySelector("dialog[open]") && Date.now() - (ui.dlgClosedAt || 0) > 400 && (pane.contains(document.activeElement) || !matchMedia("(min-width: 1280px)").matches)) {
         setContext(false);
         $("#btn-context")?.focus();
       }

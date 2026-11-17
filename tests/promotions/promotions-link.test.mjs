@@ -16,7 +16,8 @@ test("Messages: the Promotions section of the Staff panel has a View all button 
   assert.ok(msg.includes('dlg.id = "promos-all"'));
   assert.ok(msg.includes('dlg.setAttribute("aria-labelledby", "promos-all-title")'));
   assert.ok(msg.includes("dlg.showModal()"));
-  assert.ok(msg.includes('dlg.addEventListener("close", () => dlg.remove())'));
+  assert.ok(msg.includes("ui.dlgClosedAt = Date.now()") && msg.includes("dlg.remove();"), "closing removes the window; the Escape that closed it does not also close the Details panel");
+  assert.ok(msg.includes("Date.now() - (ui.dlgClosedAt || 0) > 400"));
 });
 
 test("Messages: the window lists the resident's own promotions and then those of each person in the unit, from real storage", () => {
@@ -68,13 +69,31 @@ test("Resident: a Pending claim says how long it has been waiting (a fact, not a
   assert.ok(!/will be (approved|verified) (in|within)/i.test(res));
 });
 
-test("Messages: the resident's picture in the chat opens the Resident information window, for Staff only", () => {
-  assert.ok(msg.includes("function openResidentInfo(conv)"));
+test("Messages: the picture at the top of a resident's chat opens the Resident information window (Staff and Admin only); the small pictures beside the messages do not", () => {
+  assert.ok(msg.includes("function openResidentInfo(conv, keep)"));
   assert.ok(msg.includes('dlg.id = "res-info"'));
   assert.ok(msg.includes('h.textContent = "Resident information"'));
-  assert.ok(msg.includes('["staff", "admin"].includes(me.role) && a.role === "resident" && t.conv.kind === "resident_support"'));
-  assert.ok(msg.includes("`Resident information: ${a.name}`"));
-  assert.ok(msg.includes('open.style.cssText = "padding:8px;margin:-8px"'), "a 44 px press area around the small picture");
+  assert.ok(msg.includes('const info = ["staff", "admin"].includes(me.role) && t.conv.kind === "resident_support";'));
+  assert.ok(msg.includes("`Resident information: ${row.avatar.name}`"));
+  assert.ok(msg.includes('headAvatar.addEventListener("click", openInfo)'));
+  assert.ok(msg.includes('e.key === "Enter" || e.key === " "'), "the keyboard opens it too");
+  assert.ok(msg.includes('if (last) $("[data-avatar]", el).replaceWith(avatar({ name: a.name, role: a.role === "bot" ? "bot" : a.role, size: "sm" }));'), "the small picture beside a message is a plain picture");
+  assert.ok(!msg.includes("data-res-info") && !msg.includes("resInfo"));
+});
+
+test("Messages: the composer is one card (text on top, small icons and Send under it) and its buttons look 32 px with a 44 px press area on every screen", () => {
+  const html = read("src/partials/messages-app.html");
+  assert.ok(html.includes('id="composer-card"'));
+  assert.ok(html.includes("focus-within:border-ring focus-within:ring-3"));
+  for (const id of ["btn-canned", "btn-attach", "btn-emoji", "btn-emergency", "btn-send"]) {
+    const at = html.indexOf(`id="${id}"`);
+    const tag = html.slice(at, html.indexOf(">", at));
+    assert.ok(tag.includes("after:absolute"), `${id}: a 44 px press area`);
+    assert.ok(!tag.includes("pointer-coarse:size-11") && !tag.includes("pointer-coarse:h-11"), `${id}: does not grow on touch`);
+  }
+  const t = html.slice(html.indexOf('<template id="t-btn">'), html.indexOf("</template>", html.indexOf('<template id="t-btn">')));
+  assert.ok(t.includes("after:absolute") && !t.includes("pointer-coarse:h-11"), "the shared Messages button too");
+  assert.ok(html.includes('<span class="@max-lg/th:sr-only">Quick replies</span>'), "on a narrow column only the icon shows; the name stays for screen readers");
 });
 
 test("Resident information: three tabs (Profile, Resident reward, Ticket); reward and ticket each have a current and a history part", () => {
@@ -112,4 +131,23 @@ test("Messages: the name and ticket number at the top of a chat are read in full
   assert.ok(html.includes("@4xl/th:grid-cols-[auto_minmax(0,1fr)_auto_auto]"));
   assert.ok(html.includes("@4xl/th:order-none @4xl/th:col-span-1 @4xl/th:justify-end"));
   assert.ok(!html.includes("sm:grid-cols-[auto_minmax(0,1fr)_auto_auto]"), "the screen width no longer decides: the buttons used to take the name's room on a tablet");
+});
+
+test("Messages: Details in a resident's chat opens the Resident information window, not the side panel; other chats keep the panel", () => {
+  assert.ok(msg.includes('if (ctx && ctx.kind === "resident") {'));
+  assert.ok(msg.includes('button("Details", { variant: "outline", ariaLabel: "Resident information", onClick: () => openResidentInfo(conv) })'));
+  assert.ok(msg.includes('cb.setAttribute("aria-haspopup", "dialog")'));
+  assert.ok(msg.includes("} else if (ctx) {"), "a group or support chat still toggles the panel");
+  assert.ok(msg.includes('ui.lastKind === "resident_support" && ["staff", "admin"].includes(me.role) ? false'), "the panel no longer opens by itself in a resident's chat");
+  assert.ok(msg.includes("ui.ctxForce && ui.ctxForce === ui.convId ? true"), "a claim question still opens it");
+});
+
+test("Resident information: Staff decide a waiting claim inside Current claim, and the window redraws on the same tab", () => {
+  const w = msg.slice(msg.indexOf("function openResidentInfo"), msg.indexOf("function openAllPromos"));
+  assert.ok(w.includes("decisionBox(conv, d, rebuild)"));
+  assert.ok(w.includes("decidable(rid)"));
+  assert.ok(w.includes("ui.infoRefresh = rebuild") && w.includes("dlg.scrollTop = scroll"));
+  for (const k of ["st.main", "st.reward", "st.ticket"]) assert.ok(w.includes(k), k);
+  assert.ok(msg.includes("if (ui.infoRefresh) ui.infoRefresh();"), "a decision made in the window shows at once");
+  assert.ok(msg.includes("function decisionBox(conv, c, onChange)"));
 });

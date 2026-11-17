@@ -13,7 +13,7 @@ test("Support threads on a phone: the three choices fold into one line, Quick re
   assert.ok(has(html, 'id="tools-toggle"') && has(html, 'id="tools-summary"'), "the folded line");
   assert.ok(has(html, "max-sm:data-[collapsed=true]:hidden"), "collapsed on a phone only; from 640 px the three choices stay in view");
   assert.ok(has(app, "$('#tools-summary').textContent = `${word(status)} · ${word(prio)} priority · ${word(asg)}`;"), "the line says what they are now");
-  assert.ok(has(html, "<span>Quick replies</span>"), "the quick replies button is a word, not an unlabeled icon");
+  assert.ok(has(html, 'aria-label="Quick replies" title="Quick replies"') && has(html, '<span class="@max-lg/th:sr-only">Quick replies</span>'), "the quick replies button has a name (the word shows when the column is wide, always for screen readers), not an unlabeled icon");
   assert.ok(has(app, "actions.includes('resolve') && me.role === 'admin' && conv.kind === 'support'"), "one tap for an Admin resolving a Support thread");
   assert.ok(has(app, "action: 'Undo', ms: 8000"), "with an Undo");
   assert.ok(has(app, "act(store.assignSupport(conv.id, me.id, wasAssignee)"), "Undo gives the thread back as it was");
