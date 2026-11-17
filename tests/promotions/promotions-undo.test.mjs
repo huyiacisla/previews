@@ -78,3 +78,13 @@ test("Claims inbox: a claim the resident cancelled before the inbox knew it come
   assert.ok(staff.includes('`<p class="pmc-hint">Cancelled by the resident. There is nothing to decide.</p>`'));
   assert.ok(staff.includes('if(c.st=="rejected"&&!/^Cancelled by resident/.test(c.reason||"")){'), "the reopen handler also refuses it");
 });
+
+test("the Modern template's accent keeps white button text at 4.5:1 or more", () => {
+  const lum = (h) => {
+    const c = [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16) / 255).map((v) => (v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4));
+    return 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2];
+  };
+  const line = staff.split("\n").find((l) => l.includes('modern:{n:"Modern"'));
+  const accent = /accent:"(#[0-9a-f]{6})"/i.exec(line)[1];
+  assert.ok(1.05 / (lum(accent) + 0.05) >= 4.5, `${accent} with white text`);
+});

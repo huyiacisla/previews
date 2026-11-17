@@ -97,9 +97,14 @@ Chạy một chuỗi liền (một cư dân là Priya, 16/11/2026, trình duyệ
 - **I7** (thấp): bốn nút hành động trong chi tiết claim nhìn ngang nhau; "Mark redeemed" chưa hỏi lại.
 - **I1** (trung): Reject từ hộp Claims không có dòng trong chat; cần máy chủ.
 - **Cần máy chủ** (đã ghi từ trước): nguyên tử tồn kho, giới hạn tải cho nhiều người thật cùng lúc, nhật ký không sửa được, đăng nhập thật, che mã ở máy chủ, đồng bộ CRM, và một nguồn sự thật duy nhất khi nhiều tab Staff mở (một tab hộp Claims cũ có thể ghi đè quyết định mới hơn).
-- **Chưa thử trực tiếp**: bảy template trên Resident view (do test tự động của template); đọc màn hình thật.
+- **Chưa thử trực tiếp**: đọc màn hình thật. (Bảy template đã thử trực tiếp ở đợt lặp lại bên dưới.)
 
 ## Đợt thử lặp lại (Phase 5.1), 16/11/2026: cư dân khác (Morgan, res-3), cách khác
 Chuỗi: nhận, **huỷ có xác nhận**, nhận lại, Staff mở hộp Claims, **từ chối bằng lý do tự viết** (dài 90 ký tự), cư dân đọc và nhận lại, Staff Verify, Mark redeemed. Dữ liệu đã trả lại.
 - **Kết quả**: nhật ký `claim#1, give_back#1, claim#2, reject#2, give_back#2, claim#3, verify#3, redeem#3`; số suất còn giữ đúng (3 claim, 2 trả lại, 1 giữ); cư dân đọc "Not approved by the property team. Reason: …" đầy đủ trong khung, không tràn; "Claim again" có.
 - **Lỗi tìm thấy và đã sửa (L1)**: khi Staff mở hộp Claims **sau khi** cư dân đã nhận, huỷ rồi nhận lại, claim #1 (đã huỷ) vào hộp ở trạng thái **Pending**, nên Staff có thể Verify hoặc Reject nó. Reject ghi thêm một `give_back` cho claim đã trả suất, làm **số suất bị cộng đôi**. Sửa: claim đã huỷ vào hộp là "Rejected: Cancelled by resident", không có nút hành động ("Cancelled by the resident. There is nothing to decide."), và "Move back to Pending" không dùng được cho claim cư dân đã huỷ. Thử lại: hộp hiện "Rejected 1", nhật ký không cộng đôi. Test trong tests/promotions/promotions-undo.test.mjs.
+
+## Bảy template trên trang cư dân (16/11/2026)
+Lần lượt áp từng template trong Templates & brand (Store, Modern, Deals marketplace, Editorial, Minimal mono, Seasonal / Holiday, Luxury dark), tải trang cư dân ở **390 px**, mở My rewards, đo tương phản toàn trang (khoảng 235 đến 270 phần tử chữ mỗi template). Kho đã trả về đúng bản gốc (Deals marketplace).
+- **Kết quả**: cả 7 tải được, không tràn ngang, My rewards mở trong khung.
+- **Lỗi tìm thấy và đã sửa (L2)**: template **Modern** có 3 chữ ở **4,47:1** (nút "Claim offer", liên kết "Skip to main content", số trên huy hiệu): màu chính `#6366f1` với chữ trắng thiếu 0,03 so với 4,5. Đổi sang `#6063ef` (4,64:1), gần như không đổi về nhìn. Thử lại: 0 chữ dưới ngưỡng. Test trong tests/promotions/promotions-undo.test.mjs.
