@@ -114,3 +114,10 @@ Cách kiểm: Staff mở chat của Jamie (cùng căn hộ 02-291 với Alex) �
 | F6 | Đọc dữ liệu một lần mỗi lần vẽ (không đọc lại cho từng thẻ) | Đạt |
 
 Lỗi tìm thấy khi viết test: số dòng hiện ban đầu âm hoặc bằng 0 bị đổi thành 1 thay vì 2 (đã sửa, có test). Dữ liệu tải thử là dữ liệu tạm trong trình duyệt, đã trả lại như cũ sau khi thử. Test: `tests/messaging/messaging-fold.test.mjs` (17 ca); cả bộ 640/640.
+
+### Chống quá tải khi nhiều người cùng nhận một deal (16/11/2026, yêu cầu của người dùng)
+- **Quy tắc**: nếu một deal nhận quá 20 lần trong 10 giây (`LOAD` trong `src/features/promotions/store.js`), lần tiếp theo không được thực hiện: người nhận thấy "This promotion is very busy right now. Please try again in a moment." (thông báo và dòng lỗi trong cửa sổ deal), nút Claim tắt vài giây (1,5 đến 5 giây, theo thời gian chờ còn lại) rồi bật lại. Deal khác không bị ảnh hưởng.
+- **Chỉ tính lần nhận sắp ghi thật**: nhấn đúp, đã nhận rồi, hết suất, bị khoá, bị chặn theo căn hộ không phải là tải. Lần bị từ chối vì bận không ghi gì, không vào lịch sử của cư dân (đó không phải lỗi của họ).
+- **Hai tab đếm chung** qua một bản ghi dùng chung (`eso-pm-load`); bản ghi hỏng hoặc không lưu được không bao giờ chặn ai; lệch giờ nhỏ giữa hai tab vẫn đếm chung.
+- **Giới hạn thật**: đây là quy tắc trên một thiết bị. Nhiều người dùng thật cùng lúc cần máy chủ đếm và giới hạn theo từng deal cho tất cả (cùng nhóm việc cần máy chủ với tồn kho nguyên tử).
+- **Đã thử**: nạp sẵn 20 lần thử gần đây cho deal Covered Spot Upgrade rồi bấm một lần: báo bận, nút tắt rồi bật lại, kho claim không đổi; bản ghi thử đã xoá. Test: tests/promotions/promotions-load.test.mjs (đồng hồ giả); cả bộ 647/647.

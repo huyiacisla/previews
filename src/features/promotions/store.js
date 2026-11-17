@@ -20,7 +20,7 @@ import { appendAudit, auditRaw, readAudit, restoreAudit } from "./audit.js";
 import "./catalog.js"; // defines globalThis.PM_CATALOG: the sample deals Staff's page shows too (the Resident sees the running ones)
 
 // `claimState` is written by Staff's Claims inbox: { "<residentId>|<promotionId>|<n>": { st: verified | redeemed | rejected, reason } }. Only a status; the Resident app never writes it.
-export const KEY = { published: "eso-pmc-saved", cats: "eso-pmc-cats", settings: "eso-proto", claimState: "eso-pm-claimstate", mine: (id) => `eso-res-promo:${id}` };
+export const KEY = { published: "eso-pmc-saved", cats: "eso-pmc-cats", settings: "eso-proto", claimState: "eso-pm-claimstate", load: "eso-pm-load", mine: (id) => `eso-res-promo:${id}` };
 
 const BUILTIN = [
   ["parking", "Parking"],
@@ -578,6 +578,38 @@ export function claimCheck(storage, promoId, now = new Date()) {
   return { fresh };
 }
 
+/**
+ * The load guard of one promotion. When more claims of it arrive within a few seconds than it can take (LOAD.limit in LOAD.windowMs), the next one is not made:
+ * the resident is asked to try again in a moment. Only a claim that is about to be written counts (a double press, a claim already made or one that is refused for another reason
+ * is not a load). The attempts are kept in one shared record, so two tabs count together. A record that cannot be read or saved never blocks anyone.
+ * Returns { busy: false } (and counts the attempt) or { busy: true, retryMs }. A real server counts and limits per promotion for everyone at once; this is that rule on one device.
+ */
+export const LOAD = { windowMs: 10000, limit: 20 };
+export const BUSY_MESSAGE = "This promotion is very busy right now. Please try again in a moment.";
+export function loadGate(storage, promoId, now = new Date()) {
+  const t = now.getTime();
+  const id = String(promoId);
+  let rows = [];
+  try {
+    const raw = JSON.parse(storage.getItem(KEY.load));
+    if (raw && Array.isArray(raw.a)) rows = raw.a;
+  } catch {
+    rows = [];
+  }
+  const recent = rows.filter((r) => r && typeof r.p === "string" && Number.isFinite(r.t) && Math.abs(t - r.t) < LOAD.windowMs); // (a little clock difference between two tabs still counts together)
+  const mine = recent.filter((r) => r.p === id);
+  if (mine.length >= LOAD.limit) {
+    const oldest = Math.min(...mine.map((r) => r.t));
+    return { busy: true, retryMs: Math.min(LOAD.windowMs, Math.max(500, LOAD.windowMs - (t - oldest))) };
+  }
+  try {
+    storage.setItem(KEY.load, JSON.stringify({ v: 1, a: [...recent, { p: id, t }].slice(-400) }));
+  } catch {
+    /* not counted: never a reason to refuse a claim */
+  }
+  return { busy: false };
+}
+
 // Two claims of one promotion by one resident closer together than this are one press that arrived twice (a double click), not two claims.
 const SAME_PRESS_MS = 1500;
 
@@ -621,6 +653,9 @@ export function claim(storage, residentId, shown, now = new Date()) {
       return fail(`Your unit already claimed this${by ? `: ${by.name}${when ? ` claimed it on ${when}` : " claimed it"}` : ""}.`, { unit: by ? { by: by.name, at: by.at, code: by.code } : undefined });
     }
   }
+  // Too many claims of this promotion at once: nothing is written, and it is not the resident's failure, so it is not in their history either
+  const gate = loadGate(storage, promo.id, now);
+  if (gate.busy) return { ok: false, busy: true, reason: BUSY_MESSAGE, retryMs: gate.retryMs };
   // `who` is what Staff's Claims inbox shows for this claim (a real app sends the resident's profile with the claim).
   const person = PEOPLE.find((p) => p.id === residentId);
   const who = person ? { name: person.name, unit: (person.unit && person.unit.number) || "" } : undefined;

@@ -629,7 +629,7 @@ function refreshDialog() {
   // claims Staff rejected do not count: the resident can claim again, unless Staff locked it
   const own = activeClaims(storage, me.id, p.id);
   const done = claimed && own.active >= p.perResident;
-  btn.disabled = p.full || own.locked || !!mate || (done && p.method !== "link");
+  btn.disabled = p.full || own.locked || !!mate || (done && p.method !== "link") || !!ui.holdClaim; // (held for a few seconds after "try again in a moment")
   $("#dlg-claim-text").textContent = p.full
     ? "Sold out"
     : mate
@@ -691,6 +691,7 @@ dlg.addEventListener("close", () => {
 // One press on Claim is handled once: the button is off while it is, and a second press that arrives at once (a double click) is ignored. (claim() ignores it too, so two tabs
 // or a stuck key cannot make a second claim of the same press.) The button comes back, in the state the promotion is really in, a moment after.
 let claimBusy = false;
+let claimHold = 700; // how long the button stays off after a press: longer when the promotion said "try again in a moment"
 $("#dlg-claim-btn").addEventListener("click", () => {
   if (inStaffPreview()) {
     toast("In the resident's app this claims the promotion. Nothing is claimed in this preview.");
@@ -711,6 +712,11 @@ $("#dlg-claim-btn").addEventListener("click", () => {
     const r = claim(storage, me.id, p); // looks at what is stored now: still running, not paused, a place left
     $("#dlg-error").textContent = r.ok ? "" : r.reason;
     if (!r.ok) {
+      // a busy promotion: say it plainly and keep the button off for a few seconds so the resident does not add to the load
+      if (r.busy) {
+        claimHold = Math.min(Math.max(Number(r.retryMs) || 0, 1500), 5000);
+        ui.holdClaim = true; // the button shows it is off, not only ignores the press
+      }
       toast(r.reason);
       render(); // the card and the details show what is true now (Sold out, gone)
       return;
@@ -720,10 +726,13 @@ $("#dlg-claim-btn").addEventListener("click", () => {
     if (!r.again) bumpUnseen("rewards", 1);
     render();
   } finally {
+    const hold = claimHold;
+    claimHold = 700;
     setTimeout(() => {
       claimBusy = false;
+      ui.holdClaim = false;
       if (ui.openId) refreshDialog();
-    }, 700);
+    }, hold);
   }
 });
 
