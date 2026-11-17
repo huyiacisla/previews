@@ -6552,7 +6552,7 @@ const NAMES=[["Maya Chen","214","staff"],["Jordan Ellis","308","me"],["Priya Nat
 const ST=["pending","pending","verified","redeemed","pending","rejected","verified","pending","redeemed","verified","pending","verified","pending","rejected","redeemed","pending","verified","pending"];
 const now=Date.now(),HR=36e5;
 /* The inbox holds the claims residents really made in the app (each has rk = resident|promotion|n). It used to invent demo rows (Maya Chen, Elena Petrova...) that no resident had made; they are not generated any more, and the ones an older build stored are dropped below. */
-let CL;try{CL=JSON.parse(localStorage.getItem(K)||"null")}catch(e){}if(!Array.isArray(CL)){CL=[];sv()}
+let CL;const raw0=localStorage.getItem(K);try{CL=JSON.parse(raw0||"null")}catch(e){}if(!Array.isArray(CL)){/* an inbox that cannot be read is kept aside (eso-pmclaims-unreadable) before a clean one is made, so nothing is lost for good */if(raw0)try{localStorage.setItem(K+"-unreadable",raw0)}catch(e){}CL=[];sv()}
 {const n0=CL.length;CL=CL.filter(c=>c&&c.rk);if(CL.length!=n0)sv()}
 {const sn=new Set(),n0=CL.length;CL=CL.slice().sort((a,b)=>a.t-b.t).filter(c=>{if(!c.me||(c.st=="rejected"&&!c.lock))return true;if(sn.has(c.deal))return false;sn.add(c.deal);return true}).sort((a,b)=>b.t-a.t);if(CL.length!=n0)sv()}
 {const u=new Set();let ch=0;CL.forEach(c=>{if(c.meth=="link"||c.code=="(external link)"||c.rid)return;if(u.has(c.code)||!/-[A-Z0-9]{3,5}$/.test(c.code)){c.code=c.code.replace(/-[A-Z0-9]{3,5}$/,"")+"-"+(parseInt(String(c.id).replace(/\D/g,"").slice(-6)||"1",10)*7919%1679616).toString(36).toUpperCase().padStart(4,"0");ch=1}u.add(c.code)});if(ch)sv()}

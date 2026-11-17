@@ -439,6 +439,7 @@ function note(st, ev) {
 
 /** The resident cancels a claim that is still waiting. It gives its place back (and the unit's). Staff's inbox shows it as cancelled by the resident. */
 export function cancelClaim(storage, residentId, promoId, now = new Date()) {
+  if (recordUnreadable(storage, residentId)) return { ok: false, reason: UNREADABLE_MESSAGE };
   const st = residentState(storage, residentId);
   const c = st.claims[promoId];
   if (!c || !c.count) return { ok: false, reason: "You have not claimed this." };
@@ -517,7 +518,27 @@ export function claimDecidedAt(storage, residentId, promoId) {
   return s ? Number(s.at) || 0 : 0;
 }
 
+/**
+ * Is the resident's record there but not readable (cut off, not JSON, not an object)? Then it is not an empty record: it may hold claims that Staff also hold, so nothing is
+ * written over it. A record that is not there at all (a new resident) is fine.
+ */
+export const UNREADABLE_MESSAGE = "Your saved claims on this device could not be read, so nothing was changed. Reload the page; if this stays, contact the property team.";
+export function recordUnreadable(storage, residentId) {
+  let raw = null;
+  try {
+    raw = storage.getItem(KEY.mine(residentId));
+  } catch {
+    return false; // storage itself says no: write() reports it
+  }
+  if (raw === null || raw === "") return false;
+  try {
+    return !isObj(JSON.parse(raw));
+  } catch {
+    return true;
+  }
+}
 function put(storage, residentId, st) {
+  if (recordUnreadable(storage, residentId)) return false;
   return write(storage, KEY.mine(residentId), { v: SCHEMA, saved: [...st.saved], claims: st.claims, log: st.log });
 }
 
@@ -618,6 +639,7 @@ const SAME_PRESS_MS = 1500;
  * link ones hand back the partner address. Returns { ok, code?, link?, reason? }. Claiming again returns the same result.
  */
 export function claim(storage, residentId, shown, now = new Date()) {
+  if (recordUnreadable(storage, residentId)) return { ok: false, reason: UNREADABLE_MESSAGE, why: "unreadable" };
   const st = residentState(storage, residentId); // read again here: what is stored now decides, not what the page showed
   // a claim that did not go through is part of the history too, with the reason (said once, not once per click)
   const fail = (reason, extra) => {
