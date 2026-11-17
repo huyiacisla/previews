@@ -157,3 +157,12 @@ test("Claims inbox: a stored row with a field of the wrong kind is put right whe
   assert.ok(staff.includes("CL=tidy(a).a;fromRes();draw();"), "the storage event");
   assert.ok(staff.indexOf("{const r=tidy(CL)") < staff.indexOf("c.code.replace(/-[A-Z0-9]{3,5}$/"), "tidy runs before c.code.replace");
 });
+
+test("Claims inbox: what it takes from a resident's record and the decision store is only text, a number or nothing, never an object that prints as [object Object]", () => {
+  const at = staff.indexOf("function fromRes(){");
+  const body = staff.slice(at, at + 3600);
+  assert.ok(body.includes('const tx=v=>typeof v==="string"||typeof v==="number"?String(v):"",nm=v=>Number.isFinite(v)?v:0;'));
+  assert.ok(body.includes('code:tx((c.codes&&typeof c.codes==="object"?c.codes[j]:"")||c.code).slice(0,40)'));
+  assert.ok(body.includes("if(nm(d.vt))c.vt=d.vt;if(nm(d.jt))c.jt=d.jt;if(d.st===\"rejected\")c.reason=tx(d.reason);if(tx(d.manual))c.manual={by:\"Property team\",at:nm(d.vt)||nm(d.at)||Date.now(),reason:tx(d.manual)}"));
+  assert.ok(!/String\(d\.reason/.test(body) && !/String\(d\.manual/.test(body));
+});

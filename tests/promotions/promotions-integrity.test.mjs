@@ -233,7 +233,7 @@ test("the pages agree: Resident refreshes on any resident's claim and on a moved
   const staff = readFileSync(new URL("../../src/staff/account-settings-content.html", import.meta.url), "utf8");
   assert.ok(staff.includes('const actor=()=>STAFF_ME?STAFF_ME.name:window._wsRole!="staff"?"Property Manager":"Staff";') && staff.includes('const actorId=()=>STAFF_ME?STAFF_ME.id:"";'), "the decider is the signed-in staff member");
   assert.ok(staff.includes('"eso-pm-audit-v1"') && staff.includes('by:o&&o.st===c.st&&o.by?o.by:(/^Cancelled by resident/.test(c.reason||"")&&c.rid?"resident:"+c.rid:actor())'), "Staff's decisions carry who made them and go into the same log");
-  assert.ok(staff.includes('(c.codes&&c.codes[j])||c.code'), "each claim of the inbox has the code it was given");
+  assert.ok(staff.includes('(c.codes&&typeof c.codes==="object"?c.codes[j]:"")||c.code'), "each claim of the inbox has the code it was given");
 });
 
 test("claim, cancel, claim again: the cancelled claim stays cancelled on the record and does not count again, with or without Staff's inbox", () => {

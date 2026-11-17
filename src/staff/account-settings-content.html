@@ -6592,7 +6592,7 @@ auditAdd(evs)}
 /* Claims made in the Resident app (each resident's own record, eso-res-promo:<id>) become claims in this inbox, Pending, once each (rk = resident|promotion|n).
    A deal Staff made is named by the id it was published with there and by "dining5" here: c.promo keeps the first, c.deal is the second. */
 function fromRes(){
-fresh();let ch=0;
+fresh();let ch=0;/* text from a stored record is only taken when it is text or a number (an object would print as [object Object]); a time only when it is a number */const tx=v=>typeof v==="string"||typeof v==="number"?String(v):"",nm=v=>Number.isFinite(v)?v:0;
 CL.forEach(function(x){if(!x.promo)return;var m2=META[x.promo]||Object.values(META).find(function(z){return z.pmc==x.promo}),d=m2?m2.id:"gone:"+x.promo;if(x.deal!==d){x.deal=d;ch=1}});
 try{for(let i=0;i<localStorage.length;i++){const key=localStorage.key(i);if(!key||key.indexOf("eso-res-promo:")!==0)continue;
 const rid=key.slice(14);let s=null;try{s=JSON.parse(localStorage.getItem(key))}catch(e){}
@@ -6601,9 +6601,9 @@ for(const pid of Object.keys(cl)){const c=cl[pid],n=c&&Math.min(1000,Math.floor(
 const m=META[pid]||Object.values(META).find(z=>z.pmc==pid);if(!m)continue;
 for(let j=1;j<=n;j++){const rk=rid+"|"+pid+"|"+j;const ex=CL.find(x=>x.rk===rk);if(ex){if(ex.st==="pending"&&Array.isArray(c.cancelled)&&c.cancelled.includes(j)){ex.st="rejected";ex.reason="Cancelled by resident";ex.jt=Date.parse(c.cancelledAt&&c.cancelledAt[j])||Date.now();ch=1}continue}
 const who=c.who||{};
-const gone=Array.isArray(c.cancelled)&&c.cancelled.includes(j);CL.push({id:"r_"+rk.replace(/[^a-zA-Z0-9]/g,"_"),rk,rid,promo:pid,deal:m.id,name:String(who.name||"Resident").slice(0,60),unit:String(who.unit||"—").slice(0,12),pv:"staff",t:Date.parse(c.at)||Date.now(),code:String((c.codes&&c.codes[j])||c.code||"").slice(0,40),st:gone?"rejected":"pending",sync:false,note:"",reason:gone?"Cancelled by resident":"",...(gone?{jt:Date.parse(c.cancelledAt&&c.cancelledAt[j])||Date.now()}:{}),meth:"app"});ch=1}}}}catch(e){}
+const gone=Array.isArray(c.cancelled)&&c.cancelled.includes(j);CL.push({id:"r_"+rk.replace(/[^a-zA-Z0-9]/g,"_"),rk,rid,promo:pid,deal:m.id,name:String(who.name||"Resident").slice(0,60),unit:String(who.unit||"—").slice(0,12),pv:"staff",t:Date.parse(c.at)||Date.now(),code:tx((c.codes&&typeof c.codes==="object"?c.codes[j]:"")||c.code).slice(0,40),st:gone?"rejected":"pending",sync:false,note:"",reason:gone?"Cancelled by resident":"",...(gone?{jt:Date.parse(c.cancelledAt&&c.cancelledAt[j])||Date.now()}:{}),meth:"app"});ch=1}}}}catch(e){}
 /* a decision made from the chat (Messages) before this page knew the claim: the claim takes it over */
-try{const cs=JSON.parse(localStorage.getItem("eso-pm-claimstate")||"{}")||{};CL.forEach(c=>{const d=c.rk&&cs[c.rk];if(d&&c.st==="pending"&&(d.st==="verified"||d.st==="rejected")){c.st=d.st;if(d.vt)c.vt=d.vt;if(d.jt)c.jt=d.jt;if(d.st==="rejected")c.reason=String(d.reason||"");if(d.manual)c.manual={by:"Property team",at:d.vt||d.at||Date.now(),reason:String(d.manual)};ch=1}})}catch(e){}
+try{const cs=JSON.parse(localStorage.getItem("eso-pm-claimstate")||"{}")||{};CL.forEach(c=>{const d=c.rk&&cs[c.rk];if(d&&c.st==="pending"&&(d.st==="verified"||d.st==="rejected")){c.st=d.st;if(nm(d.vt))c.vt=d.vt;if(nm(d.jt))c.jt=d.jt;if(d.st==="rejected")c.reason=tx(d.reason);if(tx(d.manual))c.manual={by:"Property team",at:nm(d.vt)||nm(d.at)||Date.now(),reason:tx(d.manual)};ch=1}})}catch(e){}
 if(ch){CL.sort((a,b)=>b.t-a.t);sv()}return ch}
 fromRes();
 addEventListener("storage",e=>{if(e.key===K&&e.newValue){try{const a=JSON.parse(e.newValue);if(Array.isArray(a)){CL=tidy(a).a;fromRes();draw();window._pm&&_pm.upd&&_pm.upd()}}catch(x){}}});
