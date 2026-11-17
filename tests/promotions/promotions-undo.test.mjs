@@ -71,3 +71,10 @@ test("usability: Cancel claim asks first (Keep claim is the default); only the s
   assert.ok(ask.includes('if (r) doCancelReward(r);'), "the second press cancels");
   assert.ok(res.slice(res.indexOf("function doCancelReward(r) {")).includes("cancelClaim(storage, me.id, r.id)"));
 });
+
+test("Claims inbox: a claim the resident cancelled before the inbox knew it comes in as cancelled, and a cancelled claim cannot be moved back to Pending", () => {
+  assert.ok(staff.includes('const gone=Array.isArray(c.cancelled)&&c.cancelled.includes(j);'));
+  assert.ok(staff.includes('st:gone?"rejected":"pending"') && staff.includes('reason:gone?"Cancelled by resident":""'));
+  assert.ok(staff.includes('`<p class="pmc-hint">Cancelled by the resident. There is nothing to decide.</p>`'));
+  assert.ok(staff.includes('if(c.st=="rejected"&&!/^Cancelled by resident/.test(c.reason||"")){'), "the reopen handler also refuses it");
+});
