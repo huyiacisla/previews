@@ -6679,7 +6679,8 @@ document.addEventListener("click",e=>{const t=e.target;if(!t.closest)return;cons
  if(b=g("data-clfx")){U.promo=[];U.range="all";U.sync="any";return draw()}
  if(b=g("data-clcsv"))return csv();
  if(b=g("data-clv")){e.stopPropagation();{const c0=CL.find(x=>x.id==b.dataset.clv);if(c0&&c0.st=="pending")step(c0,"verify")}return T("Claim verified")}
- if(b=g("data-clred")){const c0=CL.find(x=>x.id==b.dataset.clred);if(!c0||(c0.st!="verified"&&c0.st!="pending"))return T(c0&&c0.st=="redeemed"?"Code already used":"This claim can’t be redeemed");step(c0,"redeem");return T("Marked redeemed")}
+ if(b=g("data-clred")){const c0=CL.find(x=>x.id==b.dataset.clred);if(!c0||(c0.st!="verified"&&c0.st!="pending"))return T(c0&&c0.st=="redeemed"?"Code already used":"This claim can’t be redeemed");if(b.dataset.ask!=="1"){const t=b.lastChild;b.dataset.ask="1";b.dataset.was=t.textContent;t.textContent=" Press again to mark as used";b.setAttribute("aria-live","polite");clearTimeout(b._t);b._t=setTimeout(()=>{if(b.isConnected){b.dataset.ask="";t.textContent=b.dataset.was}},5000);return}
+  step(c0,"redeem");return T("Marked redeemed")}
  if(b=g("data-clrdx")){const c0=CL.find(x=>x.id==b.dataset.clrdx);if(c0&&c0.st!="redeemed"&&c0.st!="rejected"){step(c0,"redeem");T("Redeemed · "+c0.name)}return}
  if(b=g("data-clsy")){e.stopPropagation();act([b.dataset.clsy],c=>{c.sync=true;c.note=c.note||"Marked synced "+new Date().toLocaleDateString()});return T("Marked synced to external system")}
  if(b=g("data-clrj")){e.stopPropagation();return sheet("reject",[b.dataset.clrj])}
@@ -7942,6 +7943,8 @@ html.dark .cl-d .btn.danger-t,html.dark .btn.out.danger-t{color:#fca5a5!importan
 .cl-d{gap:12px;padding:12px;font-size:13px}.cl-d .pmc-kv,.cl-d .pmc-kv dt,.cl-d .pmc-kv dd{font-size:13px}.cl-d .pmc-ey{font-size:11px}
 .cl-dh b{font-size:18px}.cl-dh span{font-size:14px}
 .cl-da{gap:6px}
+/* the claim detail has one main action; the others are outlined (Reject keeps its own red) */
+html body .cl-d .btn.out:not(.danger-t){background:var(--card);color:var(--fg);border:1px solid var(--border);box-shadow:none}
 html body .cl-d .btn:not(.xs):not(.sm){position:relative;height:32px!important;min-height:0!important;font-size:13px;padding:0 12px}
 html body .cl-d .btn:not(.xs):not(.sm)::after{content:"";position:absolute;inset:-6px -2px}
 html body .cl-d textarea{min-height:56px!important;height:56px;font-size:13px;padding:6px 10px}

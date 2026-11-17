@@ -88,3 +88,11 @@ test("the Modern template's accent keeps white button text at 4.5:1 or more", ()
   const accent = /accent:"(#[0-9a-f]{6})"/i.exec(line)[1];
   assert.ok(1.05 / (lum(accent) + 0.05) >= 4.5, `${accent} with white text`);
 });
+
+test("usability: the claim detail has one main action (the others are outlined) and Mark redeemed asks once", () => {
+  assert.ok(staff.includes("html body .cl-d .btn.out:not(.danger-t){background:var(--card);color:var(--fg);border:1px solid var(--border);box-shadow:none}"));
+  assert.ok(staff.includes('t.textContent=" Press again to mark as used"'));
+  assert.ok(staff.includes('b.dataset.ask!=="1"'));
+  assert.ok(staff.includes('step(c0,"redeem");return T("Marked redeemed")'), "the second press does it");
+  assert.ok(staff.includes('b.setAttribute("aria-live","polite")'), "the changed label is announced");
+});
