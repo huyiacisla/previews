@@ -76,7 +76,7 @@ Chạy một chuỗi liền (một cư dân là Priya, 16/11/2026, trình duyệ
 | I3 | "Move back to Pending" cho claim Verified cũng có trong modal Resident information (hành động `unverify` của `decideClaim`: hộp Claims, kho trạng thái, nhật ký ghi theo thứ tự có hoàn tác; không áp dụng cho claim đã dùng, bị từ chối hoặc đã đồng bộ) | Trung | Đã làm (16/11), đã thử trên giao diện thật |
 | I4 | Nhãn ô khoá trong hộp Reject rõ hơn ("Do not let the resident claim again (the deal is out)") | Trung | Đã làm (16/11) |
 | I5 | Lý do từ chối hiện với nhãn "Reason:" ở cửa sổ deal của cư dân | Thấp | Đã làm (16/11) |
-| I6 | Câu hỏi về promotion vào ticket đang mở của chủ đề khác: gắn nhãn chủ đề "Promotions" cho ticket hoặc hiện chủ đề mới nhất; đồng hồ "Waiting" tính từ tin mới nhất của cư dân | Trung | Một phần |
+| I6 | Câu hỏi về promotion vào ticket đang mở của chủ đề khác: gắn nhãn chủ đề "Promotions" cho ticket hoặc hiện chủ đề mới nhất; đồng hồ "Waiting" tính từ tin mới nhất của cư dân | Trung | Đã làm (16/11): dòng chủ đề hiện "Vehicle or permit + Promotions". Đồng hồ "Waiting" là thời gian ticket chờ Staff trả lời (từ lúc vào hàng chờ): với ticket chưa ai trả lời thì đúng cho cả hai câu hỏi, nên không đổi |
 | I7 | Bốn nút hành động trong chi tiết claim (Apply by hand, Mark redeemed, Move back, Reject) khác nhau rõ hơn: một nút chính, còn lại viền; Mark redeemed hỏi lại một lần | Thấp | Đã làm (16/11): chi tiết claim có một nút chính, các nút khác viền; "Mark redeemed" bấm lần đầu đổi nhãn "Press again to mark as used" (tự trả lại sau 5 giây), lần hai mới đánh dấu; đã thử trên giao diện thật |
 | I10 | Cancel claim hỏi lại một lần (Keep claim là mặc định) | Cao | Đã làm (16/11) |
 | I8 | Chống quá tải khi nhiều người nhận cùng lúc | Cao | Đã làm (16/11) |
@@ -93,7 +93,7 @@ Chạy một chuỗi liền (một cư dân là Priya, 16/11/2026, trình duyệ
 **Đã sửa trong đợt này** (đều có test, cả bộ 656/656): chống quá tải khi nhiều người nhận cùng một deal; "Move back to Pending" cho Verify nhầm (hộp Claims và modal); khối "Checks before you decide"; hộp xác nhận trước khi huỷ claim; nhãn ô khoá của hộp Reject; nhãn "Reason:" cho cư dân; nút Claim, Cancel trong Resident view của Staff chỉ báo; cửa sổ Resident information gọn, bàn phím dùng được.
 
 **Còn lại, đã biết, không chặn** (ghi để làm sau):
-- **I6** đã làm một phần: nhãn chủ đề nay có "+ Promotions"; đồng hồ "Waiting" vẫn tính từ câu hỏi đầu.
+- **I6** đã làm (nhãn chủ đề "+ Promotions"; đồng hồ "Waiting" đúng khi chưa ai trả lời).
 - **I7** đã làm.
 - **I1** (trung): Reject từ hộp Claims không có dòng trong chat; cần máy chủ.
 - **Cần máy chủ** (đã ghi từ trước): nguyên tử tồn kho, giới hạn tải cho nhiều người thật cùng lúc, nhật ký không sửa được, đăng nhập thật, che mã ở máy chủ, đồng bộ CRM, và một nguồn sự thật duy nhất khi nhiều tab Staff mở (một tab hộp Claims cũ có thể ghi đè quyết định mới hơn).
@@ -115,3 +115,9 @@ Sau mọi bản sửa, đo lại các điểm từng bị phàn nàn:
 - **Hộp Claims của Staff** ở 375 px: không tràn ngang; cuộn hết cỡ thì nút nổi của trợ lý không đè lên nút ✓ ✕ nào (bốn nút kiểm tra).
 - Các điểm khác (modal Resident information, hộp xác nhận, bảy template, sáng và tối) đã đo ở các mục trên.
 - **Ghi nhận**: khi đo, kho của Alex có thêm một claim Covered Spot Upgrade tạo lúc đo, do người dùng tự thử trên trang (phiên nhánh đang nghỉ); giữ nguyên, không phải dữ liệu thử của kịch bản.
+
+## Hết hạn khi đang chờ duyệt (Phase 5.2), 16/11/2026
+Priya nhận Covered Spot Upgrade (Pending), rồi ngày kết thúc deal được đặt ở quá khứ (đúng cách Staff kết thúc một deal mẫu: `eso-pm-ends`). Dữ liệu đã trả lại.
+- **Cư dân**: deal biến khỏi danh sách; claim chuyển sang "Used / Expired" với nhãn "Expired" ("Expired Nov 15, 2026, 11:59 PM"). **Khoảng trống (L3, đã sửa)**: cửa sổ các bước vẫn chỉ nói "Awaiting staff approval · Waiting" mà không nhắc deal đã hết. Nay thêm: "Your claim was made before it ended. Ask the property team if it will still be honored." (có nút Ask staff).
+- **Staff**: claim vẫn ở "Current claim" của modal (để còn quyết định), khối Checks báo "✕ The deal is not running now", có Confirm / Apply by hand / Reject. Đạt.
+- **Chuông của Alex hiện 32**: là nguồn thông báo mẫu của ứng dụng (vé đỗ xe, thanh toán, yêu cầu...), không do các lượt thử tạo ra.

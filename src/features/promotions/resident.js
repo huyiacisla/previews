@@ -1135,7 +1135,8 @@ function paintClaim() {
     return;
   }
   $("#cl-title").textContent = r.info.title || "Promotion";
-  $("#cl-expiry").textContent = rewardEndText(r.info);
+  // a claim still waiting for approval on a deal that has ended: say so and where to ask (the team may still honour a claim made before it ended)
+  $("#cl-expiry").textContent = rewardEndText(r.info) + (r.key === "pending" && r.info.live !== "running" ? ". Your claim was made before it ended. Ask the property team if it will still be honored." : "");
   const steps = $("#cl-steps");
   clear(steps);
   for (const st of claimSteps(r.key, claimTimeline(storage, me.id, r.id))) {

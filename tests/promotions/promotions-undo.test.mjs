@@ -96,3 +96,8 @@ test("usability: the claim detail has one main action (the others are outlined) 
   assert.ok(staff.includes('step(c0,"redeem");return T("Marked redeemed")'), "the second press does it");
   assert.ok(staff.includes('b.setAttribute("aria-live","polite")'), "the changed label is announced");
 });
+
+test("usability: a claim still waiting on a deal that has ended says so and where to ask", () => {
+  const res = read("src/features/promotions/resident.js");
+  assert.ok(res.includes('r.key === "pending" && r.info.live !== "running" ? ". Your claim was made before it ended. Ask the property team if it will still be honored." : ""'));
+});
