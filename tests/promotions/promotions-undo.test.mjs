@@ -41,3 +41,21 @@ test("a used or already synced claim cannot be taken back", () => {
   assert.ok(cond.includes('c.st=="verified"') && cond.includes("!c.sync"), "only a verified, not synced claim");
   assert.ok(!cond.includes("redeemed"));
 });
+
+test("usability: the lock choice of the Reject box says what it does, and the resident reads the reason with its label", () => {
+  assert.ok(staff.includes("Do not let the resident claim again (the deal is out)"));
+  assert.ok(!staff.includes("Lock: deal is really out"));
+  const res = read("src/features/promotions/resident.js");
+  assert.ok(res.includes("Not approved by the property team.${cs && cs.reason ? ` Reason: ${cs.reason}` : \"\"}"));
+});
+
+test("usability: above the decision buttons Staff see the checks behind the reasons (lease, deal, unit), read from the real records", () => {
+  const msg = read("src/features/messaging/app.js");
+  assert.ok(msg.includes("function claimChecks(residentId, row, unit) {"));
+  assert.ok(msg.includes('Lease active: ends ${fmtDate(unit.leaseEnd)} (${unit.daysLeft} days left)'));
+  assert.ok(msg.includes("The deal is not running now (it ended, was paused or removed)"));
+  assert.ok(msg.includes("(same unit) also claimed this deal") && msg.includes("No one else in this unit has claimed this deal"));
+  assert.ok(msg.includes("listPromotions(localStorage, { viewer: residentId })") && msg.includes("householdClaims(localStorage, residentId, row.promoId)"));
+  assert.ok(msg.includes('if (r.key === "pending") li.appendChild(checkList(rid, r, data.unit));'), "shown for a claim that waits, before the buttons");
+  assert.ok(msg.includes('word.textContent = c.ok ? "Passed: " : "Needs attention: ";'), "a check is also in words, not only a mark");
+});

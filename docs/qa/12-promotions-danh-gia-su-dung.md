@@ -52,16 +52,16 @@ Chạy một chuỗi liền (một cư dân là Priya, 16/11/2026, trình duyệ
 | S5 | Staff Verify nhầm: trước đây không có đường lùi. Nay claim Verified chưa đồng bộ có **"Move back to Pending"**: claim Pending lại, mã bị che lại, nhật ký một dòng `unverify` (chuỗi: claim, verify, unverify, reject, give_back, claim, verify, redeem) | 2 / 2 / 2 / 2 | Nút lùi chỉ có trong hộp Claims, chưa có trong modal Resident information (I3); bốn nút hành động nhìn ngang nhau (I7). Một lần lùi đầu tiên bị bản ghi hộp Claims ghi đè về "verified" (không tái hiện được lần hai; nghi một phiên khác ghi cùng kho vào lúc đó). |
 | S9 | Staff Verify rồi **Mark redeemed**: 2 lần bấm. Cư dân thấy "Used" ở tab "Used / Expired" của My rewards, mã vẫn hiện | 2 / 2 / 2 / 1 | Mark redeemed không hỏi xác nhận; không có đường lùi sau khi đã dùng (đúng ý, nhưng nên có hỏi lại). |
 
-**Đạt khi sửa xong**: S4 (ô 0 không có, tổng 6/8) và S3 (tổng 7/8) chưa đạt ngưỡng 8; S1, S2, S5, S9 đạt. Sau khi sửa I1, I2, I4, I5 sẽ chấm lại S3 và S4.
+**Đạt khi sửa xong**: S4 (tổng 6/8) và S3 (tổng 7/8) chưa đạt ngưỡng 8; S1, S2, S5, S9 đạt. I2, I4, I5 đã sửa; còn I1 (chat báo quyết định) rồi chấm lại S3 và S4.
 
 ## Điều cần cải thiện (gom lại)
 | # | Việc | Mức | Tình trạng |
 |---|---|---|---|
 | I1 | Khi Staff Confirm, Reject hoặc lùi một claim, chat của cư dân nhận một dòng hệ thống ("Your claim for X was confirmed. Your code is ready." / "... was not approved: lý do") để cư dân không phải tự đoán qua thẻ hoặc chuông | Cao | Chưa làm |
-| I2 | Thẻ claim trong modal của Staff hiện thêm các điều kiện để quyết định: hợp đồng còn hiệu lực, deal còn chạy tới ngày nào và còn mấy suất, có ai cùng căn hộ nhận chưa (để lý do mẫu từ chối có dữ kiện) | Cao | Chưa làm |
+| I2 | Thẻ claim trong modal của Staff hiện "Checks before you decide": hợp đồng còn hiệu lực, deal còn chạy tới ngày nào và còn mấy suất, có ai cùng căn hộ nhận chưa (để lý do mẫu từ chối có dữ kiện; mỗi dòng có chữ "Passed" hoặc "Needs attention" cho trình đọc màn hình) | Cao | Đã làm (16/11), đã xem trên giao diện thật với claim của Alex |
 | I3 | "Move back to Pending" cho claim Verified cũng có trong modal Resident information | Trung | Chưa làm |
-| I4 | Nhãn ô khoá trong hộp Reject rõ hơn ("Do not let the resident claim again (the deal is out)") | Trung | Chưa làm |
-| I5 | Lý do từ chối hiện với nhãn "Reason:" ở cửa sổ deal của cư dân | Thấp | Chưa làm |
+| I4 | Nhãn ô khoá trong hộp Reject rõ hơn ("Do not let the resident claim again (the deal is out)") | Trung | Đã làm (16/11) |
+| I5 | Lý do từ chối hiện với nhãn "Reason:" ở cửa sổ deal của cư dân | Thấp | Đã làm (16/11) |
 | I6 | Câu hỏi về promotion vào ticket đang mở của chủ đề khác: gắn nhãn chủ đề "Promotions" cho ticket hoặc hiện chủ đề mới nhất; đồng hồ "Waiting" tính từ tin mới nhất của cư dân | Trung | Chưa làm |
 | I7 | Bốn nút hành động trong chi tiết claim (Apply by hand, Mark redeemed, Move back, Reject) khác nhau rõ hơn: một nút chính, còn lại viền; Mark redeemed hỏi lại một lần | Thấp | Chưa làm |
 | I8 | Chống quá tải khi nhiều người nhận cùng lúc | Cao | Đã làm (16/11) |

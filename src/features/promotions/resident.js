@@ -614,7 +614,7 @@ function refreshDialog() {
       pending: "Waiting for the property team to confirm.",
       verified: cs && cs.manual ? `Applied by the property team: ${cs.manual}` : "Confirmed by the property team.",
       redeemed: "Used. Thank you.",
-      rejected: cs && /cancelled/i.test(cs.reason || "") ? "You cancelled this claim." : `Not approved by the property team.${cs && cs.reason ? ` ${cs.reason}` : ""}`,
+      rejected: cs && /cancelled/i.test(cs.reason || "") ? "You cancelled this claim." : `Not approved by the property team.${cs && cs.reason ? ` Reason: ${cs.reason}` : ""}`,
     };
     const line = $("#dlg-claim-status");
     line.textContent = mate ? `One claim per unit: ${mate.name} already claimed this${mate.at ? ` on ${new Date(mate.at).toLocaleDateString("en-US", { month: "short", day: "numeric" })}` : ""}.` : cs ? say[cs.st] : "";

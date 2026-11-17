@@ -9,7 +9,7 @@ import { duration, formatBytes, formatFull, formatTime, groupByDay, listTime } f
 import { initials, PERSONAS, PORTALS, pickPersona } from "./personas.js";
 import { describeFilters, FILTER_KEYS, isEmptyQuery, matchFilters, matchText, parseQuery, withoutFilter } from "./query.js";
 import { decideClaim, decisionText } from "../promotions/decide.js";
-import { allRecords, claimStatus, claimSteps, historyFor, householdClaims, maskCode, residentState, rewardGroup, rewardInfo, unitBlocks, unitHistory, unitMates } from "../promotions/store.js";
+import { allRecords, claimStatus, claimSteps, historyFor, householdClaims, listPromotions, maskCode, residentState, rewardGroup, rewardInfo, unitBlocks, unitHistory, unitMates } from "../promotions/store.js";
 import { fold } from "./fold.js";
 import { createStore, notifies, STAGE_LABEL, STAGES, ticketNo } from "./store.js";
 import { clearSideData, createTransport } from "./transport.js";
@@ -1549,6 +1549,55 @@ export function mount({ portal }) {
     }
     return ol;
   }
+  // "Checks before you decide": the facts behind the reasons Staff can give (not a current resident, already claimed in the unit, claim limit, expired), read from the real records.
+  // Returns [{ ok: true | false, text }]: a check that passes (true), one that does not (false).
+  function claimChecks(residentId, row, unit) {
+    const out = [];
+    if (unit && Number.isFinite(unit.daysLeft)) {
+      out.push(unit.daysLeft >= 0 ? { ok: true, text: `Lease active: ends ${fmtDate(unit.leaseEnd)} (${unit.daysLeft} days left)` } : { ok: false, text: `Lease ended ${-unit.daysLeft} days ago` });
+    }
+    let live = null;
+    try {
+      live = listPromotions(localStorage, { viewer: residentId }).find((p) => String(p.id) === String(row.promoId)) || null;
+    } catch {
+      live = null;
+    }
+    if (!live) out.push({ ok: false, text: "The deal is not running now (it ended, was paused or removed)" });
+    else {
+      const ends = live.endsAt ? `, ends ${formatFull(live.endsAt)}` : "";
+      const left = live.left != null ? `, ${live.left} of ${live.total} left` : "";
+      out.push({ ok: true, text: `The deal is running${ends}${left}` });
+    }
+    const mates = householdClaims(localStorage, residentId, row.promoId);
+    out.push(mates.length ? { ok: false, text: `${mates.map((m) => m.name).join(", ")} (same unit) also claimed this deal` } : { ok: true, text: "No one else in this unit has claimed this deal" });
+    return out;
+  }
+  function checkList(residentId, row, unit) {
+    const box = document.createElement("div");
+    box.className = "flex flex-col gap-step-xs";
+    box.appendChild(paragraph("Checks before you decide", "text-xs font-medium text-foreground-secondary"));
+    const ul = document.createElement("ul");
+    ul.setAttribute("role", "list");
+    ul.className = "flex flex-col gap-step-xs";
+    for (const c of claimChecks(residentId, row, unit)) {
+      const li = document.createElement("li");
+      li.className = "flex items-start gap-step-sm text-xs";
+      const mark = document.createElement("span");
+      mark.setAttribute("aria-hidden", "true");
+      mark.className = (c.ok ? "text-success-text" : "text-danger-text") + " w-4 shrink-0 text-center font-medium";
+      mark.textContent = c.ok ? "\u2713" : "\u2715";
+      const word = document.createElement("span");
+      word.className = "sr-only";
+      word.textContent = c.ok ? "Passed: " : "Needs attention: ";
+      const text = document.createElement("span");
+      text.className = c.ok ? "text-foreground" : "font-medium text-danger-text";
+      text.textContent = c.text;
+      li.append(mark, word, text);
+      ul.appendChild(li);
+    }
+    box.appendChild(ul);
+    return box;
+  }
   // one claim: its deal, the state it is in, the code, who decided, who else in the unit has it, and its steps
   function rewardCard(residentId, r, { withSteps = true } = {}) {
     const li = document.createElement("li");
@@ -1714,7 +1763,10 @@ export function mount({ portal }) {
                       const toDecide = ["staff", "admin"].includes(me.role) && conv.kind === "resident_support" ? decidable(rid) : [];
                       claimList(p, "cur", rid, current, "No claim in progress.", (r, li) => {
                         const d = toDecide.find((x) => x.promoId === r.promoId);
-                        if (d) li.appendChild(decisionBox(conv, d, rebuild));
+                        if (d) {
+                          if (r.key === "pending") li.appendChild(checkList(rid, r, data.unit));
+                          li.appendChild(decisionBox(conv, d, rebuild));
+                        }
                       });
                       for (const { m, rows } of matesCurrent) {
                         p.appendChild(paragraph(`Same unit: ${m.name}`, "text-sm font-medium"));
