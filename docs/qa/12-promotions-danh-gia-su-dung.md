@@ -179,3 +179,6 @@ Hướng 7 và 8: làm hỏng **từng trường** (null, chữ, danh sách, s�
 
 ## Một suất mỗi căn hộ: nhả suất (16/11/2026, không có lỗi mới)
 Hướng: người giữ suất của căn hộ huỷ, bị Reject, hoặc đã được Verify; người cùng căn hộ (Jamie) claim, người đầu claim lại. Kết quả đúng: sau **Cancel** hoặc **Reject** căn hộ được nhả (Jamie claim được, Alex sau đó bị chặn, nhật ký giữ đúng 1 suất); claim đã **Verify** không huỷ được ("Only a claim that is waiting can be cancelled") và không trả suất; người bị Reject claim lại được (pending). Giữ lại làm test: tests/promotions/promotions-unit-release.test.mjs (4 test). Đây là lượt không có lỗi mới thứ 2 liên tiếp trong số các lượt gần đây (lượt trước là kiểm HTML, chỉ có L14 về mã dài).
+
+## Deal có giới hạn tổng, những suất cuối (16/11/2026, không có lỗi mới)
+Hướng: `parking1` (mẫu còn 3 suất) đi qua claim của ba cư dân, deal đầy, claim bị từ chối vì đầy, Cancel, Reject, claim lại cho đến đầy lần nữa, và Jamie (cùng căn hộ với Alex) bị chặn ở mọi bước. Ở **mọi bước** số suất còn lại trên thẻ đúng bằng 3 trừ số suất nhật ký đang giữ (`spotsTaken`); claim bị từ chối không lấy suất. Giữ lại làm test: tests/promotions/promotions-soldout.test.mjs. Đây là lượt thứ 2 liên tiếp không có lỗi mới.
