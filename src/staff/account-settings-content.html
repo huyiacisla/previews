@@ -6593,7 +6593,7 @@ CL.forEach(function(x){if(!x.promo)return;var m2=META[x.promo]||Object.values(ME
 try{for(let i=0;i<localStorage.length;i++){const key=localStorage.key(i);if(!key||key.indexOf("eso-res-promo:")!==0)continue;
 const rid=key.slice(14);let s=null;try{s=JSON.parse(localStorage.getItem(key))}catch(e){}
 const cl=s&&s.claims;if(!cl||typeof cl!=="object")continue;
-for(const pid of Object.keys(cl)){const c=cl[pid],n=c&&+c.count;if(!(n>0))continue;
+for(const pid of Object.keys(cl)){const c=cl[pid],n=c&&Math.min(1000,Math.floor(+c.count));if(!(n>0))continue;
 const m=META[pid]||Object.values(META).find(z=>z.pmc==pid);if(!m)continue;
 for(let j=1;j<=n;j++){const rk=rid+"|"+pid+"|"+j;const ex=CL.find(x=>x.rk===rk);if(ex){if(ex.st==="pending"&&Array.isArray(c.cancelled)&&c.cancelled.includes(j)){ex.st="rejected";ex.reason="Cancelled by resident";ex.jt=Date.parse(c.cancelledAt&&c.cancelledAt[j])||Date.now();ch=1}continue}
 const who=c.who||{};

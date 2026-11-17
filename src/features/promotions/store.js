@@ -391,8 +391,10 @@ export function categoriesIn(storage, today = todayISO(), viewer, samples = true
 /* -------------------------------------------------------------- what a resident has done */
 
 // One claim record as the code uses it: count is a whole number, cancelled a list of them, cancelledAt a plain object; anything else that is there is kept as it is.
+// A resident makes a handful of claims of one promotion; a record that says millions (damaged) is cut here, because several lists walk claim 1 up to the count and would never end.
+export const MAX_CLAIMS = 1000;
 function claimRecord(c) {
-  const out = { ...c, count: Math.max(0, Math.floor(Number(c.count)) || 0) };
+  const out = { ...c, count: Math.min(MAX_CLAIMS, Math.max(0, Math.floor(Number(c.count)) || 0)) };
   if (c.cancelled !== undefined) out.cancelled = Array.isArray(c.cancelled) ? c.cancelled.filter((n) => Number.isInteger(n)) : [];
   if (c.cancelledAt !== undefined && !isObj(c.cancelledAt)) delete out.cancelledAt;
   return out;

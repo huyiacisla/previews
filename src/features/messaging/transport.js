@@ -83,13 +83,33 @@ export function createTransport(opts = {}) {
     });
   }
 
+  // The parts of a conversation document the store reaches into without asking (preferences per person, the counters, each conversation and its list of messages) are made
+  // what the store expects when they are damaged, so one broken field does not make every read throw. Nothing that is fine is changed.
+  const isObj = (v) => v && typeof v === "object" && !Array.isArray(v);
+  const repair = (doc) => {
+    if (!isObj(doc.prefs)) doc.prefs = {};
+    for (const k of Object.keys(doc.prefs)) if (!isObj(doc.prefs[k])) delete doc.prefs[k];
+    for (const id of Object.keys(doc.convs)) if (!isObj(doc.convs[id])) delete doc.convs[id];
+    for (const id of Object.keys(doc.msgs)) doc.msgs[id] = Array.isArray(doc.msgs[id]) ? doc.msgs[id].filter(isObj) : [];
+    for (const c of Object.values(doc.convs)) if (!Array.isArray(doc.msgs[c.id])) doc.msgs[c.id] = [];
+    if (!Number.isFinite(doc.seq)) {
+      let max = 0;
+      for (const list of Object.values(doc.msgs)) for (const m of list) max = Math.max(max, parseInt(String(m.id).replace(/\D/g, ""), 10) || 0);
+      doc.seq = max;
+    }
+    if (!Number.isFinite(doc.ticketSeq)) {
+      let max = 1000;
+      for (const c of Object.values(doc.convs)) max = Math.max(max, Number(c.ticketNo) || 0);
+      doc.ticketSeq = max;
+    }
+    return doc;
+  };
   const read = () => {
     try {
       const raw = storage.getItem(key);
       const doc = raw ? JSON.parse(raw) : null;
       // A document that is not a conversation document (hand-edited, damaged, "{}") is the same as none: the samples load again.
-      const isObj = (v) => v && typeof v === "object" && !Array.isArray(v);
-      return isObj(doc) && isObj(doc.convs) && isObj(doc.msgs) && Number.isFinite(doc.rev) ? doc : null;
+      return isObj(doc) && isObj(doc.convs) && isObj(doc.msgs) && Number.isFinite(doc.rev) ? repair(doc) : null;
     } catch {
       return null;
     }

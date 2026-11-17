@@ -248,6 +248,7 @@ export function createStore({ transport, now = Date.now, config = {} } = {}) {
   if (transport.live) transport.live.onChange(() => notify("live"));
   transport.onChange(() => {
     const s = transport.read();
+    if (s) sanitize(s);
     if (s && s.rev !== lastRev) {
       state = s;
       lastRev = s.rev;
@@ -259,6 +260,7 @@ export function createStore({ transport, now = Date.now, config = {} } = {}) {
   function act(fn) {
     let result;
     const r = transport.update((d) => {
+      sanitize(d);
       result = fn(d);
       return result && (result.ok === false || result.noop) ? false : undefined; // failed or nothing changed: do not write
     }, seed);
@@ -273,6 +275,41 @@ export function createStore({ transport, now = Date.now, config = {} } = {}) {
 
   const nid = (d, p) => `${p}${++d.seq}`;
   const user = (id) => byId[id];
+  /**
+   * What is stored is trusted by every read, so a conversation that points at a person nobody knows (a damaged or removed account), or a message without its list of readers, is
+   * made safe when it is loaded: a conversation that cannot be about anyone is dropped with its messages, a message gets the readers and time it needs. What is fine is not touched.
+   */
+  function sanitize(d) {
+    const isO = (v) => v && typeof v === "object" && !Array.isArray(v);
+    const known = (x) => typeof x === "string" && !!byId[x];
+    for (const id of Object.keys(d.convs)) {
+      const c = d.convs[id];
+      let ok = isO(c) && typeof c.kind === "string";
+      if (ok && c.kind === "resident_support") ok = known(c.residentId);
+      else if (ok && c.kind === "support") ok = known(c.requesterId);
+      else if (ok && c.kind === "announcement") ok = known(c.authorId);
+      else if (ok && (c.kind === "direct" || c.kind === "group")) {
+        c.participants = Array.isArray(c.participants) ? c.participants.filter(known) : [];
+        ok = c.participants.length >= (c.kind === "direct" ? 2 : 1); // a direct chat is between two people
+      }
+      if (!ok) {
+        delete d.convs[id];
+        delete d.msgs[id];
+      }
+    }
+    for (const id of Object.keys(d.msgs)) {
+      if (!d.convs[id]) {
+        delete d.msgs[id];
+        continue;
+      }
+      for (const m of d.msgs[id]) {
+        if (!isO(m.readBy)) m.readBy = {};
+        if (!Number.isFinite(m.at)) m.at = 0;
+      }
+    }
+    return d;
+  }
+  if (state) sanitize(state);
   /** What `viewer` is allowed to know about a person: a resident sees every member of the staff as the one "Property team", never a name or a job title. */
   const maskStaff = (person, viewer, conv) => {
     if (!person || !viewer || viewer.role !== "resident") return person;
