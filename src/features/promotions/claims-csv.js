@@ -36,7 +36,7 @@ const ms = (v) => {
   const n = typeof v === "number" ? v : Date.parse(v);
   return Number.isFinite(n) && n > 0 ? n : 0;
 };
-const iso = (t) => (t > 0 ? new Date(t).toISOString() : "");
+const iso = (t) => (t > 0 && t <= 8.64e15 ? new Date(t).toISOString() : ""); // (a time past what a date can hold is blank, never a throw)
 
 // "Jordan Lee (stf-1)": the name, and the member's id when the decision recorded it
 const who = (d) => (d ? `${d.by}${typeof d.byId === "string" && d.byId ? ` (${d.byId})` : ""}` : "");

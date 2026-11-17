@@ -3,7 +3,7 @@
 // toggles hidden / data-* / aria-*. The data comes from the same store as Messages (store.ticketBox / ticketRecord).
 
 import { exitTarget } from "../../shared/js/exit-target.js";
-import { duration, formatBytes, formatFull, formatTime, groupByDay, listTime } from "./format.js";
+import { duration, formatBytes, formatFull, formatTime, groupByDay, isoOf, listTime } from "./format.js";
 import { initials, PORTALS, pickPersona } from "./personas.js";
 import { describeFilters, parseQuery, withoutFilter } from "./query.js";
 import { createStore, STAGE_LABEL, TICKET_CATEGORIES } from "./store.js";
@@ -261,7 +261,7 @@ function renderList(force) {
     const tm = $("[data-time]", li);
     const when = t.isOpen ? t.updatedAt : t.closedAt || t.updatedAt;
     tm.textContent = listTime(when, Date.now());
-    tm.dateTime = new Date(when).toISOString();
+    tm.dateTime = isoOf(when);
     tm.title = `${t.isOpen ? "Last activity" : "Closed"} ${formatFull(when)}`;
     $("[data-subject]", li).textContent = t.subject;
     $("[data-who]", li).textContent = whoLine(t);
@@ -316,7 +316,7 @@ function entryText(e) {
 
 /** Plain-text copy of the record, for the Export button. */
 function exportText(t, entries) {
-  const iso = (ts) => new Date(ts).toISOString();
+  const iso = (ts) => isoOf(ts);
   const lines = [
     `Ticket ${t.no}: ${t.subject}`,
     `Status: ${t.stageLabel}`,
@@ -435,7 +435,7 @@ function renderDetail(force) {
     const d = tpl("t-day");
     const tm = $("[data-day]", d);
     tm.textContent = grp.label;
-    tm.dateTime = new Date(grp.items[0].at).toISOString().slice(0, 10);
+    tm.dateTime = isoOf(grp.items[0].at).slice(0, 10);
     record.appendChild(d);
     for (const e of grp.items) {
       if (e.audit) {
@@ -459,7 +459,7 @@ function renderDetail(force) {
         $("[data-rolelabel]", el).textContent = ROLE_LABEL[e.author.role];
         const time = $("[data-time]", el);
         time.textContent = formatTime(e.at);
-        time.dateTime = new Date(e.at).toISOString();
+        time.dateTime = isoOf(e.at);
         time.title = formatFull(e.at);
         const flags = $("[data-flags]", el);
         if (e.emergency) flags.appendChild(badge("Emergency", "danger", "alert"));

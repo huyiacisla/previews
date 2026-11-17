@@ -465,7 +465,7 @@ export function claimTimeline(storage, residentId, promoId) {
   if (!c || !c.count) return [];
   const n = c.count;
   const s = (read(storage, KEY.claimState, {}) || {})[`${residentId}|${promoId}|${n}`];
-  const ms = (v) => (Number(v) > 0 ? new Date(Number(v)).toISOString() : "");
+  const ms = (v) => (Number(v) > 0 && Number(v) <= 8.64e15 ? new Date(Number(v)).toISOString() : "");
   const out = [{ label: "Claimed", at: c.at || "", note: c.code ? `Code issued: ${c.code}` : "", tone: "wait" }];
   if (s && (s.st === "verified" || s.st === "redeemed")) out.push({ label: "Verified", at: ms(s.vt) || (s.st === "verified" ? ms(s.at) : ""), note: s.manual ? `Applied by the property team: ${String(s.manual).slice(0, 200)}` : "The property team confirmed your claim", tone: "ok" });
   if (s && s.st === "redeemed") out.push({ label: "Redeemed", at: ms(s.rt) || ms(s.at), note: "The code was used", tone: "ok" });
@@ -483,7 +483,7 @@ export function claimTimeline(storage, residentId, promoId) {
 export function historyFor(storage, residentId, titleOf = () => "") {
   const st = residentState(storage, residentId);
   const states = read(storage, KEY.claimState, {}) || {};
-  const ms = (v) => (Number(v) > 0 ? new Date(Number(v)).toISOString() : "");
+  const ms = (v) => (Number(v) > 0 && Number(v) <= 8.64e15 ? new Date(Number(v)).toISOString() : "");
   const ev = [];
   const has = new Set(st.log.filter((e) => e && e.k === "claimed").map((e) => `${e.p}|${e.n}`));
   const rows = st.log.filter((e) => e && typeof e.t === "string" && typeof e.p === "string");

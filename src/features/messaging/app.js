@@ -5,7 +5,7 @@ import { companyPrefs } from "../../shared/js/company-prefs.js";
 import { exitTarget } from "../../shared/js/exit-target.js";
 import { readPrefs } from "../settings/prefs.js";
 import { EMOJI_CATEGORIES, QUICK_REACTIONS, searchEmoji } from "./emoji.js";
-import { duration, formatBytes, formatFull, formatTime, groupByDay, listTime } from "./format.js";
+import { duration, formatBytes, formatFull, formatTime, groupByDay, isoOf, listTime } from "./format.js";
 import { initials, PERSONAS, PORTALS, pickPersona } from "./personas.js";
 import { describeFilters, FILTER_KEYS, isEmptyQuery, matchFilters, matchText, parseQuery, withoutFilter } from "./query.js";
 import { decideClaim, decisionText } from "../promotions/decide.js";
@@ -666,7 +666,7 @@ export function mount({ portal }) {
       $("[data-subtitle]", b).textContent = `${r.no ? `${r.no} · ` : ""}${r.subtitle || ""}`; // the ticket's own number first, so two tickets of one person are told apart
       const t = $("[data-time]", b);
       t.textContent = listTime(r.last ? r.last.at : r.updatedAt, Date.now());
-      t.dateTime = new Date(r.last ? r.last.at : r.updatedAt).toISOString();
+      t.dateTime = isoOf(r.last ? r.last.at : r.updatedAt);
       t.title = formatFull(r.last ? r.last.at : r.updatedAt);
       const who = r.last && r.last.from === me.id ? "You: " : "";
       $("[data-preview]", b).textContent = r.last ? `${who}${r.last.text}` : "No messages yet";
@@ -735,7 +735,7 @@ export function mount({ portal }) {
       $("[data-title]", li).textContent = title;
       const t = $("[data-time]", li);
       t.textContent = listTime(when, Date.now());
-      t.dateTime = new Date(when).toISOString();
+      t.dateTime = isoOf(when);
       t.title = formatFull(when);
       $("[data-text]", li).textContent = text;
       const b = $("[data-restore]", li);
@@ -835,7 +835,7 @@ export function mount({ portal }) {
       $("[data-title]", li).textContent = h.title;
       const tm = $("[data-time]", li);
       tm.textContent = listTime(h.at, Date.now());
-      tm.dateTime = new Date(h.at).toISOString();
+      tm.dateTime = isoOf(h.at);
       $("[data-who]", li).textContent = `${h.who}:`;
       $("[data-pre]", li).textContent = h.snippet.slice(0, i);
       $("[data-m]", li).textContent = h.snippet.slice(i, i + n);
@@ -2452,7 +2452,7 @@ export function mount({ portal }) {
       const d = tpl("t-day");
       const tm = $("[data-day]", d);
       tm.textContent = grp.label;
-      tm.dateTime = new Date(grp.items[0].at).toISOString().slice(0, 10);
+      tm.dateTime = isoOf(grp.items[0].at).slice(0, 10);
       log.appendChild(d);
       grp.items.forEach((m, i) => {
         const prev = grp.items[i - 1];
@@ -2461,7 +2461,7 @@ export function mount({ portal }) {
         if (prev && m.at - prev.at > 30 * 60000) {
           const tt = tpl("t-time");
           $("[data-t]", tt).textContent = formatTime(m.at);
-          $("[data-t]", tt).dateTime = new Date(m.at).toISOString();
+          $("[data-t]", tt).dateTime = isoOf(m.at);
           log.appendChild(tt);
         }
         if (ui.anchor && ui.anchor.convId === t.conv.id && ui.anchor.msgId === m.id) log.appendChild(tpl("t-new-divider"));
@@ -2972,7 +2972,7 @@ export function mount({ portal }) {
   function bubble(m, ctx) {
     const { first, last, isLastOut, offerChoices, t } = ctx;
     const when = formatTime(m.at);
-    const iso = new Date(m.at).toISOString();
+    const iso = isoOf(m.at);
     const interactive = m.kind !== "bot";
     if (m.mine) {
       const el = tpl("t-out");
