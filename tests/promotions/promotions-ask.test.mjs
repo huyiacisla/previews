@@ -114,3 +114,25 @@ test("Messages shows the card to both sides, a strip and the claim lit for Staff
   const res = readFileSync(new URL("../../src/features/promotions/resident.js", import.meta.url), "utf8");
   assert.ok(res.includes("const claimId = `r_${me.id}|${row.id}|${n}`"), "the Claim ID is the one Staff see in their Claims inbox");
 });
+
+test("a claim question that lands in a ticket about something else says so in the ticket's line (Vehicle or permit + Promotions), once", () => {
+  const store = mk();
+  const before = store.listFor("stf-1").find((x) => /Vehicle or permit/.test(x.subtitle));
+  assert.ok(before && !/Promotions/.test(before.subtitle), "Priya's seeded ticket is about a vehicle permit");
+  const r = store.askAboutClaim("res-2", claim);
+  assert.ok(r.ok);
+  assert.equal(r.convId, before.id, "the question goes into the ticket she already has");
+  const after = store.listFor("stf-1").find((x) => x.id === before.id);
+  assert.match(after.subtitle, /Vehicle or permit \+ Promotions$/);
+  store.askAboutClaim("res-2", { ...claim, title: "Covered Spot Upgrade", code: "RES-D438R" });
+  assert.equal((store.listFor("stf-1").find((x) => x.id === before.id).subtitle.match(/Promotions/g) || []).length, 1, "said once");
+});
+
+test("a ticket that is already about Promotions does not say it twice", () => {
+  const store = mk();
+  store.reset({ empty: true });
+  const r = store.askAboutClaim("res-1", claim);
+  const row = store.listFor("stf-1").find((x) => x.id === r.convId);
+  assert.equal((row.subtitle.match(/Promotions/g) || []).length, 1);
+  assert.ok(!/\+/.test(row.subtitle));
+});

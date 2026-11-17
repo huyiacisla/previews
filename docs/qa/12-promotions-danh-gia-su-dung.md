@@ -76,8 +76,8 @@ Chạy một chuỗi liền (một cư dân là Priya, 16/11/2026, trình duyệ
 | I3 | "Move back to Pending" cho claim Verified cũng có trong modal Resident information (hành động `unverify` của `decideClaim`: hộp Claims, kho trạng thái, nhật ký ghi theo thứ tự có hoàn tác; không áp dụng cho claim đã dùng, bị từ chối hoặc đã đồng bộ) | Trung | Đã làm (16/11), đã thử trên giao diện thật |
 | I4 | Nhãn ô khoá trong hộp Reject rõ hơn ("Do not let the resident claim again (the deal is out)") | Trung | Đã làm (16/11) |
 | I5 | Lý do từ chối hiện với nhãn "Reason:" ở cửa sổ deal của cư dân | Thấp | Đã làm (16/11) |
-| I6 | Câu hỏi về promotion vào ticket đang mở của chủ đề khác: gắn nhãn chủ đề "Promotions" cho ticket hoặc hiện chủ đề mới nhất; đồng hồ "Waiting" tính từ tin mới nhất của cư dân | Trung | Chưa làm |
-| I7 | Bốn nút hành động trong chi tiết claim (Apply by hand, Mark redeemed, Move back, Reject) khác nhau rõ hơn: một nút chính, còn lại viền; Mark redeemed hỏi lại một lần | Thấp | Chưa làm |
+| I6 | Câu hỏi về promotion vào ticket đang mở của chủ đề khác: gắn nhãn chủ đề "Promotions" cho ticket hoặc hiện chủ đề mới nhất; đồng hồ "Waiting" tính từ tin mới nhất của cư dân | Trung | Một phần |
+| I7 | Bốn nút hành động trong chi tiết claim (Apply by hand, Mark redeemed, Move back, Reject) khác nhau rõ hơn: một nút chính, còn lại viền; Mark redeemed hỏi lại một lần | Thấp | Đã làm (16/11): chi tiết claim có một nút chính, các nút khác viền; "Mark redeemed" bấm lần đầu đổi nhãn "Press again to mark as used" (tự trả lại sau 5 giây), lần hai mới đánh dấu; đã thử trên giao diện thật |
 | I10 | Cancel claim hỏi lại một lần (Keep claim là mặc định) | Cao | Đã làm (16/11) |
 | I8 | Chống quá tải khi nhiều người nhận cùng lúc | Cao | Đã làm (16/11) |
 | I9 | Đường lùi cho Verify nhầm | Cao | Đã làm (16/11) |
@@ -93,8 +93,8 @@ Chạy một chuỗi liền (một cư dân là Priya, 16/11/2026, trình duyệ
 **Đã sửa trong đợt này** (đều có test, cả bộ 656/656): chống quá tải khi nhiều người nhận cùng một deal; "Move back to Pending" cho Verify nhầm (hộp Claims và modal); khối "Checks before you decide"; hộp xác nhận trước khi huỷ claim; nhãn ô khoá của hộp Reject; nhãn "Reason:" cho cư dân; nút Claim, Cancel trong Resident view của Staff chỉ báo; cửa sổ Resident information gọn, bàn phím dùng được.
 
 **Còn lại, đã biết, không chặn** (ghi để làm sau):
-- **I6** (trung): câu hỏi về promotion vào ticket đang mở của chủ đề khác (Priya: "Vehicle or permit") nên nhãn chủ đề và đồng hồ "Waiting" không khớp câu hỏi mới nhất.
-- **I7** (thấp): bốn nút hành động trong chi tiết claim nhìn ngang nhau; "Mark redeemed" chưa hỏi lại.
+- **I6** đã làm một phần: nhãn chủ đề nay có "+ Promotions"; đồng hồ "Waiting" vẫn tính từ câu hỏi đầu.
+- **I7** đã làm.
 - **I1** (trung): Reject từ hộp Claims không có dòng trong chat; cần máy chủ.
 - **Cần máy chủ** (đã ghi từ trước): nguyên tử tồn kho, giới hạn tải cho nhiều người thật cùng lúc, nhật ký không sửa được, đăng nhập thật, che mã ở máy chủ, đồng bộ CRM, và một nguồn sự thật duy nhất khi nhiều tab Staff mở (một tab hộp Claims cũ có thể ghi đè quyết định mới hơn).
 - **Chưa thử trực tiếp**: đọc màn hình thật. (Bảy template đã thử trực tiếp ở đợt lặp lại bên dưới.)

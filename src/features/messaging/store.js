@@ -640,6 +640,7 @@ export function createStore({ transport, now = Date.now, config = {} } = {}) {
         }
         if (seen) return { ok: true, convId: conv.id, noop: true };
         push(d, conv, userId, "text", text, { card });
+        if (conv.topic !== "Promotions") conv.alsoTopics = [...new Set([...(Array.isArray(conv.alsoTopics) ? conv.alsoTopics : []), "Promotions"])];
         return { ok: true, convId: conv.id };
       });
     },
@@ -1585,7 +1586,7 @@ export function createStore({ transport, now = Date.now, config = {} } = {}) {
         return {
           ...base,
           title: res.name,
-          subtitle: `${where} · ${res.title} · ${conv.topic || "General question"}`,
+          subtitle: `${where} · ${res.title} · ${conv.topic || "General question"}${Array.isArray(conv.alsoTopics) && conv.alsoTopics.length ? ` + ${conv.alsoTopics.filter((t) => t !== conv.topic).join(", ")}` : ""}`,
           avatar: { role: "resident", name: res.name },
           tags: [
             conv.status === "queued" ? "queue" : "mine",
