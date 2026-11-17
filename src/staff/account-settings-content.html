@@ -6565,7 +6565,8 @@ const actorId=()=>STAFF_ME?STAFF_ME.id:"";
 function auditAdd(list){if(!list.length)return;try{let a;try{a=JSON.parse(localStorage.getItem("eso-pm-audit-v1"))}catch(e){}
 const ev=a&&!Array.isArray(a)&&Array.isArray(a.events)?a.events:[],t=Date.now();
 list.forEach((x,i)=>ev.push({id:"a_"+t.toString(36)+"_"+Math.random().toString(16).slice(2,10)+i,type:x.type,promoId:String(x.promoId),residentId:String(x.rid||""),n:x.n||0,actor:String(x.actor||"").slice(0,60),...(x.actorId?{actorId:String(x.actorId).slice(0,40)}:{}),reason:String(x.reason||"").replace(/\s+/g," ").trim().slice(0,200),spotDelta:x.type==="give_back"?1:x.type==="claim"?-1:0,...(x.code?{code:String(x.code).slice(0,40)}:{}),at:new Date(x.at||t).toISOString()}));
-localStorage.setItem("eso-pm-audit-v1",JSON.stringify({v:1,events:ev.slice(-5000)}))}catch(e){}}
+const base=a&&!Array.isArray(a)&&a.base&&typeof a.base==="object"&&!Array.isArray(a.base)?a.base:{},cut=ev.length>5000?ev.slice(0,ev.length-5000):[];cut.forEach(x=>{base[x.promoId]=(base[x.promoId]||0)+(+x.spotDelta||0)});/* what the dropped events did to the spots is kept (see audit.js) */
+localStorage.setItem("eso-pm-audit-v1",JSON.stringify({v:1,events:ev.slice(-5000),...(Object.keys(base).length?{base}:{})}))}catch(e){}}
 /* What the resident may see of their claim: only its status and, when rejected, the reason Staff typed for them ("The resident sees this reason"). Staff-owned key, the Resident app only reads it. */
 function publish(){
 const evs=[];

@@ -5,7 +5,8 @@
 //   type       claim | reject | give_back | verify | redeem   (a resident cancelling is a give_back by the resident)
 //   spotDelta  claim -1, give_back +1, every other event 0: the sum over the events is how many of the deal's spots were taken in this app
 //   actor      who did it: the resident ("resident:res-1") or the property team member's name ("Jordan Lee"); actorId is that member's id ("stf-1"), when known
-// Entries are only ever added. The newest MAX are kept, so one key cannot fill the storage of a browser.
+// Entries are only ever added. The newest MAX are kept, so one key cannot fill the storage of a browser. What the dropped (oldest) entries did to the spots is not lost:
+// it is added up per promotion in `base` ({ promoId: sum of their spotDelta }), so the places taken stay right after the log was cut.
 
 export const AUDIT_KEY = "eso-pm-audit-v1";
 export const AUDIT_VERSION = 1;
@@ -54,6 +55,19 @@ export function auditEntry({ type, promoId, residentId = "", n = 0, actor = "", 
   };
 }
 
+/** What the entries dropped from the log did to each promotion's spots: { promoId: sum of spotDelta }. */
+export function readBase(storage) {
+  try {
+    const o = JSON.parse(storage.getItem(AUDIT_KEY));
+    const b = o && typeof o === "object" && !Array.isArray(o) ? o.base : null;
+    const out = {};
+    if (b && typeof b === "object" && !Array.isArray(b)) for (const [k, v] of Object.entries(b)) if (Number.isFinite(v)) out[k] = v;
+    return out;
+  } catch {
+    return {};
+  }
+}
+
 /** The raw text of the log now, so a caller that must undo a write can put it back. */
 export const auditRaw = (storage) => {
   try {
@@ -67,9 +81,12 @@ export const auditRaw = (storage) => {
 export function appendAudit(storage, ...inputs) {
   const entries = inputs.filter(Boolean).map((i) => (i && i.id && i.spotDelta !== undefined ? i : auditEntry(i)));
   if (!entries.length) return { ok: true, entries };
-  const events = [...readAudit(storage), ...entries].slice(-MAX);
+  const all = [...readAudit(storage), ...entries];
+  const events = all.slice(-MAX);
+  const base = readBase(storage);
+  for (const e of all.slice(0, all.length - events.length)) base[e.promoId] = (base[e.promoId] || 0) + e.spotDelta; // the dropped ones are added up, not forgotten
   try {
-    storage.setItem(AUDIT_KEY, JSON.stringify({ v: AUDIT_VERSION, events }));
+    storage.setItem(AUDIT_KEY, JSON.stringify({ v: AUDIT_VERSION, events, ...(Object.keys(base).length ? { base } : {}) }));
     return { ok: true, entries };
   } catch {
     return { ok: false, entries: [] };
@@ -87,4 +104,4 @@ export function restoreAudit(storage, raw) {
 }
 
 /** How many spots the log says are taken for a promotion (claims minus give-backs). */
-export const spotsTaken = (storage, promoId) => readAudit(storage).reduce((s, e) => (e.promoId === String(promoId) ? s - e.spotDelta : s), 0);
+export const spotsTaken = (storage, promoId) => readAudit(storage).reduce((s, e) => (e.promoId === String(promoId) ? s - e.spotDelta : s), 0) - (readBase(storage)[String(promoId)] || 0);
