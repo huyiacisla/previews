@@ -1165,7 +1165,8 @@ export function createStore({ transport, now = Date.now, config = {} } = {}) {
         const conv = d.convs[convId];
         const u = user(userId);
         if (!conv || !u || !canSee(conv, u)) return { ok: false, reason: "not_found" };
-        const last = [...msgsOf(d, convId)].reverse().find((m) => m.from !== userId && notifies(m, u.role));
+        const hidden = new Set(((d.prefs[userId] || {}).hidden) || []);
+        const last = [...msgsOf(d, convId)].reverse().find((m) => m.from !== userId && !m.deleted && !hidden.has(m.id) && notifies(m, u.role));
         if (!last || !last.readBy[userId]) return { ok: true, noop: true };
         delete last.readBy[userId];
         return { ok: true };
@@ -1482,7 +1483,9 @@ export function createStore({ transport, now = Date.now, config = {} } = {}) {
       const conv = state.convs[convId];
       const u = user(userId);
       if (!conv || !u) return 0;
-      return (state.msgs[convId] || []).filter((m) => m.from !== userId && !m.readBy[userId] && notifies(m, u.role)).length;
+      // A message that was unsent, or that this person removed from their own view ("Delete for me"), is not news.
+      const hidden = new Set(api.pref(userId).hidden);
+      return (state.msgs[convId] || []).filter((m) => m.from !== userId && !m.readBy[userId] && !m.deleted && !hidden.has(m.id) && notifies(m, u.role)).length;
     },
 
     /** Total shown on a badge. Do Not Disturb silences outreach and announcements, never active chats. */
@@ -1521,7 +1524,7 @@ export function createStore({ transport, now = Date.now, config = {} } = {}) {
         const incoming = (state.msgs[c.id] || []).filter((m) => m.from !== userId && notifies(m, u.role));
         const last = incoming[incoming.length - 1];
         if (!last) continue;
-        const unread = incoming.filter((m) => !m.readBy[userId]).length;
+        const unread = api.unreadCount(c.id, userId); // the same count as the badge and the list
         if (!unread && last.at < since) continue;
         const name = api.rowFor(c, u).title || "Conversation";
         const sender = (user(last.from) || {}).name || name;

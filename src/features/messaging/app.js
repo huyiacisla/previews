@@ -464,7 +464,7 @@ export function mount({ portal }) {
     ui.newBelow = 0;
     ui.cannedOpen = false;
     ui.confirm = null;
-    const unread = t.messages.find((m) => m.from !== me.id && !m.readBy[me.id] && notifies(m, me.role));
+    const unread = t.messages.find((m) => m.from !== me.id && !m.readBy[me.id] && !m.deleted && notifies(m, me.role));
     ui.anchor = unread ? { convId: id, msgId: unread.id } : null;
     ui.sigLog = "";
     // Only a step from the list to a thread is a new history entry; moving between threads replaces it.
@@ -4129,7 +4129,7 @@ export function mount({ portal }) {
       }
       ui.convId = conv;
       ui.pane = conv ? "thread" : "list";
-      const unread = conv ? store.get(conv, me.id).messages.find((m) => m.from !== me.id && !m.readBy[me.id] && notifies(m, me.role)) : null;
+      const unread = conv ? store.get(conv, me.id).messages.find((m) => m.from !== me.id && !m.readBy[me.id] && !m.deleted && notifies(m, me.role)) : null;
       ui.anchor = unread ? { convId: conv, msgId: unread.id } : null;
       history.replaceState({ depth: (history.state && history.state.depth) || 0, pane: ui.pane, conv }, "", conv ? `#/c/${conv}` : location.pathname + location.search);
       ui.sigLog = "";
