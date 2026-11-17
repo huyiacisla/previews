@@ -59,3 +59,15 @@ test("usability: above the decision buttons Staff see the checks behind the reas
   assert.ok(msg.includes('if (r.key === "pending") li.appendChild(checkList(rid, r, data.unit));'), "shown for a claim that waits, before the buttons");
   assert.ok(msg.includes('word.textContent = c.ok ? "Passed: " : "Needs attention: ";'), "a check is also in words, not only a mark");
 });
+
+test("usability: Cancel claim asks first (Keep claim is the default); only the second press cancels", () => {
+  const res = read("src/features/promotions/resident.js");
+  const html = read("src/partials/promotions-app.html");
+  assert.ok(html.includes('<dialog id="dlg-cancel" aria-labelledby="cancel-title" aria-describedby="cancel-text"'));
+  assert.ok(html.includes('id="cancel-keep"') && html.includes('id="cancel-yes"') && html.includes("Cancel this claim?"));
+  const ask = res.slice(res.indexOf("function cancelReward(r) {"), res.indexOf("function doCancelReward(r) {"));
+  assert.ok(ask.includes("cancelDlg.showModal();") && ask.includes('$("#cancel-keep").focus();'), "the safe choice has the focus");
+  assert.ok(!ask.includes("cancelClaim(storage"), "pressing Cancel claim only asks");
+  assert.ok(ask.includes('if (r) doCancelReward(r);'), "the second press cancels");
+  assert.ok(res.slice(res.indexOf("function doCancelReward(r) {")).includes("cancelClaim(storage, me.id, r.id)"));
+});

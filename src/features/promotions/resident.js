@@ -1085,11 +1085,30 @@ async function copyText(text) {
     toast("Could not copy. Select the code and copy it.");
   }
 }
+// Cancelling gives the place back and it may be gone when the resident tries again, so one press only asks; the second one cancels.
+const cancelDlg = $("#dlg-cancel");
+let cancelFor = null;
 function cancelReward(r) {
   if (inStaffPreview()) {
     toast("In the resident's app this cancels the claim. Nothing is cancelled in this preview.");
     return;
   }
+  cancelFor = r;
+  $("#cancel-text").textContent = `Your claim for ${(r.info && r.info.title) || "this promotion"} will be cancelled and its place given back. It may not be there if you try again.`;
+  cancelDlg.showModal();
+  $("#cancel-keep").focus();
+}
+$("#cancel-keep").addEventListener("click", () => cancelDlg.close());
+cancelDlg.addEventListener("click", (e) => {
+  if (e.target === cancelDlg) cancelDlg.close(); // the backdrop
+});
+$("#cancel-yes").addEventListener("click", () => {
+  const r = cancelFor;
+  cancelFor = null;
+  cancelDlg.close();
+  if (r) doCancelReward(r);
+});
+function doCancelReward(r) {
   const res = cancelClaim(storage, me.id, r.id);
   if (res.ok) bumpUnseen("rewards", -1);
   toast(res.ok ? "Claim cancelled" : res.reason);

@@ -36,7 +36,7 @@ Một kịch bản **đạt** khi không có ô nào 0 và tổng từ 8 trở l
 | S14 | Cư dân hỏi về claim nhiều lần | Một cuộc chat, không nhân đôi ticket |
 
 ## Tiến độ
-- [x] S1 · [x] S2 · [x] S3 · [x] S4 · [x] S5 · [ ] S6 · [x] S7 (đã thử ở phần chống quá tải) · [x] S8 (đã thử ở Phase 3) · [x] S9 · [ ] S10 · [ ] S11 · [ ] S12 · [ ] S13 · [ ] S14
+- [x] S1 · [x] S2 · [x] S3 · [x] S4 · [x] S5 · [x] S6 · [x] S7 (đã thử ở phần chống quá tải) · [x] S8 (đã thử ở Phase 3) · [x] S9 · [x] S10 · [ ] S11 · [ ] S12 · [ ] S13 · [ ] S14
 
 "Thấy được" (sáng/tối, 375/768/1440) của S1 đến S5, S9 chưa chấm: làm ở S12.
 
@@ -52,6 +52,9 @@ Chạy một chuỗi liền (một cư dân là Priya, 16/11/2026, trình duyệ
 | S5 | Staff Verify nhầm: trước đây không có đường lùi. Nay claim Verified chưa đồng bộ có **"Move back to Pending"**: claim Pending lại, mã bị che lại, nhật ký một dòng `unverify` (chuỗi: claim, verify, unverify, reject, give_back, claim, verify, redeem) | 2 / 2 / 2 / 2 | Nút lùi chỉ có trong hộp Claims, chưa có trong modal Resident information (I3); bốn nút hành động nhìn ngang nhau (I7). Một lần lùi đầu tiên bị bản ghi hộp Claims ghi đè về "verified" (không tái hiện được lần hai; nghi một phiên khác ghi cùng kho vào lúc đó). |
 | S9 | Staff Verify rồi **Mark redeemed**: 2 lần bấm. Cư dân thấy "Used" ở tab "Used / Expired" của My rewards, mã vẫn hiện | 2 / 2 / 2 / 1 | Mark redeemed không hỏi xác nhận; không có đường lùi sau khi đã dùng (đúng ý, nhưng nên có hỏi lại). |
 
+| S6 | Jamie (cùng căn hộ với Alex) mở deal Mallard: nút "Claimed by your unit" tắt, dòng "One claim per unit: Alex Rivera already claimed this on Nov 16.", **không thấy mã của Alex**, có "Ask the property team about this" (1 bấm). Chat: thẻ chỉ ghi "Claimed by your unit". Staff: modal Resident reward có cảnh báo đỏ "This unit already got ... through Alex Rivera's account ... Do not pay it twice." và claim của Alex kèm các bước | 2 / 2 / 2 / n.a. | Đạt. Rõ cho cả hai bên. |
+| S10 | Priya nhận rồi huỷ trong My rewards. Dữ liệu đúng: suất trả lại, Staff thấy "Cancelled by resident", nhật ký claim rồi give_back. **Lỗi dùng được: bấm "Cancel claim" là huỷ ngay, không hỏi lại**, trong khi suất có thể hết ("Only 2 left") | 2 / 2 / 2 / **0** | Lùi được = 0, nên chưa đạt. Đã sửa: bấm huỷ chỉ mở hộp "Cancel this claim?" (Keep claim có tiêu điểm sẵn; "Your claim for X will be cancelled and its place given back. It may not be there if you try again."); chỉ lần bấm thứ hai mới huỷ. Thử lại: hỏi, Keep giữ nguyên Pending, xác nhận mới huỷ ("Claim cancelled"). Điểm mới 2 / 2 / 2 / 2: đạt. Test trong promotions-undo.test.mjs. |
+
 **Đạt khi sửa xong**: S4 (tổng 6/8) và S3 (tổng 7/8) chưa đạt ngưỡng 8; S1, S2, S5, S9 đạt. I2, I4, I5 đã sửa; còn I1 (chat báo quyết định) rồi chấm lại S3 và S4.
 
 ## Điều cần cải thiện (gom lại)
@@ -64,6 +67,7 @@ Chạy một chuỗi liền (một cư dân là Priya, 16/11/2026, trình duyệ
 | I5 | Lý do từ chối hiện với nhãn "Reason:" ở cửa sổ deal của cư dân | Thấp | Đã làm (16/11) |
 | I6 | Câu hỏi về promotion vào ticket đang mở của chủ đề khác: gắn nhãn chủ đề "Promotions" cho ticket hoặc hiện chủ đề mới nhất; đồng hồ "Waiting" tính từ tin mới nhất của cư dân | Trung | Chưa làm |
 | I7 | Bốn nút hành động trong chi tiết claim (Apply by hand, Mark redeemed, Move back, Reject) khác nhau rõ hơn: một nút chính, còn lại viền; Mark redeemed hỏi lại một lần | Thấp | Chưa làm |
+| I10 | Cancel claim hỏi lại một lần (Keep claim là mặc định) | Cao | Đã làm (16/11) |
 | I8 | Chống quá tải khi nhiều người nhận cùng lúc | Cao | Đã làm (16/11) |
 | I9 | Đường lùi cho Verify nhầm | Cao | Đã làm (16/11) |
 

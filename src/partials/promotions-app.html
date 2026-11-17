@@ -281,6 +281,17 @@
 </dialog>
 
 <!-- the steps of one claim (My rewards > View) -->
+<dialog id="dlg-cancel" aria-labelledby="cancel-title" aria-describedby="cancel-text" class="m-auto max-h-dvh w-full max-w-sm overflow-y-auto rounded-xl bg-card p-0 text-foreground shadow-lift-md backdrop:bg-foreground/40">
+  <div class="flex flex-col gap-step-md p-step-lg">
+    <h2 id="cancel-title" class="text-lg leading-6 font-semibold">Cancel this claim?</h2>
+    <p id="cancel-text" class="text-sm text-muted-foreground"></p>
+    <div class="flex flex-wrap justify-end gap-step-sm">
+      <button type="button" id="cancel-keep" class="group/button inline-flex h-8 shrink-0 touch-manipulation items-center justify-center gap-step-sm rounded-md border border-transparent bg-background bg-clip-padding px-step-md control-text font-medium whitespace-nowrap text-foreground ring-1 ring-foreground/10 transition outline-none select-none hover:bg-muted focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 active:translate-y-px aria-pressed:bg-accent pointer-coarse:h-11 [&_svg]:size-4">Keep claim</button>
+      <button type="button" id="cancel-yes" class="group/button inline-flex h-8 shrink-0 touch-manipulation items-center justify-center gap-step-sm rounded-md border border-transparent bg-background bg-clip-padding px-step-md control-text font-medium whitespace-nowrap text-foreground ring-1 ring-foreground/10 transition outline-none select-none hover:bg-muted focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 active:translate-y-px aria-pressed:bg-accent pointer-coarse:h-11 [&_svg]:size-4">Cancel claim</button>
+    </div>
+  </div>
+</dialog>
+
 <dialog id="dlg-steps" aria-labelledby="cl-title" class="m-auto max-h-dvh w-full max-w-md overflow-y-auto rounded-xl bg-card p-0 text-foreground shadow-lift-md backdrop:bg-foreground/40">
   <div class="flex flex-col gap-step-md p-step-lg">
     <div class="flex items-start justify-between gap-step-md">
