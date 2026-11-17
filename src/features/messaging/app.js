@@ -1893,7 +1893,7 @@ export function mount({ portal }) {
     else {
       const text = decisionText(action, c.title, reason);
       if (text) store.noteClaimDecision(conv.id, me.id, text);
-      toast(action === "verify" ? "Claim confirmed." : action === "apply" ? "Applied. The resident was told in the chat." : "Claim rejected. The resident was told in the chat.");
+      toast(action === "unverify" ? "Back to Pending. The code is hidden again." : action === "verify" ? "Claim confirmed." : action === "apply" ? "Applied. The resident was told in the chat." : "Claim rejected. The resident was told in the chat.");
     }
     ui.sigCtx = "";
     renderAll(true);
@@ -1907,6 +1907,8 @@ export function mount({ portal }) {
     const row = document.createElement("div");
     row.className = "flex flex-wrap gap-step-xs";
     if (c.st === "pending") row.appendChild(button("Confirm claim", { variant: "primary", onClick: () => decide(conv, c, "verify", "") }));
+    // a Verify pressed by mistake: Pending again, the code hidden again (not for a claim already used or synced)
+    if (c.st === "verified") row.appendChild(button("Move back to Pending", { variant: "outline", onClick: () => decide(conv, c, "unverify", "") }));
     if (!c.manual) {
       row.appendChild(button("Apply by hand", { variant: mine === "apply" ? "soft" : "outline", onClick: () => { ui.decide = mine === "apply" ? null : { promoId: c.promoId, kind: "apply" }; ui.sigCtx = ""; redraw(); } }));
     }

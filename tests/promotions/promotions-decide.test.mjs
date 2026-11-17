@@ -101,3 +101,41 @@ test("the details panel decides in two clicks and the inbox follows a decision m
   assert.ok(staff.includes('addEventListener("storage",e=>{if(e.key===K&&e.newValue)'), "the inbox reloads when the chat changed it");
   assert.ok(staff.includes('d.st==="verified"||d.st==="rejected")){c.st=d.st'), "a claim the inbox did not know yet takes over the decision");
 });
+
+test("take a mistaken Verify back: Pending again, the code is hidden again, the inbox agrees, the log has one unverify and no place moves", () => {
+  const { s, p } = setup();
+  withInbox(s);
+  assert.ok(decideClaim(s, { rid: "res-1", promoId: p.id, action: "verify", by: "Jordan Lee", byId: "stf-1", now: 1000 }).ok);
+  assert.equal(claimStatus(s, "res-1", p.id).st, "verified");
+  const r = decideClaim(s, { rid: "res-1", promoId: p.id, action: "unverify", by: "Jordan Lee", byId: "stf-1", now: 2000 });
+  assert.ok(r.ok && r.st === "pending", "Pending again");
+  assert.equal(claimStatus(s, "res-1", p.id).st, "pending", "what the resident reads");
+  const rec = inboxOf(s).find((c) => c.rk === `res-1|${p.id}|1`);
+  assert.deepEqual([rec.st, rec.vt, rec.manual], ["pending", undefined, undefined], "the inbox agrees");
+  const ev = JSON.parse(s.getItem("eso-pm-audit-v1")).events;
+  assert.deepEqual(ev.map((e) => e.type), ["claim", "verify", "unverify"]);
+  assert.equal(ev[2].spotDelta, 0, "no place is taken or given back");
+  assert.equal(decideClaim(s, { rid: "res-1", promoId: p.id, action: "unverify" }).noop, true, "a second one changes nothing");
+  assert.ok(decideClaim(s, { rid: "res-1", promoId: p.id, action: "verify", by: "Jordan Lee", now: 3000 }).ok, "it can be confirmed again");
+});
+
+test("a used, rejected or synced claim cannot be taken back", () => {
+  const { s, p } = setup();
+  withInbox(s);
+  assert.equal(decideClaim(s, { rid: "res-1", promoId: p.id, action: "reject", reason: "x" }).ok, true);
+  assert.match(decideClaim(s, { rid: "res-1", promoId: p.id, action: "unverify" }).reason, /rejected/);
+  const t = setup();
+  withInbox(t.s);
+  decideClaim(t.s, { rid: "res-1", promoId: t.p.id, action: "verify" });
+  const inbox = inboxOf(t.s);
+  inbox.find((c) => c.rk === `res-1|${t.p.id}|1`).sync = true;
+  t.s.setItem("eso-pmclaims", JSON.stringify(inbox));
+  assert.match(decideClaim(t.s, { rid: "res-1", promoId: t.p.id, action: "unverify" }).reason, /synced/);
+  assert.equal(claimStatus(t.s, "res-1", t.p.id).st, "verified", "nothing changed");
+});
+
+test("the chat window has Move back to Pending for a confirmed claim", () => {
+  const app = readFileSync(new URL("../../src/features/messaging/app.js", import.meta.url), "utf8").replace(/\r\n/g, "\n");
+  assert.ok(app.includes('if (c.st === "verified") row.appendChild(button("Move back to Pending", { variant: "outline", onClick: () => decide(conv, c, "unverify", "") }));'));
+  assert.ok(app.includes('"Back to Pending. The code is hidden again."'));
+});

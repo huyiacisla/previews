@@ -40,7 +40,8 @@ const getRaw = (storage, key) => {
 };
 
 /**
- * action: "verify" | "apply" | "reject". apply and reject need a reason (what the resident is told).
+ * action: "verify" | "apply" | "reject" | "unverify". apply and reject need a reason (what the resident is told). unverify takes a mistaken Verify back: the claim is Pending again,
+ * the code is hidden from the resident again (a used, rejected or already synced claim cannot be taken back).
  * Returns { ok, noop?, rk, st, reason? }. A claim that is already in the state asked for is a no-op, one that cannot go there says why.
  * `by` (who decided) is kept in the decision and in the audit log. The decision is written in an order that cannot leave the inbox and the resident disagreeing:
  * the inbox, then what the resident reads, then the audit log; if a later write fails the earlier ones are put back and nothing has changed.
@@ -69,12 +70,21 @@ export function decideClaim(storage, { rid, promoId, action, reason = "", by = "
     if (cur.st === "redeemed") return { ok: false, reason: "This claim was already used, it cannot be rejected." };
     if (cur.st === "rejected") return { ok: true, noop: true, rk, st: "rejected" };
     all[rk] = { st: "rejected", reason: why, at: now, jt: now };
+  } else if (action === "unverify") {
+    if (cur.st === "pending") return { ok: true, noop: true, rk, st: "pending" };
+    if (cur.st === "redeemed") return { ok: false, reason: "This claim was already used, it cannot be taken back." };
+    if (cur.st === "rejected") return { ok: false, reason: "This claim was rejected. Move it back to Pending in the Claims inbox." };
+    const row = (readJson(storage, INBOX, []) || []).find((x) => x && x.rk === rk);
+    if (row && row.sync) return { ok: false, reason: "This claim is already synced to the external system. Undo the sync in the Claims inbox first." };
+    delete all[rk]; // no decision is a claim that waits
   } else return { ok: false, reason: "Unknown action." };
 
   const actor = String(by || "Property team").slice(0, 60);
   const actorId = String(byId || "").slice(0, 40);
-  all[rk].by = actor; // who decided: the resident's notice does not show it, a dispute does
-  if (actorId) all[rk].byId = actorId;
+  if (action !== "unverify") {
+    all[rk].by = actor; // who decided: the resident's notice does not show it, a dispute does
+    if (actorId) all[rk].byId = actorId;
+  }
 
   // Staff's inbox keeps the same decision (and makes the record if the inbox page has not been opened since the claim)
   let inboxText = null;
@@ -90,6 +100,11 @@ export function decideClaim(storage, { rid, promoId, action, reason = "", by = "
     if (action === "verify") {
       c.st = "verified";
       c.vt = now;
+    } else if (action === "unverify") {
+      c.st = "pending";
+      c.reason = "";
+      delete c.vt;
+      delete c.manual;
     } else if (action === "apply") {
       if (c.st === "pending") c.vt = now;
       c.st = "verified";
@@ -107,7 +122,7 @@ export function decideClaim(storage, { rid, promoId, action, reason = "", by = "
 
   // what the audit log says about it: a reject also gives the place back (a rejected claim does not count against the total)
   const entry = (type, text) => ({ type, promoId, residentId: rid, n: claim.count, actor, actorId, reason: text, code: claim.code, at: now });
-  const entries = action === "reject" ? [entry("reject", why), entry("give_back", `Rejected: ${why}`)] : [entry("verify", action === "apply" ? `Applied by hand: ${why}` : "")];
+  const entries = action === "reject" ? [entry("reject", why), entry("give_back", `Rejected: ${why}`)] : action === "unverify" ? [entry("unverify", "Verification taken back by Staff: Pending again")] : [entry("verify", action === "apply" ? `Applied by hand: ${why}` : "")];
 
   const was = { inbox: getRaw(storage, INBOX), state: getRaw(storage, KEY.claimState), audit: auditRaw(storage) };
   const undo = () => {
@@ -127,5 +142,5 @@ export function decideClaim(storage, { rid, promoId, action, reason = "", by = "
     undo();
     return failed;
   }
-  return { ok: true, rk, st: all[rk].st };
+  return { ok: true, rk, st: all[rk] ? all[rk].st : "pending" };
 }

@@ -36,7 +36,7 @@ Một kịch bản **đạt** khi không có ô nào 0 và tổng từ 8 trở l
 | S14 | Cư dân hỏi về claim nhiều lần | Một cuộc chat, không nhân đôi ticket |
 
 ## Tiến độ
-- [x] S1 · [x] S2 · [x] S3 · [x] S4 · [x] S5 · [x] S6 · [x] S7 (đã thử ở phần chống quá tải) · [x] S8 (đã thử ở Phase 3) · [x] S9 · [x] S10 · [ ] S11 · [ ] S12 · [ ] S13 · [ ] S14
+- [x] S1 · [x] S2 · [x] S3 · [x] S4 · [x] S5 · [x] S6 · [x] S7 (đã thử ở phần chống quá tải) · [x] S8 (đã thử ở Phase 3) · [x] S9 · [x] S10 · [x] S11 · [ ] S12 · [x] S13 · [x] S14
 
 "Thấy được" (sáng/tối, 375/768/1440) của S1 đến S5, S9 chưa chấm: làm ở S12.
 
@@ -55,14 +55,18 @@ Chạy một chuỗi liền (một cư dân là Priya, 16/11/2026, trình duyệ
 | S6 | Jamie (cùng căn hộ với Alex) mở deal Mallard: nút "Claimed by your unit" tắt, dòng "One claim per unit: Alex Rivera already claimed this on Nov 16.", **không thấy mã của Alex**, có "Ask the property team about this" (1 bấm). Chat: thẻ chỉ ghi "Claimed by your unit". Staff: modal Resident reward có cảnh báo đỏ "This unit already got ... through Alex Rivera's account ... Do not pay it twice." và claim của Alex kèm các bước | 2 / 2 / 2 / n.a. | Đạt. Rõ cho cả hai bên. |
 | S10 | Priya nhận rồi huỷ trong My rewards. Dữ liệu đúng: suất trả lại, Staff thấy "Cancelled by resident", nhật ký claim rồi give_back. **Lỗi dùng được: bấm "Cancel claim" là huỷ ngay, không hỏi lại**, trong khi suất có thể hết ("Only 2 left") | 2 / 2 / 2 / **0** | Lùi được = 0, nên chưa đạt. Đã sửa: bấm huỷ chỉ mở hộp "Cancel this claim?" (Keep claim có tiêu điểm sẵn; "Your claim for X will be cancelled and its place given back. It may not be there if you try again."); chỉ lần bấm thứ hai mới huỷ. Thử lại: hỏi, Keep giữ nguyên Pending, xác nhận mới huỷ ("Claim cancelled"). Điểm mới 2 / 2 / 2 / 2: đạt. Test trong promotions-undo.test.mjs. |
 
+| S11 | Bàn phím trên cửa sổ Resident information: tiêu điểm ở nút Details (tên "Resident information", báo là hộp thoại); Enter mở (tiêu điểm vào Close), Tab tới các tab, mũi tên chuyển sang "Resident reward", Escape đóng và tiêu điểm trả về Details; đóng bằng Escape không làm đóng thêm gì khác | 2 / 2 / 2 / 2 | Đạt. Chưa thử đọc màn hình thật (chỉ nhãn và vai trò: tablist, tab, tabpanel, aria-selected, "Passed/Needs attention", "Done/Now/Next"). |
+| S13 | Deal bị tạm dừng, xoá hoặc hết hạn khi cư dân đang xem: bị từ chối kèm lý do ("This promotion is paused right now. Try again later." / "no longer available" / "has ended"), không ghi gì, cửa sổ đóng và báo | 2 / 2 / 2 / n.a. | Đạt, bằng test tự động tests/promotions/promotions-integrity.test.mjs (không thể tạm dừng một deal mẫu bằng giao diện trong xem trước). |
+| S14 | Priya hỏi về claim hai lần (hai lần vào Messages từ cửa sổ deal) | 2 / 2 / 2 / n.a. | Đạt: vẫn **1 cuộc chat, 1 thẻ claim, 1 câu hỏi**, không nhân đôi ticket. |
+
 **Đạt khi sửa xong**: S4 (tổng 6/8) và S3 (tổng 7/8) chưa đạt ngưỡng 8; S1, S2, S5, S9 đạt. I2, I4, I5 đã sửa; còn I1 (chat báo quyết định) rồi chấm lại S3 và S4.
 
 ## Điều cần cải thiện (gom lại)
 | # | Việc | Mức | Tình trạng |
 |---|---|---|---|
-| I1 | Khi Staff Confirm, Reject hoặc lùi một claim, chat của cư dân nhận một dòng hệ thống ("Your claim for X was confirmed. Your code is ready." / "... was not approved: lý do") để cư dân không phải tự đoán qua thẻ hoặc chuông | Cao | Chưa làm |
+| I1 | Khi Staff Reject từ **hộp Claims**, chat không nhận dòng hệ thống (Reject và Apply làm từ chat thì có; Confirm thường không, theo quyết định cũ có test). Cư dân vẫn thấy thẻ đổi sang "Not approved" kèm lý do, và chuông | Trung | **Giữ, cần máy chủ**: prototype không có nơi chung cho hộp Claims và chat cùng ghi; làm bằng cách quét khi Staff mở Messages sẽ chỉ gửi khi có người mở Messages, rất thiếu tin cậy. Đề nghị: một sự kiện "quyết định" ở máy chủ sinh dòng chat |
 | I2 | Thẻ claim trong modal của Staff hiện "Checks before you decide": hợp đồng còn hiệu lực, deal còn chạy tới ngày nào và còn mấy suất, có ai cùng căn hộ nhận chưa (để lý do mẫu từ chối có dữ kiện; mỗi dòng có chữ "Passed" hoặc "Needs attention" cho trình đọc màn hình) | Cao | Đã làm (16/11), đã xem trên giao diện thật với claim của Alex |
-| I3 | "Move back to Pending" cho claim Verified cũng có trong modal Resident information | Trung | Chưa làm |
+| I3 | "Move back to Pending" cho claim Verified cũng có trong modal Resident information (hành động `unverify` của `decideClaim`: hộp Claims, kho trạng thái, nhật ký ghi theo thứ tự có hoàn tác; không áp dụng cho claim đã dùng, bị từ chối hoặc đã đồng bộ) | Trung | Đã làm (16/11), đã thử trên giao diện thật |
 | I4 | Nhãn ô khoá trong hộp Reject rõ hơn ("Do not let the resident claim again (the deal is out)") | Trung | Đã làm (16/11) |
 | I5 | Lý do từ chối hiện với nhãn "Reason:" ở cửa sổ deal của cư dân | Thấp | Đã làm (16/11) |
 | I6 | Câu hỏi về promotion vào ticket đang mở của chủ đề khác: gắn nhãn chủ đề "Promotions" cho ticket hoặc hiện chủ đề mới nhất; đồng hồ "Waiting" tính từ tin mới nhất của cư dân | Trung | Chưa làm |
@@ -73,3 +77,5 @@ Chạy một chuỗi liền (một cư dân là Priya, 16/11/2026, trình duyệ
 
 ## Nhật ký lỗi
 - 16/11: S5 trước khi thử: bấm nhầm Verify không có đường quay lại (chỉ Reject rồi mới "Move back to Pending", và lúc đó cư dân thấy "Not approved"). Đã thêm "Move back to Pending" cho claim đã Verify chưa đồng bộ; nhật ký có sự kiện `unverify`; test tests/promotions/promotions-undo.test.mjs.
+
+- 16/11, **rủi ro nhiều tab**: hai lần liên tiếp, sau khi Staff lùi một Verify, bản ghi hộp Claims bị ghi đè về "verified" (kho trạng thái của cư dân đã đúng, hai nơi lệch nhau). Cả hai lần đều có một tab Staff Promotions cũ còn mở với dữ liệu cũ (tab-46). Khi tab đó được làm mới, cùng chuỗi chạy ổn định 4 giây ở Pending. Kết luận: một trang hộp Claims cũ đang mở ở tab khác có thể ghi đè quyết định mới hơn (ghi của tab sau thắng). Không sửa trong prototype (cần một nguồn sự thật duy nhất ở máy chủ); khi dùng nhiều tab Staff cần làm mới trang. Ghi nhận cho việc chuyển sang máy chủ.
