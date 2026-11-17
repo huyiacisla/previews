@@ -97,7 +97,7 @@ Chạy một chuỗi liền (một cư dân là Priya, 16/11/2026, trình duyệ
 - **I7** đã làm.
 - **I1** (trung): Reject từ hộp Claims không có dòng trong chat; cần máy chủ.
 - **Cần máy chủ** (đã ghi từ trước): nguyên tử tồn kho, giới hạn tải cho nhiều người thật cùng lúc, nhật ký không sửa được, đăng nhập thật, che mã ở máy chủ, đồng bộ CRM, và một nguồn sự thật duy nhất khi nhiều tab Staff mở (một tab hộp Claims cũ có thể ghi đè quyết định mới hơn).
-- **Chưa thử trực tiếp**: đọc màn hình thật. (Bảy template đã thử trực tiếp ở đợt lặp lại bên dưới.)
+- **Chưa thử trực tiếp**: đọc màn hình thật (đã kiểm bằng script, xem mục "Tiếp cận" bên dưới). Bảy template đã thử trực tiếp ở đợt lặp lại bên dưới.
 
 ## Đợt thử lặp lại (Phase 5.1), 16/11/2026: cư dân khác (Morgan, res-3), cách khác
 Chuỗi: nhận, **huỷ có xác nhận**, nhận lại, Staff mở hộp Claims, **từ chối bằng lý do tự viết** (dài 90 ký tự), cư dân đọc và nhận lại, Staff Verify, Mark redeemed. Dữ liệu đã trả lại.
@@ -121,3 +121,10 @@ Priya nhận Covered Spot Upgrade (Pending), rồi ngày kết thúc deal đư�
 - **Cư dân**: deal biến khỏi danh sách; claim chuyển sang "Used / Expired" với nhãn "Expired" ("Expired Nov 15, 2026, 11:59 PM"). **Khoảng trống (L3, đã sửa)**: cửa sổ các bước vẫn chỉ nói "Awaiting staff approval · Waiting" mà không nhắc deal đã hết. Nay thêm: "Your claim was made before it ended. Ask the property team if it will still be honored." (có nút Ask staff).
 - **Staff**: claim vẫn ở "Current claim" của modal (để còn quyết định), khối Checks báo "✕ The deal is not running now", có Confirm / Apply by hand / Reject. Đạt.
 - **Chuông của Alex hiện 32**: là nguồn thông báo mẫu của ứng dụng (vé đỗ xe, thanh toán, yêu cầu...), không do các lượt thử tạo ra.
+
+## Tiếp cận (kiểm bằng script, 16/11/2026)
+Với mỗi cửa sổ: hộp thoại có tên và là modal, tiêu điểm vào bên trong, mọi nút, liên kết, ô nhập có tên đọc được, tab nối đúng với panel (aria-controls, aria-selected, aria-labelledby), không có id trùng, ảnh có alt.
+- **Modal Resident information của Staff** (Profile, Resident reward, Ticket): 0 lỗi.
+- **Cửa sổ của cư dân** (deal, My rewards, các bước, hộp "Cancel this claim?"): 0 lỗi. Hộp huỷ vào "Keep claim"; bấm Keep thì tiêu điểm trở về cửa sổ các bước.
+- **Gợi ý nhỏ, chưa làm**: tên người trong tab Resident reward ("Alex Rivera", "Same unit: Jamie Rivera") là đoạn văn thường, chưa là đề mục, nên người dùng đọc màn hình chưa nhảy theo đề mục được.
+- **Vẫn chưa thử**: đọc màn hình thật (NVDA, VoiceOver) và bàn phím ảo trên điện thoại thật.
