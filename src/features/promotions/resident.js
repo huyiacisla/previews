@@ -692,6 +692,10 @@ dlg.addEventListener("close", () => {
 // or a stuck key cannot make a second claim of the same press.) The button comes back, in the state the promotion is really in, a moment after.
 let claimBusy = false;
 $("#dlg-claim-btn").addEventListener("click", () => {
+  if (inStaffPreview()) {
+    toast("In the resident's app this claims the promotion. Nothing is claimed in this preview.");
+    return;
+  }
   if (claimBusy) return;
   claimBusy = true;
   $("#dlg-claim-btn").disabled = true;
@@ -1003,10 +1007,19 @@ function paintHistory() {
   }
 }
 
+// True when this page is Staff's preview inside Staff's portal and not the resident's own app.
+function inStaffPreview() {
+  try {
+    return !window.parent.location.pathname.startsWith("/resident/");
+  } catch {
+    return true; // a parent we cannot read is not the resident's app
+  }
+}
+
 // "Ask about this claim": Messages opens on a chat with the property team that says which claim it is about. Staff's own preview of this page sits inside Staff's portal:
 // it must not take Staff away to the resident's Messages, so it only says what the button does.
 function askAboutClaim(row) {
-  if (!window.parent.location.pathname.startsWith("/resident/")) {
+  if (inStaffPreview()) {
     toast("In the resident's app this opens Messages with this claim attached.");
     return;
   }
@@ -1064,6 +1077,10 @@ async function copyText(text) {
   }
 }
 function cancelReward(r) {
+  if (inStaffPreview()) {
+    toast("In the resident's app this cancels the claim. Nothing is cancelled in this preview.");
+    return;
+  }
   const res = cancelClaim(storage, me.id, r.id);
   if (res.ok) bumpUnseen("rewards", -1);
   toast(res.ok ? "Claim cancelled" : res.reason);

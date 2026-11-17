@@ -95,8 +95,8 @@ Cách kiểm: Staff mở chat của Jamie (cùng căn hộ 02-291 với Alex) �
 | 3.4 | Đạt. Ask staff ở trong portal Staff chỉ hiện thông báo "In the resident's app this opens Messages with this claim attached."; địa chỉ trang không đổi. |
 | 3.5 | Ba cỡ (Phone 390, Tablet, Desktop) đạt: trang không tràn ngang, cửa sổ My rewards nằm trọn trong khung, thẻ không tràn. Bảy template chưa đổi và thử lại trực tiếp (đổi template là đổi trang đã xuất bản); phần này do các test tự động của template đảm nhiệm. |
 
-**Cần quyết định (chưa sửa)**
-- P3-D1: trong Resident view của Staff, nút **Claim** và **Cancel claim** là thật: bấm sẽ ghi vào kho của người dùng thử (Alex). Ask thì đã được bảo vệ (chỉ hiện thông báo). Đề nghị cho Claim và Cancel cũng chỉ hiện thông báo trong Resident view, để Staff không vô tình đổi dữ liệu của cư dân.
+**Điểm đã quyết định**
+- P3-D1 (đã sửa 16/11/2026): trong Resident view của Staff, **Claim** ("Get my code") và **Cancel claim** trước đây là thật (ghi vào kho của Alex). Nay chỉ hiện thông báo ("In the resident's app this claims the promotion. Nothing is claimed in this preview." và "...cancels the claim..."), giống Ask. Đã thử: kho (claim, trạng thái, hộp Claims, nhật ký) không đổi sau khi bấm. Test: tests/promotions/promotions-link.test.mjs.
 - P3-D2: khung Resident view của Staff cao hơn màn hình, nên phần dưới cửa sổ deal ("Claimed by you", "Saved") phải cuộn cả trang Staff mới thấy.
 
 **Ghi nhận khi thử**

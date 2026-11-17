@@ -151,3 +151,16 @@ test("Resident information: Staff decide a waiting claim inside Current claim, a
   assert.ok(msg.includes("if (ui.infoRefresh) ui.infoRefresh();"), "a decision made in the window shows at once");
   assert.ok(msg.includes("function decisionBox(conv, c, onChange)"));
 });
+
+test("Staff's Resident view: Claim and Cancel claim only say what they do in the resident's app; they write nothing (Ask already did)", () => {
+  assert.ok(res.includes("function inStaffPreview() {"));
+  assert.ok(res.includes('return !window.parent.location.pathname.startsWith("/resident/");'));
+  assert.ok(res.includes("return true; // a parent we cannot read is not the resident's app"));
+  const claimAt = res.indexOf('$("#dlg-claim-btn").addEventListener("click"');
+  const claimHead = res.slice(claimAt, res.indexOf("if (claimBusy) return;", claimAt));
+  assert.ok(claimHead.includes("if (inStaffPreview()) {") && claimHead.includes("Nothing is claimed in this preview."), "Claim is guarded before anything is written");
+  const cancelAt = res.indexOf("function cancelReward(r) {");
+  const cancelHead = res.slice(cancelAt, res.indexOf("cancelClaim(storage", cancelAt));
+  assert.ok(cancelHead.includes("if (inStaffPreview()) {") && cancelHead.includes("Nothing is cancelled in this preview."), "Cancel is guarded before anything is written");
+  assert.ok(res.includes("if (inStaffPreview()) {\n    toast(\"In the resident's app this opens Messages with this claim attached.\");"), "Ask uses the same check");
+});
