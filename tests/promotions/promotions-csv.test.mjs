@@ -150,7 +150,7 @@ test("the Staff Claims inbox holds only real claims: no demo generator, old demo
   const staff = readFileSync(new URL("../../src/staff/account-settings-content.html", import.meta.url), "utf8").replace(/\r\n/g, "\n");
   assert.ok(!staff.includes("function seed(){const ids=Object.keys(META)"), "the demo generator is gone");
   assert.ok(!staff.includes("CL=seed()"), "a missing inbox starts empty");
-  assert.ok(staff.includes("CL=[];sv()}") && staff.includes("if(!Array.isArray(CL)){") && staff.includes("CL=CL.filter(c=>c&&c.rk);"), "rows without a claim key (the old demo rows) are dropped when the inbox loads");
+  assert.ok(staff.includes("CL=[];sv()}") && staff.includes("if(!Array.isArray(CL)){") && staff.includes("const o=a.filter(c=>c&&typeof c===\"object\"&&!Array.isArray(c)&&c.rk);"), "rows without a claim key (the old demo rows) are dropped when the inbox loads");
   assert.ok(staff.includes("const syn=[],rows=rows0;"), "the Claimed by list adds no invented earlier claimants");
   assert.ok(staff.includes("filter(c=>c.deal==id):[],"), "the Viewed by list adds no invented viewers");
   assert.ok(staff.includes('"Who viewed is not recorded."'));

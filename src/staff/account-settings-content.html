@@ -6553,11 +6553,13 @@ const ST=["pending","pending","verified","redeemed","pending","rejected","verifi
 const now=Date.now(),HR=36e5;
 /* The inbox holds the claims residents really made in the app (each has rk = resident|promotion|n). It used to invent demo rows (Maya Chen, Elena Petrova...) that no resident had made; they are not generated any more, and the ones an older build stored are dropped below. */
 let CL;const raw0=localStorage.getItem(K);try{CL=JSON.parse(raw0||"null")}catch(e){}if(!Array.isArray(CL)){/* an inbox that cannot be read is kept aside (eso-pmclaims-unreadable) before a clean one is made, so nothing is lost for good */if(raw0)try{localStorage.setItem(K+"-unreadable",raw0)}catch(e){}CL=[];sv()}
-{const n0=CL.length;CL=CL.filter(c=>c&&c.rk);if(CL.length!=n0)sv()}
+/* A stored row with a field of the wrong kind (a name that is not text, a time that is not a number, a status nobody knows) is put right when it is read, so the list, the sort and the dates never meet it: tidy() returns the rows and whether it changed anything. */
+function tidy(a){let ch=0;const o=a.filter(c=>c&&typeof c==="object"&&!Array.isArray(c)&&c.rk);if(o.length!=a.length)ch=1;o.forEach(c=>{const f=(k,v)=>{if(c[k]!==v){c[k]=v;ch=1}},tx=(k,d,n)=>{if(typeof c[k]!=="string")f(k,c[k]==null||typeof c[k]==="object"?d:String(c[k]).slice(0,n))};tx("name","Resident",60);tx("unit","—",12);tx("code","",40);tx("deal","gone:"+c.promo,80);tx("promo","",80);if(!Number.isFinite(c.t)||c.t>8.64e15||c.t<0)f("t",Date.now());if(!["pending","verified","redeemed","rejected"].includes(c.st))f("st","pending");if(typeof c.sync!=="boolean")f("sync",c.sync===true||c.sync==="true")});return{a:o,ch}}
+{const r=tidy(CL);CL=r.a;if(r.ch)sv()}
 {const sn=new Set(),n0=CL.length;CL=CL.slice().sort((a,b)=>a.t-b.t).filter(c=>{if(!c.me||(c.st=="rejected"&&!c.lock))return true;if(sn.has(c.deal))return false;sn.add(c.deal);return true}).sort((a,b)=>b.t-a.t);if(CL.length!=n0)sv()}
 {const u=new Set();let ch=0;CL.forEach(c=>{if(c.meth=="link"||c.code=="(external link)"||c.rid)return;if(u.has(c.code)||!/-[A-Z0-9]{3,5}$/.test(c.code)){c.code=c.code.replace(/-[A-Z0-9]{3,5}$/,"")+"-"+(parseInt(String(c.id).replace(/\D/g,"").slice(-6)||"1",10)*7919%1679616).toString(36).toUpperCase().padStart(4,"0");ch=1}u.add(c.code)});if(ch)sv()}
 function sv(){localStorage.setItem(K,JSON.stringify(CL));publish()}
-function fresh(){try{const a=JSON.parse(localStorage.getItem(K)||"null");if(Array.isArray(a)&&JSON.stringify(a)!==JSON.stringify(CL))CL=a}catch(e){}}
+function fresh(){try{const a=JSON.parse(localStorage.getItem(K)||"null");if(Array.isArray(a)&&JSON.stringify(a)!==JSON.stringify(CL))CL=tidy(a).a}catch(e){}}
 /* Who is deciding: what the audit log and the decision record. The same log (eso-pm-audit-v1, see src/features/promotions/audit.js) is written by the Resident app and by Messages. */
 let STAFF_ME=null;import("/features/messaging/personas.js").then(m=>{STAFF_ME=m.pickPersona("staff",new URLSearchParams(location.search).get("as"))}).catch(()=>{});
 const actor=()=>STAFF_ME?STAFF_ME.name:window._wsRole!="staff"?"Property Manager":"Staff";
@@ -6604,7 +6606,7 @@ const gone=Array.isArray(c.cancelled)&&c.cancelled.includes(j);CL.push({id:"r_"+
 try{const cs=JSON.parse(localStorage.getItem("eso-pm-claimstate")||"{}")||{};CL.forEach(c=>{const d=c.rk&&cs[c.rk];if(d&&c.st==="pending"&&(d.st==="verified"||d.st==="rejected")){c.st=d.st;if(d.vt)c.vt=d.vt;if(d.jt)c.jt=d.jt;if(d.st==="rejected")c.reason=String(d.reason||"");if(d.manual)c.manual={by:"Property team",at:d.vt||d.at||Date.now(),reason:String(d.manual)};ch=1}})}catch(e){}
 if(ch){CL.sort((a,b)=>b.t-a.t);sv()}return ch}
 fromRes();
-addEventListener("storage",e=>{if(e.key===K&&e.newValue){try{const a=JSON.parse(e.newValue);if(Array.isArray(a)){CL=a;fromRes();draw();window._pm&&_pm.upd&&_pm.upd()}}catch(x){}}});
+addEventListener("storage",e=>{if(e.key===K&&e.newValue){try{const a=JSON.parse(e.newValue);if(Array.isArray(a)){CL=tidy(a).a;fromRes();draw();window._pm&&_pm.upd&&_pm.upd()}}catch(x){}}});
 addEventListener("storage",e=>{if(e.key&&e.key.indexOf("eso-res-promo:")===0&&fromRes()){try{draw()}catch(x){}try{window._pm&&_pm.upd&&_pm.upd()}catch(x){}}});
 const U={tab:"pending",q:"",sort:"new",promo:[],range:"all",sync:"any",sel:new Set(),open:"",col:new Set(),sheet:"",rd:"",rev:new Set()};
 const dn=id=>(META[id]&&META[id].d[0])||"Deleted promotion";

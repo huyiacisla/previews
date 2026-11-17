@@ -123,7 +123,7 @@ test("long text without a space (a reason, a note) wraps inside the resident's w
 });
 
 test("the Claims inbox takes the stored inbox again before every action and every import, so a page that missed an update never writes an old copy over a newer decision", () => {
-  assert.ok(staff.includes('function fresh(){try{const a=JSON.parse(localStorage.getItem(K)||"null");if(Array.isArray(a)&&JSON.stringify(a)!==JSON.stringify(CL))CL=a}catch(e){}}'));
+  assert.ok(staff.includes('function fresh(){try{const a=JSON.parse(localStorage.getItem(K)||"null");if(Array.isArray(a)&&JSON.stringify(a)!==JSON.stringify(CL))CL=tidy(a).a}catch(e){}}'));
   assert.ok(staff.includes("function fromRes(){\nfresh();let ch=0;"));
   assert.ok(staff.includes('if(!inC)return;let b;fresh();'), "an action starts from the stored inbox");
 });
@@ -145,4 +145,15 @@ test("My rewards: a long code wraps inside the card instead of pushing it wider 
     assert.ok(t.includes("min-w-0") && t.includes("wrap-anywhere"), t);
     assert.ok(!t.includes("whitespace-nowrap"), t);
   }
+});
+
+test("Claims inbox: a stored row with a field of the wrong kind is put right when it is read (load, fresh, another tab's update), so nothing throws on a null code or sorts on a missing name", () => {
+  assert.ok(staff.includes("function tidy(a){"));
+  const at = staff.indexOf("function tidy(a){");
+  const body = staff.slice(at, at + 900);
+  for (const k of ['tx("name"', 'tx("unit"', 'tx("code"', 'tx("deal"', 'Number.isFinite(c.t)', '["pending","verified","redeemed","rejected"].includes(c.st)']) assert.ok(body.includes(k), k);
+  assert.ok(staff.includes("{const r=tidy(CL);CL=r.a;if(r.ch)sv()}"), "at load, before the code that reads c.code");
+  assert.ok(staff.includes('CL=tidy(a).a}catch(e){}}'), "fresh()");
+  assert.ok(staff.includes("CL=tidy(a).a;fromRes();draw();"), "the storage event");
+  assert.ok(staff.indexOf("{const r=tidy(CL)") < staff.indexOf("c.code.replace(/-[A-Z0-9]{3,5}$/"), "tidy runs before c.code.replace");
 });
