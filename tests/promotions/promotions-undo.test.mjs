@@ -121,3 +121,9 @@ test("long text without a space (a reason, a note) wraps inside the resident's w
   assert.ok(msg.includes("p.className = `${cls} wrap-anywhere`;"), "every paragraph of the details window wraps");
   assert.ok(msg.includes('text.className = st.state === "todo" ? "text-muted-foreground wrap-anywhere" : "text-foreground wrap-anywhere";'));
 });
+
+test("the Claims inbox takes the stored inbox again before every action and every import, so a page that missed an update never writes an old copy over a newer decision", () => {
+  assert.ok(staff.includes('function fresh(){try{const a=JSON.parse(localStorage.getItem(K)||"null");if(Array.isArray(a)&&JSON.stringify(a)!==JSON.stringify(CL))CL=a}catch(e){}}'));
+  assert.ok(staff.includes("function fromRes(){\nfresh();let ch=0;"));
+  assert.ok(staff.includes('if(!inC)return;let b;fresh();'), "an action starts from the stored inbox");
+});

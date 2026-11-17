@@ -6557,6 +6557,7 @@ let CL;const raw0=localStorage.getItem(K);try{CL=JSON.parse(raw0||"null")}catch(
 {const sn=new Set(),n0=CL.length;CL=CL.slice().sort((a,b)=>a.t-b.t).filter(c=>{if(!c.me||(c.st=="rejected"&&!c.lock))return true;if(sn.has(c.deal))return false;sn.add(c.deal);return true}).sort((a,b)=>b.t-a.t);if(CL.length!=n0)sv()}
 {const u=new Set();let ch=0;CL.forEach(c=>{if(c.meth=="link"||c.code=="(external link)"||c.rid)return;if(u.has(c.code)||!/-[A-Z0-9]{3,5}$/.test(c.code)){c.code=c.code.replace(/-[A-Z0-9]{3,5}$/,"")+"-"+(parseInt(String(c.id).replace(/\D/g,"").slice(-6)||"1",10)*7919%1679616).toString(36).toUpperCase().padStart(4,"0");ch=1}u.add(c.code)});if(ch)sv()}
 function sv(){localStorage.setItem(K,JSON.stringify(CL));publish()}
+function fresh(){try{const a=JSON.parse(localStorage.getItem(K)||"null");if(Array.isArray(a)&&JSON.stringify(a)!==JSON.stringify(CL))CL=a}catch(e){}}
 /* Who is deciding: what the audit log and the decision record. The same log (eso-pm-audit-v1, see src/features/promotions/audit.js) is written by the Resident app and by Messages. */
 let STAFF_ME=null;import("/features/messaging/personas.js").then(m=>{STAFF_ME=m.pickPersona("staff",new URLSearchParams(location.search).get("as"))}).catch(()=>{});
 const actor=()=>STAFF_ME?STAFF_ME.name:window._wsRole!="staff"?"Property Manager":"Staff";
@@ -6588,7 +6589,7 @@ auditAdd(evs)}
 /* Claims made in the Resident app (each resident's own record, eso-res-promo:<id>) become claims in this inbox, Pending, once each (rk = resident|promotion|n).
    A deal Staff made is named by the id it was published with there and by "dining5" here: c.promo keeps the first, c.deal is the second. */
 function fromRes(){
-let ch=0;
+fresh();let ch=0;
 CL.forEach(function(x){if(!x.promo)return;var m2=META[x.promo]||Object.values(META).find(function(z){return z.pmc==x.promo}),d=m2?m2.id:"gone:"+x.promo;if(x.deal!==d){x.deal=d;ch=1}});
 try{for(let i=0;i<localStorage.length;i++){const key=localStorage.key(i);if(!key||key.indexOf("eso-res-promo:")!==0)continue;
 const rid=key.slice(14);let s=null;try{s=JSON.parse(localStorage.getItem(key))}catch(e){}
@@ -6668,7 +6669,7 @@ const T=m=>window.toast?toast(m):0;
    It does not use the list on screen, its filters or its demo rows. With no claims the file holds the header alone. */
 async function csv(){try{const m=await import("/features/promotions/claims-csv.js");const r=m.exportClaims(localStorage);const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([r.text],{type:"text/csv;charset=utf-8"}));a.download=r.filename;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),4e3);window.__lastCSV=r.text;T(r.count?"Exported "+r.count+(r.count==1?" claim":" claims"):"No claims to export yet")}catch(x){T("Could not export the claims")}}
 const wide=()=>innerWidth>=1100;
-document.addEventListener("click",e=>{const t=e.target;if(!t.closest)return;const g=a=>t.closest("["+a+"]"),inC=t.closest("#pmcl,#clsh");if(!inC)return;let b;
+document.addEventListener("click",e=>{const t=e.target;if(!t.closest)return;const g=a=>t.closest("["+a+"]"),inC=t.closest("#pmcl,#clsh");if(!inC)return;let b;fresh();
  if(b=g("data-cltab")){U.tab=b.dataset.cltab;U.sel.clear();return draw()}
  if(b=g("data-clcol")){const id=b.dataset.clcol;U.col.has(id)?U.col.delete(id):U.col.add(id);return draw()}
  if(b=g("data-cleye")){e.stopPropagation();const id=b.dataset.cleye;if(U.rev.has(id))U.rev.delete(id);else U.rev.add(id);return draw()}
