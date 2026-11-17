@@ -171,3 +171,8 @@ Hướng 7 và 8: làm hỏng **từng trường** (null, chữ, danh sách, s�
 
 ## Nhật ký đầy (16/11/2026)
 **L13 (nhật ký kiểm toán)**: nhật ký giữ 5000 sự kiện mới nhất; khi đầy, sự kiện cũ nhất bị bỏ, nên **số suất tính từ nhật ký (`spotsTaken`) sai**: claim cũ bị bỏ mà give_back của nó (mới hơn) còn lại làm tổng lệch. Tái hiện bằng test (ba suất của một deal ở đầu nhật ký biến thành 0 sau khi cắt). `spotsTaken` chưa được ứng dụng dùng (chỉ để đối chiếu), nhưng nhật ký là chỗ để giải quyết tranh chấp. Sửa: phần các sự kiện bị bỏ làm với suất được cộng dồn theo từng deal vào trường `base` của chính nhật ký, `spotsTaken` cộng thêm `base`; mã của Staff (`auditAdd`) cũng giữ và cập nhật `base` khi nó ghi. `base` hỏng được bỏ qua. Test: tests/promotions/promotions-audit-cap.test.mjs (nhật ký gần đầy dựng sẵn, nhanh).
+
+## Dữ liệu lạ: mã dài và mã HTML (16/11/2026)
+**L14 (Resident, My rewards)**: một mã dài không có khoảng trắng (65 ký tự) bị giữ một dòng (`whitespace-nowrap`) nên đẩy thẻ rộng ra, tạo thanh cuộn ngang. Sửa: ô mã `[data-code]` có `min-w-0 flex-1 wrap-anywhere`, mã ngắt dòng trong thẻ (3 dòng, không cuộn ngang). Test tĩnh trong tests/promotions/promotions-undo.test.mjs.
+
+**HTML trong dữ liệu: an toàn (không phải lỗi)**: tạo claim của Morgan với tên, căn hộ và mã chứa `<b>`, `<img src=x onerror=...>`. Đã xem hộp Claims của Staff (dòng, chi tiết, mắt), các màn Resident (deal, My rewards, các bước), thẻ claim trong chat và cửa sổ Resident information (tab Resident reward): tất cả hiện **như chữ thường**, không có thẻ `img` hay thuộc tính `on*` được tạo ra, `window.__xss` vẫn 0. Dữ liệu đã trả lại đúng như trước (Alex còn hai claim Pending, T-1086/T-1087 nguyên).

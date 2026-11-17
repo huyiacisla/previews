@@ -136,3 +136,13 @@ test("Claims inbox: a row that is not on the list any more (searched out, filter
   // the bulk actions read the selection and nothing else
   assert.ok(staff.includes('if(b=g("data-clbv")){const ids=[...U.sel].filter(id=>CL.find(c=>c.id==id&&c.st=="pending"));'));
 });
+
+test("My rewards: a long code wraps inside the card instead of pushing it wider (and a code is only ever written as text)", () => {
+  const html = read("src/partials/promotions-app.html");
+  const tags = html.match(/<[^>]*data-code[^>]*>/g) || [];
+  assert.ok(tags.length >= 1);
+  for (const t of tags.filter((x) => x.includes("tracking-wider"))) {
+    assert.ok(t.includes("min-w-0") && t.includes("wrap-anywhere"), t);
+    assert.ok(!t.includes("whitespace-nowrap"), t);
+  }
+});
