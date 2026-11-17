@@ -44,3 +44,24 @@ test("the last places of a limited deal: the count on the card is the places lef
   assert.equal(left(), 0);
   same("full again");
 });
+
+test("a second tab that still shows the deal with places left cannot take a place that is gone (the claim checks the storage, not the page)", () => {
+  const s = memory();
+  const id = "parking1";
+  const staleA = view(s, "res-1", id); // tab of Alex: 3 left
+  const staleB = view(s, "res-2", id); // tab of Priya: 3 left
+  const staleC = view(s, "res-3", id); // tab of Morgan: 3 left
+  assert.equal(staleA.left, 3);
+  // three other people... the three tabs are all stale: each claims in turn, the fourth person (Jamie, Alex's unit) is refused by the unit rule
+  assert.ok(claim(s, "res-1", staleA, new Date(2026, 10, 16, 9, 1)).ok);
+  assert.ok(claim(s, "res-2", staleB, new Date(2026, 10, 16, 9, 2)).ok);
+  assert.ok(claim(s, "res-3", staleC, new Date(2026, 10, 16, 9, 3)).ok);
+  // everything is claimed now; a stale tab of a person who already claimed, and Jamie's stale tab, take nothing
+  const again = claim(s, "res-2", staleB, new Date(2026, 10, 16, 9, 4));
+  assert.equal(again.ok, false);
+  const mate = claim(s, "res-4", view({ getItem: () => null, setItem() {}, removeItem() {} }, "res-4", id), new Date(2026, 10, 16, 9, 5));
+  assert.equal(mate.ok, false, "a tab that was loaded before everything was claimed");
+  assert.match(mate.reason, /fully claimed|unit already claimed/);
+  assert.equal(spotsTaken(s, id), 3);
+  assert.equal(view(s, "res-1", id).left, 0);
+});
