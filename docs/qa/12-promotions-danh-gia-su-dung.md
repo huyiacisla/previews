@@ -108,3 +108,10 @@ Chuỗi: nhận, **huỷ có xác nhận**, nhận lại, Staff mở hộp Claim
 Lần lượt áp từng template trong Templates & brand (Store, Modern, Deals marketplace, Editorial, Minimal mono, Seasonal / Holiday, Luxury dark), tải trang cư dân ở **390 px**, mở My rewards, đo tương phản toàn trang (khoảng 235 đến 270 phần tử chữ mỗi template). Kho đã trả về đúng bản gốc (Deals marketplace).
 - **Kết quả**: cả 7 tải được, không tràn ngang, My rewards mở trong khung.
 - **Lỗi tìm thấy và đã sửa (L2)**: template **Modern** có 3 chữ ở **4,47:1** (nút "Claim offer", liên kết "Skip to main content", số trên huy hiệu): màu chính `#6366f1` với chữ trắng thiếu 0,03 so với 4,5. Đổi sang `#6063ef` (4,64:1), gần như không đổi về nhìn. Thử lại: 0 chữ dưới ngưỡng. Test trong tests/promotions/promotions-undo.test.mjs.
+
+## Rà soát hồi quy cuối (Phase 5.4), 16/11/2026
+Sau mọi bản sửa, đo lại các điểm từng bị phàn nàn:
+- **Trang Promotions của cư dân** ở 375 / 768 / 1440 px: thanh trên cùng (Redeem, My rewards, Saved, Filters) đều **bấm được** (không bị phần tử nào đè; 44 x 44 px trên điện thoại, 32 px nhìn thấy ở tablet và desktop), ô tìm kiếm hiện, **không tràn ngang**, My rewards mở nằm trọn khung ở cả ba cỡ.
+- **Hộp Claims của Staff** ở 375 px: không tràn ngang; cuộn hết cỡ thì nút nổi của trợ lý không đè lên nút ✓ ✕ nào (bốn nút kiểm tra).
+- Các điểm khác (modal Resident information, hộp xác nhận, bảy template, sáng và tối) đã đo ở các mục trên.
+- **Ghi nhận**: khi đo, kho của Alex có thêm một claim Covered Spot Upgrade tạo lúc đo, do người dùng tự thử trên trang (phiên nhánh đang nghỉ); giữ nguyên, không phải dữ liệu thử của kịch bản.
