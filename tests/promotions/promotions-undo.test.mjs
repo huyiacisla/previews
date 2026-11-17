@@ -171,3 +171,9 @@ test("Claims inbox: the resident's name and unit are taken as text only, so an o
   assert.ok(staff.includes('name:(tx(who.name).slice(0,60)||"Resident"),unit:(tx(who.unit).slice(0,12)||"—")'));
   assert.ok(!staff.includes('name:String(who.name'));
 });
+
+test("Claims inbox: tidy() also puts right the reason, the note, the times of a decision and the 'applied by hand' record", () => {
+  const at = staff.indexOf("function tidy(a){");
+  const body = staff.slice(at, at + 2800);
+  for (const k of ['tx("reason","",600)', 'tx("note","",4000)', '["vt","jt","rt"].forEach', 'by:"Property team"', "c.manual={by,at,reason:rs}"]) assert.ok(body.includes(k), k);
+});
