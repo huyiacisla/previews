@@ -66,7 +66,7 @@ Tổng hợp kết quả, lỗi đã sửa, lỗi còn lại, việc cần máy 
 ## Tiến độ
 - [x] Phase 1 (27 điểm đạt; chưa thử 1.10 vì mẫu không có deal giới hạn theo người)
 - [x] Phase 2 (đã thử bằng giao diện thật; 4 lỗi sửa, 2 khoảng trống ghi lại; xem Nhật ký lỗi)
-- [ ] Phase 3
+- [x] Phase 3 (3.1 đến 3.4 đạt trên giao diện thật; 3.5 ba cỡ đạt, bảy template chưa thử lại trực tiếp; 2 điểm cần quyết định)
 - [ ] Phase 4
 - [ ] Phase 5
 - [ ] Phase 6
@@ -85,3 +85,20 @@ Tổng hợp kết quả, lỗi đã sửa, lỗi còn lại, việc cần máy 
 | P2-G2 | Hộp Claims bấm Reject không gửi System Message vào chat (Reject trong chat thì có) | Ghi lại: để sửa nếu người dùng đồng ý |
 
 Cách kiểm: Staff mở chat của Jamie (cùng căn hộ 02-291 với Alex) → Promotions → View all; hộp Claims được thử bằng một dòng Jamie tạm thời cùng deal rồi gỡ (dữ liệu đã trả lại). Test tự động: tests/promotions/promotions-link.test.mjs (7 ca); cả bộ 615/615 đạt.
+
+### Phase 3 (16/11/2026): Staff xem như Resident (Resident view ở trang Promotions của Staff)
+| # | Kết quả |
+|---|---|
+| 3.1 | Đạt. Nút Resident view mở trang Resident ngay trong portal Staff, có Phone / Tablet / Desktop, Staff không bị chuyển đi. |
+| 3.2 | Đạt. My rewards có thẻ Pending (mã che "MALL***", dòng "Code will be available after staff approval"); bấm nhãn Pending mở cửa sổ các bước: Claim submitted, Awaiting staff approval (Waiting 7 h), Staff approval; nút Copy code ẩn khi chưa duyệt. |
+| 3.3 | Đạt. View mở cửa sổ deal (không phải cửa sổ các bước): mã che, Copy ẩn, có "Ask about this claim", "Claimed by you", "Saved". |
+| 3.4 | Đạt. Ask staff ở trong portal Staff chỉ hiện thông báo "In the resident's app this opens Messages with this claim attached."; địa chỉ trang không đổi. |
+| 3.5 | Ba cỡ (Phone 390, Tablet, Desktop) đạt: trang không tràn ngang, cửa sổ My rewards nằm trọn trong khung, thẻ không tràn. Bảy template chưa đổi và thử lại trực tiếp (đổi template là đổi trang đã xuất bản); phần này do các test tự động của template đảm nhiệm. |
+
+**Cần quyết định (chưa sửa)**
+- P3-D1: trong Resident view của Staff, nút **Claim** và **Cancel claim** là thật: bấm sẽ ghi vào kho của người dùng thử (Alex). Ask thì đã được bảo vệ (chỉ hiện thông báo). Đề nghị cho Claim và Cancel cũng chỉ hiện thông báo trong Resident view, để Staff không vô tình đổi dữ liệu của cư dân.
+- P3-D2: khung Resident view của Staff cao hơn màn hình, nên phần dưới cửa sổ deal ("Claimed by you", "Saved") phải cuộn cả trang Staff mới thấy.
+
+**Ghi nhận khi thử**
+- Nút chat nổi của Staff che một phần nhãn "Pending" ở cuối dòng claim trong hộp Claims (chuyển sang Phase 4.1).
+- Một phiên khác đang dùng cùng kho trình duyệt (30 claim thử mã STR001 đến STR029 của Alex, và nhiều lần lưu tệp làm dev server tải lại trang). Dữ liệu đó không phải của Phase 3; cần trả lại kho khi họ xong.
