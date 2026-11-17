@@ -102,3 +102,15 @@ Cách kiểm: Staff mở chat của Jamie (cùng căn hộ 02-291 với Alex) �
 **Ghi nhận khi thử**
 - Nút chat nổi của Staff che một phần nhãn "Pending" ở cuối dòng claim trong hộp Claims (chuyển sang Phase 4.1).
 - Một phiên khác đang dùng cùng kho trình duyệt (30 claim thử mã STR001 đến STR029 của Alex, và nhiều lần lưu tệp làm dev server tải lại trang). Dữ liệu đó không phải của Phase 3; cần trả lại kho khi họ xong.
+
+### Cửa sổ Resident information với dữ liệu nhiều (16/11/2026)
+| # | Ca | Kết quả |
+|---|---|---|
+| F1 | Nút Details của chat resident mở cửa sổ Resident information; panel bên cạnh không còn vẽ cho chat resident; dải "Asked about" cũng mở cửa sổ (tab Resident reward) | Đạt |
+| F2 | Mỗi danh sách trong cửa sổ chỉ hiện 2 dòng, ghi số ("Show all 179"); mở ra thì cuộn trong hộp 360 px, tối đa 100 dòng và ghi "Showing the newest 100 of 179" | Đạt |
+| F3 | Tải thử: 20 claim hiện tại, 179 sự kiện lịch sử, 42 ticket | Dựng cửa sổ 114 ms, chỉ vẽ 14 dòng; mở danh sách 100 dòng không giật |
+| F4 | Bấm Apply by hand trong danh sách đang mở | Cửa sổ vẽ lại tại chỗ: cùng tab, danh sách vẫn mở, ô lý do hiện ra |
+| F5 | 375 px | Vừa khít, không tràn ngang, lý do dài xuống dòng trong thẻ |
+| F6 | Đọc dữ liệu một lần mỗi lần vẽ (không đọc lại cho từng thẻ) | Đạt |
+
+Lỗi tìm thấy khi viết test: số dòng hiện ban đầu âm hoặc bằng 0 bị đổi thành 1 thay vì 2 (đã sửa, có test). Dữ liệu tải thử là dữ liệu tạm trong trình duyệt, đã trả lại như cũ sau khi thử. Test: `tests/messaging/messaging-fold.test.mjs` (17 ca); cả bộ 640/640.

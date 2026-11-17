@@ -10,6 +10,7 @@ import { initials, PERSONAS, PORTALS, pickPersona } from "./personas.js";
 import { describeFilters, FILTER_KEYS, isEmptyQuery, matchFilters, matchText, parseQuery, withoutFilter } from "./query.js";
 import { decideClaim, decisionText } from "../promotions/decide.js";
 import { allRecords, claimStatus, claimSteps, historyFor, householdClaims, maskCode, residentState, rewardGroup, rewardInfo, unitBlocks, unitHistory, unitMates } from "../promotions/store.js";
+import { fold } from "./fold.js";
 import { createStore, notifies, STAGE_LABEL, STAGES, ticketNo } from "./store.js";
 import { clearSideData, createTransport } from "./transport.js";
 
@@ -1308,8 +1309,9 @@ export function mount({ portal }) {
   function promoOverview(residentId) {
     try {
       const st = residentState(localStorage, residentId);
+      const recs = allRecords(localStorage);
       const titleOf = (id) => {
-        const r = allRecords(localStorage).find((x) => String(x.id) === String(id));
+        const r = recs.find((x) => String(x.id) === String(id));
         return r ? r.x.title : "Promotion";
       };
       const states = (() => {
@@ -1464,10 +1466,67 @@ export function mount({ portal }) {
     p.textContent = text;
     return p;
   };
+  // a person's claim events, read once each time the window is drawn (the steps of every card and the History list come from it)
+  function timelineOf(residentId) {
+    if (!ui.infoCache) ui.infoCache = new Map();
+    if (!ui.infoCache.has(residentId)) {
+      const recs = allRecords(localStorage);
+      const titleOf = (id) => (recs.find((x) => String(x.id) === String(id)) || { x: {} }).x.title || "";
+      ui.infoCache.set(residentId, historyFor(localStorage, residentId, titleOf));
+    }
+    return ui.infoCache.get(residentId);
+  }
+  // A list of the window, folded: the first two rows and how many there are; "Show all N" opens the rest (in a box that scrolls, at most FOLD_MAX rows), "Show fewer" folds it again.
+  // Only the rows on show are drawn. Whether a list is open is kept in ui.infoState, so it stays open when the window is redrawn after a decision.
+  function foldedList(panel, key, rows, make, { gap = "gap-step-sm", empty = "" } = {}) {
+    if (!rows.length) return empty && panel.appendChild(paragraph(empty));
+    const state = ui.infoState || { open: {} };
+    state.open = state.open || {};
+    const wrap = document.createElement("div");
+    wrap.className = "flex flex-col items-start gap-step-sm";
+    const scroller = document.createElement("div");
+    scroller.className = "w-full";
+    const ul = document.createElement("ul");
+    ul.setAttribute("role", "list");
+    ul.className = `flex flex-col ${gap}`;
+    scroller.appendChild(ul);
+    const more = document.createElement("div");
+    more.className = "flex flex-col items-start gap-step-xs";
+    wrap.append(scroller, more);
+    const draw = () => {
+      const f = fold(rows, { open: !!state.open[key] });
+      ul.replaceChildren(...f.visible.map(make));
+      // an open list scrolls inside its own box (the stylesheet only knows classes written in HTML, so the size is set here)
+      scroller.style.maxHeight = f.open ? "360px" : "";
+      scroller.style.overflowY = f.open ? "auto" : "";
+      scroller.style.padding = f.open ? "2px" : ""; // room for the rows' rings at the edge of the box
+      if (f.open) {
+        scroller.tabIndex = 0;
+        scroller.setAttribute("role", "group");
+        scroller.setAttribute("aria-label", `${f.total} items`);
+      } else {
+        scroller.removeAttribute("tabindex");
+        scroller.removeAttribute("role");
+        scroller.removeAttribute("aria-label");
+      }
+      more.replaceChildren();
+      if (f.open && f.hidden > 0) more.appendChild(paragraph(`Showing the newest ${f.visible.length} of ${f.total}. ${f.hidden} older ones are left out.`, "text-xs text-muted-foreground"));
+      if (f.canFold) {
+        const b = button(f.label, { variant: "ghost", onClick: () => {
+          state.open[key] = !state.open[key];
+          draw();
+        } });
+        b.setAttribute("aria-expanded", String(f.open));
+        if (!f.open) b.setAttribute("aria-label", `Show all ${f.total}, ${f.total - f.visible.length} more`);
+        more.prepend(b);
+      }
+    };
+    draw();
+    panel.appendChild(wrap);
+  }
   // the steps of a claim, as Staff read them ("Claimed, Reviewed, Approved ..."): done, now, next, stopped
   function stepList(residentId, row) {
-    const titleOf = (id) => (allRecords(localStorage).find((x) => String(x.id) === String(id)) || { x: {} }).x.title || "";
-    const timeline = historyFor(localStorage, residentId, titleOf).filter((e) => e.promoId === row.promoId);
+    const timeline = timelineOf(residentId).filter((e) => e.promoId === row.promoId);
     const WORDS = { "Cancelled by you": "Cancelled by the resident", "Approved: your code is ready": "Approved: the code is ready", "Awaiting staff approval": "Waiting for Staff to approve", "Staff approval": "Staff approval" };
     const ol = document.createElement("ol");
     ol.setAttribute("role", "list");
@@ -1497,7 +1556,7 @@ export function mount({ portal }) {
     const line = document.createElement("div");
     line.className = "flex items-center justify-between gap-step-sm";
     const name = document.createElement("span");
-    name.className = "text-sm font-medium";
+    name.className = "min-w-0 flex-1 text-sm font-medium wrap-anywhere";
     name.textContent = r.title;
     line.append(name, badge(r.label, { Pending: "warning", Verified: "info", Used: "success", "Not approved": "danger", Cancelled: "neutral" }[r.label] || "neutral"));
     li.appendChild(line);
@@ -1507,67 +1566,71 @@ export function mount({ portal }) {
     if (withSteps) li.appendChild(stepList(residentId, r));
     return li;
   }
-  function claimList(panel, residentId, rows, empty, extra) {
-    if (!rows.length) return panel.appendChild(paragraph(empty));
-    const ul = document.createElement("ul");
-    ul.setAttribute("role", "list");
-    ul.className = "flex flex-col gap-step-sm";
-    for (const r of rows) {
-      const li = rewardCard(residentId, r);
-      if (extra) extra(r, li);
-      ul.appendChild(li);
-    }
-    panel.appendChild(ul);
+  function claimList(panel, key, residentId, rows, empty, extra) {
+    foldedList(
+      panel,
+      key,
+      rows,
+      (r) => {
+        const li = rewardCard(residentId, r);
+        if (extra) extra(r, li);
+        return li;
+      },
+      { empty },
+    );
   }
   // what happened to a resident's claims, newest first (claimed, approved, used, not approved, cancelled, could not claim)
-  function eventList(panel, residentId, empty) {
-    const titleOf = (id) => (allRecords(localStorage).find((x) => String(x.id) === String(id)) || { x: {} }).x.title || "";
-    const ev = historyFor(localStorage, residentId, titleOf);
-    if (!ev.length) return panel.appendChild(paragraph(empty));
-    const ul = document.createElement("ul");
-    ul.setAttribute("role", "list");
-    ul.className = "flex flex-col gap-step-xs";
-    for (const e of ev) {
-      const li = document.createElement("li");
-      li.className = "flex flex-col gap-step-xs rounded-lg bg-background p-step-sm ring-1 ring-foreground/10";
-      const line = document.createElement("div");
-      line.className = "flex items-center justify-between gap-step-sm";
-      const name = document.createElement("span");
-      name.className = "text-sm font-medium";
-      name.textContent = e.title;
-      line.append(name, badge(e.label, { Claimed: "warning", Verified: "info", Redeemed: "success", Rejected: "danger", Cancelled: "neutral", "Could not claim": "danger" }[e.label] || "neutral"));
-      li.append(line, paragraph([e.at && formatFull(Date.parse(e.at) || 0), e.note].filter(Boolean).join(" \u00b7 "), "text-xs text-muted-foreground"));
-      ul.appendChild(li);
-    }
-    panel.appendChild(ul);
+  function eventList(panel, key, residentId, empty) {
+    foldedList(
+      panel,
+      key,
+      timelineOf(residentId),
+      (e) => {
+        const li = document.createElement("li");
+        li.className = "flex flex-col gap-step-xs rounded-lg bg-background p-step-sm ring-1 ring-foreground/10";
+        const line = document.createElement("div");
+        line.className = "flex items-center justify-between gap-step-sm";
+        const name = document.createElement("span");
+        name.className = "min-w-0 flex-1 text-sm font-medium wrap-anywhere";
+        name.textContent = e.title;
+        line.append(name, badge(e.label, { Claimed: "warning", Verified: "info", Redeemed: "success", Rejected: "danger", Cancelled: "neutral", "Could not claim": "danger" }[e.label] || "neutral"));
+        li.append(line, paragraph([e.at && formatFull(Date.parse(e.at) || 0), e.note].filter(Boolean).join(" \u00b7 "), "text-xs text-muted-foreground"));
+        return li;
+      },
+      { gap: "gap-step-xs", empty },
+    );
   }
   const STAGE_TONE = { open: "info", in_progress: "success", waiting_on_resident: "warning", resolved: "neutral", closed: "neutral" };
-  function ticketRows(panel, dlg, rows, empty) {
-    if (!rows.length) return panel.appendChild(paragraph(empty));
-    const ul = document.createElement("ul");
-    ul.setAttribute("role", "list");
-    ul.className = "flex flex-col";
-    for (const k of rows) {
-      const li = tpl("t-ctx-ticket");
-      $("[data-topic]", li).textContent = `${k.no} \u00b7 ${k.topic}`;
-      $("[data-stage]", li).appendChild(badge(STAGE_LABEL[k.stage], STAGE_TONE[k.stage]));
-      $("[data-meta]", li).textContent = [k.current ? "This chat" : "", `Updated ${listTime(k.at, Date.now())}`, k.assignee && `Handled by ${k.assignee}`].filter(Boolean).join(" \u00b7 ");
-      const b = $("[data-open]", li);
-      if (k.current) b.addEventListener("click", () => dlg.close());
-      else if (k.open)
-        b.addEventListener("click", () => {
-          dlg.close();
-          openConv(k.id);
-        });
-      else b.disabled = true;
-      ul.appendChild(li);
-    }
-    panel.appendChild(ul);
+  function ticketRows(panel, key, dlg, rows, empty) {
+    foldedList(
+      panel,
+      key,
+      rows,
+      (k) => {
+        const li = tpl("t-ctx-ticket");
+        $("[data-topic]", li).textContent = `${k.no} \u00b7 ${k.topic}`;
+        $("[data-stage]", li).appendChild(badge(STAGE_LABEL[k.stage], STAGE_TONE[k.stage]));
+        $("[data-meta]", li).textContent = [k.current ? "This chat" : "", `Updated ${listTime(k.at, Date.now())}`, k.assignee && `Handled by ${k.assignee}`].filter(Boolean).join(" \u00b7 ");
+        const b = $("[data-open]", li);
+        if (k.current) b.addEventListener("click", () => dlg.close());
+        else if (k.open)
+          b.addEventListener("click", () => {
+            dlg.close();
+            openConv(k.id);
+          });
+        else b.disabled = true;
+        return li;
+      },
+      { gap: "gap-0", empty },
+    );
   }
   function openResidentInfo(conv, keep) {
     const data = store.contextFor(conv.id, me.id);
     if (!data || data.kind !== "resident" || !data.person) return;
-    const st = keep || { main: 0, reward: 0, ticket: 0 };
+    const st = keep || { main: 0, reward: 0, ticket: 0, open: {} };
+    st.open = st.open || {};
+    ui.infoState = st;
+    ui.infoCache = new Map(); // read again each time the window is drawn
     let dlg = document.getElementById("res-info");
     const scroll = dlg ? dlg.scrollTop : 0; // a rebuilt window stays where it was
     if (dlg) dlg.remove();
@@ -1594,10 +1657,11 @@ export function mount({ portal }) {
     head.append(who, button("Close", { variant: "outline", onClick: () => dlg.close() }));
     box.appendChild(head);
 
-    const rid = conv.residentId;
+    const rid = data.person.id;
     const mine = promoOverview(rid);
     const mates = unitMates(rid);
-    const current = mine.filter((r) => r.group === "active");
+    const decidingNow = ["staff", "admin"].includes(me.role) && conv.kind === "resident_support" ? decidable(rid) : [];
+    const current = mine.filter((r) => r.group === "active" || decidingNow.some((c) => c.promoId === r.promoId)); // a claim Staff can still decide is always in Current
     const matesCurrent = mates.map((m) => ({ m, rows: promoOverview(m.id).filter((r) => r.group === "active").map((r) => ({ ...r, mates: [] })) }));
     const tickets = data.ticketList || [];
     const isCurrentTicket = (k) => ["open", "in_progress", "waiting_on_resident"].includes(k.stage);
@@ -1637,15 +1701,24 @@ export function mount({ portal }) {
                     label: "Current claim",
                     count: current.length + matesCurrent.reduce((n, x) => n + x.rows.length, 0),
                     build: (p) => {
+                      // the one-per-unit rule: said first and in red, with whose account and when
+                      for (const b of unitPromo(rid).blocks) {
+                        const al = document.createElement("p");
+                        al.setAttribute("role", "alert");
+                        al.className = "rounded-md border border-danger-text bg-danger-bg p-step-sm text-sm font-medium text-danger-text";
+                        const when = b.at ? new Date(b.at).toLocaleDateString("en-US", { month: "short", day: "numeric" }) : "";
+                        al.textContent = `This unit already got "${b.title}" through ${b.by}'s account${when ? ` on ${when}` : ""}. One per unit: a second claim is blocked. Do not pay it twice.`;
+                        p.appendChild(al);
+                      }
                       p.appendChild(paragraph(data.person.name, "text-sm font-medium"));
-                      const toDecide = decidable(rid);
-                      claimList(p, rid, current, "No claim in progress.", (r, li) => {
+                      const toDecide = ["staff", "admin"].includes(me.role) && conv.kind === "resident_support" ? decidable(rid) : [];
+                      claimList(p, "cur", rid, current, "No claim in progress.", (r, li) => {
                         const d = toDecide.find((x) => x.promoId === r.promoId);
                         if (d) li.appendChild(decisionBox(conv, d, rebuild));
                       });
                       for (const { m, rows } of matesCurrent) {
                         p.appendChild(paragraph(`Same unit: ${m.name}`, "text-sm font-medium"));
-                        claimList(p, m.id, rows, "No claim in progress.");
+                        claimList(p, `cur-${m.id}`, m.id, rows, "No claim in progress.");
                       }
                       if (portal === "staff") p.appendChild(button("Open Claims inbox", { variant: "outline", icon: "forward", onClick: () => goPage("/staff/promotions.html", "#/promotions/claims") }));
                     },
@@ -1653,12 +1726,13 @@ export function mount({ portal }) {
                   {
                     id: "history",
                     label: "History claimed",
+                    count: timelineOf(rid).length + mates.reduce((n, m) => n + timelineOf(m.id).length, 0),
                     build: (p) => {
                       p.appendChild(paragraph(data.person.name, "text-sm font-medium"));
-                      eventList(p, rid, "Nothing claimed yet.");
+                      eventList(p, "hist", rid, "Nothing claimed yet.");
                       for (const m of mates) {
                         p.appendChild(paragraph(`Same unit: ${m.name}`, "text-sm font-medium"));
-                        eventList(p, m.id, "Nothing claimed yet.");
+                        eventList(p, `hist-${m.id}`, m.id, "Nothing claimed yet.");
                       }
                     },
                   },
@@ -1678,8 +1752,8 @@ export function mount({ portal }) {
               tabset(
                 "Tickets",
                 [
-                  { id: "current", label: "Current ticket", count: now.length, build: (p) => ticketRows(p, dlg, now, "No ticket in progress.") },
-                  { id: "history", label: "History ticket", count: past.length, build: (p) => ticketRows(p, dlg, past, "No earlier tickets.") },
+                  { id: "current", label: "Current ticket", count: now.length, build: (p) => ticketRows(p, "tk-now", dlg, now, "No ticket in progress.") },
+                  { id: "history", label: "History ticket", count: past.length, build: (p) => ticketRows(p, "tk-past", dlg, past, "No earlier tickets.") },
                 ],
                 { sub: true, start: st.ticket, onSelect: (n) => (st.ticket = n) },
               ),
@@ -1818,7 +1892,7 @@ export function mount({ portal }) {
 
   function renderContext(t) {
     const data = ["staff", "admin"].includes(me.role) ? store.contextFor(t.conv.id, me.id) : null;
-    if (!data || !contextOpen()) return hideContext();
+    if (!data || data.kind === "resident" || !contextOpen()) return hideContext(); // a resident's details are the Resident information window
     $("#context-pane").hidden = false;
     $("#view-app").dataset.context = "open";
     const promoEv = data && data.kind === "resident" && data.person ? promoEvents(data.person.id) : [];
@@ -2075,7 +2149,7 @@ export function mount({ portal }) {
       box.appendChild(banner("info", `${t.ack.pct}% read (${t.ack.read} of ${t.ack.total}).${names}`));
     }
     const asked = ["staff", "admin"].includes(me.role) ? askedCard(t) : null;
-    if (asked) box.appendChild(banner("info", `Asked about: ${asked.title}${asked.code ? ` · ${asked.code}` : ""}`, contextOpen() ? [] : [button("Details", { variant: "outline", onClick: () => setContext(true) })]));
+    if (asked) box.appendChild(banner("info", `Asked about: ${asked.title}${asked.code ? ` · ${asked.code}` : ""}`, [button("Details", { variant: "outline", onClick: () => openResidentInfo(t.conv, { main: 1, reward: 0, ticket: 0, open: {} }) })]));
     if (offline()) box.appendChild(banner("warning", "You are offline. Messages will not send until the connection is back."));
     if (conv.kind === "resident_support" && me.role === "resident") {
       if (conv.status === "bot") box.appendChild(banner("neutral", "You are chatting with an automated assistant. The property team is only contacted if you ask for a person."));
