@@ -4,6 +4,7 @@
 import "./_clock.mjs";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
+import * as importedCsv from "../../src/features/promotions/claims-csv.js";
 import test from "node:test";
 import { appendAudit, AUDIT_TYPES, readAudit, spotsTaken } from "../../src/features/promotions/audit.js";
 
@@ -176,4 +177,18 @@ test("Claims inbox: tidy() also puts right the reason, the note, the times of a 
   const at = staff.indexOf("function tidy(a){");
   const body = staff.slice(at, at + 2800);
   for (const k of ['tx("reason","",600)', 'tx("note","",4000)', '["vt","jt","rt"].forEach', 'by:"Property team"', "c.manual={by,at,reason:rs}"]) assert.ok(body.includes(k), k);
+});
+
+test("Staff CSV downloads from the lifecycle panel and the Storage page use the same cell rule as the main export: a formula is defused and a return is quoted", () => {
+  const defs = staff.split("\n").filter((l) => l.startsWith("function csvCellS(v){"));
+  assert.equal(defs.length, 2, "one in each script scope");
+  assert.equal(defs[0], defs[1]);
+  assert.ok(defs[0].includes('/^[=+\\-@\\t\\r]/.test(v))v="\'"+v;'), "a leading = + - @ tab or return gets an apostrophe");
+  assert.ok(defs[0].includes('/[",\\r\\n]/.test(v)'), "a return is quoted too");
+  assert.ok(staff.includes("l.map(csvCellS).join(',')") && staff.includes('l.map(csvCellS).join(",")'));
+  assert.ok(!staff.includes("v=String(v==null?'':v);return /[\",\\n]/.test(v)"), "the old cell function is gone");
+  // the rule behaves like csvCell() of the main export
+  const fn = new Function(defs[0] + "; return csvCellS;")();
+  const { csvCell } = importedCsv;
+  for (const v of ["=1+1", "+1", "-1", "@a", "\tx", "a,b", 'q"q', "line\nbreak", "cr\rx", " pad", "plain", "", null, 12]) assert.equal(fn(v), csvCell(v), JSON.stringify(v));
 });

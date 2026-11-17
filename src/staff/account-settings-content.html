@@ -395,10 +395,12 @@ function remove(id){
  var d=DOC.getElementById('pdd');if(d){if(history.state&&history.state.pdd)history.back();else d.remove()}
  after(id,false);
  tst((m.d[0]||'The card')+' was removed.',function(){m.st=prev.st;if(m.pmc){var q=rec(m);if(q){q.r.st=prev.rst;wr(SK,q.a)}}else setSample(id,prev.ov===undefined?null:prev.ov,undefined);after(id,false)})}
+/* One CSV cell, the same rule as csvCell() in src/features/promotions/claims-csv.js: a cell a spreadsheet would run as a formula (starts with = + - @, a tab or a return) gets a leading apostrophe; quoted for a comma, quote, line break or a space at an end */
+function csvCellS(v){v=v==null?"":String(v);if(/^[=+\-@\t\r]/.test(v))v="'"+v;return /[",\r\n]/.test(v)||/^\s|\s$/.test(v)?'"'+v.replace(/"/g,'""')+'"':v}
 function csvOf(id){
  var m=M()[id],r=[['Claim ID','Resident','Unit','Claimed','Code','Status']];
  ((window._pmcl&&_pmcl.CL)||[]).filter(function(c){return c.deal==id&&(!m||!m.pmc||!c.promo||String(c.promo)===String(m.pmc))}).forEach(function(c){r.push([c.id,c.name,c.unit,new Date(c.t).toISOString(),c.code,c.st])});
- return{rows:r.length-1,text:r.map(function(l){return l.map(function(v){v=String(v==null?'':v);return /[",\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v}).join(',')}).join('\n')}}
+ return{rows:r.length-1,text:r.map(function(l){return l.map(csvCellS).join(',')}).join('\n')}}
 function download(id){
  var m=M()[id],c=csvOf(id),name=String((m&&m.d[0])||id).toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'')+'-claimers.csv';
  window.__lastLifeCSV=c.text;
@@ -6929,7 +6931,9 @@ function view(){const a=list();return `<div class="st-wrap" data-pmstore>${planC
  <div class="st-tb"><input type="search" placeholder="Search ended promotions" aria-label="Search storage" data-pmstq value="${H(S.q)}"><select data-pmstf aria-label="Filter">${[["all","All ended"],["expired","Expired"],["soldout","Sold out"],["soon","Deleting soon"]].map(([k,l])=>`<option value="${k}" ${S.f==k?"selected":""}>${l}</option>`).join("")}</select><select data-pmsts aria-label="Sort">${[["del","Deletes soonest"],["new","Recently ended"],["claims","Most claims"]].map(([k,l])=>`<option value="${k}" ${S.sort==k?"selected":""}>${l}</option>`).join("")}</select></div>
  <div class="st-sim"><span>Demo clock: ${S.off?"+"+S.off+" days":"today"}</span><button class="st-btn demo" data-pmsim="7">Simulate +7 days</button><button class="st-btn demo" data-pmsim="purge">Run purge now</button>${S.off?`<button class="st-btn" data-pmsim="reset">Reset clock</button>`:""}</div>
  <div class="st-l" data-pmstl>${a.map(row).join("")||`<p class="st-ro">No ended promotions match.</p>`}</div><p class="st-ro">Residents never see Storage. Records are read-only.</p></div>`}
-function csv(m){const r=[["Claim ID","Resident","Unit","Claimed","Code","Status","Synced"]];((window._pmcl&&_pmcl.CL)||[]).filter(c=>c.deal==m.id).forEach(c=>r.push([c.id,c.name,c.unit,new Date(c.t).toISOString(),c.code,c.st,c.sync?"yes":"no"]));return r.map(l=>l.map(v=>/[",\n]/.test(v)?`"${String(v).replace(/"/g,'""')}"`:v).join(",")).join("\n")}
+/* the same cell rule as csvCellS above (another script scope) */
+function csvCellS(v){v=v==null?"":String(v);if(/^[=+\-@\t\r]/.test(v))v="'"+v;return /[",\r\n]/.test(v)||/^\s|\s$/.test(v)?'"'+v.replace(/"/g,'""')+'"':v}
+function csv(m){const r=[["Claim ID","Resident","Unit","Claimed","Code","Status","Synced"]];((window._pmcl&&_pmcl.CL)||[]).filter(c=>c.deal==m.id).forEach(c=>r.push([c.id,c.name,c.unit,new Date(c.t).toISOString(),c.code,c.st,c.sync?"yes":"no"]));return r.map(l=>l.map(csvCellS).join(",")).join("\n")}
 function dl(name,txt,type){try{const u=URL.createObjectURL(new Blob([txt],{type}));const a=document.createElement("a");a.href=u;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),1e3)}catch(e){}}
 function timeline(m){const e=endAt(m),c=e-((m.endsDays||20)+10)*D;const t=[[c,"Created","by "+(m.pb||"QA Staff PM")],[c+D,"Published","Audience: "+(m.au||"all")],[e,st(m)=="expired"?"Expired":"Sold out",AUTOL[auto(m)]],[e,"Moved to Storage","Read-only record"]];
  t.push(active()?[now(),"Kept permanently","Extended storage active"]:[e+RET*D,"Scheduled deletion",RET+"-day retention"]);return t}
