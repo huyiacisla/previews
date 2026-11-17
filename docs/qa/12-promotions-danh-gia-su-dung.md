@@ -128,3 +128,8 @@ Với mỗi cửa sổ: hộp thoại có tên và là modal, tiêu điểm vào
 - **Cửa sổ của cư dân** (deal, My rewards, các bước, hộp "Cancel this claim?"): 0 lỗi. Hộp huỷ vào "Keep claim"; bấm Keep thì tiêu điểm trở về cửa sổ các bước.
 - **Gợi ý nhỏ, đã làm**: tên người trong tab Resident reward ("Alex Rivera", "Same unit: Jamie Rivera") nay là đề mục (h3, cùng cỡ chữ), người dùng đọc màn hình nhảy theo đề mục được; đã xem trên giao diện thật.
 - **Vẫn chưa thử**: đọc màn hình thật (NVDA, VoiceOver) và bàn phím ảo trên điện thoại thật.
+
+## Quét lỗi console và độ bền khi kho hỏng (16/11/2026)
+- **Quét lỗi console**: duyệt Staff (dashboard, tickets, promotions, social, messages) và cư dân (home, tickets, messages, social, notifications, promotions): **không có lỗi mới**. Chỉ còn các lỗi cũ của phiên bản đã sửa (một lỗi `claimDlg` của cư dân, hai lỗi sự kiện giả của script thử).
+- **Kho hỏng**: đặt giá trị sai định dạng cho `eso-res-promo:res-1` ("{bad json"), `eso-pmclaims` (không phải mảng), `eso-pm-claimstate` ("[1,2,3]"), `eso-pm-audit-v1` ("garbage"), `eso-pm-load`. Trang cư dân vẫn dựng đủ 25 deal, thanh trên cùng đủ, My rewards báo "Nothing claimed yet" (bản ghi hỏng coi như rỗng), không lỗi console. Hộp Claims của Staff hiện "No claims here", không lỗi. Dữ liệu đã trả về bản gốc.
+- **Lưu ý**: khi bản ghi của cư dân hỏng, claim mới sẽ ghi đè bản hỏng bằng một bản sạch (dữ liệu cũ trong bản hỏng không khôi phục được); app có sẵn cảnh báo kho (Storage) cho các lỗi này.
