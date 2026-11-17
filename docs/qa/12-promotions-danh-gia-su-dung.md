@@ -208,3 +208,14 @@ Hướng: 40 chuỗi ngẫu nhiên (80 bước, có hạt giống) gồm cư dâ
 Lượt trước ghi "fuzz đã đọc/chưa đọc không có lỗi" nhưng fuzz đó chỉ gửi tin, không thu hồi hay ẩn tin (và `setMuted` không có trong store, nên phần tắt tiếng thực ra không được thử). Lượt này thêm các thao tác đó.
 
 **L20 (huy hiệu, danh sách, chuông)**: cư dân gửi tin rồi **thu hồi** (`unsend`) trước khi Staff đọc: `unreadCount` vẫn tính tin đã thu hồi (chữ rỗng) nên huy hiệu và dòng danh sách của Staff báo **1 tin chưa đọc** cho một tin không còn, và mở chat thì không có gì để đọc. **L21**: tin được người xem ẩn bằng "Delete for me" (`hideMessage`) cũng vẫn tính chưa đọc cho chính người đã ẩn nó. Sửa: `unreadCount` (và qua nó `badgeCount`, hàng danh sách, `alertsFor`, nay dùng cùng một hàm đếm thay vì tự đếm) bỏ tin đã thu hồi và tin người xem đã ẩn; "Mark as unread" bỏ qua hai loại đó; vạch "tin mới" khi mở chat (`app.js`) không neo vào tin đã thu hồi. Test: tests/promotions/promotions-unsent-unread.test.mjs (3 test, hai test đầu đỏ trước khi sửa). Mở lại trang Messages của Staff: ba chat T-1081, T-1086, T-1087 nguyên, không lỗi.
+
+## Kết luận đợt tìm lỗi (16/11/2026)
+Dừng đợt này theo yêu cầu "hết lỗi thì ngừng". Đã tìm và sửa **21 lỗi (L1–L21)**, mỗi lỗi có test; `npm test` xanh 705/705; mọi thay đổi đã commit. Lượt cuối thêm một test cho trích dẫn tin đã thu hồi (hiện "Message removed", chữ gốc không lộ), không có lỗi mới.
+
+**Đã phủ**: lõi claim/duyệt/huỷ/hoàn tác và kiểm kê suất (fuzz, deal giới hạn tổng, nhả suất của căn hộ, tab cũ); nhật ký kiểm toán đầy; thời gian và đồng hồ; dữ liệu hỏng từng trường ở kho promotions, kho tin nhắn và hộp Claims của Staff (cả hàng hỏng, nhập từ bản ghi cư dân, kho quyết định); chữ dài và HTML trong dữ liệu; xuất CSV (cả hai bản riêng của Staff); bấm nhanh; thao tác hàng loạt; chat hỗ trợ về claim; đã đọc/chưa đọc, huy hiệu, chuông, tin thu hồi và tin đã ẩn.
+
+**Còn lại, không phải lỗi đã biết chưa sửa**:
+- Cần quyết định sản phẩm: Reject claim đã Synced âm thầm bỏ Synced (trong khi Move back chặn); chưa rõ muốn chặn hay chỉ cảnh báo.
+- Xuất sự kiện đầy đủ ở trang Storage không tải và không báo nếu ngày kết thúc đã lưu không hợp lệ (chỉ gặp khi kho bị sửa tay).
+- Chat trỏ tới người không tồn tại bị bỏ vĩnh viễn ở lần ghi kế (chúng vốn không hiển thị được).
+- Chưa thử được: hai tab ghi thật sự cùng lúc (một luồng), trình đọc màn hình, các thao tác chat chưa fuzz (sửa tin, react, forward, ẩn cả cuộc chat, tắt tiếng qua `setPref`), và các màn Staff khác ngoài hộp Claims đọc cùng kho. Hết lỗi ở đây nghĩa là **chưa tìm thêm được**, không phải đã chứng minh không còn.

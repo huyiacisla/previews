@@ -71,3 +71,22 @@ test("alerts count unread like the badge, and 'mark as unread' skips a message t
   store.markUnread(id, "stf-1");
   assert.equal(store.unreadCount(id, "stf-1"), 1, "mark as unread brings back the real message, not the unsent one");
 });
+
+test("a reply that quotes a message which was unsent shows Message removed, and the unsent text is nowhere in what Staff get", () => {
+  const { store, tick } = setup();
+  const id = store.askAboutClaim("res-1", claim).convId;
+  tick();
+  store.claim(id, "stf-1");
+  tick();
+  const a = store.send(id, "res-1", "secret plate number 123");
+  tick();
+  const target = store.get(id, "res-1").messages.find((m) => m.text === "secret plate number 123");
+  store.send(id, "stf-1", "thanks for that", { replyTo: target.id });
+  tick();
+  assert.ok(store.unsend(id, "res-1", target.id).ok);
+  const view = store.get(id, "stf-1").messages;
+  const reply = view.find((m) => m.text === "thanks for that");
+  assert.equal(reply.replyPreview.text, "Message removed");
+  assert.ok(!JSON.stringify(view).includes("secret plate number 123"), "the unsent text is nowhere in what Staff get");
+  assert.ok(!JSON.stringify(store.rowFor(store.get(id, "stf-1").conv || {}, { id: "stf-1", role: "staff" }) || {}).includes("secret plate"));
+});
