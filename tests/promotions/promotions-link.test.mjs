@@ -105,3 +105,11 @@ test("Messages: the hover bar of a message (React, Reply, Forward, More) floats 
   assert.equal(html.split("sm:max-w-[min(75%,calc(100%_-_11.5rem))]").length - 1, 2, "both bubbles keep room for the bar");
   assert.ok(!html.includes("sm:max-w-3/4"));
 });
+
+test("Messages: the name and ticket number at the top of a chat are read in full; the action buttons share the row only when the chat column is wide", () => {
+  const html = read("src/partials/messages-app.html");
+  assert.ok(html.includes('<div id="thread" hidden class="@container/th flex min-h-0 flex-1 flex-col">'));
+  assert.ok(html.includes("@4xl/th:grid-cols-[auto_minmax(0,1fr)_auto_auto]"));
+  assert.ok(html.includes("@4xl/th:order-none @4xl/th:col-span-1 @4xl/th:justify-end"));
+  assert.ok(!html.includes("sm:grid-cols-[auto_minmax(0,1fr)_auto_auto]"), "the screen width no longer decides: the buttons used to take the name's room on a tablet");
+});

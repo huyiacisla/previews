@@ -150,8 +150,8 @@
           <p class="text-sm text-muted-foreground">Pick one from the list to read it and reply.</p>
         </div>
 
-        <div id="thread" hidden class="flex min-h-0 flex-1 flex-col">
-          <div class="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-x-step-md gap-y-step-sm border-b border-border p-step-md sm:grid-cols-[auto_minmax(0,1fr)_auto_auto]">
+        <div id="thread" hidden class="@container/th flex min-h-0 flex-1 flex-col">
+          <div class="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-x-step-md gap-y-step-sm border-b border-border p-step-md @4xl/th:grid-cols-[auto_minmax(0,1fr)_auto_auto]">
             <span id="thread-avatar" data-slot="avatar" data-role="staff" data-size="lg" class="inline-flex size-10 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-medium text-muted-foreground data-[role=admin]:bg-info-bg data-[role=admin]:text-info-text data-[role=bot]:bg-accent data-[role=bot]:text-primary data-[role=staff]:bg-warning-bg data-[role=staff]:text-warning-text data-[role=client]:bg-success-bg data-[role=client]:text-success-text"></span>
             <div class="flex min-w-0 flex-col gap-step-xs">
               <h2 id="thread-title" tabindex="-1" class="min-w-0 truncate text-base leading-snug font-medium outline-none"></h2>
@@ -161,7 +161,7 @@
                 <p id="thread-sub" class="min-w-0 truncate text-xs text-muted-foreground"></p>
               </div>
             </div>
-            <div id="thread-actions" class="order-last col-span-3 flex flex-wrap items-center gap-step-sm empty:hidden sm:order-none sm:col-span-1 sm:justify-end"></div>
+            <div id="thread-actions" class="order-last col-span-3 flex flex-wrap items-center gap-step-sm empty:hidden @4xl/th:order-none @4xl/th:col-span-1 @4xl/th:justify-end"></div>
             <div id="thread-flags" class="relative flex shrink-0 items-center">
               <button type="button" id="btn-thread-more" aria-label="More actions" aria-haspopup="menu" aria-expanded="false" aria-controls="thread-menu" class="inline-flex size-8 shrink-0 touch-manipulation items-center justify-center rounded-md text-muted-foreground outline-none transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50 aria-expanded:bg-accent aria-expanded:text-primary pointer-coarse:size-11 [&_svg]:size-4"><svg aria-hidden="true"><use href="#i-more"/></svg></button>
               <div id="thread-menu" hidden role="menu" aria-label="Conversation actions" class="absolute top-full right-0 z-popup mt-1 flex w-52 flex-col rounded-lg bg-card p-1 shadow-lift-md ring-1 ring-foreground/10"></div>
