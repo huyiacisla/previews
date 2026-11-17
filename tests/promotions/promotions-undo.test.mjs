@@ -108,3 +108,16 @@ test("accessibility: the person's name above a list of claims is a heading", () 
   assert.ok(!msg.includes('paragraph(data.person.name, "text-sm font-medium")'));
   assert.ok(msg.includes("p.appendChild(subhead(`Same unit: ${m.name}`));"));
 });
+
+test("long text without a space (a reason, a note) wraps inside the resident's windows and Staff's details window instead of overflowing", () => {
+  const html = read("src/partials/promotions-app.html");
+  for (const id of ["dlg-claim-status", "dlg-error", "cl-expiry"]) {
+    const at = html.indexOf(`id="${id}"`);
+    assert.ok(html.slice(at, html.indexOf(">", at)).includes("wrap-anywhere"), id);
+  }
+  assert.ok(html.includes('<p data-note class="text-xs text-muted-foreground wrap-anywhere empty:hidden"></p>'));
+  assert.ok(html.includes('<p data-expiry class="text-sm text-foreground wrap-anywhere empty:hidden"></p>'));
+  const msg = read("src/features/messaging/app.js");
+  assert.ok(msg.includes("p.className = `${cls} wrap-anywhere`;"), "every paragraph of the details window wraps");
+  assert.ok(msg.includes('text.className = st.state === "todo" ? "text-muted-foreground wrap-anywhere" : "text-foreground wrap-anywhere";'));
+});

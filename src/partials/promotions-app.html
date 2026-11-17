@@ -216,7 +216,7 @@
       <p id="dlg-desc" class="max-w-prose text-sm leading-6 wrap-anywhere whitespace-pre-wrap text-foreground-secondary"></p>
       <div id="dlg-claim" hidden class="flex flex-col gap-step-sm rounded-lg bg-background p-step-md ring-1 ring-foreground/10">
         <p id="dlg-claim-label" class="text-xs text-muted-foreground"></p>
-        <p id="dlg-claim-status" role="status" class="text-sm text-muted-foreground data-[tone=ok]:text-success-text data-[tone=no]:text-danger-text empty:hidden"></p>
+        <p id="dlg-claim-status" role="status" class="text-sm text-muted-foreground wrap-anywhere data-[tone=ok]:text-success-text data-[tone=no]:text-danger-text empty:hidden"></p>
         <div class="flex items-center gap-step-sm">
           <output id="dlg-code" aria-label="Your code" class="min-w-0 flex-1 text-lg font-medium tracking-wider wrap-anywhere tabular-nums data-[masked=true]:text-muted-foreground"></output>
           <button type="button" id="dlg-reveal" data-reveal aria-pressed="false" aria-label="Show code" title="Show code" class="group/button inline-flex size-11 shrink-0 touch-manipulation items-center justify-center rounded-md border border-input bg-card text-foreground transition outline-none select-none hover:bg-muted focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 active:translate-y-px [&_svg]:size-5"><svg aria-hidden="true" fill="none"><use href="#i-eye"/></svg></button>
@@ -226,7 +226,7 @@
       </div>
       <button type="button" id="dlg-ask" hidden class="self-start rounded-md px-step-xs text-sm font-medium text-primary underline underline-offset-2 transition outline-none hover:no-underline focus-visible:ring-3 focus-visible:ring-ring/50 pointer-coarse:min-h-11">Ask about this claim</button>
       <p id="dlg-fine" class="text-xs leading-5 text-muted-foreground wrap-anywhere empty:hidden"></p>
-      <p id="dlg-error" role="alert" class="text-sm text-danger-text empty:hidden"></p>
+      <p id="dlg-error" role="alert" class="text-sm text-danger-text wrap-anywhere empty:hidden"></p>
       <div class="flex flex-wrap items-center gap-step-sm">
         <button type="button" id="dlg-claim-btn" class="group/button inline-flex h-8 shrink-0 touch-manipulation items-center justify-center gap-step-sm rounded-md border border-transparent bg-primary bg-clip-padding px-step-md control-text font-medium whitespace-nowrap text-primary-foreground transition outline-none select-none hover:bg-primary/90 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 active:translate-y-px disabled:pointer-events-none disabled:opacity-50 pointer-coarse:h-11 [&_svg]:size-4"><span id="dlg-claim-text">Claim</span><svg id="dlg-claim-ext" hidden aria-hidden="true"><use href="#i-external"/></svg></button>
         <button type="button" id="dlg-save" aria-pressed="false" class="group/button inline-flex h-8 shrink-0 touch-manipulation items-center justify-center gap-step-sm rounded-md border border-transparent bg-background bg-clip-padding px-step-md control-text font-medium whitespace-nowrap text-foreground ring-1 ring-foreground/10 transition outline-none select-none hover:bg-muted focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 active:translate-y-px aria-pressed:bg-accent pointer-coarse:h-11 [&_svg]:size-4"><svg aria-hidden="true" fill="none" class="group-aria-pressed/button:fill-amber-400 group-aria-pressed/button:text-amber-500"><use href="#i-star"/></svg><span id="dlg-save-text">Save</span></button>
@@ -297,7 +297,7 @@
     <div class="flex items-start justify-between gap-step-md">
       <div class="flex min-w-0 flex-col gap-step-xs">
         <h2 id="cl-title" tabindex="-1" class="text-xl leading-7 font-semibold tracking-tight wrap-anywhere outline-none"></h2>
-        <p id="cl-expiry" class="text-sm text-muted-foreground"></p>
+        <p id="cl-expiry" class="text-sm text-muted-foreground wrap-anywhere"></p>
       </div>
       <button type="button" data-close aria-label="Close" class="group/button inline-flex size-8 shrink-0 touch-manipulation items-center justify-center rounded-md border border-transparent bg-foreground/8 text-secondary-foreground transition outline-none select-none hover:bg-foreground/12 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 active:translate-y-px pointer-coarse:size-11 [&_svg]:size-4"><svg aria-hidden="true"><use href="#i-x"/></svg></button>
     </div>
@@ -344,8 +344,8 @@
     </div>
     <p data-pending hidden class="text-sm text-muted-foreground">Code will be available after staff approval.</p>
     <div class="flex flex-wrap items-baseline gap-x-step-md gap-y-0 empty:hidden">
-      <p data-expiry class="text-sm text-foreground empty:hidden"></p>
-      <p data-note class="text-xs text-muted-foreground empty:hidden"></p>
+      <p data-expiry class="text-sm text-foreground wrap-anywhere empty:hidden"></p>
+      <p data-note class="text-xs text-muted-foreground wrap-anywhere empty:hidden"></p>
     </div>
     <div class="flex flex-wrap items-center gap-step-sm">
       <button type="button" data-cancel hidden class="group/button inline-flex h-8 max-sm:h-11 max-sm:min-h-11 max-sm:h-11 max-sm:min-h-11 shrink-0 touch-manipulation items-center justify-center gap-step-sm rounded-md border border-input bg-card px-step-md text-sm font-medium text-foreground transition outline-none select-none hover:bg-muted focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 active:translate-y-px [&_svg]:size-4">Cancel claim</button>

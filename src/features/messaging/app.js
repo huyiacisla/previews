@@ -1371,7 +1371,7 @@ export function mount({ portal }) {
         const line = document.createElement("div");
         line.className = "flex items-center justify-between gap-step-sm";
         const name = document.createElement("span");
-        name.className = "text-sm font-medium";
+        name.className = "text-sm font-medium wrap-anywhere";
         name.textContent = r.title;
         line.append(name, badge(r.label, { Pending: "warning", Verified: "info", Used: "success", "Not approved": "danger", Cancelled: "neutral" }[r.label] || "neutral"));
         const meta = document.createElement("span");
@@ -1462,7 +1462,7 @@ export function mount({ portal }) {
   }
   const paragraph = (text, cls = "text-sm text-muted-foreground") => {
     const p = document.createElement("p");
-    p.className = cls;
+    p.className = `${cls} wrap-anywhere`; // a reason or note without a space wraps inside the window
     p.textContent = text;
     return p;
   };
@@ -1549,7 +1549,7 @@ export function mount({ portal }) {
       state.className = "sr-only";
       state.textContent = { done: "Done: ", current: "Now: ", stop: "Stopped: ", todo: "Next: " }[st.state];
       const text = document.createElement("span");
-      text.className = st.state === "todo" ? "text-muted-foreground" : "text-foreground";
+      text.className = st.state === "todo" ? "text-muted-foreground wrap-anywhere" : "text-foreground wrap-anywhere";
       text.textContent = [WORDS[st.label] || st.label, st.at && formatFull(Date.parse(st.at) || 0), st.state === "current" && row.at ? `waiting since ${listTime(Date.parse(row.at) || 0, Date.now())}` : "", st.note && `(${st.note})`].filter(Boolean).join(" \u00b7 ");
       li.append(mark, state, text);
       ol.appendChild(li);
@@ -1597,7 +1597,7 @@ export function mount({ portal }) {
       word.className = "sr-only";
       word.textContent = c.ok ? "Passed: " : "Needs attention: ";
       const text = document.createElement("span");
-      text.className = c.ok ? "text-foreground" : "font-medium text-danger-text";
+      text.className = c.ok ? "text-foreground wrap-anywhere" : "font-medium text-danger-text wrap-anywhere";
       text.textContent = c.text;
       li.append(mark, word, text);
       ul.appendChild(li);
