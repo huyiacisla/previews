@@ -6648,7 +6648,7 @@ function inner(){const Lst=list(),B=base(),cnt=t=>B.filter(c=>inTab(c,t)).length
  <div class="cl-lh"><label class="cl-ck"><input type="checkbox" data-clall ${all?"checked":""} aria-label="Select all visible claims"><span>${Lst.length} ${Lst.length==1?"claim":"claims"}</span></label></div>
  <div class="cl-3"><aside class="cl-side" aria-label="Claim filters"><p class="cl-st2">Filters</p>${filt()}</aside><div class="cl-list">${groups(Lst)}</div><aside class="cl-det" aria-label="Claim details">${detail(oc)}</aside></div>`}
 function inbox(){return `<div id="pmcl" class="cli">${inner()}</div>`}
-function draw(){const r=document.getElementById("pmcl");if(!r)return;const a=document.activeElement,isq=a&&a.id=="clq",pos=isq?a.selectionStart:0;r.innerHTML=inner();if(isq){const q=document.getElementById("clq");q.focus();q.setSelectionRange(pos,pos)}
+function draw(){const r=document.getElementById("pmcl");if(!r)return;/* a row that is not on the list any more (a search, a filter, another tab, a decision) is not selected any more: a bulk action only reaches what Staff see */{const on=new Set(list().map(c=>c.id));[...U.sel].forEach(id=>{if(!on.has(id))U.sel.delete(id)})}const a=document.activeElement,isq=a&&a.id=="clq",pos=isq?a.selectionStart:0;r.innerHTML=inner();if(isq){const q=document.getElementById("clq");q.focus();q.setSelectionRange(pos,pos)}
  document.querySelectorAll('[data-pmtab="claims"] .pdc-p').forEach(e=>e.textContent=pending());sheetDraw()}
 function sheet(kind,ids){U.sheet={kind,ids};sheetDraw()}
 function sheetDraw(){let s=document.getElementById("clsh");const k=U.sheet;if(!k){s&&s.remove();return}if(!s){s=document.createElement("div");s.id="clsh";s.className="pmc-ov";document.body.appendChild(s)}

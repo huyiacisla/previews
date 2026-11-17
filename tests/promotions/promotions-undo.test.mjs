@@ -127,3 +127,12 @@ test("the Claims inbox takes the stored inbox again before every action and ever
   assert.ok(staff.includes("function fromRes(){\nfresh();let ch=0;"));
   assert.ok(staff.includes('if(!inC)return;let b;fresh();'), "an action starts from the stored inbox");
 });
+
+test("Claims inbox: a row that is not on the list any more (searched out, filtered out, decided) is not selected any more, so a bulk action only reaches what Staff see", () => {
+  const at = staff.indexOf('function draw(){const r=document.getElementById("pmcl");');
+  assert.ok(at > 0);
+  const head = staff.slice(at, at + 420);
+  assert.ok(head.includes("const on=new Set(list().map(c=>c.id));[...U.sel].forEach(id=>{if(!on.has(id))U.sel.delete(id)})"));
+  // the bulk actions read the selection and nothing else
+  assert.ok(staff.includes('if(b=g("data-clbv")){const ids=[...U.sel].filter(id=>CL.find(c=>c.id==id&&c.st=="pending"));'));
+});
